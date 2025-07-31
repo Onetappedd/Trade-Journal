@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import dynamic from "next/dynamic";
-import { useAuth } from "@/context/AuthContext"; // Make sure this import is correct!
+import { useAuth } from "@/context/AuthContext";
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
@@ -29,7 +29,8 @@ const steps = [
 ];
 
 export default function AddTradeStepperPage() {
-  const { user, token } = useAuth();
+  // Remove token!
+  const { user } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   // Step 1
   const [assetType, setAssetType] = useState("Stock");
@@ -53,7 +54,7 @@ export default function AddTradeStepperPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // --- TypeScript Guard for user ---
+  // Early user check
   if (!user) return <p className="p-8 text-xl text-center">Please log in to add trades.</p>;
 
   function validateStep() {
@@ -98,18 +99,12 @@ export default function AddTradeStepperPage() {
       setFormError(err);
       return;
     }
-    if (!token) {
-      setFormError("You must be logged in to add a trade.");
-      return;
-    }
     setFormError("");
     setSubmitting(true);
 
-    // --------------------------
-    // THE FIX IS HERE! Use user!
-    // --------------------------
+    // Use user.id, but no token
     const payload: any = {
-      user_id: user!.id,
+      user_id: user.id,
       asset_type: assetType,
       broker,
       symbol,
@@ -130,7 +125,6 @@ export default function AddTradeStepperPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
     });
@@ -269,29 +263,3 @@ export default function AddTradeStepperPage() {
             <>
               <div className="mb-4 text-lg font-semibold">Review & Confirm</div>
               <div className="bg-muted rounded p-4 mb-4 w-full">
-                <div><b>Asset Type:</b> {assetType}</div>
-                <div><b>Broker:</b> {broker}</div>
-                <div><b>Symbol:</b> {symbol}</div>
-                {assetType === "Option" && <><div><b>Expiration:</b> {expiration}</div><div><b>Strike:</b> {strike}</div><div><b>Option Type:</b> {optionType}</div></>}
-                <div><b>Side:</b> {side}</div>
-                <div><b>Entry Price:</b> {entryPrice}</div>
-                <div><b>Quantity:</b> {qty}</div>
-                <div><b>Entry Time:</b> {entryTime?.toLocaleString()}</div>
-                <div><b>Exit Time:</b> {exitTime?.toLocaleString()}</div>
-                <div><b>Exit Price:</b> {exitPrice}</div>
-                <div><b>Notes:</b> {notes}</div>
-              </div>
-            </>
-          )}
-          {formError && <div className="text-red-600 text-center">{formError}</div>}
-          {success && <div className="text-green-600 text-center">Trade added successfully!</div>}
-          <div className="flex gap-4 justify-center w-full">
-            {activeStep > 0 && <Button type="button" variant="outline" onClick={handleBack}>Back</Button>}
-            {activeStep < steps.length - 1 && <Button type="button" onClick={handleNext}>Next</Button>}
-            {activeStep === steps.length - 1 && <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Confirm & Add Trade"}</Button>}
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
