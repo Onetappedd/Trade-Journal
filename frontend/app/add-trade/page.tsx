@@ -103,7 +103,7 @@ export default function AddTradeStepperPage() {
     setSubmitting(true);
 
     const payload: any = {
-      user_id: user.id,
+      user_id: user!.id, // Non-null assertion fixes TS error
       asset_type: assetType,
       broker,
       symbol,
