@@ -29,7 +29,6 @@ const steps = [
 ];
 
 export default function AddTradeStepperPage() {
-  // Remove token!
   const { user } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   // Step 1
@@ -93,6 +92,7 @@ export default function AddTradeStepperPage() {
     setFormError("");
     setActiveStep(s => Math.max(s - 1, 0));
   }
+
   async function handleSubmit() {
     const err = validateStep();
     if (err) {
@@ -102,7 +102,6 @@ export default function AddTradeStepperPage() {
     setFormError("");
     setSubmitting(true);
 
-    // Use user.id, but no token
     const payload: any = {
       user_id: user.id,
       asset_type: assetType,
@@ -153,7 +152,10 @@ export default function AddTradeStepperPage() {
             ))}
           </Stepper>
         </Box>
-        <form className="max-w-2xl w-full mx-auto bg-card rounded-lg shadow p-8 flex flex-col gap-6 items-center mt-8" onSubmit={e => { e.preventDefault(); activeStep === steps.length - 1 ? handleSubmit() : handleNext(); }}>
+        <form
+          className="max-w-2xl w-full mx-auto bg-card rounded-lg shadow p-8 flex flex-col gap-6 items-center mt-8"
+          onSubmit={e => { e.preventDefault(); activeStep === steps.length - 1 ? handleSubmit() : handleNext(); }}
+        >
           {activeStep === 0 && (
             <>
               <div className="flex flex-col md:flex-row gap-6 w-full">
@@ -263,3 +265,29 @@ export default function AddTradeStepperPage() {
             <>
               <div className="mb-4 text-lg font-semibold">Review & Confirm</div>
               <div className="bg-muted rounded p-4 mb-4 w-full">
+                <div><b>Asset Type:</b> {assetType}</div>
+                <div><b>Broker:</b> {broker}</div>
+                <div><b>Symbol:</b> {symbol}</div>
+                {assetType === "Option" && <><div><b>Expiration:</b> {expiration}</div><div><b>Strike:</b> {strike}</div><div><b>Option Type:</b> {optionType}</div></>}
+                <div><b>Side:</b> {side}</div>
+                <div><b>Entry Price:</b> {entryPrice}</div>
+                <div><b>Quantity:</b> {qty}</div>
+                <div><b>Entry Time:</b> {entryTime?.toLocaleString()}</div>
+                <div><b>Exit Time:</b> {exitTime?.toLocaleString()}</div>
+                <div><b>Exit Price:</b> {exitPrice}</div>
+                <div><b>Notes:</b> {notes}</div>
+              </div>
+            </>
+          )}
+          {formError && <div className="text-red-600 text-center">{formError}</div>}
+          {success && <div className="text-green-600 text-center">Trade added successfully!</div>}
+          <div className="flex gap-4 justify-center w-full">
+            {activeStep > 0 && <Button type="button" variant="outline" onClick={handleBack}>Back</Button>}
+            {activeStep < steps.length - 1 && <Button type="button" onClick={handleNext}>Next</Button>}
+            {activeStep === steps.length - 1 && <Button type="submit" disabled={submitting}>{submitting ? "Adding..." : "Confirm & Add Trade"}</Button>}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
