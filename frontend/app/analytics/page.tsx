@@ -92,8 +92,9 @@ export default function AnalyticsPage() {
   }, []);
 
   return (
-    <Sidebar>
-      <div className="p-4 space-y-6">
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="p-4 space-y-6 flex-1">
         {/* Filters */}
         <div className="flex items-center gap-4">
           <DateRangePicker value={dateRange} onChange={setDateRange} />
@@ -144,6 +145,6 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
-    </Sidebar>
+    </div>
   );
 }
