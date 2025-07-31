@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useAuth } from '@/context/auth-provider'
 import { supabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/context/auth-provider'
 
 export default function ImportPage() {
   const { user } = useAuth()
@@ -29,16 +29,10 @@ export default function ImportPage() {
   }
 
   const handleImport = async () => {
-    if (trades.length === 0) {
-      setError('No trades to import')
-      return
-    }
-
     const tradesWithUser = trades.map(trade => ({
       ...trade,
       user_id: user.id,
     }))
-
     const { error } = await supabase.from('trades').insert(tradesWithUser)
     if (error) {
       setError('Error importing trades')
