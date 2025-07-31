@@ -29,27 +29,38 @@ export default function AnalyticsPage() {
   const [symbol, setSymbol] = useState<string>("");
 
   useEffect(() => {
+    let isMounted = true;
     setLoading(true);
     setError("");
 
-    // Replace your old fetch("/api/analytics/…") call with Supabase RPC or table query
-    // Example: assume you created a stored procedure `get_user_analytics`
-    supabase
-      .rpc("get_user_analytics", {
-        uid: user.id,
-        start_date: dateRange[0].toISOString(),
-        end_date: dateRange[1].toISOString(),
-        symbol: symbol || null,
-      })
-      .then(({ data, error }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc("get_user_analytics", {
+          uid: user.id,
+          start_date: dateRange[0].toISOString(),
+          end_date: dateRange[1].toISOString(),
+          symbol: symbol || null,
+        });
+        if (!isMounted) return;
         if (error) {
           console.error(error);
           setError("Failed to fetch analytics");
+          setAnalytics(null);
         } else {
           setAnalytics(data);
         }
-      })
-      .finally(() => setLoading(false));
+      } catch (e) {
+        if (!isMounted) return;
+        setError("Failed to fetch analytics");
+        setAnalytics(null);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, dateRange, symbol]);
 
   // Trending tickers still public, so keep fetch
@@ -58,13 +69,26 @@ export default function AnalyticsPage() {
   const [trendingError, setTrendingError] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
     setTrendingLoading(true);
     setTrendingError("");
-    fetch("/api/trending-tickers")
-      .then((res) => res.json())
-      .then((data) => setTrending(data.trending || []))
-      .catch(() => setTrendingError("Failed to fetch trending tickers"))
-      .finally(() => setTrendingLoading(false));
+    (async () => {
+      try {
+        const res = await fetch("/api/trending-tickers");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (!isMounted) return;
+        setTrending(data.trending || []);
+      } catch {
+        if (isMounted) setTrendingError("Failed to fetch trending tickers");
+      } finally {
+        if (isMounted) setTrendingLoading(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -89,7 +113,7 @@ export default function AnalyticsPage() {
             <Card>
               <CardContent>
                 <h3 className="text-lg font-medium">Total P&L</h3>
-                <p className="mt-2">${analytics.overall.total_pnl}</p>
+                <p className="mt-2">${analytics.overall?.total_pnl ?? "--"}</p>
               </CardContent>
             </Card>
             {/* …other cards… */}
@@ -98,7 +122,7 @@ export default function AnalyticsPage() {
 
         {/* Error / Empty */}
         {error && <div className="text-red-500">{error}</div>}
-        {!loading && analytics?.overall.total_trades === 0 && (
+        {!loading && analytics?.overall?.total_trades === 0 && (
           <div className="text-gray-500">No trades found for the filters.</div>
         )}
 
