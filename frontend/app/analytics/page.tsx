@@ -21,12 +21,16 @@ export default function AnalyticsPage() {
   const { user } = useAuth();
   if (!user) return <p>Please log in to view your analytics.</p>;
 
+  // FIXED: use object, not array!
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+    from: new Date(),
+    to: new Date(),
+  });
+  const [symbol, setSymbol] = useState<string>("");
+
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const [dateRange, setDateRange] = useState<[Date, Date]>([new Date(), new Date()]);
-  const [symbol, setSymbol] = useState<string>("");
 
   useEffect(() => {
     let isMounted = true;
@@ -37,8 +41,8 @@ export default function AnalyticsPage() {
       try {
         const { data, error } = await supabase.rpc("get_user_analytics", {
           uid: user.id,
-          start_date: dateRange[0].toISOString(),
-          end_date: dateRange[1].toISOString(),
+          start_date: dateRange.from.toISOString(),
+          end_date: dateRange.to.toISOString(),
           symbol: symbol || null,
         });
         if (!isMounted) return;
@@ -117,7 +121,7 @@ export default function AnalyticsPage() {
                 <p className="mt-2">${analytics.overall?.total_pnl ?? "--"}</p>
               </CardContent>
             </Card>
-            {/* …other cards… */}
+            {/* ...other cards... */}
           </div>
         ) : null}
 
