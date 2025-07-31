@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+python-dotenv
+python-jose[cryptography]
+requests
+python-multipart
+bcrypt>=4.0.1
+passlib[bcrypt]>=1.7.4
+transformers
+torch
+snscrape
