@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useAuth } from '../context/auth-provider'
+import { useAuth } from '@/context/auth-provider'
 
 export default function AddTradePage() {
   const { user } = useAuth()
 
-  if (!user) return <p>Please log in to add trades</p>
+  if (!user) return <p>Please log in to add trades.</p>
 
   const handleSubmit = async (e) => {
     e.preventDefault()
