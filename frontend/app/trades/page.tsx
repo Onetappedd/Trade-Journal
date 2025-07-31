@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Sidebar } from "@/components/layout/sidebar";
-import { useAuth } from "@/context/auth-provider";
+import { useAuth } from '@/context/AuthContext';
 
 export default function TradesPage() {
   const { user } = useAuth();

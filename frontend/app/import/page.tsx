@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sidebar } from "@/components/layout/sidebar";
-import { useAuth } from "@/context/auth-provider";
+import { useAuth } from '@/context/AuthContext';
 
 const brokerInstructions: Record<string, { label: string; instructions: string }> = {
   webull: {

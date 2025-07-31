@@ -16,7 +16,7 @@ import {
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import dynamic from "next/dynamic";
 
-import { useAuth } from "@/context/auth-provider";
+import { useAuth } from '@/context/AuthContext';
 import { supabase } from "@/lib/supabaseClient";
 
 const TradingViewChart = dynamic(
