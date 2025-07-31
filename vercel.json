@@ -1,5 +1,8 @@
 {
-  "github": {
-    "rootDirectory": "frontend"
-  }
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
+    }
+  ]
 }

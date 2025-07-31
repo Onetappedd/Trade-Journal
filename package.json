@@ -6,7 +6,6 @@
     "@supabase/supabase-js": "^2.0.0"
   },
   "scripts": {
-    "vercel-build": "cd frontend && npm install && npm run build",
     "find-token": "node scripts/find-token.js"
   },
   "devDependencies": {
