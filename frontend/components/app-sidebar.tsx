@@ -1,24 +1,20 @@
 "use client"
 
+import type * as React from "react"
 import {
   BarChart3,
-  Home,
-  Plus,
-  Upload,
-  History,
-  TrendingUp,
-  PieChart,
-  Settings,
-  Target,
   Calendar,
   FileText,
-  Calculator,
-  Bell,
+  Home,
+  Settings,
+  TrendingUp,
+  Target,
   Search,
+  Bell,
+  Calculator,
   Shield,
+  Wallet,
 } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 
 import {
   Sidebar,
@@ -26,135 +22,140 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 
-const menuGroups = [
-  {
-    label: "Trading",
-    items: [
-      {
-        title: "Dashboard",
-        url: "/",
-        icon: Home,
-      },
-      {
-        title: "Add Trade",
-        url: "/add-trade",
-        icon: Plus,
-      },
-      {
-        title: "Import Trades",
-        url: "/import-trades",
-        icon: Upload,
-      },
-      {
-        title: "Trade History",
-        url: "/trade-history",
-        icon: History,
-      },
-    ],
-  },
-  {
-    label: "Portfolio",
-    items: [
-      {
-        title: "Live Portfolio",
-        url: "/portfolio",
-        icon: TrendingUp,
-      },
-      {
-        title: "Calendar",
-        url: "/calendar",
-        icon: Calendar,
-      },
-      {
-        title: "Risk Management",
-        url: "/risk-management",
-        icon: Shield,
-      },
-    ],
-  },
-  {
-    label: "Analytics & Reports",
-    items: [
-      {
-        title: "Analytics",
-        url: "/analytics",
-        icon: BarChart3,
-      },
-      {
-        title: "Reports",
-        url: "/reports",
-        icon: FileText,
-      },
-      {
-        title: "Tax Center",
-        url: "/tax-center",
-        icon: Calculator,
-      },
-      {
-        title: "Compare vs S&P",
-        url: "/benchmark",
-        icon: Target,
-      },
-    ],
-  },
-  {
-    label: "Tools",
-    items: [
-      {
-        title: "Price Alerts",
-        url: "/alerts",
-        icon: Bell,
-      },
-      {
-        title: "Market Scanner",
-        url: "/scanner",
-        icon: Search,
-      },
-    ],
-  },
-  {
-    label: "Settings",
-    items: [
-      {
-        title: "Settings",
-        url: "/settings",
-        icon: Settings,
-      },
-    ],
-  },
-]
+const data = {
+  navMain: [
+    {
+      title: "Trading",
+      items: [
+        {
+          title: "Dashboard",
+          url: "/",
+          icon: Home,
+        },
+        {
+          title: "Trade History",
+          url: "/trade-history",
+          icon: FileText,
+        },
+        {
+          title: "Add Trade",
+          url: "/add-trade",
+          icon: TrendingUp,
+        },
+        {
+          title: "Import Trades",
+          url: "/import-trades",
+          icon: FileText,
+        },
+        {
+          title: "Calendar",
+          url: "/calendar",
+          icon: Calendar,
+        },
+      ],
+    },
+    {
+      title: "Portfolio",
+      items: [
+        {
+          title: "Live Portfolio",
+          url: "/portfolio",
+          icon: Wallet,
+        },
+        {
+          title: "Risk Management",
+          url: "/risk-management",
+          icon: Shield,
+        },
+      ],
+    },
+    {
+      title: "Analytics & Reports",
+      items: [
+        {
+          title: "Analytics",
+          url: "/analytics",
+          icon: BarChart3,
+        },
+        {
+          title: "Benchmark",
+          url: "/benchmark",
+          icon: Target,
+        },
+        {
+          title: "Reports",
+          url: "/reports",
+          icon: FileText,
+        },
+        {
+          title: "Tax Center",
+          url: "/tax-center",
+          icon: Calculator,
+        },
+      ],
+    },
+    {
+      title: "Tools",
+      items: [
+        {
+          title: "Price Alerts",
+          url: "/alerts",
+          icon: Bell,
+        },
+        {
+          title: "Market Scanner",
+          url: "/scanner",
+          icon: Search,
+        },
+        {
+          title: "Trending Tickers",
+          url: "/trending-tickers",
+          icon: TrendingUp,
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      items: [
+        {
+          title: "Settings",
+          url: "/settings",
+          icon: Settings,
+        },
+      ],
+    },
+  ],
+}
 
-export function AppSidebar() {
-  const pathname = usePathname()
-
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar className="border-r">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <PieChart className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">TradeJournal Pro</span>
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <div className="flex items-center gap-2 px-4 py-2">
+          <TrendingUp className="h-6 w-6" />
+          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">Trading Journal</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {menuGroups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+        {data.navMain.map((group) => (
+          <SidebarGroup key={group.title}>
+            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={pathname === item.url}>
-                      <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
+                    <SidebarMenuButton asChild>
+                      <a href={item.url}>
+                        <item.icon />
                         <span>{item.title}</span>
-                      </Link>
+                      </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -163,9 +164,7 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <div className="text-xs text-muted-foreground">© 2024 TradeJournal Pro</div>
-      </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

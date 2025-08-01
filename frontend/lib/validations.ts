@@ -5,12 +5,11 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
-export const signupSchema = z
+export const registerSchema = z
   .object({
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
-    displayName: z.string().min(2, "Display name must be at least 2 characters").optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -42,14 +41,13 @@ export const tradeSchema = z.object({
 })
 
 export const profileSchema = z.object({
-  display_name: z.string().min(2, "Display name must be at least 2 characters").optional(),
-  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
-  website: z.string().url("Invalid URL").optional().or(z.literal("")),
-  location: z.string().max(100, "Location must be less than 100 characters").optional(),
+  displayName: z.string().min(1, "Display name is required"),
+  email: z.string().email("Invalid email address"),
+  bio: z.string().optional(),
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>
-export type SignupFormData = z.infer<typeof signupSchema>
+export type RegisterFormData = z.infer<typeof registerSchema>
 export type PasswordFormData = z.infer<typeof passwordSchema>
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 export type TradeFormData = z.infer<typeof tradeSchema>

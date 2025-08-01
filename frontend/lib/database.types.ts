@@ -53,7 +53,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          created_at: string | null
+          created_at: string
           default_asset_type: string | null
           default_broker: string | null
           display_name: string | null
@@ -64,12 +64,15 @@ export type Database = {
           risk_tolerance: string | null
           timezone: string | null
           trade_alerts: boolean | null
-          updated_at: string | null
+          updated_at: string
           weekly_reports: boolean | null
+          bio: string | null
+          website: string | null
+          location: string | null
         }
         Insert: {
           avatar_url?: string | null
-          created_at?: string | null
+          created_at?: string
           default_asset_type?: string | null
           default_broker?: string | null
           display_name?: string | null
@@ -80,12 +83,15 @@ export type Database = {
           risk_tolerance?: string | null
           timezone?: string | null
           trade_alerts?: boolean | null
-          updated_at?: string | null
+          updated_at?: string
           weekly_reports?: boolean | null
+          bio?: string | null
+          website?: string | null
+          location?: string | null
         }
         Update: {
           avatar_url?: string | null
-          created_at?: string | null
+          created_at?: string
           default_asset_type?: string | null
           default_broker?: string | null
           display_name?: string | null
@@ -96,8 +102,11 @@ export type Database = {
           risk_tolerance?: string | null
           timezone?: string | null
           trade_alerts?: boolean | null
-          updated_at?: string | null
+          updated_at?: string
           weekly_reports?: boolean | null
+          bio?: string | null
+          website?: string | null
+          location?: string | null
         }
         Relationships: [
           {
@@ -181,7 +190,7 @@ export type Database = {
         Row: {
           asset_type: string
           broker: string
-          created_at: string | null
+          created_at: string
           emotional_state: string | null
           execution_quality: number | null
           exit_reason: string | null
@@ -196,18 +205,19 @@ export type Database = {
           profit_loss_percentage: number | null
           quantity: number
           setup_quality: number | null
-          side: string
+          side: "buy" | "sell"
           strategy: string | null
           symbol: string
           total_value: number
           trade_date: string
-          updated_at: string | null
+          updated_at: string
           user_id: string
+          tags: string[] | null
         }
         Insert: {
           asset_type: string
           broker: string
-          created_at?: string | null
+          created_at?: string
           emotional_state?: string | null
           execution_quality?: number | null
           exit_reason?: string | null
@@ -222,18 +232,19 @@ export type Database = {
           profit_loss_percentage?: number | null
           quantity: number
           setup_quality?: number | null
-          side: string
+          side: "buy" | "sell"
           strategy?: string | null
           symbol: string
           total_value: number
           trade_date: string
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
+          tags?: string[] | null
         }
         Update: {
           asset_type?: string
           broker?: string
-          created_at?: string | null
+          created_at?: string
           emotional_state?: string | null
           execution_quality?: number | null
           exit_reason?: string | null
@@ -248,13 +259,14 @@ export type Database = {
           profit_loss_percentage?: number | null
           quantity?: number
           setup_quality?: number | null
-          side?: string
+          side?: "buy" | "sell"
           strategy?: string | null
           symbol?: string
           total_value?: number
           trade_date?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
+          tags?: string[] | null
         }
         Relationships: [
           {

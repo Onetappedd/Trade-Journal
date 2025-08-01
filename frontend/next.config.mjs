@@ -1,24 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['placeholder.svg'],
-    unoptimized: true
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
+    domains: ['localhost'],
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
-  trailingSlash: false,
-  async redirects() {
-    return [
-      {
-        source: '/dashboard',
-        destination: '/',
-        permanent: true,
-      },
-    ]
+  eslint: {
+    ignoreDuringBuilds: false,
   },
 }
 
