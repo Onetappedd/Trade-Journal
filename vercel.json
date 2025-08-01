@@ -4,11 +4,6 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["sfo1"],
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/((?!api|_next|_static|favicon.ico).*)",
