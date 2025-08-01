@@ -19,12 +19,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing session
+    // Check for existing session on mount
     const savedUser = localStorage.getItem("trading-journal-user")
     if (savedUser) {
       try {
@@ -39,17 +47,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     setIsLoading(true)
 
-    // Mock authentication - replace with real auth
+    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
+    // Demo credentials
     if (email === "demo@example.com" && password === "password") {
-      const mockUser = {
+      const user = {
         id: "1",
-        email: email,
+        email: "demo@example.com",
         name: "Demo User",
       }
-      setUser(mockUser)
-      localStorage.setItem("trading-journal-user", JSON.stringify(mockUser))
+      setUser(user)
+      localStorage.setItem("trading-journal-user", JSON.stringify(user))
       setIsLoading(false)
       return { success: true }
     }
@@ -61,16 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, name: string) => {
     setIsLoading(true)
 
-    // Mock registration - replace with real auth
+    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    const mockUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      email: email,
-      name: name,
+    const user = {
+      id: Date.now().toString(),
+      email,
+      name,
     }
-    setUser(mockUser)
-    localStorage.setItem("trading-journal-user", JSON.stringify(mockUser))
+    setUser(user)
+    localStorage.setItem("trading-journal-user", JSON.stringify(user))
     setIsLoading(false)
     return { success: true }
   }
@@ -93,12 +102,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
 }

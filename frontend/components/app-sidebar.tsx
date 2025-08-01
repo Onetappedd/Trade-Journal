@@ -1,11 +1,27 @@
 "use client"
 
-import type React from "react"
+import type * as React from "react"
+import {
+  Home,
+  TrendingUp,
+  Calendar,
+  FileText,
+  Settings,
+  PlusCircle,
+  History,
+  Upload,
+  Briefcase,
+  Shield,
+  BarChart3,
+  Search,
+  Bell,
+  Activity,
+  Calculator,
+} from "lucide-react"
 
-import { Home, TrendingUp, BarChart3, Search, FileText } from "lucide-react"
-import { TeamSwitcher } from "@/components/team-switcher"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 
 const data = {
@@ -18,31 +34,35 @@ const data = {
     {
       name: "Personal Trading",
       logo: TrendingUp,
-      plan: "Free",
+      plan: "Pro",
     },
   ],
   navMain: [
     {
-      title: "Trading",
-      url: "#",
+      title: "Dashboard",
+      url: "/dashboard",
       icon: Home,
       isActive: true,
+    },
+    {
+      title: "Trading",
+      url: "#",
+      icon: TrendingUp,
       items: [
-        {
-          title: "Dashboard",
-          url: "/dashboard",
-        },
         {
           title: "Add Trade",
           url: "/dashboard/add-trade",
+          icon: PlusCircle,
         },
         {
           title: "Trade History",
           url: "/dashboard/trade-history",
+          icon: History,
         },
         {
           title: "Import Trades",
           url: "/dashboard/import-trades",
+          icon: Upload,
         },
       ],
     },
@@ -54,18 +74,22 @@ const data = {
         {
           title: "Portfolio",
           url: "/dashboard/portfolio",
+          icon: Briefcase,
         },
         {
           title: "Risk Management",
           url: "/dashboard/risk-management",
+          icon: Shield,
         },
         {
           title: "Benchmark",
           url: "/dashboard/benchmark",
+          icon: Activity,
         },
         {
           title: "Analytics",
           url: "/dashboard/analytics",
+          icon: BarChart3,
         },
       ],
     },
@@ -77,14 +101,17 @@ const data = {
         {
           title: "Market Scanner",
           url: "/dashboard/market-scanner",
+          icon: Search,
         },
         {
           title: "Price Alerts",
           url: "/dashboard/price-alerts",
+          icon: Bell,
         },
         {
           title: "Trending Tickers",
           url: "/dashboard/trending-tickers",
+          icon: TrendingUp,
         },
       ],
     },
@@ -96,16 +123,24 @@ const data = {
         {
           title: "Reports",
           url: "/dashboard/reports",
+          icon: FileText,
         },
         {
           title: "Tax Center",
           url: "/dashboard/tax-center",
-        },
-        {
-          title: "Calendar",
-          url: "/dashboard/calendar",
+          icon: Calculator,
         },
       ],
+    },
+    {
+      title: "Calendar",
+      url: "/dashboard/calendar",
+      icon: Calendar,
+    },
+    {
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: Settings,
     },
   ],
 }

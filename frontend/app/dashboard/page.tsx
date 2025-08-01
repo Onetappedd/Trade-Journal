@@ -1,12 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Navbar } from "@/components/navbar"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { DashboardContent } from "@/components/dashboard-content"
+import { Loader2 } from "lucide-react"
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
@@ -21,24 +19,14 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
   }
 
   if (!user) {
-    return null
+    return null // Will redirect
   }
 
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Navbar />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <DashboardContent />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+  return <DashboardContent />
 }
