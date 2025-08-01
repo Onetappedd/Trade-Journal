@@ -1,94 +1,97 @@
 "use client"
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { Navbar } from "@/components/navbar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, DollarSign, Activity } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react"
 
 export function DashboardContent() {
+  const metrics = [
+    {
+      title: "Total P&L",
+      value: "+$12,345",
+      change: "+12.5%",
+      trend: "up",
+      icon: DollarSign,
+    },
+    {
+      title: "Win Rate",
+      value: "68.5%",
+      change: "+2.1%",
+      trend: "up",
+      icon: TrendingUp,
+    },
+    {
+      title: "Total Trades",
+      value: "247",
+      change: "+15",
+      trend: "up",
+      icon: Activity,
+    },
+    {
+      title: "Avg Trade",
+      value: "$156",
+      change: "-$12",
+      trend: "down",
+      icon: TrendingDown,
+    },
+  ]
+
+  const recentTrades = [
+    { symbol: "AAPL", type: "Long", pnl: "+$245", date: "2024-01-15" },
+    { symbol: "TSLA", type: "Short", pnl: "-$89", date: "2024-01-15" },
+    { symbol: "MSFT", type: "Long", pnl: "+$167", date: "2024-01-14" },
+    { symbol: "NVDA", type: "Long", pnl: "+$423", date: "2024-01-14" },
+    { symbol: "GOOGL", type: "Short", pnl: "+$78", date: "2024-01-13" },
+  ]
+
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Navbar />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <Card>
+    <div className="space-y-6">
+      {/* Metrics Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon
+          return (
+            <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">{metric.title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">+$12,345</div>
-                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                <div className="text-2xl font-bold">{metric.value}</div>
+                <p className={`text-xs ${metric.trend === "up" ? "text-green-600" : "text-red-600"}`}>
+                  {metric.change} from last month
+                </p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">68.5%</div>
-                <p className="text-xs text-muted-foreground">+2.1% from last month</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">247</div>
-                <p className="text-xs text-muted-foreground">+12 from last week</p>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Recent Trades</CardTitle>
-                <CardDescription>Your latest trading activity</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">AAPL</p>
-                      <p className="text-sm text-muted-foreground">Apple Inc.</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-green-600">+$234.50</p>
-                      <p className="text-sm text-muted-foreground">2 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">TSLA</p>
-                      <p className="text-sm text-muted-foreground">Tesla Inc.</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-red-600">-$89.25</p>
-                      <p className="text-sm text-muted-foreground">5 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <p className="font-medium">MSFT</p>
-                      <p className="text-sm text-muted-foreground">Microsoft Corp.</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-green-600">+$156.75</p>
-                      <p className="text-sm text-muted-foreground">1 day ago</p>
-                    </div>
+          )
+        })}
+      </div>
+
+      {/* Recent Trades */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Trades</CardTitle>
+          <CardDescription>Your latest trading activity</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentTrades.map((trade, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="font-medium">{trade.symbol}</div>
+                  <Badge variant={trade.type === "Long" ? "default" : "secondary"}>{trade.type}</Badge>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-muted-foreground">{trade.date}</div>
+                  <div className={`font-medium ${trade.pnl.startsWith("+") ? "text-green-600" : "text-red-600"}`}>
+                    {trade.pnl}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

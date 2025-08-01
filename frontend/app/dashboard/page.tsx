@@ -4,7 +4,9 @@ import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { DashboardContent } from "@/components/dashboard-content"
-import { Loader2 } from "lucide-react"
+import { AppSidebar } from "@/components/app-sidebar"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { Navbar } from "@/components/navbar"
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
@@ -16,17 +18,19 @@ export default function DashboardPage() {
     }
   }, [user, isLoading, router])
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
+  if (isLoading || !user) {
+    return null
   }
 
-  if (!user) {
-    return null // Will redirect
-  }
-
-  return <DashboardContent />
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <Navbar title="Dashboard" />
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <DashboardContent />
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
+  )
 }
