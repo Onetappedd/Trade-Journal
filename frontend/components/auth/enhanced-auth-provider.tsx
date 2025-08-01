@@ -2,22 +2,17 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
 
 interface User {
   id: string
   email: string
-  user_metadata?: {
-    display_name?: string
-    avatar_url?: string
-  }
+  name?: string
 }
 
 interface Profile {
   id: string
-  display_name: string
-  avatar_url: string
+  user_id: string
+  display_name?: string
   bio?: string
   timezone?: string
   notifications_enabled?: boolean
@@ -26,10 +21,9 @@ interface Profile {
 interface AuthContextType {
   user: User | null
   profile: Profile | null
-  session: any
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error?: any }>
-  signUp: (email: string, password: string) => Promise<{ error?: any }>
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signUp: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<void>
 }
@@ -39,203 +33,115 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const { toast } = useToast()
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const storedUser = localStorage.getItem("auth_user")
-    const storedProfile = localStorage.getItem("auth_profile")
+    // Check for existing session
+    const storedUser = localStorage.getItem("user")
+    const storedProfile = localStorage.getItem("profile")
 
     if (storedUser) {
-      const userData = JSON.parse(storedUser)
-      setUser(userData)
-      setSession({ user: userData })
-
-      if (storedProfile) {
-        setProfile(JSON.parse(storedProfile))
-      } else {
-        // Create default profile
-        const defaultProfile = {
-          id: userData.id,
-          display_name: userData.user_metadata?.display_name || userData.email?.split("@")[0] || "User",
-          avatar_url:
-            userData.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${userData.email}`,
-          bio: "",
-          timezone: "UTC",
-          notifications_enabled: true,
-        }
-        setProfile(defaultProfile)
-        localStorage.setItem("auth_profile", JSON.stringify(defaultProfile))
-      }
+      setUser(JSON.parse(storedUser))
+    }
+    if (storedProfile) {
+      setProfile(JSON.parse(storedProfile))
     }
 
     setLoading(false)
   }, [])
 
-  const signIn = async (email: string, password: string): Promise<{ error?: any }> => {
+  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      setLoading(true)
-
-      // Mock authentication - in real app, this would call Supabase
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
+      // Mock authentication
       const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: "1",
         email,
-        user_metadata: {
-          display_name: email.split("@")[0],
-          avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${email}`,
-        },
+        name: email.split("@")[0],
       }
 
       const mockProfile: Profile = {
-        id: mockUser.id,
-        display_name: mockUser.user_metadata?.display_name || "User",
-        avatar_url: mockUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${email}`,
-        bio: "",
+        id: "1",
+        user_id: "1",
+        display_name: email.split("@")[0],
         timezone: "UTC",
         notifications_enabled: true,
       }
 
       setUser(mockUser)
       setProfile(mockProfile)
-      setSession({ user: mockUser })
 
-      localStorage.setItem("auth_user", JSON.stringify(mockUser))
-      localStorage.setItem("auth_profile", JSON.stringify(mockProfile))
+      localStorage.setItem("user", JSON.stringify(mockUser))
+      localStorage.setItem("profile", JSON.stringify(mockProfile))
 
-      toast({
-        title: "Welcome back!",
-        description: "You have been signed in successfully.",
-      })
-
-      return { error: null }
+      return { success: true }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign in. Please try again.",
-        variant: "destructive",
-      })
-      return { error: { message: "Failed to sign in" } }
-    } finally {
-      setLoading(false)
+      return { success: false, error: "Invalid credentials" }
     }
   }
 
-  const signUp = async (email: string, password: string): Promise<{ error?: any }> => {
+  const signUp = async (
+    email: string,
+    password: string,
+    name?: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      setLoading(true)
-
-      // Mock sign up - in real app, this would call Supabase
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
+      // Mock registration
       const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: "1",
         email,
-        user_metadata: {
-          display_name: email.split("@")[0],
-          avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${email}`,
-        },
+        name: name || email.split("@")[0],
       }
 
       const mockProfile: Profile = {
-        id: mockUser.id,
-        display_name: mockUser.user_metadata?.display_name || "User",
-        avatar_url: mockUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${email}`,
-        bio: "",
+        id: "1",
+        user_id: "1",
+        display_name: name || email.split("@")[0],
         timezone: "UTC",
         notifications_enabled: true,
       }
 
       setUser(mockUser)
       setProfile(mockProfile)
-      setSession({ user: mockUser })
 
-      localStorage.setItem("auth_user", JSON.stringify(mockUser))
-      localStorage.setItem("auth_profile", JSON.stringify(mockProfile))
+      localStorage.setItem("user", JSON.stringify(mockUser))
+      localStorage.setItem("profile", JSON.stringify(mockProfile))
 
-      toast({
-        title: "Account created!",
-        description: "Your account has been created successfully.",
-      })
-
-      return { error: null }
+      return { success: true }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create account. Please try again.",
-        variant: "destructive",
-      })
-      return { error: { message: "Failed to create account" } }
-    } finally {
-      setLoading(false)
+      return { success: false, error: "Registration failed" }
     }
   }
 
   const signOut = async () => {
-    try {
-      setLoading(true)
-
-      setUser(null)
-      setProfile(null)
-      setSession(null)
-
-      localStorage.removeItem("auth_user")
-      localStorage.removeItem("auth_profile")
-
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully.",
-      })
-
-      router.push("/login")
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
+    setUser(null)
+    setProfile(null)
+    localStorage.removeItem("user")
+    localStorage.removeItem("profile")
   }
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    try {
-      if (!profile) return
-
+    if (profile) {
       const updatedProfile = { ...profile, ...updates }
       setProfile(updatedProfile)
-      localStorage.setItem("auth_profile", JSON.stringify(updatedProfile))
-
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive",
-      })
+      localStorage.setItem("profile", JSON.stringify(updatedProfile))
     }
   }
 
-  const value = {
-    user,
-    profile,
-    session,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    updateProfile,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        updateProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

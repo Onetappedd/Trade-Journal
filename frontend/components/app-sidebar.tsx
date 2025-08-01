@@ -1,65 +1,169 @@
 "use client"
 
 import type * as React from "react"
-import { BarChart3, Calendar, FileText, Home, PieChart, Settings, TrendingUp, Wallet } from "lucide-react"
-
-import { NavUser } from "@/components/nav-user"
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-} from "@/components/ui/sidebar"
+  AudioWaveform,
+  Bot,
+  Command,
+  GalleryVerticalEnd,
+  Settings2,
+  TrendingUp,
+  BarChart3,
+  Calendar,
+  FileText,
+  Target,
+  Activity,
+  Search,
+  Bell,
+  Briefcase,
+  LineChart,
+  Calculator,
+  Shield,
+  Download,
+  Upload,
+  History,
+  Plus,
+  Home,
+} from "lucide-react"
+
+import { NavMain } from "@/components/nav-main"
+import { NavUser } from "@/components/nav-user"
+import { TeamSwitcher } from "@/components/team-switcher"
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 
 // This is sample data.
 const data = {
+  user: {
+    name: "shadcn",
+    email: "m@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  },
+  teams: [
+    {
+      name: "Trading Journal",
+      logo: GalleryVerticalEnd,
+      plan: "Pro",
+    },
+    {
+      name: "Portfolio Manager",
+      logo: AudioWaveform,
+      plan: "Startup",
+    },
+    {
+      name: "Risk Analytics",
+      logo: Command,
+      plan: "Free",
+    },
+  ],
   navMain: [
     {
       title: "Dashboard",
       url: "/dashboard",
       icon: Home,
+      isActive: true,
     },
     {
-      title: "Trade History",
-      url: "/dashboard/trade-history",
-      icon: FileText,
-    },
-    {
-      title: "Portfolio",
-      url: "/dashboard/portfolio",
-      icon: Wallet,
+      title: "Trading",
+      url: "#",
+      icon: TrendingUp,
+      items: [
+        {
+          title: "Add Trade",
+          url: "/dashboard/add-trade",
+          icon: Plus,
+        },
+        {
+          title: "Trade History",
+          url: "/dashboard/trade-history",
+          icon: History,
+        },
+        {
+          title: "Import Trades",
+          url: "/dashboard/import-trades",
+          icon: Upload,
+        },
+      ],
     },
     {
       title: "Analytics",
-      url: "/dashboard/analytics",
+      url: "#",
       icon: BarChart3,
+      items: [
+        {
+          title: "Portfolio",
+          url: "/dashboard/portfolio",
+          icon: Briefcase,
+        },
+        {
+          title: "Performance",
+          url: "/dashboard/analytics",
+          icon: LineChart,
+        },
+        {
+          title: "Risk Management",
+          url: "/dashboard/risk-management",
+          icon: Shield,
+        },
+        {
+          title: "Benchmark",
+          url: "/dashboard/benchmark",
+          icon: Target,
+        },
+      ],
     },
     {
-      title: "Calendar",
-      url: "/dashboard/calendar",
-      icon: Calendar,
+      title: "Tools",
+      url: "#",
+      icon: Bot,
+      items: [
+        {
+          title: "Market Scanner",
+          url: "/dashboard/scanner",
+          icon: Search,
+        },
+        {
+          title: "Price Alerts",
+          url: "/dashboard/alerts",
+          icon: Bell,
+        },
+        {
+          title: "Trending Tickers",
+          url: "/dashboard/trending-tickers",
+          icon: Activity,
+        },
+        {
+          title: "Calendar",
+          url: "/dashboard/calendar",
+          icon: Calendar,
+        },
+      ],
     },
     {
       title: "Reports",
-      url: "/dashboard/reports",
-      icon: PieChart,
-    },
-    {
-      title: "Market Scanner",
-      url: "/dashboard/scanner",
-      icon: TrendingUp,
+      url: "#",
+      icon: FileText,
+      items: [
+        {
+          title: "Performance Reports",
+          url: "/dashboard/reports",
+          icon: FileText,
+        },
+        {
+          title: "Tax Center",
+          url: "/dashboard/tax-center",
+          icon: Calculator,
+        },
+        {
+          title: "Export Data",
+          url: "/dashboard/export",
+          icon: Download,
+        },
+      ],
     },
     {
       title: "Settings",
       url: "/dashboard/settings",
-      icon: Settings,
+      icon: Settings2,
     },
   ],
 }
@@ -68,34 +172,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <TrendingUp className="size-4" />
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">Trading Journal</span>
-            <span className="truncate text-xs">Track your trades</span>
-          </div>
-        </div>
+        <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {data.navMain.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
