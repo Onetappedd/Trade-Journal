@@ -5,12 +5,13 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/enhanced-auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { SidebarProvider } from "@/components/ui/sidebar"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Trading Journal Dashboard",
-  description: "A comprehensive trading journal and analytics platform",
+  description: "Professional trading journal and analytics platform",
     generator: 'v0.dev'
 }
 
@@ -22,10 +23,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            {children}
-            <Toaster />
+            <SidebarProvider>
+              {children}
+              <Toaster />
+            </SidebarProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
