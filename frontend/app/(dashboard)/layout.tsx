@@ -1,7 +1,11 @@
+"use client"
+
 import type React from "react"
-import { SidebarProvider } from "@/components/ui/sidebar"
+
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import ProtectedRoute from "@/components/auth/protected-route"
+import { Navbar } from "@/components/navbar"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function DashboardLayout({
   children,
@@ -11,10 +15,11 @@ export default function DashboardLayout({
   return (
     <ProtectedRoute>
       <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <AppSidebar />
-          <main className="flex-1">{children}</main>
-        </div>
+        <AppSidebar />
+        <SidebarInset>
+          <Navbar />
+          <main className="flex-1 space-y-4 p-8 pt-6">{children}</main>
+        </SidebarInset>
       </SidebarProvider>
     </ProtectedRoute>
   )

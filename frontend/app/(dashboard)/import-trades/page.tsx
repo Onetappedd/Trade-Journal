@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -96,8 +95,11 @@ export default function ImportTrades() {
   }
 
   return (
-    <div className="flex flex-col">
-      <Navbar title="Import Trades" />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Import Trades</h1>
+        <p className="text-muted-foreground">Upload your trading data from various brokers</p>
+      </div>
 
       <div className="flex-1 p-6">
         <div className="max-w-4xl mx-auto space-y-6">

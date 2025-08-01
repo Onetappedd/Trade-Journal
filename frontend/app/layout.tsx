@@ -9,8 +9,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "TradeJournal Pro",
-  description: "Professional trading journal and analytics platform",
+  title: "Trading Journal Dashboard",
+  description: "Track and analyze your trading performance",
     generator: 'v0.dev'
 }
 

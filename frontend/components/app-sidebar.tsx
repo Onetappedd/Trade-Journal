@@ -1,6 +1,22 @@
 "use client"
 
-import { BarChart3, Home, Plus, Upload, History, TrendingUp, PieChart, Settings, Target, Calendar } from "lucide-react"
+import {
+  BarChart3,
+  Home,
+  Plus,
+  Upload,
+  History,
+  TrendingUp,
+  PieChart,
+  Settings,
+  Target,
+  Calendar,
+  FileText,
+  Calculator,
+  Bell,
+  Search,
+  Shield,
+} from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -17,51 +33,101 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar"
 
-const menuItems = [
+const menuGroups = [
   {
-    title: "Dashboard",
-    url: "/",
-    icon: Home,
+    label: "Trading",
+    items: [
+      {
+        title: "Dashboard",
+        url: "/",
+        icon: Home,
+      },
+      {
+        title: "Add Trade",
+        url: "/add-trade",
+        icon: Plus,
+      },
+      {
+        title: "Import Trades",
+        url: "/import-trades",
+        icon: Upload,
+      },
+      {
+        title: "Trade History",
+        url: "/trade-history",
+        icon: History,
+      },
+    ],
   },
   {
-    title: "Add Trade",
-    url: "/add-trade",
-    icon: Plus,
+    label: "Portfolio",
+    items: [
+      {
+        title: "Live Portfolio",
+        url: "/portfolio",
+        icon: TrendingUp,
+      },
+      {
+        title: "Calendar",
+        url: "/calendar",
+        icon: Calendar,
+      },
+      {
+        title: "Risk Management",
+        url: "/risk-management",
+        icon: Shield,
+      },
+    ],
   },
   {
-    title: "Import Trades",
-    url: "/import-trades",
-    icon: Upload,
+    label: "Analytics & Reports",
+    items: [
+      {
+        title: "Analytics",
+        url: "/analytics",
+        icon: BarChart3,
+      },
+      {
+        title: "Reports",
+        url: "/reports",
+        icon: FileText,
+      },
+      {
+        title: "Tax Center",
+        url: "/tax-center",
+        icon: Calculator,
+      },
+      {
+        title: "Compare vs S&P",
+        url: "/benchmark",
+        icon: Target,
+      },
+    ],
   },
   {
-    title: "Trade History",
-    url: "/trade-history",
-    icon: History,
+    label: "Tools",
+    items: [
+      {
+        title: "Price Alerts",
+        url: "/alerts",
+        icon: Bell,
+      },
+      {
+        title: "Market Scanner",
+        url: "/scanner",
+        icon: Search,
+      },
+    ],
   },
   {
-    title: "Calendar",
-    url: "/calendar",
-    icon: Calendar,
-  },
-  {
-    title: "Trending Tickers",
-    url: "/trending-tickers",
-    icon: TrendingUp,
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Compare vs S&P",
-    url: "/benchmark",
-    icon: Target,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
+    label: "Settings",
+    items: [
+      {
+        title: "Settings",
+        url: "/settings",
+        icon: Settings,
+      },
+    ],
   },
 ]
 
@@ -77,23 +143,25 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={pathname === item.url}>
+                      <Link href={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="p-4">
         <div className="text-xs text-muted-foreground">© 2024 TradeJournal Pro</div>
