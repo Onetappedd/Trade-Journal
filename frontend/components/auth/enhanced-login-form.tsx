@@ -4,13 +4,13 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "./enhanced-auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAuth } from "./enhanced-auth-provider"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, TrendingUp } from "lucide-react"
 
 export function EnhancedLoginForm() {
@@ -19,12 +19,12 @@ export function EnhancedLoginForm() {
   const { signIn, signUp } = useAuth()
   const router = useRouter()
 
-  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     setIsLoading(true)
     setError("")
 
-    const formData = new FormData(event.currentTarget)
+    const formData = new FormData(e.currentTarget)
     const email = formData.get("email") as string
     const password = formData.get("password") as string
 
@@ -39,12 +39,12 @@ export function EnhancedLoginForm() {
     setIsLoading(false)
   }
 
-  const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     setIsLoading(true)
     setError("")
 
-    const formData = new FormData(event.currentTarget)
+    const formData = new FormData(e.currentTarget)
     const email = formData.get("email") as string
     const password = formData.get("password") as string
     const name = formData.get("name") as string
@@ -61,16 +61,13 @@ export function EnhancedLoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="text-center">
         <div className="flex items-center justify-center mb-4">
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">Trading Journal</span>
-          </div>
+          <TrendingUp className="h-8 w-8 text-primary" />
         </div>
-        <CardTitle className="text-2xl text-center">Welcome</CardTitle>
-        <CardDescription className="text-center">Sign in to your account or create a new one</CardDescription>
+        <CardTitle className="text-2xl font-bold">Trading Journal</CardTitle>
+        <CardDescription>Sign in to your account or create a new one</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="signin" className="w-full">
@@ -109,8 +106,14 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
           </TabsContent>
@@ -156,8 +159,14 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign Up
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Sign Up"
+                )}
               </Button>
             </form>
           </TabsContent>

@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface User {
   id: string
@@ -34,17 +35,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     // Check for existing session
-    const storedUser = localStorage.getItem("user")
-    const storedProfile = localStorage.getItem("profile")
+    try {
+      const storedUser = localStorage.getItem("user")
+      const storedProfile = localStorage.getItem("profile")
 
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-    if (storedProfile) {
-      setProfile(JSON.parse(storedProfile))
+      if (storedUser) {
+        setUser(JSON.parse(storedUser))
+      }
+      if (storedProfile) {
+        setProfile(JSON.parse(storedProfile))
+      }
+    } catch (error) {
+      console.error("Error loading stored auth data:", error)
     }
 
     setLoading(false)
@@ -52,16 +58,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Mock authentication
+      setLoading(true)
+
+      // Mock authentication - simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       const mockUser: User = {
-        id: "1",
+        id: Math.random().toString(36).substr(2, 9),
         email,
         name: email.split("@")[0],
       }
 
       const mockProfile: Profile = {
-        id: "1",
-        user_id: "1",
+        id: mockUser.id,
+        user_id: mockUser.id,
         display_name: email.split("@")[0],
         timezone: "UTC",
         notifications_enabled: true,
@@ -76,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true }
     } catch (error) {
       return { success: false, error: "Invalid credentials" }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -85,16 +97,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     name?: string,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Mock registration
+      setLoading(true)
+
+      // Mock registration - simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
       const mockUser: User = {
-        id: "1",
+        id: Math.random().toString(36).substr(2, 9),
         email,
         name: name || email.split("@")[0],
       }
 
       const mockProfile: Profile = {
-        id: "1",
-        user_id: "1",
+        id: mockUser.id,
+        user_id: mockUser.id,
         display_name: name || email.split("@")[0],
         timezone: "UTC",
         notifications_enabled: true,
@@ -109,6 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true }
     } catch (error) {
       return { success: false, error: "Registration failed" }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -117,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null)
     localStorage.removeItem("user")
     localStorage.removeItem("profile")
+    router.push("/login")
   }
 
   const updateProfile = async (updates: Partial<Profile>) => {

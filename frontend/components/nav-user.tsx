@@ -1,7 +1,6 @@
 "use client"
 
 import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from "lucide-react"
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -19,9 +18,7 @@ export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, signOut } = useAuth()
 
-  if (!user) {
-    return null
-  }
+  if (!user) return null
 
   return (
     <SidebarMenu>
@@ -64,28 +61,28 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Sparkles />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <BadgeCheck className="mr-2 h-4 w-4" />
+                <BadgeCheck />
                 Account
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <CreditCard className="mr-2 h-4 w-4" />
+                <CreditCard />
                 Billing
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
+                <Bell />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
