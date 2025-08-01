@@ -2,18 +2,16 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { AuthProvider } from "@/components/auth/enhanced-auth-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import { EnhancedAuthProvider } from "@/components/auth/enhanced-auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { AppLayout } from "@/components/app-layout"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Trading Journal Dashboard",
   description: "Track and analyze your trading performance",
-  icons: {
-    icon: "/favicon.ico",
-  },
     generator: 'v0.dev'
 }
 
@@ -23,13 +21,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="en">
+      <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <EnhancedAuthProvider>
-            {children}
+          <AuthProvider>
+            <AppLayout>{children}</AppLayout>
             <Toaster />
-          </EnhancedAuthProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

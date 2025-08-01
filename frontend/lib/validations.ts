@@ -1,33 +1,40 @@
 import { z } from "zod"
 
-export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+// Validator for a single email string
+export const emailValidation = z.string().email({ message: "Please enter a valid email address." })
+
+// Validator for a single password string
+export const passwordValidation = z
+  .string()
+  .min(8, "Password must be at least 8 characters long.")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter.")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
+  .regex(/[0-9]/, "Password must contain at least one number.")
+  .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character.")
+
+// Schema for the login form
+export const loginFormSchema = z.object({
+  email: emailValidation,
+  password: z.string().min(1, "Password is required."), // Less strict for login
+  remember: z.boolean().default(false),
 })
 
-export const registerSchema = z
+// Schema for the signup form
+export const signupFormSchema = z
   .object({
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    displayName: z.string().min(2, { message: "Display name must be at least 2 characters." }),
+    email: emailValidation,
+    password: passwordValidation,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "Passwords do not match.",
     path: ["confirmPassword"],
   })
 
-export const passwordSchema = z
-  .object({
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  })
-
+// Schema for the password reset form
 export const resetPasswordSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: emailValidation,
 })
 
 export const tradeSchema = z.object({
@@ -35,20 +42,8 @@ export const tradeSchema = z.object({
   type: z.enum(["buy", "sell"]),
   quantity: z.number().positive("Quantity must be positive"),
   price: z.number().positive("Price must be positive"),
-  date: z.date(),
+  date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
-  tags: z.array(z.string()).optional(),
 })
 
-export const profileSchema = z.object({
-  displayName: z.string().min(1, "Display name is required"),
-  email: z.string().email("Invalid email address"),
-  bio: z.string().optional(),
-})
-
-export type LoginFormData = z.infer<typeof loginSchema>
-export type RegisterFormData = z.infer<typeof registerSchema>
-export type PasswordFormData = z.infer<typeof passwordSchema>
-export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 export type TradeFormData = z.infer<typeof tradeSchema>
-export type ProfileFormData = z.infer<typeof profileSchema>

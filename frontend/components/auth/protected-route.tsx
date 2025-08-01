@@ -3,19 +3,21 @@
 import type React from "react"
 
 import { useAuth } from "./enhanced-auth-provider"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user && !pathname.startsWith("/login") && !pathname.startsWith("/auth")) {
       router.push("/login")
     }
-  }, [user, loading, router])
+  }, [user, loading, router, pathname])
 
+  // Show loading or redirect for auth pages
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -24,6 +26,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
+  // Allow access to login and auth pages without authentication
+  if (!user && (pathname.startsWith("/login") || pathname.startsWith("/auth"))) {
+    return <>{children}</>
+  }
+
+  // Require authentication for all other pages
   if (!user) {
     return null
   }

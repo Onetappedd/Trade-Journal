@@ -9,6 +9,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/ssr'],
+  },
 }
 
 export default nextConfig

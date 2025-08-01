@@ -3,130 +3,153 @@
 import type * as React from "react"
 import {
   BarChart3,
-  Calendar,
-  FileText,
-  Home,
   Settings,
   TrendingUp,
   Target,
   Search,
-  Bell,
-  Calculator,
+  PlusCircle,
+  History,
+  Upload,
+  Calendar,
   Shield,
-  Wallet,
+  TrendingDown,
+  FileText,
+  Receipt,
+  Radar,
+  Bell,
+  Activity,
+  Home,
 } from "lucide-react"
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-} from "@/components/ui/sidebar"
+import { NavMain } from "@/components/nav-main"
+import { NavUser } from "@/components/nav-user"
+import { TeamSwitcher } from "@/components/team-switcher"
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 
+// Updated navigation structure without emojis
 const data = {
+  user: {
+    name: "Trading User",
+    email: "user@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  },
+  teams: [
+    {
+      name: "Trading Dashboard",
+      logo: TrendingUp,
+      plan: "Pro",
+    },
+  ],
   navMain: [
     {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: Home,
+      isActive: false,
+      items: [],
+    },
+    {
       title: "Trading",
+      url: "#",
+      icon: TrendingUp,
+      isActive: false,
       items: [
         {
-          title: "Dashboard",
-          url: "/",
-          icon: Home,
+          title: "Add Trade",
+          url: "/dashboard/add-trade",
+          icon: PlusCircle,
         },
         {
           title: "Trade History",
-          url: "/trade-history",
-          icon: FileText,
-        },
-        {
-          title: "Add Trade",
-          url: "/add-trade",
-          icon: TrendingUp,
+          url: "/dashboard/trade-history",
+          icon: History,
         },
         {
           title: "Import Trades",
-          url: "/import-trades",
-          icon: FileText,
+          url: "/dashboard/import-trades",
+          icon: Upload,
         },
         {
           title: "Calendar",
-          url: "/calendar",
+          url: "/dashboard/calendar",
           icon: Calendar,
         },
       ],
     },
     {
       title: "Portfolio",
+      url: "#",
+      icon: Target,
       items: [
         {
           title: "Live Portfolio",
-          url: "/portfolio",
-          icon: Wallet,
+          url: "/dashboard/portfolio",
+          icon: Target,
         },
         {
           title: "Risk Management",
-          url: "/risk-management",
+          url: "/dashboard/risk-management",
           icon: Shield,
+        },
+        {
+          title: "Benchmark",
+          url: "/dashboard/benchmark",
+          icon: TrendingDown,
         },
       ],
     },
     {
       title: "Analytics & Reports",
+      url: "#",
+      icon: BarChart3,
       items: [
         {
           title: "Analytics",
-          url: "/analytics",
+          url: "/dashboard/analytics",
           icon: BarChart3,
         },
         {
-          title: "Benchmark",
-          url: "/benchmark",
-          icon: Target,
-        },
-        {
           title: "Reports",
-          url: "/reports",
+          url: "/dashboard/reports",
           icon: FileText,
         },
         {
           title: "Tax Center",
-          url: "/tax-center",
-          icon: Calculator,
+          url: "/dashboard/tax-center",
+          icon: Receipt,
         },
       ],
     },
     {
       title: "Tools",
+      url: "#",
+      icon: Search,
       items: [
         {
+          title: "Market Scanner",
+          url: "/dashboard/market-scanner",
+          icon: Radar,
+        },
+        {
           title: "Price Alerts",
-          url: "/alerts",
+          url: "/dashboard/price-alerts",
           icon: Bell,
         },
         {
-          title: "Market Scanner",
-          url: "/scanner",
-          icon: Search,
-        },
-        {
           title: "Trending Tickers",
-          url: "/trending-tickers",
-          icon: TrendingUp,
+          url: "/dashboard/trending-tickers",
+          icon: Activity,
         },
       ],
     },
     {
       title: "Settings",
+      url: "#",
+      icon: Settings,
       items: [
         {
-          title: "Settings",
-          url: "/settings",
+          title: "Account Settings",
+          url: "/dashboard/settings",
           icon: Settings,
         },
       ],
@@ -138,32 +161,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <TrendingUp className="h-6 w-6" />
-          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">Trading Journal</span>
-        </div>
+        <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        {data.navMain.map((group) => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <a href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        <NavMain items={data.navMain} />
       </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={data.user} />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )
