@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -16,6 +15,8 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirectTo") || "/"
   const { signIn, signUp, resetPassword } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -30,19 +31,18 @@ export default function LoginPage() {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
 
-    const { error } = await signIn(email, password)
-
-    if (error) {
-      setError(error.message)
-    } else {
+    try {
+      await signIn(email, password)
       toast({
         title: "Welcome back!",
         description: "You have been signed in successfully.",
       })
-      router.push("/")
+      router.push(redirectTo)
+    } catch (error: any) {
+      setError(error.message || "An error occurred during sign in")
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -55,18 +55,17 @@ export default function LoginPage() {
     const password = formData.get("password") as string
     const displayName = formData.get("displayName") as string
 
-    const { error } = await signUp(email, password, displayName)
-
-    if (error) {
-      setError(error.message)
-    } else {
+    try {
+      await signUp(email, password, displayName)
       toast({
         title: "Account created!",
         description: "Please check your email to verify your account.",
       })
+    } catch (error: any) {
+      setError(error.message || "An error occurred during sign up")
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -77,18 +76,17 @@ export default function LoginPage() {
     const formData = new FormData(e.currentTarget)
     const email = formData.get("email") as string
 
-    const { error } = await resetPassword(email)
-
-    if (error) {
-      setError(error.message)
-    } else {
+    try {
+      await resetPassword(email)
       toast({
         title: "Reset email sent!",
         description: "Check your email for password reset instructions.",
       })
+    } catch (error: any) {
+      setError(error.message || "An error occurred during password reset")
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
@@ -22,7 +21,7 @@ interface AuthContextType {
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, displayName?: string) => Promise<void>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<void>
@@ -95,8 +94,16 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
     if (error) throw error
   }
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+  const signUp = async (email: string, password: string, displayName?: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName,
+        },
+      },
+    })
     if (error) throw error
   }
 
@@ -106,7 +113,9 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
   }
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    })
     if (error) throw error
   }
 

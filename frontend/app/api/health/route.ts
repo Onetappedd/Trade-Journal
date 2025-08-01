@@ -4,6 +4,6 @@ export async function GET() {
   return NextResponse.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    version: "1.0.0",
+    message: "Trading Journal API is running",
   })
 }
