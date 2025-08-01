@@ -1,164 +1,156 @@
 "use client"
 
-import * as React from "react"
+import type * as React from "react"
 import {
-  AudioWaveform,
-  Command,
-  GalleryVerticalEnd,
-  Settings2,
-  BarChart3,
   TrendingUp,
+  BarChart3,
+  PlusCircle,
+  History,
+  Upload,
+  Calendar,
+  Target,
+  Shield,
+  TrendingDown,
   FileText,
-  Briefcase,
+  Receipt,
+  Search,
+  Bell,
+  Activity,
+  Settings,
+  GalleryVerticalEnd,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
-import { useAuth } from "@/components/auth/enhanced-auth-provider"
 
-// This is sample data.
+// Trading-focused navigation data
 const data = {
-  user: {
-    name: "Trading User",
-    email: "user@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
-      name: "Trading Dashboard",
+      name: "Trading Journal",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Portfolio Analytics",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Risk Management",
-      logo: Command,
-      plan: "Free",
+      plan: "Pro",
     },
   ],
   navMain: [
     {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: BarChart3,
+      isActive: false,
+      items: [],
+    },
+    {
       title: "Trading",
       url: "#",
-      icon: BarChart3,
+      icon: TrendingUp,
       isActive: true,
       items: [
         {
-          title: "Dashboard",
-          url: "/dashboard",
-        },
-        {
           title: "Add Trade",
           url: "/dashboard/add-trade",
+          icon: PlusCircle,
         },
         {
           title: "Trade History",
           url: "/dashboard/trade-history",
+          icon: History,
         },
         {
           title: "Import Trades",
           url: "/dashboard/import-trades",
+          icon: Upload,
+        },
+        {
+          title: "Calendar",
+          url: "/dashboard/calendar",
+          icon: Calendar,
         },
       ],
     },
     {
       title: "Portfolio",
       url: "#",
-      icon: Briefcase,
+      icon: Target,
       items: [
         {
           title: "Overview",
           url: "/dashboard/portfolio",
-        },
-        {
-          title: "Calendar",
-          url: "/dashboard/calendar",
+          icon: Target,
         },
         {
           title: "Risk Management",
           url: "/dashboard/risk-management",
+          icon: Shield,
         },
         {
           title: "Benchmark",
           url: "/dashboard/benchmark",
+          icon: TrendingDown,
         },
       ],
     },
     {
       title: "Analytics",
       url: "#",
-      icon: TrendingUp,
+      icon: BarChart3,
       items: [
         {
           title: "Performance",
           url: "/dashboard/analytics",
+          icon: BarChart3,
         },
         {
-          title: "Market Scanner",
-          url: "/dashboard/market-scanner",
-        },
-        {
-          title: "Price Alerts",
-          url: "/dashboard/price-alerts",
-        },
-        {
-          title: "Trending Tickers",
-          url: "/dashboard/trending-tickers",
-        },
-      ],
-    },
-    {
-      title: "Reports",
-      url: "#",
-      icon: FileText,
-      items: [
-        {
-          title: "Performance Reports",
+          title: "Reports",
           url: "/dashboard/reports",
+          icon: FileText,
         },
         {
           title: "Tax Center",
           url: "/dashboard/tax-center",
+          icon: Receipt,
+        },
+      ],
+    },
+    {
+      title: "Market Tools",
+      url: "#",
+      icon: Search,
+      items: [
+        {
+          title: "Scanner",
+          url: "/dashboard/scanner",
+          icon: Search,
+        },
+        {
+          title: "Market Scanner",
+          url: "/dashboard/market-scanner",
+          icon: Search,
+        },
+        {
+          title: "Price Alerts",
+          url: "/dashboard/price-alerts",
+          icon: Bell,
+        },
+        {
+          title: "Trending Tickers",
+          url: "/dashboard/trending-tickers",
+          icon: Activity,
         },
       ],
     },
     {
       title: "Settings",
       url: "/dashboard/settings",
-      icon: Settings2,
+      icon: Settings,
+      items: [],
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth()
-
-  // Create robust user data mapping with multiple fallback options
-  const userData = React.useMemo(() => {
-    if (!user) {
-      return {
-        name: "Guest User",
-        email: "guest@example.com",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=guest",
-      }
-    }
-
-    return {
-      name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "Trading User",
-      email: user.email || "user@example.com",
-      avatar:
-        user.user_metadata?.avatar_url ||
-        user.user_metadata?.picture ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || "default"}`,
-    }
-  }, [user])
-
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>

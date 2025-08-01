@@ -17,24 +17,16 @@ import { useAuth } from "@/components/auth/enhanced-auth-provider"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { user, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
 
-  // Provide comprehensive fallbacks for user data
+  // Create user data with fallbacks
   const userData = {
-    name: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split("@")[0] || "User",
+    name: profile?.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Trading User",
     email: user?.email || "user@example.com",
     avatar:
+      profile?.avatar_url ||
       user?.user_metadata?.avatar_url ||
-      user?.user_metadata?.picture ||
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || "default"}`,
-  }
-
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error("Error signing out:", error)
-    }
   }
 
   return (
@@ -98,7 +90,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
+            <DropdownMenuItem onClick={() => signOut()}>
               <LogOut />
               Log out
             </DropdownMenuItem>

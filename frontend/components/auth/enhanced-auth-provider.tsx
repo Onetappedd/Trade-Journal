@@ -3,180 +3,141 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
 
 interface Profile {
   id: string
-  display_name: string | null
-  email: string
-  avatar_url: string | null
-  timezone: string | null
-  default_broker: string | null
-  default_asset_type: string | null
-  risk_tolerance: string | null
-  email_notifications: boolean | null
-  push_notifications: boolean | null
-  trade_alerts: boolean | null
-  weekly_reports: boolean | null
-  created_at: string
-  updated_at: string
+  display_name?: string
+  avatar_url?: string
+  email?: string
 }
 
 interface AuthContextType {
   user: User | null
+  profile: Profile | null
+  session: any | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: any }>
-  signUp: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error?: any }>
   signOut: () => Promise<void>
-  updateProfile: (updates: any) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<Profile>) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }
 
-interface AuthProviderProps {
-  children: React.ReactNode
-}
-
-// Storage keys for persistence
-const AUTH_STORAGE_KEY = "trading-journal-auth"
-const PROFILE_STORAGE_KEY = "trading-journal-profile"
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [session, setSession] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
 
   useEffect(() => {
-    // Check if user is logged in from localStorage
+    // Check for existing session in localStorage
     const storedUser = localStorage.getItem("auth-user")
+    const storedProfile = localStorage.getItem("auth-profile")
+
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser)
         setUser(parsedUser)
+        setSession({ user: parsedUser })
+
+        if (storedProfile) {
+          setProfile(JSON.parse(storedProfile))
+        } else {
+          // Create default profile from user data
+          const defaultProfile = {
+            id: parsedUser.id,
+            display_name: parsedUser.user_metadata?.full_name || parsedUser.email?.split("@")[0],
+            avatar_url:
+              parsedUser.user_metadata?.avatar_url ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${parsedUser.email}`,
+            email: parsedUser.email,
+          }
+          setProfile(defaultProfile)
+          localStorage.setItem("auth-profile", JSON.stringify(defaultProfile))
+        }
       } catch (error) {
-        console.error("Error parsing stored user:", error)
+        console.error("Error parsing stored auth data:", error)
         localStorage.removeItem("auth-user")
+        localStorage.removeItem("auth-profile")
       }
     }
+
     setLoading(false)
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Add avatar_url to user metadata if not present
-        const userWithAvatar = {
-          ...session.user,
-          user_metadata: {
-            ...session.user.user_metadata,
-            avatar_url:
-              session.user.user_metadata?.avatar_url ||
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.email}`,
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User",
-          },
-        }
-        setUser(userWithAvatar)
-        localStorage.setItem("auth-user", JSON.stringify(userWithAvatar))
-      } else {
-        setUser(null)
-        localStorage.removeItem("auth-user")
-      }
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    setLoading(true)
 
-    if (data.user && !error) {
-      const userWithAvatar = {
-        ...data.user,
+    // Mock authentication - in real app, this would call Supabase
+    if (email && password) {
+      const mockUser: User = {
+        id: "mock-user-id",
+        email,
         user_metadata: {
-          ...data.user.user_metadata,
-          avatar_url: data.user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-          full_name: data.user.user_metadata?.full_name || email.split("@")[0] || "User",
+          full_name: email.split("@")[0],
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
         },
+        app_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString(),
       }
-      setUser(userWithAvatar)
-      localStorage.setItem("auth-user", JSON.stringify(userWithAvatar))
+
+      const mockProfile: Profile = {
+        id: mockUser.id,
+        display_name: mockUser.user_metadata?.full_name,
+        avatar_url: mockUser.user_metadata?.avatar_url,
+        email: mockUser.email,
+      }
+
+      setUser(mockUser)
+      setProfile(mockProfile)
+      setSession({ user: mockUser })
+
+      // Store in localStorage
+      localStorage.setItem("auth-user", JSON.stringify(mockUser))
+      localStorage.setItem("auth-profile", JSON.stringify(mockProfile))
+
+      setLoading(false)
+      return { error: null }
     }
 
-    return { error }
-  }
-
-  const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-          full_name: email.split("@")[0] || "User",
-        },
-      },
-    })
-    return { error }
+    setLoading(false)
+    return { error: { message: "Invalid credentials" } }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
     setUser(null)
+    setProfile(null)
+    setSession(null)
     localStorage.removeItem("auth-user")
+    localStorage.removeItem("auth-profile")
   }
 
-  const updateProfile = async (updates: any) => {
-    const { data, error } = await supabase.auth.updateUser({
-      data: updates,
-    })
-
-    if (data.user && !error) {
-      const updatedUser = {
-        ...data.user,
-        user_metadata: {
-          ...data.user.user_metadata,
-          avatar_url:
-            data.user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.email}`,
-          full_name: data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "User",
-        },
-      }
-      setUser(updatedUser)
-      localStorage.setItem("auth-user", JSON.stringify(updatedUser))
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (profile) {
+      const updatedProfile = { ...profile, ...updates }
+      setProfile(updatedProfile)
+      localStorage.setItem("auth-profile", JSON.stringify(updatedProfile))
     }
-
-    return { error }
   }
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        signIn,
-        signUp,
-        signOut,
-        updateProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
+  const value = {
+    user,
+    profile,
+    session,
+    loading,
+    signIn,
+    signOut,
+    updateProfile,
+  }
 
-// Export both named and default for compatibility
-export { AuthProvider as EnhancedAuthProvider }
-export default AuthProvider
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
