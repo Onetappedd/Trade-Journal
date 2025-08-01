@@ -25,6 +25,7 @@ import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
+import { useAuth } from "@/components/auth/enhanced-auth-provider"
 
 // Updated navigation structure without emojis
 const data = {
@@ -158,6 +159,18 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, profile } = useAuth()
+
+  // Create user data from auth context with fallbacks
+  const userData = {
+    name: profile?.display_name || user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Demo User",
+    email: user?.email || "demo@example.com",
+    avatar:
+      profile?.avatar_url ||
+      user?.user_metadata?.avatar_url ||
+      `https://api.dicebear.com/7.x/initials/svg?seed=${user?.email || "Demo User"}`,
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -167,7 +180,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
