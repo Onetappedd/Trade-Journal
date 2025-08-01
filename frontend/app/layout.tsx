@@ -3,24 +3,17 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth/enhanced-auth-provider"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "TradeJournal Pro - Advanced Trading Analytics",
-  description:
-    "Professional trading journal with advanced analytics, risk management, and performance tracking for traders and investors.",
-  keywords: ["trading", "journal", "analytics", "stocks", "options", "crypto", "portfolio", "risk management"],
-  authors: [{ name: "TradeJournal Pro" }],
-  creator: "TradeJournal Pro",
-  publisher: "TradeJournal Pro",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
+  title: "Trading Journal Dashboard",
+  description: "Track and analyze your trading performance with comprehensive analytics and insights",
+  keywords: ["trading", "journal", "analytics", "dashboard", "finance", "stocks"],
+  authors: [{ name: "Trading Journal Team" }],
+  viewport: "width=device-width, initial-scale=1",
     generator: 'v0.dev'
 }
 
