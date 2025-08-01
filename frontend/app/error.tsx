@@ -2,8 +2,7 @@
 
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 
 export default function Error({
   error,
@@ -13,24 +12,26 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    console.error("Application error:", error)
   }, [error])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <TrendingUp className="h-6 w-6" />
-            <span className="text-xl font-bold">Trading Journal</span>
-          </div>
-          <CardTitle>Something went wrong!</CardTitle>
-          <CardDescription>An error occurred while loading this page.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={reset}>Try again</Button>
-        </CardContent>
-      </Card>
+    <div className="flex min-h-screen flex-col items-center justify-center space-y-4">
+      <div className="flex flex-col items-center space-y-2">
+        <AlertTriangle className="h-10 w-10 text-destructive" />
+        <h2 className="text-xl font-semibold">Something went wrong!</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          An unexpected error occurred. Please try again or contact support if the problem persists.
+        </p>
+      </div>
+      <div className="flex space-x-2">
+        <Button onClick={reset} variant="default">
+          Try again
+        </Button>
+        <Button onClick={() => (window.location.href = "/")} variant="outline">
+          Go home
+        </Button>
+      </div>
     </div>
   )
 }
