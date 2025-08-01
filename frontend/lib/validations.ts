@@ -1,47 +1,25 @@
 import { z } from "zod"
 
-export const tradeSchema = z.object({
-  symbol: z.string().min(1, "Symbol is required"),
-  asset_type: z.enum(["stock", "option", "crypto", "forex"]),
-  side: z.enum(["buy", "sell"]),
-  quantity: z.number().min(1, "Quantity must be at least 1"),
-  entry_price: z.number().min(0.01, "Entry price must be greater than 0"),
-  exit_price: z.number().optional(),
-  trade_date: z.string(),
-  exit_date: z.string().optional(),
-  notes: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  fees: z.number().optional(),
-  // Option-specific fields
-  strike_price: z.number().optional(),
-  expiration_date: z.string().optional(),
-  option_type: z.enum(["call", "put"]).optional(),
-  // Additional fields
-  strategy: z.string().optional(),
-  setup: z.string().optional(),
-})
-
-export type TradeFormData = z.infer<typeof tradeSchema>
-
-export const profileSchema = z.object({
-  display_name: z.string().min(1, "Display name is required"),
-  bio: z.string().optional(),
-  website: z.string().url().optional().or(z.literal("")),
-  location: z.string().optional(),
-  avatar_url: z.string().url().optional().or(z.literal("")),
-})
-
-export type ProfileFormData = z.infer<typeof profileSchema>
-
-export const signInSchema = z.object({
+export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
-export const signUpSchema = z
+export const signupSchema = z
   .object({
     email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    displayName: z.string().min(2, "Display name must be at least 2 characters").optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  })
+
+export const passwordSchema = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -53,18 +31,26 @@ export const resetPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
 })
 
-// Add the missing passwordSchema
-export const passwordSchema = z
-  .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  })
+export const tradeSchema = z.object({
+  symbol: z.string().min(1, "Symbol is required"),
+  type: z.enum(["buy", "sell"]),
+  quantity: z.number().positive("Quantity must be positive"),
+  price: z.number().positive("Price must be positive"),
+  date: z.date(),
+  notes: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+})
 
-export type SignInFormData = z.infer<typeof signInSchema>
-export type SignUpFormData = z.infer<typeof signUpSchema>
-export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
+export const profileSchema = z.object({
+  display_name: z.string().min(2, "Display name must be at least 2 characters").optional(),
+  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal("")),
+  location: z.string().max(100, "Location must be less than 100 characters").optional(),
+})
+
+export type LoginFormData = z.infer<typeof loginSchema>
+export type SignupFormData = z.infer<typeof signupSchema>
 export type PasswordFormData = z.infer<typeof passwordSchema>
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
+export type TradeFormData = z.infer<typeof tradeSchema>
+export type ProfileFormData = z.infer<typeof profileSchema>
