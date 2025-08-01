@@ -32,10 +32,21 @@ export const signupFormSchema = z
     path: ["confirmPassword"],
   })
 
-// Schema for the password reset form
+// Schema for the password reset form (requesting the reset)
 export const resetPasswordSchema = z.object({
   email: emailValidation,
 })
+
+// Schema for updating the password
+export const updatePasswordSchema = z
+  .object({
+    password: passwordValidation,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  })
 
 export const tradeSchema = z.object({
   symbol: z.string().min(1, "Symbol is required"),

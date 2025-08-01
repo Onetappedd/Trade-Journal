@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { PieChart, Eye, EyeOff } from "lucide-react"
-import { passwordSchema } from "@/lib/validations"
+import { updatePasswordSchema } from "@/lib/validations"
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("")
@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
 
     try {
       // Validate password
-      passwordSchema.parse({ password, confirmPassword })
+      updatePasswordSchema.parse({ password, confirmPassword })
 
       const { error } = await updatePassword(password)
 
