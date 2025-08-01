@@ -5,10 +5,7 @@
   "framework": "nextjs",
   "regions": ["sfo1"],
   "functions": {
-    "app/**/*.ts": {
-      "runtime": "nodejs18.x"
-    },
-    "app/**/*.tsx": {
+    "api/**/*.ts": {
       "runtime": "nodejs18.x"
     }
   },
