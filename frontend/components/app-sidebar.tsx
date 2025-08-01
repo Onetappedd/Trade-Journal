@@ -3,15 +3,15 @@
 import type * as React from "react"
 import {
   AudioWaveform,
-  BookOpen,
   Bot,
   Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
   PieChart,
   Settings2,
-  Terminal,
+  TrendingUp,
+  BarChart3,
+  AlertTriangle,
+  FileText,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -22,129 +22,119 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } fr
 // This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "Trading Pro",
+    email: "trader@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "Trading Journal",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      plan: "Pro",
     },
     {
-      name: "Acme Corp.",
+      name: "Portfolio Manager",
       logo: AudioWaveform,
-      plan: "Startup",
+      plan: "Free",
     },
     {
-      name: "Evil Corp.",
+      name: "Risk Analytics",
       logo: Command,
-      plan: "Free",
+      plan: "Premium",
     },
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: Terminal,
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: BarChart3,
       isActive: true,
+    },
+    {
+      title: "Trading",
+      url: "#",
+      icon: TrendingUp,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Add Trade",
+          url: "/dashboard/add-trade",
         },
         {
-          title: "Starred",
-          url: "#",
+          title: "Trade History",
+          url: "/dashboard/trade-history",
         },
         {
-          title: "Settings",
-          url: "#",
+          title: "Import Trades",
+          url: "/dashboard/import-trades",
         },
       ],
     },
     {
-      title: "Models",
+      title: "Analysis",
+      url: "#",
+      icon: PieChart,
+      items: [
+        {
+          title: "Portfolio",
+          url: "/dashboard/portfolio",
+        },
+        {
+          title: "Analytics",
+          url: "/dashboard/analytics",
+        },
+        {
+          title: "Calendar",
+          url: "/dashboard/calendar",
+        },
+      ],
+    },
+    {
+      title: "Tools",
       url: "#",
       icon: Bot,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "Market Scanner",
+          url: "/dashboard/market-scanner",
         },
         {
-          title: "Explorer",
-          url: "#",
+          title: "Price Alerts",
+          url: "/dashboard/price-alerts",
         },
         {
-          title: "Quantum",
-          url: "#",
+          title: "Trending Tickers",
+          url: "/dashboard/trending-tickers",
         },
       ],
     },
     {
-      title: "Documentation",
+      title: "Risk Management",
+      url: "/dashboard/risk-management",
+      icon: AlertTriangle,
+    },
+    {
+      title: "Reports",
       url: "#",
-      icon: BookOpen,
+      icon: FileText,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Performance",
+          url: "/dashboard/reports",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "Tax Center",
+          url: "/dashboard/tax-center",
         },
         {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
+          title: "Benchmark",
+          url: "/dashboard/benchmark",
         },
       ],
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 }

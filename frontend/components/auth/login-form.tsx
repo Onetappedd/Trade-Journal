@@ -28,10 +28,10 @@ export function LoginForm() {
     setError("")
 
     try {
-      const { error } = await signIn(email, password)
+      const result = await signIn(email, password)
 
-      if (error) {
-        setError(error.message)
+      if (result.error) {
+        setError(result.error.message || "An error occurred during sign in")
       } else {
         // Redirect to dashboard on successful login
         router.push("/dashboard")
@@ -47,8 +47,8 @@ export function LoginForm() {
     setIsLoading(true)
     try {
       // Mock Google sign in
-      const { error } = await signIn("google@example.com", "password")
-      if (!error) {
+      const result = await signIn("google@example.com", "password")
+      if (!result.error) {
         router.push("/dashboard")
       }
     } catch (err) {
@@ -62,8 +62,8 @@ export function LoginForm() {
     setIsLoading(true)
     try {
       // Mock Discord sign in
-      const { error } = await signIn("discord@example.com", "password")
-      if (!error) {
+      const result = await signIn("discord@example.com", "password")
+      if (!result.error) {
         router.push("/dashboard")
       }
     } catch (err) {

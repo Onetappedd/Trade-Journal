@@ -1,22 +1,25 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Icons } from "@/components/icons"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
+import { Icons } from "@/components/icons"
+import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 
 export function EnhancedLoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
 
   const { signIn, signUp } = useAuth()
@@ -24,79 +27,106 @@ export function EnhancedLoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) return
-
     setIsLoading(true)
+    setError("")
+
     try {
       if (isSignUp) {
-        await signUp(email, password)
+        if (password !== confirmPassword) {
+          setError("Passwords do not match")
+          setIsLoading(false)
+          return
+        }
+        const result = await signUp(email, password)
+        if (result.error) {
+          setError(result.error.message || "An error occurred during sign up")
+        } else {
+          router.push("/dashboard")
+        }
       } else {
-        await signIn(email, password)
+        const result = await signIn(email, password)
+        if (result.error) {
+          setError(result.error.message || "An error occurred during sign in")
+        } else {
+          router.push("/dashboard")
+        }
       }
-    } catch (error) {
-      console.error("Authentication error:", error)
+    } catch (err) {
+      setError("An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Social login with ${provider}`)
-    // Mock social login
-    signIn(`demo@${provider}.com`, "password")
+  const handleGoogleAuth = async () => {
+    setIsLoading(true)
+    try {
+      const result = await signIn("google@example.com", "password")
+      if (!result.error) {
+        router.push("/dashboard")
+      }
+    } catch (err) {
+      setError("Google authentication failed")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDiscordAuth = async () => {
+    setIsLoading(true)
+    try {
+      const result = await signIn("discord@example.com", "password")
+      if (!result.error) {
+        router.push("/dashboard")
+      }
+    } catch (err) {
+      setError("Discord authentication failed")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">{isSignUp ? "Create an account" : "Welcome back"}</CardTitle>
-        <CardDescription>
-          {isSignUp ? "Enter your details to create your account" : "Enter your credentials to access your account"}
+        <CardTitle className="text-2xl font-bold text-center">
+          {isSignUp ? "Create an account" : "Welcome back"}
+        </CardTitle>
+        <CardDescription className="text-center">
+          {isSignUp ? "Sign up for your trading journal account" : "Sign in to your trading journal account"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" onClick={() => handleSocialLogin("google")} disabled={isLoading}>
-            <Icons.google className="mr-2 h-4 w-4" />
-            Google
-          </Button>
-          <Button variant="outline" onClick={() => handleSocialLogin("discord")} disabled={isLoading}>
-            <Icons.discord className="mr-2 h-4 w-4" />
-            Discord
-          </Button>
-        </div>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-          </div>
-        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-              required
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
+                required
+                disabled={isLoading}
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
+                className="pl-10 pr-10"
                 required
+                disabled={isLoading}
               />
               <Button
                 type="button"
@@ -107,29 +137,103 @@ export function EnhancedLoginForm() {
                 disabled={isLoading}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
               </Button>
             </div>
           </div>
+          {isSignUp && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-10 pr-10"
+                  required
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={isLoading}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          )}
+          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">{error}</div>}
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSignUp ? "Create account" : "Sign in"}
+            {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+            {isSignUp ? "Sign Up" : "Sign In"}
           </Button>
         </form>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-2">
-        {!isSignUp && (
-          <Button variant="link" className="px-0 text-sm">
-            Forgot your password?
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <Separator className="w-full" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Button variant="outline" onClick={handleGoogleAuth} disabled={isLoading} className="w-full bg-transparent">
+            {isLoading ? (
+              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Icons.google className="mr-2 h-4 w-4" />
+            )}
+            Google
           </Button>
+          <Button variant="outline" onClick={handleDiscordAuth} disabled={isLoading} className="w-full bg-transparent">
+            {isLoading ? (
+              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Icons.discord className="mr-2 h-4 w-4" />
+            )}
+            Discord
+          </Button>
+        </div>
+
+        {!isSignUp && (
+          <div className="text-center text-sm">
+            <Button variant="link" className="px-0 font-normal">
+              Forgot your password?
+            </Button>
+          </div>
         )}
-        <div className="text-sm text-muted-foreground">
+
+        <div className="text-center text-sm text-muted-foreground">
           {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-          <Button variant="link" className="px-0 text-sm font-normal" onClick={() => setIsSignUp(!isSignUp)}>
+          <Button
+            variant="link"
+            className="px-0 font-normal"
+            onClick={() => {
+              setIsSignUp(!isSignUp)
+              setError("")
+              setEmail("")
+              setPassword("")
+              setConfirmPassword("")
+            }}
+          >
             {isSignUp ? "Sign in" : "Sign up"}
           </Button>
         </div>
-      </CardFooter>
+
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-800">
+            <strong>Demo Mode:</strong> Use any email and password to {isSignUp ? "sign up" : "sign in"}
+          </p>
+        </div>
+      </CardContent>
     </Card>
   )
 }

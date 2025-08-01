@@ -28,8 +28,8 @@ interface AuthContextType {
   profile: Profile | null
   session: any
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ error?: any }>
+  signUp: (email: string, password: string) => Promise<{ error?: any }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<void>
 }
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ error?: any }> => {
     try {
       setLoading(true)
 
@@ -112,20 +112,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "You have been signed in successfully.",
       })
 
-      router.push("/dashboard")
+      return { error: null }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to sign in. Please try again.",
         variant: "destructive",
       })
-      throw error
+      return { error: { message: "Failed to sign in" } }
     } finally {
       setLoading(false)
     }
   }
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string): Promise<{ error?: any }> => {
     try {
       setLoading(true)
 
@@ -162,14 +162,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Your account has been created successfully.",
       })
 
-      router.push("/dashboard")
+      return { error: null }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to create account. Please try again.",
         variant: "destructive",
       })
-      throw error
+      return { error: { message: "Failed to create account" } }
     } finally {
       setLoading(false)
     }
