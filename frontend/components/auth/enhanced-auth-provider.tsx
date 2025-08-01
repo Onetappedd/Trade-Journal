@@ -2,106 +2,105 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
-import type { User, Provider } from "@supabase/supabase-js"
-import { createClient } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
+import type { User, Session } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
+
+interface Profile {
+  id: string
+  full_name: string | null
+  avatar_url: string | null
+  timezone: string | null
+  currency: string | null
+  created_at: string
+  updated_at: string
+}
 
 interface AuthContextType {
   user: User | null
+  session: Session | null
+  profile: Profile | null
   loading: boolean
-  profile: any
   signIn: (email: string, password: string) => Promise<{ error: any }>
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
-  signInWithOAuth: (provider: Provider) => Promise<{ error: any }>
   resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (password: string) => Promise<{ error: any }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClient()
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      // For now, we'll skip the profile fetch to avoid CORS issues
-      // This can be enabled once Supabase CORS is configured
-      console.log("Profile fetch skipped - using mock data")
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
-      // Mock profile data
-      const mockProfile = {
+      if (error) {
+        console.error("Error fetching profile:", error)
+        // Return mock profile data when Supabase is not available
+        return {
+          id: userId,
+          full_name: "Demo User",
+          avatar_url: null,
+          timezone: "America/New_York",
+          currency: "USD",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      }
+
+      return data
+    } catch (error) {
+      console.error("Network error fetching profile:", error)
+      // Return mock profile data when network fails (CORS issues, etc.)
+      return {
         id: userId,
-        full_name: user?.user_metadata?.full_name || "Trading User",
-        avatar_url: user?.user_metadata?.avatar_url || `https://api.dicebear.com/8.x/initials/svg?seed=${userId}`,
+        full_name: "Demo User",
+        avatar_url: null,
         timezone: "America/New_York",
         currency: "USD",
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }
-
-      setProfile(mockProfile)
-      return mockProfile
-    } catch (error) {
-      console.error("Error fetching profile:", error)
-
-      if (error instanceof TypeError && error.message === "Failed to fetch") {
-        console.warn("CORS error - using mock profile data")
-        // Don't show toast for CORS errors, just use mock data
-        const mockProfile = {
-          id: userId,
-          full_name: "Trading User",
-          avatar_url: `https://api.dicebear.com/8.x/initials/svg?seed=${userId}`,
-          timezone: "America/New_York",
-          currency: "USD",
-        }
-        setProfile(mockProfile)
-        return mockProfile
-      } else {
-        toast({
-          title: "Profile Error",
-          description: "Failed to load user profile. Using default settings.",
-          variant: "destructive",
-        })
-      }
-      return null
     }
   }
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-        setUser(session?.user ?? null)
-
-        if (session?.user) {
-          await fetchProfile(session.user.id)
-        }
-      } catch (error) {
-        console.error("Error getting session:", error)
-        // Don't show toast for session errors in development
-        console.warn("Session error - continuing without authentication")
-      } finally {
-        setLoading(false)
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchProfile(session.user.id).then(setProfile)
       }
-    }
+      setLoading(false)
+    })
 
-    getSession()
-
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session)
       setUser(session?.user ?? null)
 
-      if (session?.user && event === "SIGNED_IN") {
-        await fetchProfile(session.user.id)
-      } else if (!session?.user) {
+      if (session?.user) {
+        const userProfile = await fetchProfile(session.user.id)
+        setProfile(userProfile)
+      } else {
         setProfile(null)
       }
 
@@ -117,107 +116,160 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       })
+
+      if (error) {
+        toast({
+          title: "Sign In Failed",
+          description: error.message,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
+        })
+      }
+
       return { error }
     } catch (error) {
-      console.error("Sign in error:", error)
-      return { error }
+      const errorMessage = "Network error. Please check your connection."
+      toast({
+        title: "Connection Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+      return { error: { message: errorMessage } }
     }
   }
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, fullName?: string) => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: displayName,
-            avatar_url: `https://api.dicebear.com/8.x/initials/svg?seed=${displayName}`,
+            full_name: fullName,
           },
         },
       })
+
+      if (error) {
+        toast({
+          title: "Sign Up Failed",
+          description: error.message,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Account Created",
+          description: "Please check your email to verify your account.",
+        })
+      }
+
       return { error }
     } catch (error) {
-      console.error("Sign up error:", error)
-      return { error }
+      const errorMessage = "Network error. Please check your connection."
+      toast({
+        title: "Connection Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+      return { error: { message: errorMessage } }
     }
   }
 
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut()
-
       if (error) {
         toast({
-          title: "Error",
+          title: "Sign Out Failed",
           description: error.message,
           variant: "destructive",
         })
-        throw error
       }
-
-      toast({
-        title: "Success",
-        description: "Signed out successfully!",
-      })
-
-      router.push("/login")
     } catch (error) {
-      console.error("Sign out error:", error)
-      // Force redirect even if signOut fails
-      router.push("/login")
-    }
-  }
-
-  const signInWithOAuth = async (provider: Provider) => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${location.origin}/auth/callback`,
-        },
-      })
-      return { error }
-    } catch (error) {
-      console.error("OAuth sign in error:", error)
-      return { error }
+      console.error("Error signing out:", error)
     }
   }
 
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${location.origin}/auth/reset-password`,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       })
+
+      if (error) {
+        toast({
+          title: "Reset Failed",
+          description: error.message,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Reset Email Sent",
+          description: "Check your email for password reset instructions.",
+        })
+      }
+
       return { error }
     } catch (error) {
-      console.error("Reset password error:", error)
+      const errorMessage = "Network error. Please check your connection."
+      toast({
+        title: "Connection Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+      return { error: { message: errorMessage } }
+    }
+  }
+
+  const updatePassword = async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password,
+      })
+
+      if (error) {
+        toast({
+          title: "Update Failed",
+          description: error.message,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Password Updated",
+          description: "Your password has been successfully updated.",
+        })
+      }
+
       return { error }
+    } catch (error) {
+      const errorMessage = "Network error. Please check your connection."
+      toast({
+        title: "Connection Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+      return { error: { message: errorMessage } }
     }
   }
 
   const value = {
     user,
+    session,
+    profile,
     loading,
     signIn,
     signUp,
     signOut,
-    profile,
-    signInWithOAuth,
     resetPassword,
+    updatePassword,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
-}
-
-// Export as both named and default for compatibility
-export { AuthProvider as EnhancedAuthProvider }
-export default AuthProvider
+// Export both named and default for compatibility
+export { AuthProvider as default }

@@ -10,8 +10,17 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "TradeJournal Pro - Advanced Trading Analytics",
-  description: "Professional trading journal with advanced analytics, risk management, and performance tracking.",
-  keywords: ["trading", "journal", "analytics", "stocks", "options", "crypto", "portfolio"],
+  description:
+    "Professional trading journal with advanced analytics, risk management, and performance tracking for traders and investors.",
+  keywords: ["trading", "journal", "analytics", "stocks", "options", "crypto", "portfolio", "risk management"],
+  authors: [{ name: "TradeJournal Pro" }],
+  creator: "TradeJournal Pro",
+  publisher: "TradeJournal Pro",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
     generator: 'v0.dev'
 }
 
