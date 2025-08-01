@@ -1,161 +1,93 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { createContext, useContext, useState, useEffect } from "react"
 
 interface User {
   id: string
   email: string
-  name?: string
-}
-
-interface Profile {
-  id: string
-  user_id: string
-  display_name?: string
-  bio?: string
-  timezone?: string
-  notifications_enabled?: boolean
+  name: string
 }
 
 interface AuthContextType {
   user: User | null
-  profile: Profile | null
-  loading: boolean
+  isLoading: boolean
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  signUp: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>
-  signOut: () => Promise<void>
-  updateProfile: (updates: Partial<Profile>) => Promise<void>
+  signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  signOut: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     // Check for existing session
-    try {
-      const storedUser = localStorage.getItem("user")
-      const storedProfile = localStorage.getItem("profile")
-
-      if (storedUser) {
-        setUser(JSON.parse(storedUser))
+    const savedUser = localStorage.getItem("trading-journal-user")
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser))
+      } catch (error) {
+        localStorage.removeItem("trading-journal-user")
       }
-      if (storedProfile) {
-        setProfile(JSON.parse(storedProfile))
-      }
-    } catch (error) {
-      console.error("Error loading stored auth data:", error)
     }
-
-    setLoading(false)
+    setIsLoading(false)
   }, [])
 
-  const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true)
+  const signIn = async (email: string, password: string) => {
+    setIsLoading(true)
 
-      // Mock authentication - simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Mock authentication - replace with real auth
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        name: email.split("@")[0],
+    if (email === "demo@example.com" && password === "password") {
+      const mockUser = {
+        id: "1",
+        email: email,
+        name: "Demo User",
       }
-
-      const mockProfile: Profile = {
-        id: mockUser.id,
-        user_id: mockUser.id,
-        display_name: email.split("@")[0],
-        timezone: "UTC",
-        notifications_enabled: true,
-      }
-
       setUser(mockUser)
-      setProfile(mockProfile)
-
-      localStorage.setItem("user", JSON.stringify(mockUser))
-      localStorage.setItem("profile", JSON.stringify(mockProfile))
-
+      localStorage.setItem("trading-journal-user", JSON.stringify(mockUser))
+      setIsLoading(false)
       return { success: true }
-    } catch (error) {
-      return { success: false, error: "Invalid credentials" }
-    } finally {
-      setLoading(false)
     }
+
+    setIsLoading(false)
+    return { success: false, error: "Invalid credentials" }
   }
 
-  const signUp = async (
-    email: string,
-    password: string,
-    name?: string,
-  ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true)
+  const signUp = async (email: string, password: string, name: string) => {
+    setIsLoading(true)
 
-      // Mock registration - simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Mock registration - replace with real auth
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        name: name || email.split("@")[0],
-      }
-
-      const mockProfile: Profile = {
-        id: mockUser.id,
-        user_id: mockUser.id,
-        display_name: name || email.split("@")[0],
-        timezone: "UTC",
-        notifications_enabled: true,
-      }
-
-      setUser(mockUser)
-      setProfile(mockProfile)
-
-      localStorage.setItem("user", JSON.stringify(mockUser))
-      localStorage.setItem("profile", JSON.stringify(mockProfile))
-
-      return { success: true }
-    } catch (error) {
-      return { success: false, error: "Registration failed" }
-    } finally {
-      setLoading(false)
+    const mockUser = {
+      id: Math.random().toString(36).substr(2, 9),
+      email: email,
+      name: name,
     }
+    setUser(mockUser)
+    localStorage.setItem("trading-journal-user", JSON.stringify(mockUser))
+    setIsLoading(false)
+    return { success: true }
   }
 
-  const signOut = async () => {
+  const signOut = () => {
     setUser(null)
-    setProfile(null)
-    localStorage.removeItem("user")
-    localStorage.removeItem("profile")
-    router.push("/login")
-  }
-
-  const updateProfile = async (updates: Partial<Profile>) => {
-    if (profile) {
-      const updatedProfile = { ...profile, ...updates }
-      setProfile(updatedProfile)
-      localStorage.setItem("profile", JSON.stringify(updatedProfile))
-    }
+    localStorage.removeItem("trading-journal-user")
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        profile,
-        loading,
+        isLoading,
         signIn,
         signUp,
         signOut,
-        updateProfile,
       }}
     >
       {children}

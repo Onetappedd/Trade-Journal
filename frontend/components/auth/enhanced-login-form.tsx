@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, TrendingUp } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export function EnhancedLoginForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -61,13 +61,10 @@ export function EnhancedLoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="text-center">
-        <div className="flex items-center justify-center mb-4">
-          <TrendingUp className="h-8 w-8 text-primary" />
-        </div>
-        <CardTitle className="text-2xl font-bold">Trading Journal</CardTitle>
-        <CardDescription>Sign in to your account or create a new one</CardDescription>
+    <Card className="w-full max-w-md">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl text-center">Trading Journal</CardTitle>
+        <CardDescription className="text-center">Sign in to your account or create a new one</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="signin" className="w-full">
@@ -80,25 +77,11 @@ export function EnhancedLoginForm() {
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="signin-email">Email</Label>
-                <Input
-                  id="signin-email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  required
-                  disabled={isLoading}
-                />
+                <Input id="signin-email" name="email" type="email" placeholder="demo@example.com" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signin-password">Password</Label>
-                <Input
-                  id="signin-password"
-                  name="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  required
-                  disabled={isLoading}
-                />
+                <Input id="signin-password" name="password" type="password" placeholder="password" required />
               </div>
               {error && (
                 <Alert variant="destructive">
@@ -106,52 +89,28 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
               </Button>
             </form>
+            <div className="mt-4 text-sm text-center text-gray-600">
+              Demo: email: demo@example.com, password: password
+            </div>
           </TabsContent>
 
           <TabsContent value="signup">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="signup-name">Name</Label>
-                <Input
-                  id="signup-name"
-                  name="name"
-                  type="text"
-                  placeholder="Enter your name"
-                  required
-                  disabled={isLoading}
-                />
+                <Input id="signup-name" name="name" type="text" placeholder="Your name" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  required
-                  disabled={isLoading}
-                />
+                <Input id="signup-email" name="email" type="email" placeholder="your@email.com" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-password">Password</Label>
-                <Input
-                  id="signup-password"
-                  name="password"
-                  type="password"
-                  placeholder="Create a password"
-                  required
-                  disabled={isLoading}
-                />
+                <Input id="signup-password" name="password" type="password" placeholder="Create a password" required />
               </div>
               {error && (
                 <Alert variant="destructive">
@@ -159,14 +118,8 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  "Sign Up"
-                )}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign Up
               </Button>
             </form>
           </TabsContent>
