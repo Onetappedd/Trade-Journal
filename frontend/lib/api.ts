@@ -1,49 +1,75 @@
-import { CurrentPriceResponse, HistoricalDataPoint, CompanyInfo } from "@/types/financial-data";
+import { supabase } from "./supabase"
 
-export async function fetchCurrentPrice(symbol: string): Promise<CurrentPriceResponse> {
-  try {
-    const res = await fetch(`/api/data/stock/current-price?symbol=${symbol}`);
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.error("Failed to fetch current price:", errorData.error);
-      return { price: null };
-    }
-    const data = await res.json();
-    return { price: data.price };
-  } catch (error) {
-    console.error("Error fetching current price:", error);
-    return { price: null };
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+async function getAuthHeaders() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    throw new Error("No authentication token available")
+  }
+
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+    "Content-Type": "application/json",
   }
 }
 
-export async function fetchHistoricalPrices(symbol: string, period: string): Promise<HistoricalDataPoint[] | null> {
+export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   try {
-    const res = await fetch(`/api/data/stock/historical-prices?symbol=${symbol}&period=${period}`);
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.error("Failed to fetch historical prices:", errorData.error);
-      return null;
+    const headers = await getAuthHeaders()
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        ...headers,
+        ...options.headers,
+      },
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired or invalid, redirect to login
+        window.location.href = "/login"
+        return
+      }
+      throw new Error(`API request failed: ${response.statusText}`)
     }
-    const data = await res.json();
-    return data.history || data; // Accepts either {history: [...]} or [...] for flexibility
+
+    return response.json()
   } catch (error) {
-    console.error("Error fetching historical prices:", error);
-    return null;
+    console.error("API request error:", error)
+    throw error
   }
 }
 
-export async function fetchCompanyInfo(symbol: string): Promise<CompanyInfo | null> {
-  try {
-    const res = await fetch(`/api/data/stock/info?symbol=${symbol}`);
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.error("Failed to fetch company info:", errorData.error);
-      return null;
-    }
-    const data = await res.json();
-    return data as CompanyInfo;
-  } catch (error) {
-    console.error("Error fetching company info:", error);
-    return null;
-  }
+// Trade API functions
+export const tradeApi = {
+  addTrade: (tradeData: any) =>
+    apiRequest("/api/add-trade", {
+      method: "POST",
+      body: JSON.stringify(tradeData),
+    }),
+
+  importTrades: (formData: FormData) =>
+    apiRequest("/api/import-trades", {
+      method: "POST",
+      body: formData,
+      headers: {}, // Let browser set content-type for FormData
+    }),
+
+  getTrades: () => apiRequest("/api/trades"),
+
+  updateTrade: (tradeId: string, tradeData: any) =>
+    apiRequest(`/api/trades/${tradeId}`, {
+      method: "PUT",
+      body: JSON.stringify(tradeData),
+    }),
+
+  deleteTrade: (tradeId: string) =>
+    apiRequest(`/api/trades/${tradeId}`, {
+      method: "DELETE",
+    }),
 }

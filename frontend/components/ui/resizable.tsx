@@ -1,63 +1,56 @@
-"use client";
+"use client"
+
 import * as React from "react"
+import { GripVerticalIcon } from "lucide-react"
+import * as ResizablePrimitive from "react-resizable-panels"
+
 import { cn } from "@/lib/utils"
 
-const ResizableContext = React.createContext<{
-  isResizing: boolean
-  setIsResizing: (isResizing: boolean) => void
-} | null>(null)
-
-function Resizable({
-  children,
+function ResizablePanelGroup({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const [isResizing, setIsResizing] = React.useState(false)
+}: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>) {
   return (
-    <ResizableContext.Provider value={{ isResizing, setIsResizing }}>
-      <div
-        className={cn("flex w-full h-full", className)}
-        data-resizing={isResizing ? "true" : undefined}
-        {...props}
-      >
-        {children}
-      </div>
-    </ResizableContext.Provider>
+    <ResizablePrimitive.PanelGroup
+      data-slot="resizable-panel-group"
+      className={cn(
+        "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
+        className
+      )}
+      {...props}
+    />
   )
 }
 
-const ResizablePanel = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { minSize?: number; maxSize?: number; defaultSize?: number }
->(({ children, className, ...props }, ref) => {
-  return (
-    <div ref={ref} className={cn("h-full", className)} {...props}>
-      {children}
-    </div>
-  )
-})
-ResizablePanel.displayName = "ResizablePanel"
+function ResizablePanel({
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.Panel>) {
+  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />
+}
 
-const ResizableHandle = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const context = React.useContext(ResizableContext)
+function ResizableHandle({
+  withHandle,
+  className,
+  ...props
+}: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
+  withHandle?: boolean
+}) {
   return (
-    <div
-      ref={ref}
+    <ResizablePrimitive.PanelResizeHandle
+      data-slot="resizable-handle"
       className={cn(
-        "relative flex w-2 cursor-col-resize select-none items-center justify-center bg-border transition-colors hover:bg-accent",
+        "bg-border focus-visible:ring-ring relative flex w-px items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 [&[data-panel-group-direction=vertical]>div]:rotate-90",
         className
       )}
-      onMouseDown={() => context?.setIsResizing(true)}
-      onMouseUp={() => context?.setIsResizing(false)}
       {...props}
     >
-      <div className="h-8 w-0.5 bg-muted-foreground rounded" />
-    </div>
+      {withHandle && (
+        <div className="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
+          <GripVerticalIcon className="size-2.5" />
+        </div>
+      )}
+    </ResizablePrimitive.PanelResizeHandle>
   )
-})
-ResizableHandle.displayName = "ResizableHandle"
+}
 
-export { Resizable, ResizablePanel, ResizableHandle }
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
