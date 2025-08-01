@@ -13,12 +13,11 @@ export async function GET(request: NextRequest) {
     try {
       await supabase.auth.exchangeCodeForSession(code)
     } catch (error) {
-      console.error("Auth callback error:", error)
-      return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_callback_error`)
+      console.error("Error exchanging code for session:", error)
+      return NextResponse.redirect(`${requestUrl.origin}/login?error=auth_error`)
     }
   }
 
-  // Redirect to dashboard or original destination
-  const redirectTo = requestUrl.searchParams.get("redirectTo") || "/"
-  return NextResponse.redirect(`${requestUrl.origin}${redirectTo}`)
+  // URL to redirect to after sign in process completes
+  return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
 }
