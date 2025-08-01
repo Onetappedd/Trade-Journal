@@ -4,16 +4,14 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/enhanced-auth-provider"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Trading Journal Dashboard",
-  description: "Track and analyze your trading performance with comprehensive analytics and insights",
-  keywords: ["trading", "journal", "analytics", "dashboard", "finance", "stocks"],
-  authors: [{ name: "Trading Journal Team" }],
-  viewport: "width=device-width, initial-scale=1",
+  description: "Professional trading journal and analytics platform",
     generator: 'v0.dev'
 }
 
@@ -25,9 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            {children}
+            <ProtectedRoute>{children}</ProtectedRoute>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

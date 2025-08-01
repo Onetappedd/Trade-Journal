@@ -2,38 +2,51 @@
 
 import type React from "react"
 
-import { useAuth } from "./enhanced-auth-provider"
-import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
+import { useRouter, usePathname } from "next/navigation"
+import { useAuth } from "./enhanced-auth-provider"
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+interface ProtectedRouteProps {
+  children: React.ReactNode
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading && !user && !pathname.startsWith("/login") && !pathname.startsWith("/auth")) {
-      router.push("/login")
-    }
-  }, [user, loading, router, pathname])
+    if (!loading) {
+      const isAuthPage = pathname === "/login" || pathname === "/auth/reset-password"
+      const isProtectedRoute = pathname.startsWith("/dashboard") || pathname === "/"
 
-  // Show loading or redirect for auth pages
+      if (!user && isProtectedRoute) {
+        // Redirect unauthenticated users to login
+        router.push("/login")
+      } else if (user && isAuthPage) {
+        // Redirect authenticated users away from auth pages
+        router.push("/dashboard")
+      }
+    }
+  }, [user, loading, pathname, router])
+
+  // Show loading spinner while checking auth
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
-  // Allow access to login and auth pages without authentication
-  if (!user && (pathname.startsWith("/login") || pathname.startsWith("/auth"))) {
-    return <>{children}</>
+  // Show login page for unauthenticated users on protected routes
+  if (!user && (pathname.startsWith("/dashboard") || pathname === "/")) {
+    return null // Let the redirect happen
   }
 
-  // Require authentication for all other pages
-  if (!user) {
-    return null
+  // Show dashboard for authenticated users on auth pages
+  if (user && (pathname === "/login" || pathname === "/auth/reset-password")) {
+    return null // Let the redirect happen
   }
 
   return <>{children}</>
