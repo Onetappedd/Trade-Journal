@@ -1,170 +1,198 @@
 "use client"
 
 import { useState } from "react"
+import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar } from "@/components/ui/calendar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, TrendingUp, TrendingDown } from "lucide-react"
-import type { DayProps } from "react-day-picker"
+import { Button } from "@/components/ui/button"
+import { CalendarDays, TrendingUp, TrendingDown, DollarSign } from "lucide-react"
+import { format } from "date-fns"
 
-const mockTradeData = {
-  "2024-01-15": { trades: 3, pnl: 234.5, winRate: 66.7 },
-  "2024-01-14": { trades: 2, pnl: -123.45, winRate: 50.0 },
-  "2024-01-13": { trades: 1, pnl: 456.78, winRate: 100.0 },
-  "2024-01-12": { trades: 4, pnl: 789.12, winRate: 75.0 },
-  "2024-01-11": { trades: 2, pnl: -345.67, winRate: 0.0 },
+interface Trade {
+  id: string
+  symbol: string
+  side: "buy" | "sell"
+  quantity: number
+  price: number
+  pnl: number
+  date: Date
 }
 
-export function CalendarPage() {
-  const [date, setDate] = useState<Date | undefined>(new Date())
-  const [view, setView] = useState("month")
+// Mock trade data
+const mockTrades: Trade[] = [
+  {
+    id: "1",
+    symbol: "AAPL",
+    side: "buy",
+    quantity: 100,
+    price: 150.25,
+    pnl: 250.5,
+    date: new Date(2024, 0, 15),
+  },
+  {
+    id: "2",
+    symbol: "TSLA",
+    side: "sell",
+    quantity: 50,
+    price: 245.8,
+    pnl: -125.3,
+    date: new Date(2024, 0, 16),
+  },
+  {
+    id: "3",
+    symbol: "MSFT",
+    side: "buy",
+    quantity: 75,
+    price: 380.9,
+    pnl: 450.75,
+    date: new Date(2024, 0, 18),
+  },
+  {
+    id: "4",
+    symbol: "GOOGL",
+    side: "sell",
+    quantity: 25,
+    price: 142.5,
+    pnl: 180.25,
+    date: new Date(2024, 0, 20),
+  },
+]
 
-  const formatDateKey = (date: Date) => {
-    return date.toISOString().split("T")[0]
-  }
+export default function CalendarPage() {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
 
-  const getTradeDataForDate = (date: Date) => {
-    const dateKey = formatDateKey(date)
-    return mockTradeData[dateKey as keyof typeof mockTradeData]
-  }
-
-  const CustomDay = ({ day, ...props }: DayProps) => {
-    const dayDate = day.date
-    const tradeData = getTradeDataForDate(dayDate)
-    const isSelected = date && dayDate.toDateString() === date.toDateString()
-
-    return (
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setDate(dayDate)}
-          className={`
-            w-full h-full p-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors
-            ${isSelected ? "bg-primary text-primary-foreground" : ""}
-            ${tradeData ? "font-bold" : ""}
-          `}
-        >
-          {dayDate.getDate()}
-          {tradeData && (
-            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex space-x-1">
-              <div className={`w-1 h-1 rounded-full ${tradeData.pnl >= 0 ? "bg-green-500" : "bg-red-500"}`} />
-            </div>
-          )}
-        </button>
-      </div>
+  const getTradesForDate = (date: Date): Trade[] => {
+    return mockTrades.filter(
+      (trade) =>
+        trade.date.getDate() === date.getDate() &&
+        trade.date.getMonth() === date.getMonth() &&
+        trade.date.getFullYear() === date.getFullYear(),
     )
   }
+
+  const getDayPnL = (date: Date): number => {
+    const trades = getTradesForDate(date)
+    return trades.reduce((total, trade) => total + trade.pnl, 0)
+  }
+
+  const hasTradesOnDate = (date: Date): boolean => {
+    return getTradesForDate(date).length > 0
+  }
+
+  const selectedTrades = selectedDate ? getTradesForDate(selectedDate) : []
+  const selectedDayPnL = selectedDate ? getDayPnL(selectedDate) : 0
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Trading Calendar</h2>
-        <div className="flex items-center space-x-2">
-          <Select value={view} onValueChange={setView}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">Month</SelectItem>
-              <SelectItem value="week">Week</SelectItem>
-              <SelectItem value="day">Day</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <CalendarIcon className="mr-2 h-5 w-5" />
-              January 2024
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              Calendar View
             </CardTitle>
-            <CardDescription>Click on any date to view detailed trading activity</CardDescription>
+            <CardDescription>Click on any date to view your trades for that day</CardDescription>
           </CardHeader>
           <CardContent>
             <Calendar
               mode="single"
-              selected={date}
-              onSelect={setDate}
+              selected={selectedDate}
+              onSelect={setSelectedDate}
               className="rounded-md border"
               components={{
-                Day: CustomDay,
+                Day: ({ date, ...props }) => {
+                  const dayPnL = getDayPnL(date)
+                  const hasTrades = hasTradesOnDate(date)
+
+                  return (
+                    <div className="relative">
+                      <button
+                        {...props}
+                        className={`
+                          w-full h-full p-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground
+                          ${hasTrades ? "font-semibold" : ""}
+                          ${dayPnL > 0 ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : ""}
+                          ${dayPnL < 0 ? "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400" : ""}
+                        `}
+                      >
+                        {date.getDate()}
+                        {hasTrades && (
+                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full bg-current opacity-60" />
+                        )}
+                      </button>
+                    </div>
+                  )
+                },
               }}
             />
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Selected Date</CardTitle>
-              <CardDescription>{date ? date.toLocaleDateString() : "Select a date"}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {date && getTradeDataForDate(date) ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Trades</span>
-                    <Badge variant="outline">{getTradeDataForDate(date)?.trades}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">P&L</span>
-                    <span
-                      className={`font-medium ${getTradeDataForDate(date)!.pnl >= 0 ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {getTradeDataForDate(date)!.pnl >= 0 ? "+" : ""}${getTradeDataForDate(date)!.pnl.toFixed(2)}
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>{selectedDate ? format(selectedDate, "MMMM d, yyyy") : "Select a Date"}</CardTitle>
+            <CardDescription>
+              {selectedTrades.length > 0
+                ? `${selectedTrades.length} trade${selectedTrades.length > 1 ? "s" : ""} on this day`
+                : "No trades on this day"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {selectedTrades.length > 0 ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <span className="text-sm font-medium">Day P&L</span>
+                  <div className="flex items-center gap-1">
+                    {selectedDayPnL > 0 ? (
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-red-600" />
+                    )}
+                    <span className={`font-semibold ${selectedDayPnL > 0 ? "text-green-600" : "text-red-600"}`}>
+                      ${selectedDayPnL.toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Win Rate</span>
-                    <span className="font-medium">{getTradeDataForDate(date)!.winRate.toFixed(1)}%</span>
-                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {date ? "No trades on this date" : "Select a date to view details"}
-                </p>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Month Summary</CardTitle>
-              <CardDescription>January 2024 overview</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Trading Days</span>
-                <Badge variant="outline">12</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total Trades</span>
-                <Badge variant="outline">47</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Winning Days</span>
-                <div className="flex items-center space-x-1">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  <span className="text-green-600 font-medium">8</span>
+                <div className="space-y-2">
+                  {selectedTrades.map((trade) => (
+                    <div key={trade.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Badge variant={trade.side === "buy" ? "default" : "secondary"}>
+                          {trade.side.toUpperCase()}
+                        </Badge>
+                        <div>
+                          <div className="font-medium">{trade.symbol}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {trade.quantity} shares @ ${trade.price}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-semibold ${trade.pnl > 0 ? "text-green-600" : "text-red-600"}`}>
+                          ${trade.pnl.toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Losing Days</span>
-                <div className="flex items-center space-x-1">
-                  <TrendingDown className="h-4 w-4 text-red-600" />
-                  <span className="text-red-600 font-medium">4</span>
-                </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No trades recorded for this date</p>
+                <Button variant="outline" className="mt-4 bg-transparent">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Add Trade
+                </Button>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t">
-                <span className="text-sm font-medium">Net P&L</span>
-                <span className="text-green-600 font-bold">+$1,011.28</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
