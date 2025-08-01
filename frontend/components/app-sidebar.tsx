@@ -2,22 +2,14 @@
 
 import type * as React from "react"
 import {
+  AudioWaveform,
+  Command,
+  GalleryVerticalEnd,
+  PieChart,
+  Settings2,
   TrendingUp,
   BarChart3,
-  PlusCircle,
-  History,
-  Upload,
-  Calendar,
-  Target,
-  Shield,
-  TrendingDown,
   FileText,
-  Receipt,
-  Search,
-  Bell,
-  Activity,
-  Settings,
-  GalleryVerticalEnd,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -25,23 +17,31 @@ import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 
-// Trading-focused navigation data
+// This is sample data for the trading dashboard
 const data = {
+  user: {
+    name: "Trading Pro",
+    email: "trader@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  },
   teams: [
     {
-      name: "Trading Journal",
+      name: "Personal Trading",
       logo: GalleryVerticalEnd,
       plan: "Pro",
     },
+    {
+      name: "Hedge Fund",
+      logo: AudioWaveform,
+      plan: "Enterprise",
+    },
+    {
+      name: "Day Trading",
+      logo: Command,
+      plan: "Free",
+    },
   ],
   navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: BarChart3,
-      isActive: false,
-      items: [],
-    },
     {
       title: "Trading",
       url: "#",
@@ -49,46 +49,43 @@ const data = {
       isActive: true,
       items: [
         {
+          title: "Dashboard",
+          url: "/dashboard",
+        },
+        {
           title: "Add Trade",
           url: "/dashboard/add-trade",
-          icon: PlusCircle,
         },
         {
           title: "Trade History",
           url: "/dashboard/trade-history",
-          icon: History,
         },
         {
           title: "Import Trades",
           url: "/dashboard/import-trades",
-          icon: Upload,
-        },
-        {
-          title: "Calendar",
-          url: "/dashboard/calendar",
-          icon: Calendar,
         },
       ],
     },
     {
       title: "Portfolio",
       url: "#",
-      icon: Target,
+      icon: PieChart,
       items: [
         {
           title: "Overview",
           url: "/dashboard/portfolio",
-          icon: Target,
+        },
+        {
+          title: "Calendar",
+          url: "/dashboard/calendar",
         },
         {
           title: "Risk Management",
           url: "/dashboard/risk-management",
-          icon: Shield,
         },
         {
           title: "Benchmark",
           url: "/dashboard/benchmark",
-          icon: TrendingDown,
         },
       ],
     },
@@ -100,52 +97,40 @@ const data = {
         {
           title: "Performance",
           url: "/dashboard/analytics",
-          icon: BarChart3,
-        },
-        {
-          title: "Reports",
-          url: "/dashboard/reports",
-          icon: FileText,
-        },
-        {
-          title: "Tax Center",
-          url: "/dashboard/tax-center",
-          icon: Receipt,
-        },
-      ],
-    },
-    {
-      title: "Market Tools",
-      url: "#",
-      icon: Search,
-      items: [
-        {
-          title: "Scanner",
-          url: "/dashboard/scanner",
-          icon: Search,
         },
         {
           title: "Market Scanner",
           url: "/dashboard/market-scanner",
-          icon: Search,
         },
         {
           title: "Price Alerts",
           url: "/dashboard/price-alerts",
-          icon: Bell,
         },
         {
           title: "Trending Tickers",
           url: "/dashboard/trending-tickers",
-          icon: Activity,
+        },
+      ],
+    },
+    {
+      title: "Reports",
+      url: "#",
+      icon: FileText,
+      items: [
+        {
+          title: "Monthly Reports",
+          url: "/dashboard/reports",
+        },
+        {
+          title: "Tax Center",
+          url: "/dashboard/tax-center",
         },
       ],
     },
     {
       title: "Settings",
       url: "/dashboard/settings",
-      icon: Settings,
-      items: [],
+      icon: Settings2,
     },
   ],
 }

@@ -36,6 +36,7 @@ export function EnhancedLoginForm() {
       if (result.error) {
         setError(result.error.message || "An error occurred")
       } else {
+        // Redirect to dashboard on successful authentication
         router.push("/dashboard")
       }
     } catch (err) {
@@ -47,7 +48,7 @@ export function EnhancedLoginForm() {
 
   const handleSocialLogin = (provider: string) => {
     console.log(`Login with ${provider}`)
-    // Mock social login
+    // Mock social login - redirect to dashboard
     router.push("/dashboard")
   }
 

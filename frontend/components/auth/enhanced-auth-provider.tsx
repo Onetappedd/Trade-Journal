@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
+import { useToast } from "@/hooks/use-toast"
 
 interface Profile {
   id: string
@@ -17,6 +18,7 @@ interface AuthContextType {
   session: any | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error?: any }>
+  signUp: (email: string, password: string) => Promise<{ error?: any }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<void>
 }
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [session, setSession] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
     // Check for existing session in localStorage
@@ -76,41 +79,117 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     setLoading(true)
 
-    // Mock authentication - in real app, this would call Supabase
-    if (email && password) {
-      const mockUser: User = {
-        id: "mock-user-id",
-        email,
-        user_metadata: {
-          full_name: email.split("@")[0],
-          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-        },
-        app_metadata: {},
-        aud: "authenticated",
-        created_at: new Date().toISOString(),
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Mock authentication - accept any email/password for demo
+      if (email && password) {
+        const mockUser: User = {
+          id: `user-${Date.now()}`,
+          email,
+          user_metadata: {
+            full_name: email.split("@")[0],
+            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          },
+          app_metadata: {},
+          aud: "authenticated",
+          created_at: new Date().toISOString(),
+        }
+
+        const mockProfile: Profile = {
+          id: mockUser.id,
+          display_name: mockUser.user_metadata?.full_name,
+          avatar_url: mockUser.user_metadata?.avatar_url,
+          email: mockUser.email,
+        }
+
+        setUser(mockUser)
+        setProfile(mockProfile)
+        setSession({ user: mockUser })
+
+        // Store in localStorage
+        localStorage.setItem("auth-user", JSON.stringify(mockUser))
+        localStorage.setItem("auth-profile", JSON.stringify(mockProfile))
+
+        toast({
+          title: "Welcome back!",
+          description: "You have been signed in successfully.",
+        })
+
+        setLoading(false)
+        return { error: null }
       }
-
-      const mockProfile: Profile = {
-        id: mockUser.id,
-        display_name: mockUser.user_metadata?.full_name,
-        avatar_url: mockUser.user_metadata?.avatar_url,
-        email: mockUser.email,
-      }
-
-      setUser(mockUser)
-      setProfile(mockProfile)
-      setSession({ user: mockUser })
-
-      // Store in localStorage
-      localStorage.setItem("auth-user", JSON.stringify(mockUser))
-      localStorage.setItem("auth-profile", JSON.stringify(mockProfile))
 
       setLoading(false)
-      return { error: null }
+      return { error: { message: "Please provide valid email and password" } }
+    } catch (error) {
+      setLoading(false)
+      toast({
+        title: "Sign In Error",
+        description: "Failed to sign in. Please try again.",
+        variant: "destructive",
+      })
+      return { error: { message: "Failed to sign in" } }
     }
+  }
 
-    setLoading(false)
-    return { error: { message: "Invalid credentials" } }
+  const signUp = async (email: string, password: string) => {
+    setLoading(true)
+
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      // Mock sign up - accept any email/password for demo
+      if (email && password) {
+        const mockUser: User = {
+          id: `user-${Date.now()}`,
+          email,
+          user_metadata: {
+            full_name: email.split("@")[0],
+            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          },
+          app_metadata: {},
+          aud: "authenticated",
+          created_at: new Date().toISOString(),
+        }
+
+        const mockProfile: Profile = {
+          id: mockUser.id,
+          display_name: mockUser.user_metadata?.full_name,
+          avatar_url: mockUser.user_metadata?.avatar_url,
+          email: mockUser.email,
+        }
+
+        setUser(mockUser)
+        setProfile(mockProfile)
+        setSession({ user: mockUser })
+
+        // Store in localStorage
+        localStorage.setItem("auth-user", JSON.stringify(mockUser))
+        localStorage.setItem("auth-profile", JSON.stringify(mockProfile))
+
+        toast({
+          title: "Account Created!",
+          description: "Welcome! Your account has been created successfully.",
+        })
+
+        setLoading(false)
+        return { error: null }
+      }
+
+      setLoading(false)
+      return { error: { message: "Please provide valid email and password" } }
+    } catch (error) {
+      setLoading(false)
+      toast({
+        title: "Sign Up Error",
+        description: "Failed to create account. Please try again.",
+        variant: "destructive",
+      })
+      return { error: { message: "Failed to create account" } }
+    }
   }
 
   const signOut = async () => {
@@ -119,6 +198,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null)
     localStorage.removeItem("auth-user")
     localStorage.removeItem("auth-profile")
+
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully.",
+    })
   }
 
   const updateProfile = async (updates: Partial<Profile>) => {
@@ -126,6 +210,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updatedProfile = { ...profile, ...updates }
       setProfile(updatedProfile)
       localStorage.setItem("auth-profile", JSON.stringify(updatedProfile))
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated.",
+      })
     }
   }
 
@@ -135,9 +224,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     signIn,
+    signUp,
     signOut,
     updateProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
+
+// Export both named and default for compatibility
+export { AuthProvider as EnhancedAuthProvider }
+export default AuthProvider

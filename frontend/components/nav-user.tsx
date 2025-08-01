@@ -1,7 +1,5 @@
 "use client"
 
-import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from "lucide-react"
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -14,20 +12,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
+import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from "lucide-react"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, profile, signOut } = useAuth()
 
-  // Create user data with fallbacks
-  const userData = {
-    name: profile?.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Trading User",
-    email: user?.email || "user@example.com",
-    avatar:
-      profile?.avatar_url ||
-      user?.user_metadata?.avatar_url ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || "default"}`,
-  }
+  // Fallback values for user data
+  const displayName = profile?.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User"
+  const email = profile?.email || user?.email || "user@example.com"
+  const avatarUrl =
+    profile?.avatar_url || user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
 
   return (
     <SidebarMenu>
@@ -39,12 +34,12 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={userData.avatar || "/placeholder.svg"} alt={userData.name} />
-                <AvatarFallback className="rounded-lg">{userData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={displayName} />
+                <AvatarFallback className="rounded-lg">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{userData.name}</span>
-                <span className="truncate text-xs">{userData.email}</span>
+                <span className="truncate font-semibold">{displayName}</span>
+                <span className="truncate text-xs">{email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -58,12 +53,12 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={userData.avatar || "/placeholder.svg"} alt={userData.name} />
-                  <AvatarFallback className="rounded-lg">{userData.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={displayName} />
+                  <AvatarFallback className="rounded-lg">{displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{userData.name}</span>
-                  <span className="truncate text-xs">{userData.email}</span>
+                  <span className="truncate font-semibold">{displayName}</span>
+                  <span className="truncate text-xs">{email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -90,7 +85,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem onClick={signOut}>
               <LogOut />
               Log out
             </DropdownMenuItem>
