@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarIcon, TrendingUp, TrendingDown } from "lucide-react"
+import type { DayProps } from "react-day-picker"
 
 const mockTradeData = {
   "2024-01-15": { trades: 3, pnl: 234.5, winRate: 66.7 },
@@ -26,6 +27,32 @@ export function CalendarPage() {
   const getTradeDataForDate = (date: Date) => {
     const dateKey = formatDateKey(date)
     return mockTradeData[dateKey as keyof typeof mockTradeData]
+  }
+
+  const CustomDay = (props: DayProps) => {
+    const { day, modifiers, ...buttonProps } = props
+    const dayDate = day.date
+    const tradeData = getTradeDataForDate(dayDate)
+
+    return (
+      <div className="relative">
+        <button
+          {...buttonProps}
+          className={`
+            w-full h-full p-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground
+            ${date && dayDate.toDateString() === date.toDateString() ? "bg-primary text-primary-foreground" : ""}
+            ${tradeData ? "font-bold" : ""}
+          `}
+        >
+          {dayDate.getDate()}
+          {tradeData && (
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex space-x-1">
+              <div className={`w-1 h-1 rounded-full ${tradeData.pnl >= 0 ? "bg-green-500" : "bg-red-500"}`} />
+            </div>
+          )}
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -62,30 +89,7 @@ export function CalendarPage() {
               onSelect={setDate}
               className="rounded-md border"
               components={{
-                Day: ({ date: dayDate, ...props }) => {
-                  const tradeData = getTradeDataForDate(dayDate)
-                  return (
-                    <div className="relative">
-                      <button
-                        {...props}
-                        className={`
-                          w-full h-full p-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground
-                          ${date && dayDate.toDateString() === date.toDateString() ? "bg-primary text-primary-foreground" : ""}
-                          ${tradeData ? "font-bold" : ""}
-                        `}
-                      >
-                        {dayDate.getDate()}
-                        {tradeData && (
-                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                            <div
-                              className={`w-1 h-1 rounded-full ${tradeData.pnl >= 0 ? "bg-green-500" : "bg-red-500"}`}
-                            />
-                          </div>
-                        )}
-                      </button>
-                    </div>
-                  )
-                },
+                Day: CustomDay,
               }}
             />
           </CardContent>

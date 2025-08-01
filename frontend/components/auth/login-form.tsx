@@ -4,14 +4,15 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -55,7 +56,7 @@ export default function LoginForm() {
       }
     } catch (error) {
       toast({
-        title: "Login Error",
+        title: "Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
@@ -68,22 +69,18 @@ export default function LoginForm() {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
-        <CardDescription className="text-center">
-          Enter your credentials to access your trading dashboard
-        </CardDescription>
+        <CardDescription className="text-center">Enter your credentials to access your trading journal</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              {...register("email")}
-              className={errors.email ? "border-red-500" : ""}
-            />
-            {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+            <Input id="email" type="email" placeholder="Enter your email" {...register("email")} disabled={isLoading} />
+            {errors.email && (
+              <Alert variant="destructive">
+                <AlertDescription>{errors.email.message}</AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -94,7 +91,7 @@ export default function LoginForm() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 {...register("password")}
-                className={errors.password ? "border-red-500 pr-10" : "pr-10"}
+                disabled={isLoading}
               />
               <Button
                 type="button"
@@ -102,15 +99,18 @@ export default function LoginForm() {
                 size="sm"
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
-            {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+            {errors.password && (
+              <Alert variant="destructive">
+                <AlertDescription>{errors.password.message}</AlertDescription>
+              </Alert>
+            )}
           </div>
-        </CardContent>
 
-        <CardFooter className="flex flex-col space-y-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
@@ -121,19 +121,15 @@ export default function LoginForm() {
               "Sign In"
             )}
           </Button>
+        </form>
 
-          <div className="text-center text-sm">
-            <Button
-              type="button"
-              variant="link"
-              className="p-0 h-auto font-normal"
-              onClick={() => router.push("/auth/reset-password")}
-            >
-              Forgot your password?
-            </Button>
-          </div>
-        </CardFooter>
-      </form>
+        <div className="mt-4 text-center text-sm">
+          <span className="text-muted-foreground">Don't have an account? </span>
+          <Button variant="link" className="p-0 h-auto font-normal">
+            Sign up
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   )
 }
