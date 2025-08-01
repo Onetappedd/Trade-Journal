@@ -5,482 +5,513 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { User, Bell, Shield, Database, Download, Trash2, Upload, SettingsIcon, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
+import { useToast } from "@/hooks/use-toast"
+import { Navbar } from "@/components/navbar"
+import {
+  User,
+  Bell,
+  Shield,
+  CreditCard,
+  Smartphone,
+  Mail,
+  Globe,
+  DollarSign,
+  TrendingUp,
+  AlertTriangle,
+  Camera,
+} from "lucide-react"
 
 export default function SettingsPage() {
-  const { user, profile } = useAuth()
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: false,
-    sms: false,
-    marketing: true,
-  })
+  const { user, profile, updateProfile } = useAuth()
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
 
   const [profileData, setProfileData] = useState({
-    fullName: profile?.full_name || "",
+    displayName: profile?.display_name || "",
     email: profile?.email || "",
-    phone: "",
-    bio: "",
-    timezone: "UTC",
-    currency: "USD",
+    timezone: profile?.timezone || "America/New_York",
+    defaultBroker: profile?.default_broker || "webull",
+    defaultAssetType: profile?.default_asset_type || "stock",
+    riskTolerance: profile?.risk_tolerance || "moderate",
   })
 
-  const [preferences, setPreferences] = useState({
-    theme: "system",
-    language: "en",
-    dateFormat: "MM/DD/YYYY",
-    numberFormat: "US",
+  const [notifications, setNotifications] = useState({
+    emailNotifications: profile?.email_notifications ?? true,
+    pushNotifications: profile?.push_notifications ?? false,
+    tradeAlerts: profile?.trade_alerts ?? true,
+    weeklyReports: profile?.weekly_reports ?? true,
   })
 
-  const [privacy, setPrivacy] = useState({
-    profileVisible: true,
-    showEmail: false,
-    showPhone: false,
-    allowAnalytics: true,
-  })
+  const handleProfileUpdate = async () => {
+    setLoading(true)
+    try {
+      const { error } = await updateProfile({
+        display_name: profileData.displayName,
+        timezone: profileData.timezone,
+        default_broker: profileData.defaultBroker,
+        default_asset_type: profileData.defaultAssetType,
+        risk_tolerance: profileData.riskTolerance,
+      })
 
-  const handleSaveProfile = () => {
-    console.log("Saving profile:", profileData)
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update profile",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Success",
+          description: "Profile updated successfully",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSaveNotifications = () => {
-    console.log("Saving notifications:", notifications)
-  }
+  const handleNotificationUpdate = async () => {
+    setLoading(true)
+    try {
+      const { error } = await updateProfile({
+        email_notifications: notifications.emailNotifications,
+        push_notifications: notifications.pushNotifications,
+        trade_alerts: notifications.tradeAlerts,
+        weekly_reports: notifications.weeklyReports,
+      })
 
-  const handleSavePreferences = () => {
-    console.log("Saving preferences:", preferences)
-  }
-
-  const handleSavePrivacy = () => {
-    console.log("Saving privacy:", privacy)
-  }
-
-  const handleExportData = () => {
-    console.log("Exporting user data...")
-  }
-
-  const handleDeleteAccount = () => {
-    console.log("Deleting account...")
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update notification settings",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Success",
+          description: "Notification settings updated successfully",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
-      </div>
+    <div className="flex flex-col">
+      <Navbar title="Settings" />
 
-      <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="preferences" className="flex items-center gap-2">
-            <SettingsIcon className="h-4 w-4" />
-            Preferences
-          </TabsTrigger>
-          <TabsTrigger value="privacy" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Privacy
-          </TabsTrigger>
-          <TabsTrigger value="account" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Account
-          </TabsTrigger>
-        </TabsList>
+      <div className="flex-1 space-y-6 p-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+          <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+        </div>
 
-        <TabsContent value="profile" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your personal information and profile details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={profile?.avatar_url || ""} />
-                  <AvatarFallback className="text-lg">{profile?.full_name?.charAt(0) || "U"}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                  <Button variant="outline" size="sm">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Photo
-                  </Button>
-                  <p className="text-sm text-muted-foreground">JPG, PNG or GIF. Max size 2MB.</p>
-                </div>
-              </div>
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="trading">Trading</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="billing">Billing</TabsTrigger>
+          </TabsList>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={profileData.fullName}
-                    onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                    placeholder="Enter your email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profileData.phone}
-                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select
-                    value={profileData.timezone}
-                    onValueChange={(value) => setProfileData({ ...profileData, timezone: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="UTC">UTC</SelectItem>
-                      <SelectItem value="EST">Eastern Time</SelectItem>
-                      <SelectItem value="PST">Pacific Time</SelectItem>
-                      <SelectItem value="GMT">Greenwich Mean Time</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={profileData.bio}
-                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                  placeholder="Tell us about yourself"
-                  rows={3}
-                />
-              </div>
-
-              <Button onClick={handleSaveProfile}>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose how you want to be notified about account activity</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+          <TabsContent value="profile" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Profile Information
+                </CardTitle>
+                <CardDescription>Update your personal information and preferences.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
+                    <AvatarFallback className="text-lg">
+                      {profileData.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <Button variant="outline" size="sm">
+                      <Camera className="h-4 w-4 mr-2" />
+                      Change Avatar
+                    </Button>
+                    <p className="text-sm text-muted-foreground">JPG, GIF or PNG. 1MB max.</p>
                   </div>
-                  <Switch
-                    checked={notifications.email}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, email: checked })}
-                  />
                 </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive push notifications in your browser</p>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Display Name</Label>
+                    <Input
+                      id="displayName"
+                      value={profileData.displayName}
+                      onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
+                      placeholder="Enter your display name"
+                    />
                   </div>
-                  <Switch
-                    checked={notifications.push}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, push: checked })}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">SMS Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive notifications via text message</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" value={profileData.email} disabled />
                   </div>
-                  <Switch
-                    checked={notifications.sms}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, sms: checked })}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Marketing Communications</Label>
-                    <p className="text-sm text-muted-foreground">Receive updates about new features and promotions</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <Select
+                      value={profileData.timezone}
+                      onValueChange={(value) => setProfileData({ ...profileData, timezone: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                        <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                        <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                        <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                        <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                        <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Switch
-                    checked={notifications.marketing}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, marketing: checked })}
-                  />
-                </div>
-              </div>
-
-              <Button onClick={handleSaveNotifications}>Save Preferences</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="preferences" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Application Preferences</CardTitle>
-              <CardDescription>Customize your application experience</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Theme</Label>
-                  <Select
-                    value={preferences.theme}
-                    onValueChange={(value) => setPreferences({ ...preferences, theme: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Select
-                    value={preferences.language}
-                    onValueChange={(value) => setPreferences({ ...preferences, language: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dateFormat">Date Format</Label>
-                  <Select
-                    value={preferences.dateFormat}
-                    onValueChange={(value) => setPreferences({ ...preferences, dateFormat: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Default Currency</Label>
-                  <Select
-                    value={profileData.currency}
-                    onValueChange={(value) => setProfileData({ ...profileData, currency: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                      <SelectItem value="GBP">GBP (£)</SelectItem>
-                      <SelectItem value="JPY">JPY (¥)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button onClick={handleSavePreferences}>Save Preferences</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="privacy" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Privacy Settings</CardTitle>
-              <CardDescription>Control your privacy and data sharing preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Public Profile</Label>
-                    <p className="text-sm text-muted-foreground">Make your profile visible to other users</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultBroker">Default Broker</Label>
+                    <Select
+                      value={profileData.defaultBroker}
+                      onValueChange={(value) => setProfileData({ ...profileData, defaultBroker: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="webull">Webull</SelectItem>
+                        <SelectItem value="robinhood">Robinhood</SelectItem>
+                        <SelectItem value="td_ameritrade">TD Ameritrade</SelectItem>
+                        <SelectItem value="etrade">E*TRADE</SelectItem>
+                        <SelectItem value="fidelity">Fidelity</SelectItem>
+                        <SelectItem value="schwab">Charles Schwab</SelectItem>
+                        <SelectItem value="interactive_brokers">Interactive Brokers</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Switch
-                    checked={privacy.profileVisible}
-                    onCheckedChange={(checked) => setPrivacy({ ...privacy, profileVisible: checked })}
-                  />
                 </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Show Email</Label>
-                    <p className="text-sm text-muted-foreground">Display your email address on your profile</p>
-                  </div>
-                  <Switch
-                    checked={privacy.showEmail}
-                    onCheckedChange={(checked) => setPrivacy({ ...privacy, showEmail: checked })}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Show Phone</Label>
-                    <p className="text-sm text-muted-foreground">Display your phone number on your profile</p>
-                  </div>
-                  <Switch
-                    checked={privacy.showPhone}
-                    onCheckedChange={(checked) => setPrivacy({ ...privacy, showPhone: checked })}
-                  />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base">Analytics</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Allow us to collect anonymous usage data to improve the service
-                    </p>
-                  </div>
-                  <Switch
-                    checked={privacy.allowAnalytics}
-                    onCheckedChange={(checked) => setPrivacy({ ...privacy, allowAnalytics: checked })}
-                  />
-                </div>
-              </div>
 
-              <Button onClick={handleSavePrivacy}>Save Privacy Settings</Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>API Access</CardTitle>
-              <CardDescription>Manage your API keys and access tokens</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>API Key</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type={showApiKey ? "text" : "password"}
-                    value="sk-1234567890abcdef1234567890abcdef"
-                    readOnly
-                    className="font-mono"
-                  />
-                  <Button variant="outline" size="icon" onClick={() => setShowApiKey(!showApiKey)}>
-                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Use this key to access the API. Keep it secure and don't share it.
-                </p>
-              </div>
-              <Button variant="outline">Generate New Key</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="account" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>View your account details and subscription status</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label className="text-sm font-medium">Account ID</Label>
-                  <p className="text-sm text-muted-foreground font-mono">{user?.id}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Member Since</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Subscription</Label>
-                  <Badge variant="default">Pro Plan</Badge>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Status</Label>
-                  <Badge variant="default">Active</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Data Management</CardTitle>
-              <CardDescription>Export or delete your account data</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Button variant="outline" onClick={handleExportData}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export My Data
+                <Button onClick={handleProfileUpdate} disabled={loading}>
+                  {loading ? "Updating..." : "Update Profile"}
                 </Button>
-                <p className="text-sm text-muted-foreground">Download a copy of all your data in JSON format</p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
-              <CardDescription>Irreversible actions that will affect your account</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <AlertDescription>
-                  Once you delete your account, there is no going back. Please be certain.
-                </AlertDescription>
-              </Alert>
-              <Button variant="destructive" onClick={handleDeleteAccount}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="notifications" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Notification Preferences
+                </CardTitle>
+                <CardDescription>Choose how you want to be notified about your trading activity.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <Label>Email Notifications</Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                    </div>
+                    <Switch
+                      checked={notifications.emailNotifications}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, emailNotifications: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4" />
+                        <Label>Push Notifications</Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Receive push notifications on your device</p>
+                    </div>
+                    <Switch
+                      checked={notifications.pushNotifications}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, pushNotifications: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        <Label>Trade Alerts</Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Get notified when trades are executed</p>
+                    </div>
+                    <Switch
+                      checked={notifications.tradeAlerts}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, tradeAlerts: checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        <Label>Weekly Reports</Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground">Receive weekly performance summaries</p>
+                    </div>
+                    <Switch
+                      checked={notifications.weeklyReports}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, weeklyReports: checked })}
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleNotificationUpdate} disabled={loading}>
+                  {loading ? "Updating..." : "Update Notifications"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="trading" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Trading Preferences
+                </CardTitle>
+                <CardDescription>Configure your default trading settings and risk management.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultAssetType">Default Asset Type</Label>
+                    <Select
+                      value={profileData.defaultAssetType}
+                      onValueChange={(value) => setProfileData({ ...profileData, defaultAssetType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="stock">Stocks</SelectItem>
+                        <SelectItem value="option">Options</SelectItem>
+                        <SelectItem value="crypto">Cryptocurrency</SelectItem>
+                        <SelectItem value="forex">Forex</SelectItem>
+                        <SelectItem value="futures">Futures</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="riskTolerance">Risk Tolerance</Label>
+                    <Select
+                      value={profileData.riskTolerance}
+                      onValueChange={(value) => setProfileData({ ...profileData, riskTolerance: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="conservative">Conservative</SelectItem>
+                        <SelectItem value="moderate">Moderate</SelectItem>
+                        <SelectItem value="aggressive">Aggressive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Risk Management</h4>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="maxPositionSize">Max Position Size (%)</Label>
+                      <Input id="maxPositionSize" type="number" placeholder="10" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stopLossDefault">Default Stop Loss (%)</Label>
+                      <Input id="stopLossDefault" type="number" placeholder="5" />
+                    </div>
+                  </div>
+                </div>
+
+                <Button onClick={handleProfileUpdate} disabled={loading}>
+                  {loading ? "Updating..." : "Update Trading Settings"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Security Settings
+                </CardTitle>
+                <CardDescription>Manage your account security and authentication methods.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Two-Factor Authentication</h4>
+                      <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+                    </div>
+                    <Badge variant="outline">Not Enabled</Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Login Notifications</h4>
+                      <p className="text-sm text-muted-foreground">Get notified of new login attempts</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium">Session Timeout</h4>
+                      <p className="text-sm text-muted-foreground">Automatically log out after inactivity</p>
+                    </div>
+                    <Select defaultValue="30">
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="120">2 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Password</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input id="currentPassword" type="password" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input id="newPassword" type="password" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input id="confirmPassword" type="password" />
+                  </div>
+                  <Button variant="outline">Update Password</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="billing" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Billing & Subscription
+                </CardTitle>
+                <CardDescription>Manage your subscription and billing information.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <h4 className="font-medium">Pro Plan</h4>
+                    <p className="text-sm text-muted-foreground">Advanced trading analytics and unlimited trades</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">$29.99/month</div>
+                    <Badge>Active</Badge>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Payment Method</h4>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="h-8 w-8" />
+                      <div>
+                        <div className="font-medium">•••• •••• •••• 4242</div>
+                        <div className="text-sm text-muted-foreground">Expires 12/25</div>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Update
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Billing History</h4>
+                  <div className="space-y-2">
+                    {[
+                      { date: "Dec 1, 2023", amount: "$29.99", status: "Paid" },
+                      { date: "Nov 1, 2023", amount: "$29.99", status: "Paid" },
+                      { date: "Oct 1, 2023", amount: "$29.99", status: "Paid" },
+                    ].map((invoice, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded">
+                        <div>
+                          <div className="font-medium">{invoice.date}</div>
+                          <div className="text-sm text-muted-foreground">Pro Plan</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">{invoice.amount}</div>
+                          <Badge variant="outline">{invoice.status}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Cancel Subscription
+                  </Button>
+                  <Button variant="outline">Download Invoices</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

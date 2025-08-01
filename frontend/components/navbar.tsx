@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Search, Bell, Settings, LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -21,7 +20,11 @@ import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { useRouter } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-export function Navbar() {
+interface NavbarProps {
+  title?: string
+}
+
+export function Navbar({ title }: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const { user, signOut } = useAuth()
   const router = useRouter()
@@ -46,8 +49,9 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
+        <div className="mr-4 flex items-center">
           <SidebarTrigger className="-ml-1" />
+          {title && <h1 className="ml-4 text-lg font-semibold text-foreground">{title}</h1>}
         </div>
 
         {/* Search */}
