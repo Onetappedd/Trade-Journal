@@ -20,7 +20,7 @@ export default function Settings() {
     display_name: profile?.display_name || "",
     bio: profile?.bio || "",
     timezone: profile?.timezone || "UTC",
-    notifications_enabled: profile?.notifications_enabled || true,
+    notifications_enabled: profile?.notifications_enabled ?? true,
   })
 
   const handleSave = async () => {
@@ -179,7 +179,7 @@ export default function Settings() {
                 </div>
                 <Switch
                   checked={formData.notifications_enabled}
-                  onCheckedChange={(checked) => setFormData({ ...formData, notifications_enabled: checked })}
+                  onCheckedChange={(checked: boolean) => setFormData({ ...formData, notifications_enabled: checked })}
                 />
               </div>
               <div className="flex items-center justify-between">
