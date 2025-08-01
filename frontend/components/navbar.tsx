@@ -3,8 +3,8 @@
 import { Search, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Separator } from "@/components/ui/separator"
 import {
   Breadcrumb,
@@ -40,7 +40,7 @@ export function Navbar({ title = "Dashboard" }: NavbarProps) {
       <div className="ml-auto flex items-center gap-2 px-4">
         <div className="relative hidden md:block">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input type="search" placeholder="Search trades..." className="w-[300px] pl-8" />
+          <Input type="search" placeholder="Search..." className="w-[300px] pl-8" />
         </div>
         <Button variant="ghost" size="icon" className="h-9 w-9">
           <Bell className="h-4 w-4" />

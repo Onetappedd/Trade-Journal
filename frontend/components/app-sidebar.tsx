@@ -3,13 +3,15 @@
 import type * as React from "react"
 import {
   AudioWaveform,
+  BookOpen,
+  Bot,
   Command,
+  Frame,
   GalleryVerticalEnd,
+  Map,
   PieChart,
   Settings2,
-  TrendingUp,
-  BarChart3,
-  FileText,
+  Terminal,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -17,120 +19,132 @@ import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 
-// This is sample data for the trading dashboard
+// This is sample data.
 const data = {
   user: {
-    name: "Trading Pro",
-    email: "trader@example.com",
+    name: "shadcn",
+    email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
   teams: [
     {
-      name: "Personal Trading",
+      name: "Acme Inc",
       logo: GalleryVerticalEnd,
-      plan: "Pro",
-    },
-    {
-      name: "Hedge Fund",
-      logo: AudioWaveform,
       plan: "Enterprise",
     },
     {
-      name: "Day Trading",
+      name: "Acme Corp.",
+      logo: AudioWaveform,
+      plan: "Startup",
+    },
+    {
+      name: "Evil Corp.",
       logo: Command,
       plan: "Free",
     },
   ],
   navMain: [
     {
-      title: "Trading",
+      title: "Playground",
       url: "#",
-      icon: TrendingUp,
+      icon: Terminal,
       isActive: true,
       items: [
         {
-          title: "Dashboard",
-          url: "/dashboard",
+          title: "History",
+          url: "#",
         },
         {
-          title: "Add Trade",
-          url: "/dashboard/add-trade",
+          title: "Starred",
+          url: "#",
         },
         {
-          title: "Trade History",
-          url: "/dashboard/trade-history",
-        },
-        {
-          title: "Import Trades",
-          url: "/dashboard/import-trades",
+          title: "Settings",
+          url: "#",
         },
       ],
     },
     {
-      title: "Portfolio",
+      title: "Models",
       url: "#",
-      icon: PieChart,
+      icon: Bot,
       items: [
         {
-          title: "Overview",
-          url: "/dashboard/portfolio",
+          title: "Genesis",
+          url: "#",
         },
         {
-          title: "Calendar",
-          url: "/dashboard/calendar",
+          title: "Explorer",
+          url: "#",
         },
         {
-          title: "Risk Management",
-          url: "/dashboard/risk-management",
-        },
-        {
-          title: "Benchmark",
-          url: "/dashboard/benchmark",
+          title: "Quantum",
+          url: "#",
         },
       ],
     },
     {
-      title: "Analytics",
+      title: "Documentation",
       url: "#",
-      icon: BarChart3,
+      icon: BookOpen,
       items: [
         {
-          title: "Performance",
-          url: "/dashboard/analytics",
+          title: "Introduction",
+          url: "#",
         },
         {
-          title: "Market Scanner",
-          url: "/dashboard/market-scanner",
+          title: "Get Started",
+          url: "#",
         },
         {
-          title: "Price Alerts",
-          url: "/dashboard/price-alerts",
+          title: "Tutorials",
+          url: "#",
         },
         {
-          title: "Trending Tickers",
-          url: "/dashboard/trending-tickers",
-        },
-      ],
-    },
-    {
-      title: "Reports",
-      url: "#",
-      icon: FileText,
-      items: [
-        {
-          title: "Monthly Reports",
-          url: "/dashboard/reports",
-        },
-        {
-          title: "Tax Center",
-          url: "/dashboard/tax-center",
+          title: "Changelog",
+          url: "#",
         },
       ],
     },
     {
       title: "Settings",
-      url: "/dashboard/settings",
+      url: "#",
       icon: Settings2,
+      items: [
+        {
+          title: "General",
+          url: "#",
+        },
+        {
+          title: "Team",
+          url: "#",
+        },
+        {
+          title: "Billing",
+          url: "#",
+        },
+        {
+          title: "Limits",
+          url: "#",
+        },
+      ],
+    },
+  ],
+  projects: [
+    {
+      name: "Design Engineering",
+      url: "#",
+      icon: Frame,
+    },
+    {
+      name: "Sales & Marketing",
+      url: "#",
+      icon: PieChart,
+    },
+    {
+      name: "Travel",
+      url: "#",
+      icon: Map,
     },
   ],
 }
