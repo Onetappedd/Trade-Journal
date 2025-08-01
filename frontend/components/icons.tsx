@@ -1,7 +1,9 @@
-import type { LightbulbIcon as LucideProps } from "lucide-react"
+import type React from "react"
+import { Loader2 } from "lucide-react"
 
 export const Icons = {
-  google: (props: LucideProps) => (
+  spinner: Loader2,
+  google: (props: React.SVGProps<SVGSVGElement>) => (
     <svg role="img" viewBox="0 0 24 24" {...props}>
       <path
         fill="currentColor"
@@ -21,7 +23,7 @@ export const Icons = {
       />
     </svg>
   ),
-  discord: (props: LucideProps) => (
+  discord: (props: React.SVGProps<SVGSVGElement>) => (
     <svg role="img" viewBox="0 0 24 24" {...props}>
       <path
         fill="currentColor"
