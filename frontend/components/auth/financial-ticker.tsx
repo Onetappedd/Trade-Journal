@@ -1,68 +1,45 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { TrendingUp, TrendingDown } from "lucide-react"
+import { useEffect, useState } from "react"
 
-const mockTickers = [
-  { symbol: "NVDA", price: 942.89, change: 15.53, changePercent: 1.68 },
-  { symbol: "TSLA", price: 175.79, change: -1.93, changePercent: -1.09 },
-  { symbol: "AAPL", price: 189.98, change: 2.44, changePercent: 1.3 },
-  { symbol: "BTC-USD", price: 68345.21, change: -1234.56, changePercent: -1.77 },
-  { symbol: "ETH-USD", price: 3456.78, change: 78.91, changePercent: 2.34 },
-  { symbol: "SPY", price: 520.43, change: 1.23, changePercent: 0.24 },
-  { symbol: "GOOGL", price: 153.21, change: -0.56, changePercent: -0.36 },
-  { symbol: "AMZN", price: 180.38, change: 1.02, changePercent: 0.57 },
+const tickerData = [
+  { symbol: "AAPL", price: 175.43, change: 2.34, changePercent: 1.35 },
+  { symbol: "GOOGL", price: 2847.63, change: -15.23, changePercent: -0.53 },
+  { symbol: "MSFT", price: 378.85, change: 4.12, changePercent: 1.1 },
+  { symbol: "TSLA", price: 248.5, change: -3.45, changePercent: -1.37 },
+  { symbol: "AMZN", price: 3342.88, change: 12.45, changePercent: 0.37 },
+  { symbol: "NVDA", price: 875.28, change: 18.92, changePercent: 2.21 },
 ]
 
 export function FinancialTicker() {
-  const [tickerData, setTickerData] = useState(mockTickers)
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTickerData((prevData) =>
-        prevData.map((ticker) => {
-          const change = (Math.random() - 0.5) * (ticker.price * 0.01)
-          const newPrice = ticker.price + change
-          const newChangePercent = (change / ticker.price) * 100
-          return {
-            ...ticker,
-            price: Number.parseFloat(newPrice.toFixed(2)),
-            change: Number.parseFloat(change.toFixed(2)),
-            changePercent: Number.parseFloat(newChangePercent.toFixed(2)),
-          }
-        }),
-      )
-    }, 2000) // Update data every 2 seconds
+      setCurrentIndex((prev) => (prev + 1) % tickerData.length)
+    }, 3000)
 
     return () => clearInterval(interval)
   }, [])
 
-  const TickerItem = ({ item }: { item: (typeof tickerData)[0] }) => {
-    const isUp = item.change >= 0
-    return (
-      <div className="flex items-center space-x-4 px-6 text-sm">
-        <span className="font-bold text-gray-300">{item.symbol}</span>
-        <span className="text-white">{item.price.toLocaleString()}</span>
-        <div className={`flex items-center ${isUp ? "text-green-400" : "text-red-400"}`}>
-          {isUp ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-          <span>{item.change.toFixed(2)}</span>
-          <span className="ml-2">({item.changePercent.toFixed(2)}%)</span>
-        </div>
-      </div>
-    )
-  }
+  const currentTicker = tickerData[currentIndex]
+  const isPositive = currentTicker.change >= 0
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-12 bg-black/30 backdrop-blur-sm overflow-hidden z-20 border-t border-white/10">
-      <div className="w-full h-full flex items-center">
-        <div className="animate-ticker-scroll flex-shrink-0 flex items-center">
-          {tickerData.map((item, index) => (
-            <TickerItem key={`${item.symbol}-${index}`} item={item} />
-          ))}
-          {tickerData.map((item, index) => (
-            <TickerItem key={`duplicate-${item.symbol}-${index}`} item={item} />
-          ))}
-        </div>
+    <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center space-x-2">
+        <span className="font-semibold">{currentTicker.symbol}</span>
+        <span className="text-white/80">${currentTicker.price.toFixed(2)}</span>
+      </div>
+      <div className={`flex items-center space-x-1 ${isPositive ? "text-green-400" : "text-red-400"}`}>
+        <span>
+          {isPositive ? "+" : ""}
+          {currentTicker.change.toFixed(2)}
+        </span>
+        <span>
+          ({isPositive ? "+" : ""}
+          {currentTicker.changePercent.toFixed(2)}%)
+        </span>
       </div>
     </div>
   )

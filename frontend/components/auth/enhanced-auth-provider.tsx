@@ -11,7 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  isLoading: boolean
+  loading: boolean
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   signUp: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>
   signOut: () => Promise<void>
@@ -29,7 +29,7 @@ export function useAuth() {
 
 export function EnhancedAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Check for existing session on mount
@@ -43,7 +43,7 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
         console.error("Error checking session:", error)
         localStorage.removeItem("auth_user")
       } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
     }
 
@@ -51,36 +51,36 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    setIsLoading(true)
+    setLoading(true)
     try {
       // Mock authentication - in real app, this would be an API call
-      if (email === "demo@example.com" && password === "password") {
+      if (email && password) {
         const mockUser = {
           id: "1",
           email: email,
-          name: "Demo User",
+          name: email.split("@")[0],
         }
         setUser(mockUser)
         localStorage.setItem("auth_user", JSON.stringify(mockUser))
         return { success: true }
       } else {
-        return { success: false, error: "Invalid credentials" }
+        return { success: false, error: "Please enter email and password" }
       }
     } catch (error) {
       return { success: false, error: "Authentication failed" }
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   const signUp = async (email: string, password: string, name?: string) => {
-    setIsLoading(true)
+    setLoading(true)
     try {
       // Mock sign up - in real app, this would be an API call
       const mockUser = {
         id: Math.random().toString(36).substr(2, 9),
         email: email,
-        name: name || "New User",
+        name: name || email.split("@")[0],
       }
       setUser(mockUser)
       localStorage.setItem("auth_user", JSON.stringify(mockUser))
@@ -88,7 +88,7 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
     } catch (error) {
       return { success: false, error: "Sign up failed" }
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -99,7 +99,7 @@ export function EnhancedAuthProvider({ children }: { children: React.ReactNode }
 
   const value = {
     user,
-    isLoading,
+    loading,
     signIn,
     signUp,
     signOut,
