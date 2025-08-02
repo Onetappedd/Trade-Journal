@@ -32,10 +32,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem("trading-journal-user")
+    // Check for existing session on mount
+    const savedUser = localStorage.getItem("auth-user")
     if (savedUser) {
-      setUser(JSON.parse(savedUser))
+      try {
+        setUser(JSON.parse(savedUser))
+      } catch (error) {
+        localStorage.removeItem("auth-user")
+      }
     }
     setIsLoading(false)
   }, [])
@@ -54,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: "Demo User",
       }
       setUser(user)
-      localStorage.setItem("trading-journal-user", JSON.stringify(user))
+      localStorage.setItem("auth-user", JSON.stringify(user))
       setIsLoading(false)
       return { success: true }
     }
@@ -75,15 +79,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name,
     }
     setUser(user)
-    localStorage.setItem("trading-journal-user", JSON.stringify(user))
+    localStorage.setItem("auth-user", JSON.stringify(user))
     setIsLoading(false)
     return { success: true }
   }
 
   const signOut = () => {
     setUser(null)
-    localStorage.removeItem("trading-journal-user")
+    localStorage.removeItem("auth-user")
   }
 
-  return <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>{children}</AuthContext.Provider>
+  const value = {
+    user,
+    isLoading,
+    signIn,
+    signUp,
+    signOut,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

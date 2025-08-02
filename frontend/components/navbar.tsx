@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/breadcrumb"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-export function Navbar() {
+interface NavbarProps {
+  title?: string
+}
+
+export function Navbar({ title = "Dashboard" }: NavbarProps) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="-ml-1" />
@@ -24,7 +28,7 @@ export function Navbar() {
           </BreadcrumbItem>
           <BreadcrumbSeparator className="hidden md:block" />
           <BreadcrumbItem>
-            <BreadcrumbPage>Dashboard</BreadcrumbPage>
+            <BreadcrumbPage>{title}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
