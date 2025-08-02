@@ -3,8 +3,9 @@
 import type React from "react"
 
 import { useAuth } from "@/components/auth/auth-provider"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { Navbar } from "@/components/navbar"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -37,7 +38,10 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <Navbar />
+        <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">{children}</main>
+      </SidebarInset>
     </SidebarProvider>
   )
 }
