@@ -1,78 +1,75 @@
 "use client"
 
-import type React from "react"
-
-import { Home, LineChart, Calendar, Settings, TrendingUp, AlertCircle, FileText, Calculator } from "lucide-react"
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
+import { Home, TrendingUp, Calendar, Settings, BarChart3, AlertTriangle, FileText, Calculator } from "lucide-react"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+} from "@/components/ui/sidebar"
 import { TeamSwitcher } from "@/components/team-switcher"
-import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 
-const data = {
-  teams: [
-    {
-      name: "Trading Account",
-      logo: TrendingUp,
-      plan: "Pro",
-    },
-  ],
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Trade History",
-      url: "/dashboard/trade-history",
-      icon: LineChart,
-    },
-    {
-      title: "Calendar",
-      url: "/dashboard/calendar",
-      icon: Calendar,
-    },
-    {
-      title: "Analytics",
-      url: "/dashboard/analytics",
-      icon: TrendingUp,
-    },
-    {
-      title: "Alerts",
-      url: "/dashboard/alerts",
-      icon: AlertCircle,
-    },
-    {
-      title: "Reports",
-      url: "/dashboard/reports",
-      icon: FileText,
-    },
-    {
-      title: "Tax Center",
-      url: "/dashboard/tax-center",
-      icon: Calculator,
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: Settings,
-    },
-  ],
-}
+const navigation = [
+  {
+    title: "Trading",
+    items: [
+      { title: "Dashboard", url: "/dashboard", icon: Home },
+      { title: "Trade History", url: "/dashboard/trades", icon: TrendingUp },
+      { title: "Portfolio", url: "/dashboard/portfolio", icon: BarChart3 },
+      { title: "Calendar", url: "/dashboard/calendar", icon: Calendar },
+    ],
+  },
+  {
+    title: "Analysis",
+    items: [
+      { title: "Reports", url: "/dashboard/reports", icon: FileText },
+      { title: "Risk Management", url: "/dashboard/risk", icon: AlertTriangle },
+      { title: "Tax Center", url: "/dashboard/tax", icon: Calculator },
+    ],
+  },
+  {
+    title: "Settings",
+    items: [{ title: "Preferences", url: "/dashboard/settings", icon: Settings }],
+  },
+]
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar() {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        {navigation.map((group) => (
+          <SidebarGroup key={group.title}>
+            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <a href={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }

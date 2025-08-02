@@ -3,7 +3,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": ["sfo1"],
   "functions": {
     "app/api/**/*.ts": {
       "runtime": "nodejs18.x"

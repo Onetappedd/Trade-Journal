@@ -1,12 +1,12 @@
 "use client"
 
-import { useAuth } from "@/components/auth/enhanced-auth-provider"
-import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { DashboardContent } from "@/components/dashboard-content"
 import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Navbar } from "@/components/navbar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
@@ -18,19 +18,29 @@ export default function DashboardPage() {
     }
   }, [user, isLoading, router])
 
-  if (isLoading || !user) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
     return null
   }
 
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Navbar title="Dashboard" />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <DashboardContent />
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          <Navbar />
+          <main className="flex-1 p-6">
+            <DashboardContent />
+          </main>
         </div>
-      </SidebarInset>
+      </div>
     </SidebarProvider>
   )
 }

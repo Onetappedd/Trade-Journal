@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, TrendingUp } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export function EnhancedLoginForm() {
   const { signIn, signUp, isLoading } = useAuth()
@@ -48,10 +48,7 @@ export function EnhancedLoginForm() {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <div className="flex items-center justify-center mb-4">
-          <TrendingUp className="h-8 w-8 text-primary" />
-        </div>
+      <CardHeader>
         <CardTitle>Trading Journal</CardTitle>
         <CardDescription>Sign in to your account or create a new one</CardDescription>
       </CardHeader>
@@ -78,16 +75,15 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
               </Button>
             </form>
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p>Demo credentials:</p>
+              <p>Email: demo@example.com</p>
+              <p>Password: password</p>
+            </div>
           </TabsContent>
 
           <TabsContent value="signup">
@@ -110,22 +106,12 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  "Create Account"
-                )}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign Up
               </Button>
             </form>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          Demo credentials: demo@example.com / password
-        </div>
       </CardContent>
     </Card>
   )

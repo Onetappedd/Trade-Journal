@@ -17,7 +17,6 @@ export function ThemeToggle() {
     return (
       <Button variant="outline" size="icon">
         <Sun className="h-[1.2rem] w-[1.2rem]" />
-        <span className="sr-only">Toggle theme</span>
       </Button>
     )
   }

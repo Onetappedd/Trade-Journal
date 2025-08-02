@@ -32,14 +32,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing session on mount
+    // Check for existing session
     const savedUser = localStorage.getItem("trading-journal-user")
     if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser))
-      } catch (error) {
-        localStorage.removeItem("trading-journal-user")
-      }
+      setUser(JSON.parse(savedUser))
     }
     setIsLoading(false)
   }, [])
@@ -89,17 +85,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("trading-journal-user")
   }
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        signIn,
-        signUp,
-        signOut,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>{children}</AuthContext.Provider>
 }
