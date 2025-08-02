@@ -20,16 +20,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   useEffect(() => {
-    const getUser = async () => {
+    // Get initial session
+    const getInitialSession = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setUser(user)
+        data: { session },
+      } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
       setLoading(false)
     }
 
-    getUser()
+    getInitialSession()
 
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {

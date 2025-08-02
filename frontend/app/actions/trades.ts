@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase-server"
 import { z } from "zod"
 import type { Database } from "@/lib/database.types"
 
+// Explicitly use Node.js runtime to avoid Edge Runtime warnings
+export const runtime = "nodejs"
+
 const tradeSchema = z.object({
   symbol: z.string().min(1, "Symbol is required").toUpperCase(),
   asset_type: z.enum(["stock", "option", "crypto", "futures", "forex"]),
