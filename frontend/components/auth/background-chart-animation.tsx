@@ -20,33 +20,41 @@ export function BackgroundChartAnimation() {
     resizeCanvas()
     window.addEventListener("resize", resizeCanvas)
 
-    // Generate random data points for the chart
-    const generateDataPoints = (count: number) => {
-      const points = []
-      let value = 100
-      for (let i = 0; i < count; i++) {
-        value += (Math.random() - 0.5) * 10
-        points.push({
-          x: (i / count) * canvas.width,
-          y: canvas.height / 2 + (value - 100) * 2,
-        })
-      }
-      return points
-    }
+    // Generate random data points
+    const dataPoints = Array.from({ length: 50 }, (_, i) => ({
+      x: (i / 49) * canvas.width,
+      y: Math.random() * canvas.height * 0.6 + canvas.height * 0.2,
+    }))
 
-    let dataPoints = generateDataPoints(100)
-    let animationFrame = 0
+    let animationFrame: number
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Create gradient
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
-      gradient.addColorStop(0, "rgba(59, 130, 246, 0.1)")
-      gradient.addColorStop(1, "rgba(147, 51, 234, 0.1)")
+      // Draw grid lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"
+      ctx.lineWidth = 1
 
-      // Draw the chart line
-      ctx.strokeStyle = "rgba(59, 130, 246, 0.3)"
+      // Vertical lines
+      for (let i = 0; i < 10; i++) {
+        const x = (i / 9) * canvas.width
+        ctx.beginPath()
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, canvas.height)
+        ctx.stroke()
+      }
+
+      // Horizontal lines
+      for (let i = 0; i < 6; i++) {
+        const y = (i / 5) * canvas.height
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(canvas.width, y)
+        ctx.stroke()
+      }
+
+      // Draw chart line
+      ctx.strokeStyle = "rgba(59, 130, 246, 0.5)"
       ctx.lineWidth = 2
       ctx.beginPath()
 
@@ -60,31 +68,33 @@ export function BackgroundChartAnimation() {
 
       ctx.stroke()
 
-      // Fill area under the curve
-      ctx.fillStyle = gradient
-      ctx.lineTo(canvas.width, canvas.height)
-      ctx.lineTo(0, canvas.height)
+      // Draw area under the curve
+      ctx.fillStyle = "rgba(59, 130, 246, 0.1)"
+      ctx.beginPath()
+      ctx.moveTo(dataPoints[0].x, canvas.height)
+      dataPoints.forEach((point) => {
+        ctx.lineTo(point.x, point.y)
+      })
+      ctx.lineTo(dataPoints[dataPoints.length - 1].x, canvas.height)
       ctx.closePath()
       ctx.fill()
 
-      // Animate the data points
-      dataPoints = dataPoints.map((point) => ({
-        ...point,
-        y: point.y + Math.sin(animationFrame * 0.01 + point.x * 0.01) * 0.5,
-      }))
+      // Animate data points slightly
+      dataPoints.forEach((point) => {
+        point.y += (Math.random() - 0.5) * 0.5
+        point.y = Math.max(canvas.height * 0.1, Math.min(canvas.height * 0.9, point.y))
+      })
 
-      animationFrame++
-      requestAnimationFrame(animate)
+      animationFrame = requestAnimationFrame(animate)
     }
 
     animate()
 
     return () => {
       window.removeEventListener("resize", resizeCanvas)
+      cancelAnimationFrame(animationFrame)
     }
   }, [])
 
-  return (
-    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" style={{ pointerEvents: "none" }} />
-  )
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" style={{ zIndex: -1 }} />
 }

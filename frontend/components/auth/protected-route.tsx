@@ -1,9 +1,10 @@
 "use client"
 
-import { useAuth } from "./enhanced-auth-provider"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 import type React from "react"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "./enhanced-auth-provider"
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -17,7 +18,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     )
