@@ -17,7 +17,6 @@ export function LoginForm() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -37,6 +36,7 @@ export function LoginForm() {
       router.push("/dashboard")
       router.refresh()
     }
+
     setLoading(false)
   }
 
@@ -44,7 +44,6 @@ export function LoginForm() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setMessage(null)
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -54,8 +53,9 @@ export function LoginForm() {
     if (error) {
       setError(error.message)
     } else {
-      setMessage("Check your email for the confirmation link!")
+      setError("Check your email for the confirmation link!")
     }
+
     setLoading(false)
   }
 
@@ -88,6 +88,11 @@ export function LoginForm() {
                   required
                 />
               </div>
+              {error && (
+                <Alert>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
@@ -116,24 +121,17 @@ export function LoginForm() {
                   required
                 />
               </div>
+              {error && (
+                <Alert>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Creating account..." : "Sign Up"}
               </Button>
             </form>
           </TabsContent>
         </Tabs>
-
-        {error && (
-          <Alert className="mt-4" variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {message && (
-          <Alert className="mt-4">
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   )

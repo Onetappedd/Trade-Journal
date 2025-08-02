@@ -12,8 +12,9 @@ export type Database = {
           created_at: string
           updated_at: string
           timezone: string | null
+          currency: string
           notifications_enabled: boolean
-          theme: string | null
+          theme: string
         }
         Insert: {
           id: string
@@ -23,8 +24,9 @@ export type Database = {
           created_at?: string
           updated_at?: string
           timezone?: string | null
+          currency?: string
           notifications_enabled?: boolean
-          theme?: string | null
+          theme?: string
         }
         Update: {
           id?: string
@@ -34,8 +36,9 @@ export type Database = {
           created_at?: string
           updated_at?: string
           timezone?: string | null
+          currency?: string
           notifications_enabled?: boolean
-          theme?: string | null
+          theme?: string
         }
         Relationships: []
       }
@@ -44,58 +47,55 @@ export type Database = {
           id: string
           user_id: string
           symbol: string
-          asset_type: "stock" | "option" | "crypto" | "futures" | "forex"
           side: "buy" | "sell"
           quantity: number
           entry_price: number
           exit_price: number | null
           entry_date: string
           exit_date: string | null
+          strategy: string | null
           notes: string | null
-          status: "open" | "closed"
+          pnl: number | null
+          commission: number
+          status: "open" | "closed" | "cancelled"
           created_at: string
           updated_at: string
-          strike_price: number | null
-          expiry_date: string | null
-          option_type: "call" | "put" | null
         }
         Insert: {
           id?: string
           user_id: string
           symbol: string
-          asset_type: "stock" | "option" | "crypto" | "futures" | "forex"
           side: "buy" | "sell"
           quantity: number
           entry_price: number
           exit_price?: number | null
           entry_date: string
           exit_date?: string | null
+          strategy?: string | null
           notes?: string | null
-          status?: "open" | "closed"
+          pnl?: number | null
+          commission?: number
+          status?: "open" | "closed" | "cancelled"
           created_at?: string
           updated_at?: string
-          strike_price?: number | null
-          expiry_date?: string | null
-          option_type?: "call" | "put" | null
         }
         Update: {
           id?: string
           user_id?: string
           symbol?: string
-          asset_type?: "stock" | "option" | "crypto" | "futures" | "forex"
           side?: "buy" | "sell"
           quantity?: number
           entry_price?: number
           exit_price?: number | null
           entry_date?: string
           exit_date?: string | null
+          strategy?: string | null
           notes?: string | null
-          status?: "open" | "closed"
+          pnl?: number | null
+          commission?: number
+          status?: "open" | "closed" | "cancelled"
           created_at?: string
           updated_at?: string
-          strike_price?: number | null
-          expiry_date?: string | null
-          option_type?: "call" | "put" | null
         }
         Relationships: [
           {
@@ -110,23 +110,23 @@ export type Database = {
       tags: {
         Row: {
           id: string
-          name: string
           user_id: string
-          color: string | null
+          name: string
+          color: string
           created_at: string
         }
         Insert: {
           id?: string
-          name: string
           user_id: string
-          color?: string | null
+          name: string
+          color: string
           created_at?: string
         }
         Update: {
           id?: string
-          name?: string
           user_id?: string
-          color?: string | null
+          name?: string
+          color?: string
           created_at?: string
         }
         Relationships: [
@@ -141,19 +141,16 @@ export type Database = {
       }
       trade_tags: {
         Row: {
-          id: string
           trade_id: string
           tag_id: string
           created_at: string
         }
         Insert: {
-          id?: string
           trade_id: string
           tag_id: string
           created_at?: string
         }
         Update: {
-          id?: string
           trade_id?: string
           tag_id?: string
           created_at?: string
