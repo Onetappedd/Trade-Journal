@@ -3,14 +3,14 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/components/auth/enhanced-auth-provider"
+import { EnhancedAuthProvider } from "@/components/auth/enhanced-auth-provider"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Trading Journal Dashboard",
-  description: "Modern trading journal and analytics platform",
+  description: "A modern trading journal and analytics dashboard",
     generator: 'v0.dev'
 }
 
@@ -23,10 +23,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AuthProvider>
+          <EnhancedAuthProvider>
             {children}
             <Toaster />
-          </AuthProvider>
+          </EnhancedAuthProvider>
         </ThemeProvider>
       </body>
     </html>

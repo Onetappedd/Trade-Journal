@@ -107,6 +107,8 @@ const ChartTooltip = React.forwardRef<
     labelFormatter?: (label: any, payload: any) => React.ReactNode
     labelClassName?: string
     formatter?: (value: any, name: any, item: any, index: any, payload: any) => React.ReactNode
+    nameKey?: string
+    labelKey?: string
   }
 >(
   (
@@ -121,7 +123,6 @@ const ChartTooltip = React.forwardRef<
       labelFormatter,
       labelClassName,
       formatter,
-      color,
       nameKey,
       labelKey,
     },
@@ -172,7 +173,7 @@ const ChartTooltip = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = item.payload.fill || item.color
 
             return (
               <div
@@ -235,42 +236,8 @@ const ChartTooltip = React.forwardRef<
 ChartTooltip.displayName = "ChartTooltip"
 
 const ChartTooltipContent = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof ChartTooltip>>(
-  (
-    {
-      active,
-      payload,
-      className,
-      indicator,
-      hideLabel,
-      hideIndicator,
-      label,
-      labelFormatter,
-      labelClassName,
-      formatter,
-      color,
-      nameKey,
-      labelKey,
-    },
-    ref,
-  ) => {
-    return (
-      <ChartTooltip
-        ref={ref}
-        active={active}
-        payload={payload}
-        className={className}
-        indicator={indicator}
-        hideLabel={hideLabel}
-        hideIndicator={hideIndicator}
-        label={label}
-        labelFormatter={labelFormatter}
-        labelClassName={labelClassName}
-        formatter={formatter}
-        color={color}
-        nameKey={nameKey}
-        labelKey={labelKey}
-      />
-    )
+  (props, ref) => {
+    return <ChartTooltip ref={ref} {...props} />
   },
 )
 ChartTooltipContent.displayName = "ChartTooltipContent"

@@ -1,24 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import {
-  Home,
-  TrendingUp,
-  BarChart3,
-  Calendar,
-  Settings,
-  PlusCircle,
-  History,
-  Upload,
-  Target,
-  Briefcase,
-  AlertTriangle,
-  FileText,
-  Calculator,
-  Search,
-  Bell,
-  Eye,
-} from "lucide-react"
+import { BarChart3, Calendar, FileText, Home, PieChart, Settings, TrendingUp, Users } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -27,20 +10,20 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } fr
 
 const data = {
   user: {
-    name: "Demo User",
-    email: "demo@example.com",
-    avatar: "/placeholder.svg?height=32&width=32",
+    name: "Trading Pro",
+    email: "trader@example.com",
+    avatar: "/avatars/shadcn.jpg",
   },
   teams: [
     {
       name: "Personal Trading",
       logo: TrendingUp,
-      plan: "Free",
+      plan: "Pro",
     },
     {
-      name: "Team Account",
-      logo: Briefcase,
-      plan: "Pro",
+      name: "Team Portfolio",
+      logo: Users,
+      plan: "Team",
     },
   ],
   navMain: [
@@ -51,97 +34,24 @@ const data = {
       isActive: true,
     },
     {
-      title: "Trading",
-      url: "#",
-      icon: TrendingUp,
-      items: [
-        {
-          title: "Add Trade",
-          url: "/dashboard/add-trade",
-          icon: PlusCircle,
-        },
-        {
-          title: "Trade History",
-          url: "/dashboard/trade-history",
-          icon: History,
-        },
-        {
-          title: "Import Trades",
-          url: "/dashboard/import-trades",
-          icon: Upload,
-        },
-      ],
+      title: "Portfolio",
+      url: "/dashboard/portfolio",
+      icon: PieChart,
     },
     {
       title: "Analytics",
-      url: "#",
+      url: "/dashboard/analytics",
       icon: BarChart3,
-      items: [
-        {
-          title: "Portfolio",
-          url: "/dashboard/portfolio",
-          icon: Briefcase,
-        },
-        {
-          title: "Risk Management",
-          url: "/dashboard/risk-management",
-          icon: AlertTriangle,
-        },
-        {
-          title: "Benchmark",
-          url: "/dashboard/benchmark",
-          icon: Target,
-        },
-        {
-          title: "Analytics",
-          url: "/dashboard/analytics",
-          icon: BarChart3,
-        },
-      ],
-    },
-    {
-      title: "Market Tools",
-      url: "#",
-      icon: Search,
-      items: [
-        {
-          title: "Market Scanner",
-          url: "/dashboard/market-scanner",
-          icon: Search,
-        },
-        {
-          title: "Price Alerts",
-          url: "/dashboard/price-alerts",
-          icon: Bell,
-        },
-        {
-          title: "Trending Tickers",
-          url: "/dashboard/trending-tickers",
-          icon: Eye,
-        },
-      ],
-    },
-    {
-      title: "Reports",
-      url: "#",
-      icon: FileText,
-      items: [
-        {
-          title: "Performance Reports",
-          url: "/dashboard/reports",
-          icon: FileText,
-        },
-        {
-          title: "Tax Center",
-          url: "/dashboard/tax-center",
-          icon: Calculator,
-        },
-      ],
     },
     {
       title: "Calendar",
       url: "/dashboard/calendar",
       icon: Calendar,
+    },
+    {
+      title: "Reports",
+      url: "/dashboard/reports",
+      icon: FileText,
     },
     {
       title: "Settings",
