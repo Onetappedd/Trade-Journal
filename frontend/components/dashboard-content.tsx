@@ -1,116 +1,135 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, TrendingDown, DollarSign, Activity, Plus, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import Link from "next/link"
+
+interface Trade {
+  id: string
+  symbol: string
+  side: "buy" | "sell"
+  quantity: number
+  price: number
+  pnl: number
+  date: string
+  status: "open" | "closed"
+}
 
 export function DashboardContent() {
-  const metrics = [
-    {
-      title: "Total P&L",
-      value: "$12,345.67",
-      change: "+12.5%",
-      trend: "up",
-      icon: DollarSign,
-    },
-    {
-      title: "Win Rate",
-      value: "68.4%",
-      change: "+2.1%",
-      trend: "up",
-      icon: TrendingUp,
-    },
-    {
-      title: "Total Trades",
-      value: "247",
-      change: "+18",
-      trend: "up",
-      icon: Activity,
-    },
-    {
-      title: "Avg. Trade",
-      value: "$156.78",
-      change: "-3.2%",
-      trend: "down",
-      icon: TrendingDown,
-    },
-  ]
+  const [stats, setStats] = useState({
+    totalPnL: 0,
+    winRate: 0,
+    totalTrades: 0,
+    activePositions: 0,
+  })
+  const [recentTrades, setRecentTrades] = useState<Trade[]>([])
 
-  const recentTrades = [
-    {
-      symbol: "AAPL",
-      type: "Long",
-      entry: "$175.50",
-      exit: "$178.25",
-      pnl: "+$275.00",
-      date: "2024-01-15",
-      status: "closed",
-    },
-    {
-      symbol: "TSLA",
-      type: "Short",
-      entry: "$245.80",
-      exit: "$242.15",
-      pnl: "+$365.00",
-      date: "2024-01-14",
-      status: "closed",
-    },
-    {
-      symbol: "NVDA",
-      type: "Long",
-      entry: "$520.30",
-      exit: "$518.90",
-      pnl: "-$140.00",
-      date: "2024-01-13",
-      status: "closed",
-    },
-    {
-      symbol: "SPY",
-      type: "Long",
-      entry: "$485.20",
-      exit: "Current",
-      pnl: "+$85.50",
-      date: "2024-01-12",
-      status: "open",
-    },
-  ]
+  useEffect(() => {
+    // Mock data - replace with actual API calls
+    setStats({
+      totalPnL: 12450.75,
+      winRate: 68.5,
+      totalTrades: 147,
+      activePositions: 8,
+    })
+
+    setRecentTrades([
+      {
+        id: "1",
+        symbol: "AAPL",
+        side: "buy",
+        quantity: 100,
+        price: 175.5,
+        pnl: 850.0,
+        date: "2024-01-15",
+        status: "closed",
+      },
+      {
+        id: "2",
+        symbol: "TSLA",
+        side: "sell",
+        quantity: 50,
+        price: 245.3,
+        pnl: -320.0,
+        date: "2024-01-14",
+        status: "closed",
+      },
+      {
+        id: "3",
+        symbol: "NVDA",
+        side: "buy",
+        quantity: 25,
+        price: 520.75,
+        pnl: 0,
+        date: "2024-01-13",
+        status: "open",
+      },
+    ])
+  }, [])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back! Here's your trading overview.</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Trade
+        <Button asChild>
+          <Link href="/dashboard/add-trade">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Trade
+          </Link>
         </Button>
       </div>
 
-      {/* Metrics Cards */}
+      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((metric) => (
-          <Card key={metric.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{metric.title}</CardTitle>
-              <metric.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metric.value}</div>
-              <p className="text-xs text-muted-foreground flex items-center">
-                {metric.trend === "up" ? (
-                  <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
-                ) : (
-                  <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
-                )}
-                <span className={metric.trend === "up" ? "text-green-500" : "text-red-500"}>{metric.change}</span>
-                <span className="ml-1">from last month</span>
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">${stats.totalPnL.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">+12.5% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.winRate}%</div>
+            <p className="text-xs text-muted-foreground">+2.1% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalTrades}</div>
+            <p className="text-xs text-muted-foreground">+23 from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Positions</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.activePositions}</div>
+            <p className="text-xs text-muted-foreground">-2 from yesterday</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent Trades */}
@@ -121,26 +140,34 @@ export function DashboardContent() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentTrades.map((trade, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+            {recentTrades.map((trade) => (
+              <div key={trade.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
-                  <div>
-                    <p className="text-sm font-medium">{trade.symbol}</p>
-                    <p className="text-xs text-muted-foreground">{trade.date}</p>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={trade.side === "buy" ? "default" : "secondary"}>{trade.side.toUpperCase()}</Badge>
+                    <span className="font-medium">{trade.symbol}</span>
                   </div>
-                  <Badge variant={trade.type === "Long" ? "default" : "secondary"}>{trade.type}</Badge>
-                  <Badge variant={trade.status === "open" ? "outline" : "secondary"}>{trade.status}</Badge>
+                  <div className="text-sm text-muted-foreground">
+                    {trade.quantity} shares @ ${trade.price}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm">
-                    {trade.entry} → {trade.exit}
-                  </p>
-                  <p className={`text-sm font-medium ${trade.pnl.startsWith("+") ? "text-green-600" : "text-red-600"}`}>
-                    {trade.pnl}
-                  </p>
+                <div className="flex items-center space-x-4">
+                  <Badge variant={trade.status === "open" ? "outline" : "secondary"}>{trade.status}</Badge>
+                  {trade.pnl !== 0 && (
+                    <div className={`flex items-center space-x-1 ${trade.pnl > 0 ? "text-green-600" : "text-red-600"}`}>
+                      {trade.pnl > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                      <span className="font-medium">${Math.abs(trade.pnl).toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="text-sm text-muted-foreground">{new Date(trade.date).toLocaleDateString()}</div>
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-4">
+            <Button variant="outline" asChild className="w-full bg-transparent">
+              <Link href="/dashboard/trade-history">View All Trades</Link>
+            </Button>
           </div>
         </CardContent>
       </Card>

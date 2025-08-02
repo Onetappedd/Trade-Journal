@@ -1,23 +1,34 @@
 "use client"
 
 import type * as React from "react"
-import { Home, TrendingUp, Calendar, FileText, Settings, BarChart3, Search } from "lucide-react"
+import { AudioWaveform, BookOpen, Bot, Command, GalleryVerticalEnd, PieChart, Settings2, Home } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 
+// This is sample data.
 const data = {
   user: {
     name: "Demo User",
     email: "demo@example.com",
-    avatar: "/placeholder.svg?height=32&width=32",
+    avatar: "/avatars/shadcn.jpg",
   },
   teams: [
     {
-      name: "Personal Trading",
-      logo: TrendingUp,
+      name: "Trading Journal",
+      logo: GalleryVerticalEnd,
+      plan: "Enterprise",
+    },
+    {
+      name: "Portfolio Analytics",
+      logo: AudioWaveform,
+      plan: "Startup",
+    },
+    {
+      name: "Risk Management",
+      logo: Command,
       plan: "Free",
     },
   ],
@@ -31,7 +42,7 @@ const data = {
     {
       title: "Trading",
       url: "#",
-      icon: TrendingUp,
+      icon: BookOpen,
       items: [
         {
           title: "Add Trade",
@@ -50,7 +61,7 @@ const data = {
     {
       title: "Analytics",
       url: "#",
-      icon: BarChart3,
+      icon: PieChart,
       items: [
         {
           title: "Portfolio",
@@ -65,54 +76,48 @@ const data = {
           url: "/dashboard/benchmark",
         },
         {
-          title: "Analytics",
-          url: "/dashboard/analytics",
+          title: "Reports",
+          url: "/dashboard/reports",
+        },
+      ],
+    },
+    {
+      title: "Market Data",
+      url: "#",
+      icon: Bot,
+      items: [
+        {
+          title: "Scanner",
+          url: "/dashboard/scanner",
+        },
+        {
+          title: "Trending Tickers",
+          url: "/dashboard/trending-tickers",
+        },
+        {
+          title: "Price Alerts",
+          url: "/dashboard/price-alerts",
         },
       ],
     },
     {
       title: "Tools",
       url: "#",
-      icon: Search,
+      icon: Settings2,
       items: [
         {
-          title: "Market Scanner",
-          url: "/dashboard/market-scanner",
-        },
-        {
-          title: "Price Alerts",
-          url: "/dashboard/price-alerts",
-        },
-        {
-          title: "Trending Tickers",
-          url: "/dashboard/trending-tickers",
-        },
-      ],
-    },
-    {
-      title: "Reports",
-      url: "#",
-      icon: FileText,
-      items: [
-        {
-          title: "Reports",
-          url: "/dashboard/reports",
+          title: "Calendar",
+          url: "/dashboard/calendar",
         },
         {
           title: "Tax Center",
           url: "/dashboard/tax-center",
         },
+        {
+          title: "Settings",
+          url: "/dashboard/settings",
+        },
       ],
-    },
-    {
-      title: "Calendar",
-      url: "/dashboard/calendar",
-      icon: Calendar,
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: Settings,
     },
   ],
 }

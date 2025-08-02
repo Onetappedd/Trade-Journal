@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
 
 export function EnhancedLoginForm() {
   const [email, setEmail] = useState("")
@@ -32,7 +31,7 @@ export function EnhancedLoginForm() {
     if (result.success) {
       router.push("/dashboard")
     } else {
-      setError(result.error || "Failed to sign in")
+      setError(result.error || "Sign in failed")
     }
 
     setIsLoading(false)
@@ -48,7 +47,7 @@ export function EnhancedLoginForm() {
     if (result.success) {
       router.push("/dashboard")
     } else {
-      setError(result.error || "Failed to create account")
+      setError(result.error || "Sign up failed")
     }
 
     setIsLoading(false)
@@ -97,8 +96,7 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </TabsContent>
@@ -144,15 +142,16 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Account
+                {isLoading ? "Creating account..." : "Sign Up"}
               </Button>
             </form>
           </TabsContent>
         </Tabs>
 
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          Demo credentials: demo@example.com / password
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+          <p>Demo credentials:</p>
+          <p>Email: demo@example.com</p>
+          <p>Password: password</p>
         </div>
       </CardContent>
     </Card>

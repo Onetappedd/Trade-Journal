@@ -3,7 +3,6 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
-import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
@@ -19,12 +18,13 @@ export default function HomePage() {
     }
   }, [user, loading, router])
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="flex flex-col items-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  return null
 }
