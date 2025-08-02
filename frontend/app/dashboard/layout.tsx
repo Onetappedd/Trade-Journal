@@ -1,12 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Navbar } from "@/components/navbar"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function DashboardLayout({
   children,
@@ -38,7 +39,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <Navbar title="Dashboard" />
+        <Navbar />
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
       </SidebarInset>
     </SidebarProvider>

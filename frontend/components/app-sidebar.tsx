@@ -1,7 +1,24 @@
 "use client"
 
 import type * as React from "react"
-import { Home, LineChart, BarChart3, TrendingUp, FileText, Settings } from "lucide-react"
+import {
+  Home,
+  TrendingUp,
+  BarChart3,
+  Calendar,
+  Settings,
+  PlusCircle,
+  History,
+  Upload,
+  Target,
+  Briefcase,
+  AlertTriangle,
+  FileText,
+  Calculator,
+  Search,
+  Bell,
+  Eye,
+} from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -12,37 +29,46 @@ const data = {
   user: {
     name: "Demo User",
     email: "demo@example.com",
-    avatar: "/avatars/demo.jpg",
+    avatar: "/placeholder.svg?height=32&width=32",
   },
   teams: [
     {
       name: "Personal Trading",
-      logo: Home,
+      logo: TrendingUp,
       plan: "Free",
+    },
+    {
+      name: "Team Account",
+      logo: Briefcase,
+      plan: "Pro",
     },
   ],
   navMain: [
     {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: Home,
+      isActive: true,
+    },
+    {
       title: "Trading",
       url: "#",
-      icon: LineChart,
-      isActive: true,
+      icon: TrendingUp,
       items: [
-        {
-          title: "Dashboard",
-          url: "/dashboard",
-        },
         {
           title: "Add Trade",
           url: "/dashboard/add-trade",
+          icon: PlusCircle,
         },
         {
           title: "Trade History",
           url: "/dashboard/trade-history",
+          icon: History,
         },
         {
           title: "Import Trades",
           url: "/dashboard/import-trades",
+          icon: Upload,
         },
       ],
     },
@@ -52,43 +78,46 @@ const data = {
       icon: BarChart3,
       items: [
         {
-          title: "Calendar",
-          url: "/dashboard/calendar",
-        },
-        {
           title: "Portfolio",
           url: "/dashboard/portfolio",
+          icon: Briefcase,
         },
         {
           title: "Risk Management",
           url: "/dashboard/risk-management",
+          icon: AlertTriangle,
         },
         {
           title: "Benchmark",
           url: "/dashboard/benchmark",
+          icon: Target,
         },
         {
           title: "Analytics",
           url: "/dashboard/analytics",
+          icon: BarChart3,
         },
       ],
     },
     {
-      title: "Market Data",
+      title: "Market Tools",
       url: "#",
-      icon: TrendingUp,
+      icon: Search,
       items: [
         {
           title: "Market Scanner",
           url: "/dashboard/market-scanner",
+          icon: Search,
         },
         {
           title: "Price Alerts",
           url: "/dashboard/price-alerts",
+          icon: Bell,
         },
         {
           title: "Trending Tickers",
           url: "/dashboard/trending-tickers",
+          icon: Eye,
         },
       ],
     },
@@ -98,14 +127,21 @@ const data = {
       icon: FileText,
       items: [
         {
-          title: "Reports",
+          title: "Performance Reports",
           url: "/dashboard/reports",
+          icon: FileText,
         },
         {
           title: "Tax Center",
           url: "/dashboard/tax-center",
+          icon: Calculator,
         },
       ],
+    },
+    {
+      title: "Calendar",
+      url: "/dashboard/calendar",
+      icon: Calendar,
     },
     {
       title: "Settings",

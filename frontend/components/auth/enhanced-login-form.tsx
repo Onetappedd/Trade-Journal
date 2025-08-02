@@ -3,8 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/auth/enhanced-auth-provider"
+import { useAuth } from "./enhanced-auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,146 +13,101 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
 
 export function EnhancedLoginForm() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const { signIn, signUp } = useAuth()
-  const router = useRouter()
+  const { signIn, signUp, loading } = useAuth()
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState("signin")
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    setError(null)
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
 
     const result = await signIn(email, password)
-
-    if (result.success) {
-      router.push("/dashboard")
-    } else {
+    if (!result.success) {
       setError(result.error || "Sign in failed")
     }
-
-    setIsLoading(false)
   }
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    setError(null)
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+    const name = formData.get("name") as string
 
     const result = await signUp(email, password, name)
-
-    if (result.success) {
-      router.push("/dashboard")
-    } else {
+    if (!result.success) {
       setError(result.error || "Sign up failed")
     }
-
-    setIsLoading(false)
   }
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Trading Journal</CardTitle>
-        <CardDescription>Sign in to your account or create a new one</CardDescription>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl text-center">Trading Journal</CardTitle>
+        <CardDescription className="text-center">Sign in to your account or create a new one</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="signin">
+          <TabsContent value="signin" className="space-y-4">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="demo@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Label htmlFor="signin-email">Email</Label>
+                <Input id="signin-email" name="email" type="email" placeholder="demo@example.com" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <Label htmlFor="signin-password">Password</Label>
+                <Input id="signin-password" name="password" type="password" placeholder="password" required />
               </div>
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign In
               </Button>
             </form>
+            <div className="text-sm text-muted-foreground text-center">Demo: demo@example.com / password</div>
           </TabsContent>
 
-          <TabsContent value="signup">
+          <TabsContent value="signup" className="space-y-4">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="signup-name">Name</Label>
-                <Input
-                  id="signup-name"
-                  type="text"
-                  placeholder="Your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+                <Input id="signup-name" name="name" type="text" placeholder="Your name" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Input id="signup-email" name="email" type="email" placeholder="your@email.com" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-password">Password</Label>
-                <Input
-                  id="signup-password"
-                  type="password"
-                  placeholder="Create a password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <Input id="signup-password" name="password" type="password" placeholder="Create a password" required />
               </div>
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign Up
               </Button>
             </form>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          Demo credentials: demo@example.com / password
-        </div>
       </CardContent>
     </Card>
   )
