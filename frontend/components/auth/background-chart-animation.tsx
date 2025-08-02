@@ -31,30 +31,28 @@ export function BackgroundChartAnimation() {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Draw grid lines
+      // Draw grid
       ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"
       ctx.lineWidth = 1
 
       // Vertical lines
-      for (let i = 0; i < 10; i++) {
-        const x = (i / 9) * canvas.width
+      for (let i = 0; i < canvas.width; i += 50) {
         ctx.beginPath()
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, canvas.height)
+        ctx.moveTo(i, 0)
+        ctx.lineTo(i, canvas.height)
         ctx.stroke()
       }
 
       // Horizontal lines
-      for (let i = 0; i < 6; i++) {
-        const y = (i / 5) * canvas.height
+      for (let i = 0; i < canvas.height; i += 50) {
         ctx.beginPath()
-        ctx.moveTo(0, y)
-        ctx.lineTo(canvas.width, y)
+        ctx.moveTo(0, i)
+        ctx.lineTo(canvas.width, i)
         ctx.stroke()
       }
 
       // Draw chart line
-      ctx.strokeStyle = "rgba(59, 130, 246, 0.5)"
+      ctx.strokeStyle = "rgba(147, 51, 234, 0.6)"
       ctx.lineWidth = 2
       ctx.beginPath()
 
@@ -68,20 +66,17 @@ export function BackgroundChartAnimation() {
 
       ctx.stroke()
 
-      // Draw area under the curve
-      ctx.fillStyle = "rgba(59, 130, 246, 0.1)"
-      ctx.beginPath()
-      ctx.moveTo(dataPoints[0].x, canvas.height)
+      // Draw points
+      ctx.fillStyle = "rgba(147, 51, 234, 0.8)"
       dataPoints.forEach((point) => {
-        ctx.lineTo(point.x, point.y)
+        ctx.beginPath()
+        ctx.arc(point.x, point.y, 3, 0, Math.PI * 2)
+        ctx.fill()
       })
-      ctx.lineTo(dataPoints[dataPoints.length - 1].x, canvas.height)
-      ctx.closePath()
-      ctx.fill()
 
-      // Animate data points slightly
+      // Animate data points
       dataPoints.forEach((point) => {
-        point.y += (Math.random() - 0.5) * 0.5
+        point.y += (Math.random() - 0.5) * 2
         point.y = Math.max(canvas.height * 0.1, Math.min(canvas.height * 0.9, point.y))
       })
 
@@ -92,9 +87,11 @@ export function BackgroundChartAnimation() {
 
     return () => {
       window.removeEventListener("resize", resizeCanvas)
-      cancelAnimationFrame(animationFrame)
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame)
+      }
     }
   }, [])
 
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" style={{ zIndex: -1 }} />
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: -1 }} />
 }

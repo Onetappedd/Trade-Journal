@@ -51,119 +51,121 @@ export function EnhancedLoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
       <BackgroundChartAnimation />
 
-      <div className="absolute top-4 left-4 z-10">
-        <FinancialTicker />
+      <div className="absolute inset-0 bg-black/20" />
+
+      <div className="relative z-10 w-full max-w-md p-6">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-white mb-2">TradingJournal</h1>
+          <p className="text-slate-300">Professional Trading Analytics</p>
+          <FinancialTicker />
+        </div>
+
+        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white">Welcome</CardTitle>
+            <CardDescription className="text-slate-300">Sign in to your account or create a new one</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+
+              {error && (
+                <Alert className="mb-4 border-red-500/50 bg-red-500/10">
+                  <AlertDescription className="text-red-200">{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <TabsContent value="signin">
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-email" className="text-white">
+                      Email
+                    </Label>
+                    <Input
+                      id="signin-email"
+                      name="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-password" className="text-white">
+                      Password
+                    </Label>
+                    <Input
+                      id="signin-password"
+                      name="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={loading}>
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="signup">
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name" className="text-white">
+                      Name
+                    </Label>
+                    <Input
+                      id="signup-name"
+                      name="name"
+                      type="text"
+                      placeholder="Enter your name"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email" className="text-white">
+                      Email
+                    </Label>
+                    <Input
+                      id="signup-email"
+                      name="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password" className="text-white">
+                      Password
+                    </Label>
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type="password"
+                      placeholder="Create a password"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={loading}>
+                    {loading ? "Creating account..." : "Sign Up"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-slate-400">Demo: Use any email and password to sign in</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      <Card className="w-full max-w-md mx-4 backdrop-blur-sm bg-white/10 border-white/20">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center text-white">Trading Journal</CardTitle>
-          <CardDescription className="text-center text-gray-300">
-            Sign in to your account or create a new one
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email" className="text-white">
-                    Email
-                  </Label>
-                  <Input
-                    id="signin-email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password" className="text-white">
-                    Password
-                  </Label>
-                  <Input
-                    id="signin-password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                {error && (
-                  <Alert className="bg-red-500/10 border-red-500/20">
-                    <AlertDescription className="text-red-300">{error}</AlertDescription>
-                  </Alert>
-                )}
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name" className="text-white">
-                    Name
-                  </Label>
-                  <Input
-                    id="signup-name"
-                    name="name"
-                    type="text"
-                    placeholder="Enter your name"
-                    required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-white">
-                    Email
-                  </Label>
-                  <Input
-                    id="signup-email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-white">
-                    Password
-                  </Label>
-                  <Input
-                    id="signup-password"
-                    name="password"
-                    type="password"
-                    placeholder="Create a password"
-                    required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-                {error && (
-                  <Alert className="bg-red-500/10 border-red-500/20">
-                    <AlertDescription className="text-red-300">{error}</AlertDescription>
-                  </Alert>
-                )}
-                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
-                  {loading ? "Creating account..." : "Sign Up"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-
-          <div className="mt-4 text-center text-sm text-gray-400">Demo: Use any email and password to sign in</div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
