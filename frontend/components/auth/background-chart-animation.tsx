@@ -13,8 +13,8 @@ export function BackgroundChartAnimation() {
     if (!ctx) return
 
     const resizeCanvas = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
     }
 
     resizeCanvas()
@@ -27,60 +27,80 @@ export function BackgroundChartAnimation() {
       for (let i = 0; i < count; i++) {
         value += (Math.random() - 0.5) * 10
         points.push({
-          x: (i / (count - 1)) * canvas.width,
-          y: canvas.height - (value / 200) * canvas.height,
+          x: (i / count) * canvas.width,
+          y: canvas.height / 2 + (value - 100) * 2,
         })
       }
       return points
     }
 
-    let animationFrame: number
-    let offset = 0
+    let dataPoints = generateDataPoints(100)
+    let animationFrame = 0
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Draw multiple chart lines
-      const colors = ["rgba(59, 130, 246, 0.3)", "rgba(16, 185, 129, 0.3)", "rgba(245, 101, 101, 0.3)"]
+      // Draw grid
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"
+      ctx.lineWidth = 1
 
-      colors.forEach((color, index) => {
-        const points = generateDataPoints(50)
-
-        ctx.strokeStyle = color
-        ctx.lineWidth = 2
+      // Vertical lines
+      for (let x = 0; x < canvas.width; x += 50) {
         ctx.beginPath()
-
-        points.forEach((point, i) => {
-          const x = point.x + offset * (index + 1) * 0.5
-          const y = point.y + Math.sin((offset + i) * 0.02) * 20
-
-          if (i === 0) {
-            ctx.moveTo(x, y)
-          } else {
-            ctx.lineTo(x, y)
-          }
-        })
-
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, canvas.height)
         ctx.stroke()
+      }
+
+      // Horizontal lines
+      for (let y = 0; y < canvas.height; y += 50) {
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(canvas.width, y)
+        ctx.stroke()
+      }
+
+      // Draw chart line
+      ctx.strokeStyle = "rgba(59, 130, 246, 0.6)"
+      ctx.lineWidth = 2
+      ctx.beginPath()
+
+      dataPoints.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y)
+        } else {
+          ctx.lineTo(point.x, point.y)
+        }
       })
 
-      offset += 1
-      animationFrame = requestAnimationFrame(animate)
+      ctx.stroke()
+
+      // Draw area under the curve
+      ctx.fillStyle = "rgba(59, 130, 246, 0.1)"
+      ctx.beginPath()
+      ctx.moveTo(dataPoints[0].x, canvas.height)
+      dataPoints.forEach((point) => {
+        ctx.lineTo(point.x, point.y)
+      })
+      ctx.lineTo(dataPoints[dataPoints.length - 1].x, canvas.height)
+      ctx.closePath()
+      ctx.fill()
+
+      // Animate the data points
+      animationFrame++
+      if (animationFrame % 60 === 0) {
+        dataPoints = generateDataPoints(100)
+      }
+
+      requestAnimationFrame(animate)
     }
 
     animate()
 
     return () => {
       window.removeEventListener("resize", resizeCanvas)
-      cancelAnimationFrame(animationFrame)
     }
   }, [])
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full opacity-30"
-      style={{ background: "transparent" }}
-    />
-  )
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-30" style={{ zIndex: 1 }} />
 }

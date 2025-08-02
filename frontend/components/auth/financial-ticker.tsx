@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react"
 
 const tickerData = [
-  { symbol: "AAPL", price: 175.43, change: 2.34, changePercent: 1.35 },
-  { symbol: "GOOGL", price: 2847.63, change: -15.23, changePercent: -0.53 },
-  { symbol: "MSFT", price: 378.85, change: 4.12, changePercent: 1.1 },
-  { symbol: "TSLA", price: 248.5, change: -3.45, changePercent: -1.37 },
-  { symbol: "AMZN", price: 3342.88, change: 12.45, changePercent: 0.37 },
-  { symbol: "NVDA", price: 875.28, change: 18.92, changePercent: 2.21 },
+  { symbol: "AAPL", price: 175.43, change: 2.34 },
+  { symbol: "GOOGL", price: 2847.52, change: -15.23 },
+  { symbol: "MSFT", price: 378.85, change: 5.67 },
+  { symbol: "TSLA", price: 248.42, change: -8.91 },
+  { symbol: "AMZN", price: 3127.45, change: 12.34 },
+  { symbol: "NVDA", price: 875.28, change: 23.45 },
 ]
 
 export function FinancialTicker() {
@@ -17,29 +17,31 @@ export function FinancialTicker() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % tickerData.length)
-    }, 3000)
+    }, 2000)
 
     return () => clearInterval(interval)
   }, [])
 
   const currentTicker = tickerData[currentIndex]
-  const isPositive = currentTicker.change >= 0
+  const isPositive = currentTicker.change > 0
 
   return (
-    <div className="flex items-center justify-between text-sm">
-      <div className="flex items-center space-x-2">
-        <span className="font-semibold">{currentTicker.symbol}</span>
-        <span className="text-white/80">${currentTicker.price.toFixed(2)}</span>
-      </div>
-      <div className={`flex items-center space-x-1 ${isPositive ? "text-green-400" : "text-red-400"}`}>
-        <span>
-          {isPositive ? "+" : ""}
-          {currentTicker.change.toFixed(2)}
-        </span>
-        <span>
-          ({isPositive ? "+" : ""}
-          {currentTicker.changePercent.toFixed(2)}%)
-        </span>
+    <div className="bg-black/20 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-lg font-bold text-white">{currentTicker.symbol}</div>
+          <div className="text-2xl font-mono text-white">${currentTicker.price.toFixed(2)}</div>
+        </div>
+        <div className={`text-right ${isPositive ? "text-green-400" : "text-red-400"}`}>
+          <div className="text-sm">
+            {isPositive ? "+" : ""}
+            {currentTicker.change.toFixed(2)}
+          </div>
+          <div className="text-xs">
+            {isPositive ? "+" : ""}
+            {((currentTicker.change / currentTicker.price) * 100).toFixed(2)}%
+          </div>
+        </div>
       </div>
     </div>
   )
