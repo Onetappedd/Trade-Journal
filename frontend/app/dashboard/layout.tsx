@@ -1,26 +1,31 @@
-"use client"
-
 import type React from "react"
-
+import { createServerSupabaseClient } from "@/lib/supabase-server"
+import { redirect } from "next/navigation"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Navbar } from "@/components/navbar"
-import { ProtectedRoute } from "@/components/auth/protected-route"
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/login")
+  }
+
   return (
-    <ProtectedRoute>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <Navbar title="Trading Dashboard" />
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
-        </SidebarInset>
-      </SidebarProvider>
-    </ProtectedRoute>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <Navbar title="Trading Dashboard" />
+        <main className="flex-1 space-y-4 p-4 pt-6">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

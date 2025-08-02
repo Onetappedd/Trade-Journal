@@ -1,29 +1,25 @@
 "use client"
 
 import type * as React from "react"
-import { BarChart3, Calendar, FileText, Home, PieChart, Settings, TrendingUp, Users } from "lucide-react"
+import { BarChart3, Calendar, FileText, Home, PieChart, Settings, TrendingUp, Wallet } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 
+// This is sample data.
 const data = {
   user: {
-    name: "Trading Pro",
-    email: "trader@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "John Doe",
+    email: "john@example.com",
+    avatar: "/placeholder.svg?height=32&width=32",
   },
   teams: [
     {
-      name: "Personal Trading",
+      name: "Trading Account",
       logo: TrendingUp,
       plan: "Pro",
-    },
-    {
-      name: "Team Portfolio",
-      logo: Users,
-      plan: "Team",
     },
   ],
   navMain: [
@@ -36,17 +32,22 @@ const data = {
     {
       title: "Portfolio",
       url: "/dashboard/portfolio",
-      icon: PieChart,
+      icon: Wallet,
     },
     {
-      title: "Analytics",
-      url: "/dashboard/analytics",
+      title: "Trade History",
+      url: "/dashboard/trade-history",
       icon: BarChart3,
     },
     {
       title: "Calendar",
       url: "/dashboard/calendar",
       icon: Calendar,
+    },
+    {
+      title: "Analytics",
+      url: "/dashboard/analytics",
+      icon: PieChart,
     },
     {
       title: "Reports",
