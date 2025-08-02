@@ -15,8 +15,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [displayName, setDisplayName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -34,9 +37,7 @@ export function LoginForm() {
       setError(error.message)
     } else {
       router.push("/dashboard")
-      router.refresh()
     }
-
     setLoading(false)
   }
 
@@ -45,25 +46,35 @@ export function LoginForm() {
     setLoading(true)
     setError(null)
 
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          display_name: displayName,
+        },
+      },
     })
 
     if (error) {
       setError(error.message)
     } else {
-      setError("Check your email for the confirmation link!")
+      setMessage("Check your email for the confirmation link!")
     }
-
     setLoading(false)
   }
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Welcome to Trading Journal</CardTitle>
-        <CardDescription>Sign in to your account or create a new one</CardDescription>
+        <CardTitle>Welcome to TradeJournal Pro</CardTitle>
+        <CardDescription>Sign in to your account or create a new one to get started.</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="signin" className="w-full">
@@ -88,11 +99,6 @@ export function LoginForm() {
                   required
                 />
               </div>
-              {error && (
-                <Alert>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
@@ -102,36 +108,57 @@ export function LoginForm() {
           <TabsContent value="signup">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
+                <Label htmlFor="displayName">Display Name</Label>
                 <Input
-                  id="signup-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
                 <Input
-                  id="signup-password"
+                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
-              {error && (
-                <Alert>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Creating account..." : "Sign Up"}
               </Button>
             </form>
           </TabsContent>
         </Tabs>
+
+        {error && (
+          <Alert className="mt-4" variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {message && (
+          <Alert className="mt-4">
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   )
