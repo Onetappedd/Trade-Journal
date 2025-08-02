@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase"
 import type { User } from "@supabase/supabase-js"
 
-type AuthContextType = {
+interface AuthContextType {
   user: User | null
   loading: boolean
   signOut: () => Promise<void>
