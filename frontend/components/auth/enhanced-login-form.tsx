@@ -4,13 +4,14 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "./enhanced-auth-provider"
+import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
 
 export function EnhancedLoginForm() {
   const [email, setEmail] = useState("")
@@ -54,7 +55,7 @@ export function EnhancedLoginForm() {
   }
 
   return (
-    <Card className="w-[400px]">
+    <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Trading Journal</CardTitle>
         <CardDescription>Sign in to your account or create a new one</CardDescription>
@@ -96,7 +97,8 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
               </Button>
             </form>
           </TabsContent>
@@ -142,16 +144,15 @@ export function EnhancedLoginForm() {
                 </Alert>
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Sign Up"}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign Up
               </Button>
             </form>
           </TabsContent>
         </Tabs>
 
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-          <p>Demo credentials:</p>
-          <p>Email: demo@example.com</p>
-          <p>Password: password</p>
+        <div className="mt-4 text-center text-sm text-muted-foreground">
+          Demo credentials: demo@example.com / password
         </div>
       </CardContent>
     </Card>

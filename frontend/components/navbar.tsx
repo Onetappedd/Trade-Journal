@@ -34,7 +34,7 @@ export function Navbar({ title = "Dashboard" }: NavbarProps) {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="ml-auto px-3">
+      <div className="ml-auto px-4">
         <ThemeToggle />
       </div>
     </header>
