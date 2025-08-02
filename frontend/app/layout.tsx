@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Trading Journal Dashboard",
-  description: "Professional trading journal and analytics platform",
+  description: "Track and analyze your trading performance",
     generator: 'v0.dev'
 }
 

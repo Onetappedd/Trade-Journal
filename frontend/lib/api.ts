@@ -1,8 +1,9 @@
-import { supabase } from "./supabase"
+import { createClient } from "./supabase"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 async function getAuthHeaders() {
+  const supabase = createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

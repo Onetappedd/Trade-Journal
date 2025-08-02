@@ -7,35 +7,29 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          email: string
           full_name: string | null
           avatar_url: string | null
-          timezone: string | null
-          notifications_enabled: boolean
+          website: string | null
+          updated_at: string | null
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          email: string
           full_name?: string | null
           avatar_url?: string | null
-          timezone?: string | null
-          notifications_enabled?: boolean
+          website?: string | null
+          updated_at?: string | null
           created_at?: string
-          updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          email?: string
           full_name?: string | null
           avatar_url?: string | null
-          timezone?: string | null
-          notifications_enabled?: boolean
+          website?: string | null
+          updated_at?: string | null
           created_at?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -52,10 +46,10 @@ export type Database = {
           entry_date: string
           exit_date: string | null
           notes: string | null
-          status: "open" | "closed"
           strike_price: number | null
           expiry_date: string | null
           option_type: "call" | "put" | null
+          status: "open" | "closed"
           created_at: string
           updated_at: string
         }
@@ -71,10 +65,10 @@ export type Database = {
           entry_date: string
           exit_date?: string | null
           notes?: string | null
-          status?: "open" | "closed"
           strike_price?: number | null
           expiry_date?: string | null
           option_type?: "call" | "put" | null
+          status?: "open" | "closed"
           created_at?: string
           updated_at?: string
         }
@@ -90,10 +84,10 @@ export type Database = {
           entry_date?: string
           exit_date?: string | null
           notes?: string | null
-          status?: "open" | "closed"
           strike_price?: number | null
           expiry_date?: string | null
           option_type?: "call" | "put" | null
+          status?: "open" | "closed"
           created_at?: string
           updated_at?: string
         }
@@ -112,35 +106,21 @@ export type Database = {
           id: string
           name: string
           user_id: string
-          color: string | null
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
           name: string
           user_id: string
-          color?: string | null
           created_at?: string
-          updated_at?: string
         }
         Update: {
           id?: string
           name?: string
           user_id?: string
-          color?: string | null
           created_at?: string
-          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tags_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       trade_tags: {
         Row: {
@@ -187,9 +167,9 @@ export type Database = {
     }
     Enums: {
       asset_type: "stock" | "option" | "crypto" | "futures" | "forex"
-      trade_side: "buy" | "sell"
-      trade_status: "open" | "closed"
+      side: "buy" | "sell"
       option_type: "call" | "put"
+      trade_status: "open" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -197,10 +177,10 @@ export type Database = {
   }
 }
 
+type PublicSchema = Database[Extract<keyof Database, "public">]
+
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (Database["public"]["Tables"] & Database["public"]["Views"])
-    | { schema: keyof Database },
+  PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] & PublicSchema["Views"]) | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
@@ -212,8 +192,8 @@ export type Tables<
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] & Database["public"]["Views"])
-    ? (Database["public"]["Tables"] & Database["public"]["Views"])[PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+    ? (PublicSchema["Tables"] & PublicSchema["Views"])[PublicTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -221,7 +201,7 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends keyof Database["public"]["Tables"] | { schema: keyof Database },
+  PublicTableNameOrOptions extends keyof PublicSchema["Tables"] | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
@@ -231,8 +211,8 @@ export type TablesInsert<
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
-    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -240,7 +220,7 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends keyof Database["public"]["Tables"] | { schema: keyof Database },
+  PublicTableNameOrOptions extends keyof PublicSchema["Tables"] | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
@@ -250,8 +230,8 @@ export type TablesUpdate<
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
-    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -259,12 +239,12 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends keyof Database["public"]["Enums"] | { schema: keyof Database },
+  PublicEnumNameOrOptions extends keyof PublicSchema["Enums"] | { schema: keyof Database },
   EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
-    ? Database["public"]["Enums"][PublicEnumNameOrOptions]
+  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
     : never

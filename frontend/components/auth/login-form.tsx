@@ -27,14 +27,17 @@ export function LoginForm() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
         setError(error.message)
-      } else {
+        return
+      }
+
+      if (data.user) {
         router.push("/dashboard")
         router.refresh()
       }
@@ -51,14 +54,17 @@ export function LoginForm() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       })
 
       if (error) {
         setError(error.message)
-      } else {
+        return
+      }
+
+      if (data.user) {
         setError("Check your email for the confirmation link!")
       }
     } catch (err) {
@@ -80,7 +86,6 @@ export function LoginForm() {
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
-
           <TabsContent value="signin">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
@@ -116,7 +121,6 @@ export function LoginForm() {
               </Button>
             </form>
           </TabsContent>
-
           <TabsContent value="signup">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
@@ -142,7 +146,7 @@ export function LoginForm() {
                 />
               </div>
               {error && (
-                <Alert variant={error.includes("Check your email") ? "default" : "destructive"}>
+                <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
