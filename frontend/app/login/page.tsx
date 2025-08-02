@@ -6,25 +6,25 @@ import { useAuth } from "@/components/auth/enhanced-auth-provider"
 import { EnhancedLoginForm } from "@/components/auth/enhanced-login-form"
 
 export default function LoginPage() {
-  const { user, isLoading } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && user) {
+    if (!loading && user) {
       router.push("/dashboard")
     }
-  }, [user, isLoading, router])
+  }, [user, loading, router])
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     )
   }
 
   if (user) {
-    return null
+    return null // Will redirect
   }
 
   return (

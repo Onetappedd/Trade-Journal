@@ -14,8 +14,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
 
 export function EnhancedLoginForm() {
-  const [signInData, setSignInData] = useState({ email: "", password: "" })
-  const [signUpData, setSignUpData] = useState({ email: "", password: "", name: "" })
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { signIn, signUp } = useAuth()
@@ -26,13 +27,14 @@ export function EnhancedLoginForm() {
     setError("")
     setIsLoading(true)
 
-    const result = await signIn(signInData.email, signInData.password)
+    const result = await signIn(email, password)
 
     if (result.success) {
       router.push("/dashboard")
     } else {
-      setError(result.error || "Sign in failed")
+      setError(result.error || "Failed to sign in")
     }
+
     setIsLoading(false)
   }
 
@@ -41,13 +43,14 @@ export function EnhancedLoginForm() {
     setError("")
     setIsLoading(true)
 
-    const result = await signUp(signUpData.email, signUpData.password, signUpData.name)
+    const result = await signUp(email, password, name)
 
     if (result.success) {
       router.push("/dashboard")
     } else {
-      setError(result.error || "Sign up failed")
+      setError(result.error || "Failed to create account")
     }
+
     setIsLoading(false)
   }
 
@@ -67,24 +70,24 @@ export function EnhancedLoginForm() {
           <TabsContent value="signin">
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="signin-email"
+                  id="email"
                   type="email"
                   placeholder="demo@example.com"
-                  value={signInData.email}
-                  onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signin-password">Password</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
-                  id="signin-password"
+                  id="password"
                   type="password"
                   placeholder="password"
-                  value={signInData.password}
-                  onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
@@ -108,8 +111,8 @@ export function EnhancedLoginForm() {
                   id="signup-name"
                   type="text"
                   placeholder="Your name"
-                  value={signUpData.name}
-                  onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
                 />
               </div>
@@ -119,8 +122,8 @@ export function EnhancedLoginForm() {
                   id="signup-email"
                   type="email"
                   placeholder="your@email.com"
-                  value={signUpData.email}
-                  onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -130,8 +133,8 @@ export function EnhancedLoginForm() {
                   id="signup-password"
                   type="password"
                   placeholder="Create a password"
-                  value={signUpData.password}
-                  onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
@@ -142,13 +145,13 @@ export function EnhancedLoginForm() {
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign Up
+                Create Account
               </Button>
             </form>
           </TabsContent>
         </Tabs>
 
-        <div className="mt-4 text-sm text-muted-foreground text-center">
+        <div className="mt-4 text-center text-sm text-muted-foreground">
           Demo credentials: demo@example.com / password
         </div>
       </CardContent>

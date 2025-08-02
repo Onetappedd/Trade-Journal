@@ -11,7 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  isLoading: boolean
+  loading: boolean
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
   signOut: () => void
@@ -29,7 +29,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     // Check for existing session on mount
@@ -41,11 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("auth-user")
       }
     }
-    setIsLoading(false)
+    setLoading(false)
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    setIsLoading(true)
+    setLoading(true)
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -59,16 +59,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setUser(user)
       localStorage.setItem("auth-user", JSON.stringify(user))
-      setIsLoading(false)
+      setLoading(false)
       return { success: true }
     }
 
-    setIsLoading(false)
+    setLoading(false)
     return { success: false, error: "Invalid credentials" }
   }
 
   const signUp = async (email: string, password: string, name: string) => {
-    setIsLoading(true)
+    setLoading(true)
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setUser(user)
     localStorage.setItem("auth-user", JSON.stringify(user))
-    setIsLoading(false)
+    setLoading(false)
     return { success: true }
   }
 
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     user,
-    isLoading,
+    loading,
     signIn,
     signUp,
     signOut,

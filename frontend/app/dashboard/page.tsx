@@ -1,9 +1,6 @@
 "use client"
 
 import { useAuth } from "@/components/auth/enhanced-auth-provider"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { Navbar } from "@/components/navbar"
 import { DashboardContent } from "@/components/dashboard-content"
 
 export default function DashboardPage() {
@@ -21,15 +18,5 @@ export default function DashboardPage() {
     return null
   }
 
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Navbar title="Dashboard" />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <DashboardContent />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+  return <DashboardContent />
 }
