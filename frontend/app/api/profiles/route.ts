@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase-server"
 import type { Database } from "@/lib/database.types"
 
+// Force this API route to use Node.js runtime
+export const runtime = 'nodejs'
+
 type Profile = Database['public']['Tables']['profiles']['Row']
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 

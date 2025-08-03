@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase-server"
 import type { Database } from "@/lib/database.types"
 
+// Force this API route to use Node.js runtime
+export const runtime = 'nodejs'
+
 type Trade = Database['public']['Tables']['trades']['Row']
 type TradeInsert = Database['public']['Tables']['trades']['Insert']
 
@@ -34,12 +37,12 @@ export async function GET(request: NextRequest) {
       query = query.ilike('symbol', `%${symbol}%`)
     }
 
-    if (status) {
+    if (status && (status === 'open' || status === 'closed')) {
       query = query.eq('status', status)
     }
 
-    if (asset_type) {
-      query = query.eq('asset_type', asset_type)
+    if (asset_type && ['stock', 'option', 'crypto', 'futures', 'forex'].includes(asset_type)) {
+      query = query.eq('asset_type', asset_type as Database['public']['Tables']['trades']['Row']['asset_type'])
     }
 
     // Get total count for pagination
