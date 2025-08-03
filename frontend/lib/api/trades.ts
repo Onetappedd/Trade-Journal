@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import type { Database } from "@/lib/database.types"
 
 type Trade = Database["public"]["Tables"]["trades"]["Row"]
@@ -6,6 +6,7 @@ type TradeInsert = Database["public"]["Tables"]["trades"]["Insert"]
 type TradeUpdate = Database["public"]["Tables"]["trades"]["Update"]
 
 export async function createTrade(trade: TradeInsert) {
+  const supabase = createClient()
   const { data, error } = await supabase.from("trades").insert([trade]).select().single()
 
   if (error) {
@@ -16,11 +17,12 @@ export async function createTrade(trade: TradeInsert) {
 }
 
 export async function getTrades(userId: string) {
+  const supabase = createClient()
   const { data, error } = await supabase
     .from("trades")
     .select("*")
     .eq("user_id", userId)
-    .order("trade_date", { ascending: false })
+    .order("created_at", { ascending: false })
 
   if (error) {
     throw new Error(error.message)
@@ -30,6 +32,7 @@ export async function getTrades(userId: string) {
 }
 
 export async function updateTrade(id: string, updates: TradeUpdate) {
+  const supabase = createClient()
   const { data, error } = await supabase.from("trades").update(updates).eq("id", id).select().single()
 
   if (error) {
@@ -40,6 +43,7 @@ export async function updateTrade(id: string, updates: TradeUpdate) {
 }
 
 export async function deleteTrade(id: string) {
+  const supabase = createClient()
   const { error } = await supabase.from("trades").delete().eq("id", id)
 
   if (error) {
@@ -50,6 +54,7 @@ export async function deleteTrade(id: string) {
 }
 
 export async function getDashboardStats(userId: string) {
+  const supabase = createClient()
   const { data: trades, error } = await supabase.from("trades").select("*").eq("user_id", userId)
 
   if (error) {
@@ -57,8 +62,21 @@ export async function getDashboardStats(userId: string) {
   }
 
   const totalTrades = trades.length
-  const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-  const winningTrades = trades.filter((trade) => (trade.pnl || 0) > 0).length
+  const totalPnL = trades.reduce((sum, trade) => {
+    // Calculate P&L if not stored
+    if (trade.exit_price && trade.entry_price) {
+      const pnl = (trade.exit_price - trade.entry_price) * trade.quantity * (trade.side === 'buy' ? 1 : -1)
+      return sum + pnl
+    }
+    return sum
+  }, 0)
+  const winningTrades = trades.filter((trade) => {
+    if (trade.exit_price && trade.entry_price) {
+      const pnl = (trade.exit_price - trade.entry_price) * trade.quantity * (trade.side === 'buy' ? 1 : -1)
+      return pnl > 0
+    }
+    return false
+  }).length
   const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0
   const avgPnL = totalTrades > 0 ? totalPnL / totalTrades : 0
 
