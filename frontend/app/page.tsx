@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/auth/enhanced-auth-provider"
+import { useAuth } from "@/components/auth/auth-provider"
 
 export default function HomePage() {
   const { user, loading } = useAuth()

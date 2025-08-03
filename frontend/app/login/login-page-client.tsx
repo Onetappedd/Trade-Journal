@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/components/auth/enhanced-auth-provider"
+import { useAuth } from "@/components/auth/auth-provider"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { EnhancedLoginForm } from "@/components/auth/enhanced-login-form"

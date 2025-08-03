@@ -1,103 +1,87 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase-server"
+import type { Database } from "@/lib/database.types"
 
-// Mock trades data
-const mockTrades = [
-  {
-    id: "trade-1",
-    user_id: "user-1",
-    symbol: "AAPL",
-    asset_type: "stock",
-    side: "buy",
-    quantity: 100,
-    entry_price: 150.0,
-    exit_price: 155.0,
-    entry_date: "2024-01-15T10:30:00Z",
-    exit_date: "2024-01-20T15:45:00Z",
-    pnl: 500.0,
-    status: "closed",
-    notes: "Good momentum trade on earnings beat",
-    tags: ["swing-trade", "earnings-play"],
-    created_at: "2024-01-15T10:30:00Z",
-    updated_at: "2024-01-20T15:45:00Z",
-  },
-  {
-    id: "trade-2",
-    user_id: "user-1",
-    symbol: "TSLA",
-    asset_type: "stock",
-    side: "buy",
-    quantity: 50,
-    entry_price: 200.0,
-    exit_price: null,
-    entry_date: "2024-01-22T09:15:00Z",
-    exit_date: null,
-    pnl: 0,
-    status: "open",
-    notes: "Breakout above resistance",
-    tags: ["day-trade", "breakout"],
-    created_at: "2024-01-22T09:15:00Z",
-    updated_at: "2024-01-22T09:15:00Z",
-  },
-  {
-    id: "trade-3",
-    user_id: "user-1",
-    symbol: "NVDA",
-    asset_type: "stock",
-    side: "sell",
-    quantity: 25,
-    entry_price: 800.0,
-    exit_price: 750.0,
-    entry_date: "2024-01-10T14:20:00Z",
-    exit_date: "2024-01-18T11:30:00Z",
-    pnl: -1250.0,
-    status: "closed",
-    notes: "Stop loss hit on market downturn",
-    tags: ["swing-trade", "stop-loss"],
-    created_at: "2024-01-10T14:20:00Z",
-    updated_at: "2024-01-18T11:30:00Z",
-  },
-]
+type Trade = Database['public']['Tables']['trades']['Row']
+type TradeInsert = Database['public']['Tables']['trades']['Insert']
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const symbol = searchParams.get("symbol")
-  const status = searchParams.get("status")
-  const asset_type = searchParams.get("asset_type")
-  const limit = Number.parseInt(searchParams.get("limit") || "50")
-  const offset = Number.parseInt(searchParams.get("offset") || "0")
+  try {
+    const supabase = await createClient()
+    const { searchParams } = new URL(request.url)
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-  let filteredTrades = [...mockTrades]
+    const symbol = searchParams.get("symbol")
+    const status = searchParams.get("status")
+    const asset_type = searchParams.get("asset_type")
+    const limit = Number.parseInt(searchParams.get("limit") || "50")
+    const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-  // Apply filters
-  if (symbol) {
-    filteredTrades = filteredTrades.filter((trade) => trade.symbol.toLowerCase().includes(symbol.toLowerCase()))
+    // Build query
+    let query = supabase
+      .from('trades')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    // Apply filters
+    if (symbol) {
+      query = query.ilike('symbol', `%${symbol}%`)
+    }
+
+    if (status) {
+      query = query.eq('status', status)
+    }
+
+    if (asset_type) {
+      query = query.eq('asset_type', asset_type)
+    }
+
+    // Get total count for pagination
+    const { count } = await supabase
+      .from('trades')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    // Apply pagination
+    const { data: trades, error } = await query
+      .range(offset, offset + limit - 1)
+
+    if (error) {
+      console.error('Error fetching trades:', error)
+      return NextResponse.json({ error: "Failed to fetch trades" }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      data: trades || [],
+      meta: {
+        total: count || 0,
+        limit,
+        offset,
+        has_more: (offset + limit) < (count || 0),
+      },
+    })
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  if (status) {
-    filteredTrades = filteredTrades.filter((trade) => trade.status === status)
-  }
-
-  if (asset_type) {
-    filteredTrades = filteredTrades.filter((trade) => trade.asset_type === asset_type)
-  }
-
-  // Apply pagination
-  const paginatedTrades = filteredTrades.slice(offset, offset + limit)
-
-  return NextResponse.json({
-    data: paginatedTrades,
-    meta: {
-      total: filteredTrades.length,
-      limit,
-      offset,
-      has_more: offset + limit < filteredTrades.length,
-    },
-  })
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient()
     const body = await request.json()
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     // Validate required fields
     const requiredFields = ["symbol", "asset_type", "side", "quantity", "entry_price", "entry_date"]
@@ -107,10 +91,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create new trade with mock ID
-    const newTrade = {
-      id: `trade-${Date.now()}`,
-      user_id: body.user_id || "user-1",
+    // Prepare trade data
+    const tradeData: TradeInsert = {
+      user_id: user.id,
       symbol: body.symbol.toUpperCase(),
       asset_type: body.asset_type,
       side: body.side,
@@ -119,23 +102,28 @@ export async function POST(request: NextRequest) {
       exit_price: body.exit_price ? Number.parseFloat(body.exit_price) : null,
       entry_date: body.entry_date,
       exit_date: body.exit_date || null,
-      pnl: body.exit_price
-        ? (Number.parseFloat(body.exit_price) - Number.parseFloat(body.entry_price)) *
-          Number.parseFloat(body.quantity) *
-          (body.side === "buy" ? 1 : -1)
-        : 0,
+      notes: body.notes || null,
+      strike_price: body.strike_price ? Number.parseFloat(body.strike_price) : null,
+      expiry_date: body.expiry_date || null,
+      option_type: body.option_type || null,
       status: body.exit_date ? "closed" : "open",
-      notes: body.notes || "",
-      tags: body.tags || [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
 
-    // In a real app, this would be saved to the database
-    mockTrades.push(newTrade)
+    // Insert trade into database
+    const { data: newTrade, error } = await supabase
+      .from('trades')
+      .insert(tradeData)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating trade:', error)
+      return NextResponse.json({ error: "Failed to create trade" }, { status: 500 })
+    }
 
     return NextResponse.json(newTrade, { status: 201 })
   } catch (error) {
+    console.error('Unexpected error:', error)
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
   }
 }
