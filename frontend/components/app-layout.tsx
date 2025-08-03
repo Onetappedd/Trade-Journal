@@ -13,7 +13,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
- stuimport { useAuth } from "@/components/auth/auth-provider"
+import { useAuth } from "@/components/auth/auth-provider"
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
