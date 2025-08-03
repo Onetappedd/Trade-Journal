@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -181,9 +180,13 @@ export default function TrendingTickers() {
 
   return (
     <div className="flex flex-col">
-      <Navbar title="Trending Tickers" />
-
       <div className="flex-1 space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Trending Tickers</h1>
+            <p className="text-muted-foreground">Track market movers and manage your watchlist</p>
+          </div>
+        </div>
         {/* Market Overview */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
