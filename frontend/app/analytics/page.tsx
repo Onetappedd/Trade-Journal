@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
-import AnalyticsPage from "@/components/analytics-page"
+import { AnalyticsPage } from "@/components/analytics-page"
 import { Card } from "@/components/ui/card"
 
 function AnalyticsLoading() {
