@@ -2,50 +2,63 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/components/auth/auth-provider"
-import { useRouter } from "next/navigation"
-import { Bell, Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { usePathname } from "next/navigation"
 
-interface NavbarProps {
-  title: string
-}
+export function Navbar() {
+  const pathname = usePathname()
 
-export function Navbar({ title }: NavbarProps) {
-  const { signOut } = useAuth()
-  const router = useRouter()
+  const getBreadcrumbs = () => {
+    const segments = pathname.split("/").filter(Boolean)
+    const breadcrumbs = []
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.push("/login")
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i]
+      const href = "/" + segments.slice(0, i + 1).join("/")
+      const isLast = i === segments.length - 1
+
+      breadcrumbs.push({
+        label: segment.charAt(0).toUpperCase() + segment.slice(1).replace("-", " "),
+        href,
+        isLast,
+      })
+    }
+
+    return breadcrumbs
   }
 
+  const breadcrumbs = getBreadcrumbs()
+
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-      <div className="flex items-center gap-2 px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <h1 className="text-lg font-semibold">{title}</h1>
-      </div>
-      <div className="ml-auto flex items-center gap-2 px-4">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[300px]"
-          />
-        </div>
-        <Button variant="ghost" size="icon">
-          <Bell className="h-4 w-4" />
-          <span className="sr-only">Notifications</span>
-        </Button>
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <Breadcrumb>
+        <BreadcrumbList>
+          {breadcrumbs.map((breadcrumb, index) => (
+            <div key={breadcrumb.href} className="flex items-center">
+              {index > 0 && <BreadcrumbSeparator />}
+              <BreadcrumbItem>
+                {breadcrumb.isLast ? (
+                  <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink href={breadcrumb.href}>{breadcrumb.label}</BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </div>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div className="ml-auto">
         <ThemeToggle />
-        <Button variant="outline" onClick={handleSignOut}>
-          Sign Out
-        </Button>
       </div>
     </header>
   )

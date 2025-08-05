@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-export function RecentTradesComponent() {
+export function RecentTrades() {
   return (
     <div className="space-y-8">
       <div className="flex items-center">
@@ -10,9 +10,9 @@ export function RecentTradesComponent() {
         </Avatar>
         <div className="ml-4 space-y-1">
           <p className="text-sm font-medium leading-none">Apple Inc.</p>
-          <p className="text-sm text-muted-foreground">Long Position</p>
+          <p className="text-sm text-muted-foreground">100 shares @ $150.25</p>
         </div>
-        <div className="ml-auto font-medium text-green-600">+$1,999.00</div>
+        <div className="ml-auto font-medium">+$1,999.00</div>
       </div>
       <div className="flex items-center">
         <Avatar className="flex h-9 w-9 items-center justify-center space-y-0 border">
@@ -21,9 +21,9 @@ export function RecentTradesComponent() {
         </Avatar>
         <div className="ml-4 space-y-1">
           <p className="text-sm font-medium leading-none">Tesla Inc.</p>
-          <p className="text-sm text-muted-foreground">Short Position</p>
+          <p className="text-sm text-muted-foreground">50 shares @ $245.80</p>
         </div>
-        <div className="ml-auto font-medium text-red-600">-$39.00</div>
+        <div className="ml-auto font-medium">+$39.00</div>
       </div>
       <div className="flex items-center">
         <Avatar className="h-9 w-9">
@@ -32,9 +32,9 @@ export function RecentTradesComponent() {
         </Avatar>
         <div className="ml-4 space-y-1">
           <p className="text-sm font-medium leading-none">Microsoft Corp.</p>
-          <p className="text-sm text-muted-foreground">Long Position</p>
+          <p className="text-sm text-muted-foreground">75 shares @ $310.45</p>
         </div>
-        <div className="ml-auto font-medium text-green-600">+$299.00</div>
+        <div className="ml-auto font-medium">+$299.00</div>
       </div>
       <div className="flex items-center">
         <Avatar className="h-9 w-9">
@@ -43,9 +43,9 @@ export function RecentTradesComponent() {
         </Avatar>
         <div className="ml-4 space-y-1">
           <p className="text-sm font-medium leading-none">Alphabet Inc.</p>
-          <p className="text-sm text-muted-foreground">Long Position</p>
+          <p className="text-sm text-muted-foreground">25 shares @ $125.90</p>
         </div>
-        <div className="ml-auto font-medium text-green-600">+$99.00</div>
+        <div className="ml-auto font-medium">+$99.00</div>
       </div>
       <div className="flex items-center">
         <Avatar className="h-9 w-9">
@@ -54,9 +54,9 @@ export function RecentTradesComponent() {
         </Avatar>
         <div className="ml-4 space-y-1">
           <p className="text-sm font-medium leading-none">NVIDIA Corp.</p>
-          <p className="text-sm text-muted-foreground">Long Position</p>
+          <p className="text-sm text-muted-foreground">30 shares @ $420.15</p>
         </div>
-        <div className="ml-auto font-medium text-green-600">+$39.00</div>
+        <div className="ml-auto font-medium">+$39.00</div>
       </div>
     </div>
   )

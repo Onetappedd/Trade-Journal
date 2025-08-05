@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { BarChart3, Calendar, FileText, Home, PieChart, Settings, TrendingUp, Wallet } from "lucide-react"
+import { GalleryVerticalEnd, BarChart3, TrendingUp, Home, Calculator, Target, Settings } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -13,12 +13,12 @@ const data = {
   user: {
     name: "John Doe",
     email: "john@example.com",
-    avatar: "/placeholder.svg?height=32&width=32",
+    avatar: "/placeholder-user.jpg",
   },
   teams: [
     {
-      name: "Trading Account",
-      logo: TrendingUp,
+      name: "Trading Journal",
+      logo: GalleryVerticalEnd,
       plan: "Pro",
     },
   ],
@@ -30,29 +30,53 @@ const data = {
       isActive: true,
     },
     {
-      title: "Portfolio",
-      url: "/dashboard/portfolio",
-      icon: Wallet,
-    },
-    {
-      title: "Trade History",
-      url: "/dashboard/trade-history",
-      icon: BarChart3,
-    },
-    {
-      title: "Calendar",
-      url: "/dashboard/calendar",
-      icon: Calendar,
+      title: "Trades",
+      url: "/dashboard/trades",
+      icon: TrendingUp,
+      items: [
+        {
+          title: "View Trades",
+          url: "/dashboard/trades",
+        },
+        {
+          title: "Add Trade",
+          url: "/dashboard/add-trade",
+        },
+        {
+          title: "Import Trades",
+          url: "/dashboard/import-trades",
+        },
+      ],
     },
     {
       title: "Analytics",
       url: "/dashboard/analytics",
-      icon: PieChart,
+      icon: BarChart3,
+      items: [
+        {
+          title: "Performance",
+          url: "/dashboard/analytics",
+        },
+        {
+          title: "Reports",
+          url: "/dashboard/reports",
+        },
+      ],
     },
     {
-      title: "Reports",
-      url: "/dashboard/reports",
-      icon: FileText,
+      title: "Market Scanner",
+      url: "/dashboard/scanner",
+      icon: Target,
+    },
+    {
+      title: "Trending Tickers",
+      url: "/dashboard/trending-tickers",
+      icon: TrendingUp,
+    },
+    {
+      title: "Tax Center",
+      url: "/dashboard/tax-center",
+      icon: Calculator,
     },
     {
       title: "Settings",

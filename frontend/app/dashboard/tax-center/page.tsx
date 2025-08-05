@@ -1,11 +1,28 @@
-import type { Metadata } from "next"
-import { TaxCenterPage } from "@/components/tax-center-page"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Tax Center | Trading Journal",
-  description: "Manage your tax-related trading information and reports",
-}
+import { TaxSummaryCards } from "@/components/tax-center/TaxSummaryCards"
+import { TaxCharts } from "@/components/tax-center/TaxCharts"
+import { RealizedTradesTable } from "@/components/tax-center/RealizedTradesTable"
+import { TaxExportSection } from "@/components/tax-center/TaxExportSection"
+import { TaxResources } from "@/components/tax-center/TaxResources"
 
-export default function TaxCenter() {
-  return <TaxCenterPage />
+export default function TaxCenterPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Tax Center</h2>
+        <p className="text-muted-foreground">Comprehensive tax reporting and analysis for your trading activities</p>
+      </div>
+
+      <TaxSummaryCards />
+
+      <TaxExportSection />
+
+      <TaxCharts />
+
+      <RealizedTradesTable />
+
+      <TaxResources />
+    </div>
+  )
 }

@@ -6,49 +6,57 @@ export type Database = {
       profiles: {
         Row: {
           id: string
-          user_id: string
+          updated_at: string | null
+          username: string | null
           full_name: string | null
           avatar_url: string | null
           website: string | null
-          updated_at: string | null
-          created_at: string
         }
         Insert: {
-          id?: string
-          user_id: string
+          id: string
+          updated_at?: string | null
+          username?: string | null
           full_name?: string | null
           avatar_url?: string | null
           website?: string | null
-          updated_at?: string | null
-          created_at?: string
         }
         Update: {
           id?: string
-          user_id?: string
+          updated_at?: string | null
+          username?: string | null
           full_name?: string | null
           avatar_url?: string | null
           website?: string | null
-          updated_at?: string | null
-          created_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trades: {
         Row: {
           id: string
           user_id: string
           symbol: string
-          asset_type: "stock" | "option" | "crypto" | "futures" | "forex"
           side: "buy" | "sell"
           quantity: number
           entry_price: number
           exit_price: number | null
           entry_date: string
           exit_date: string | null
+          asset_type: "stock" | "option" | "crypto" | "forex"
+          strategy: string | null
+          fees: number | null
+          stop_loss: number | null
+          take_profit: number | null
+          risk_reward_ratio: number | null
           notes: string | null
-          strike_price: number | null
-          expiry_date: string | null
-          option_type: "call" | "put" | null
+          pnl: number | null
           status: "open" | "closed"
           created_at: string
           updated_at: string
@@ -57,17 +65,20 @@ export type Database = {
           id?: string
           user_id: string
           symbol: string
-          asset_type: "stock" | "option" | "crypto" | "futures" | "forex"
           side: "buy" | "sell"
           quantity: number
           entry_price: number
           exit_price?: number | null
           entry_date: string
           exit_date?: string | null
+          asset_type: "stock" | "option" | "crypto" | "forex"
+          strategy?: string | null
+          fees?: number | null
+          stop_loss?: number | null
+          take_profit?: number | null
+          risk_reward_ratio?: number | null
           notes?: string | null
-          strike_price?: number | null
-          expiry_date?: string | null
-          option_type?: "call" | "put" | null
+          pnl?: number | null
           status?: "open" | "closed"
           created_at?: string
           updated_at?: string
@@ -76,17 +87,20 @@ export type Database = {
           id?: string
           user_id?: string
           symbol?: string
-          asset_type?: "stock" | "option" | "crypto" | "futures" | "forex"
           side?: "buy" | "sell"
           quantity?: number
           entry_price?: number
           exit_price?: number | null
           entry_date?: string
           exit_date?: string | null
+          asset_type?: "stock" | "option" | "crypto" | "forex"
+          strategy?: string | null
+          fees?: number | null
+          stop_loss?: number | null
+          take_profit?: number | null
+          risk_reward_ratio?: number | null
           notes?: string | null
-          strike_price?: number | null
-          expiry_date?: string | null
-          option_type?: "call" | "put" | null
+          pnl?: number | null
           status?: "open" | "closed"
           created_at?: string
           updated_at?: string
@@ -96,64 +110,7 @@ export type Database = {
             foreignKeyName: "trades_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      tags: {
-        Row: {
-          id: string
-          name: string
-          user_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          user_id: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          user_id?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      trade_tags: {
-        Row: {
-          id: string
-          trade_id: string
-          tag_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          trade_id: string
-          tag_id: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          trade_id?: string
-          tag_id?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trade_tags_trade_id_fkey"
-            columns: ["trade_id"]
-            isOneToOne: false
-            referencedRelation: "trades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trade_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -166,10 +123,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      asset_type: "stock" | "option" | "crypto" | "futures" | "forex"
-      side: "buy" | "sell"
-      option_type: "call" | "put"
-      trade_status: "open" | "closed"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -177,10 +131,10 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
-
 export type Tables<
-  PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] & PublicSchema["Views"]) | { schema: keyof Database },
+  PublicTableNameOrOptions extends
+    | keyof (Database["public"]["Tables"] & Database["public"]["Views"])
+    | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
@@ -192,8 +146,8 @@ export type Tables<
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] & PublicSchema["Views"])
-    ? (PublicSchema["Tables"] & PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] & Database["public"]["Views"])
+    ? (Database["public"]["Tables"] & Database["public"]["Views"])[PublicTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -201,7 +155,7 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends keyof PublicSchema["Tables"] | { schema: keyof Database },
+  PublicTableNameOrOptions extends keyof Database["public"]["Tables"] | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
@@ -211,8 +165,8 @@ export type TablesInsert<
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -220,7 +174,7 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends keyof PublicSchema["Tables"] | { schema: keyof Database },
+  PublicTableNameOrOptions extends keyof Database["public"]["Tables"] | { schema: keyof Database },
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
@@ -230,8 +184,8 @@ export type TablesUpdate<
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
+    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -239,12 +193,12 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends keyof PublicSchema["Enums"] | { schema: keyof Database },
+  PublicEnumNameOrOptions extends keyof Database["public"]["Enums"] | { schema: keyof Database },
   EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
     ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+  : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
+    ? Database["public"]["Enums"][PublicEnumNameOrOptions]
     : never
