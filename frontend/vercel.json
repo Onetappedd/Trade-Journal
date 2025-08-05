@@ -4,14 +4,6 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "SUPABASE_JWT_SECRET": "@supabase-jwt-secret",
-    "POLYGON_API_KEY": "@polygon-api-key",
-    "FINNHUB_API_KEY": "@finnhub-api-key",
-    "ALPHA_VANTAGE_API_KEY": "@alpha-vantage-api-key"
-  },
   "functions": {
     "app/api/**/*.ts": {
       "runtime": "nodejs20.x"
