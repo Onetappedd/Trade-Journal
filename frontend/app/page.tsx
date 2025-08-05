@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-// Force deployment update - build fix
+// Redirect to dashboard - route.ts removed to fix build conflict
 export default function HomePage() {
   redirect("/dashboard")
 }
