@@ -334,7 +334,7 @@ export default function TrendingTickers() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Trending Tickers</h1>
             <p className="text-muted-foreground">
-              Real-time market data • Updates every 30 seconds
+              Live market data powered by Polygon.io & Finnhub • Updates every 30 seconds
             </p>
           </div>
           <Button onClick={() => window.location.reload()} variant="outline" size="sm">
