@@ -1,5 +1,9 @@
 "use client"
 
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,11 +12,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TrendingUp, TrendingDown, Search, Star, Plus, Eye, RefreshCw, ExternalLink } from "lucide-react"
-import { useHybridMarketMovers, useHybridTickerSnapshot, useHybridTickerSearch } from "@/hooks/useHybridMarketData"
-import { useAuth } from "@/components/auth/auth-provider"
-import { createClient } from "@/lib/supabase"
+import { fallbackMarketDataService } from "@/lib/fallback-market-data"
 
 interface ExtendedTicker {
   symbol: string
@@ -37,7 +39,29 @@ function TickerDetailModal({ ticker, isOpen, onClose }: {
   isOpen: boolean
   onClose: () => void 
 }) {
-  const { snapshot, isLoading } = useHybridTickerSnapshot(ticker)
+  const [snapshot, setSnapshot] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!ticker || !isOpen) return
+
+    const fetchSnapshot = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`/api/market/snapshot-hybrid/${ticker}`)
+        if (response.ok) {
+          const data = await response.json()
+          setSnapshot(data)
+        }
+      } catch (error) {
+        console.error('Error fetching snapshot:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSnapshot()
+  }, [ticker, isOpen])
   
   if (!isOpen) return null
 
@@ -50,7 +74,7 @@ function TickerDetailModal({ ticker, isOpen, onClose }: {
             <Badge variant="outline">Live Data</Badge>
           </DialogTitle>
           <DialogDescription>
-            Real-time market data from Polygon.io
+            Real-time market data
           </DialogDescription>
         </DialogHeader>
         
@@ -138,147 +162,113 @@ function TickerDetailModal({ ticker, isOpen, onClose }: {
   )
 }
 
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
-
 export default function TrendingTickers() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("changePercent")
   const [filterBy, setFilterBy] = useState("all")
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null)
-  const [userTrades, setUserTrades] = useState<Map<string, { count: number; pnl: number }>>(new Map())
-  const [watchlistSymbols, setWatchlistSymbols] = useState<string[]>([])
-  
-  const { user } = useAuth()
-  const { gainers, losers, mostActive, isLoading, error, refresh } = useHybridMarketMovers()
-  const { query, setQuery, results } = useHybridTickerSearch()
+  const [marketData, setMarketData] = useState<{
+    gainers: any[]
+    losers: any[]
+    mostActive: any[]
+  }>({ gainers: [], losers: [], mostActive: [] })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Fetch user's trade history for each symbol
+  // Fetch market data on client side only
   useEffect(() => {
-    if (!user) return
-
-    const fetchUserTrades = async () => {
+    const fetchMarketData = async () => {
+      setIsLoading(true)
+      setError(null)
+      
       try {
-        const supabase = createClient()
-        const { data: trades, error } = await supabase
-          .from('trades')
-          .select('symbol, side, quantity, entry_price, exit_price, status')
-          .eq('user_id', user.id)
-
-        if (error) throw error
-
-        const tradesMap = new Map()
-        trades?.forEach(trade => {
-          const existing = tradesMap.get(trade.symbol) || { count: 0, pnl: 0 }
-          existing.count += 1
-          
-          // Calculate P&L for closed trades
-          if (trade.status === 'closed' && trade.exit_price) {
-            const pnl = trade.side === 'buy' 
-              ? (trade.exit_price - trade.entry_price) * trade.quantity
-              : (trade.entry_price - trade.exit_price) * trade.quantity
-            existing.pnl += pnl
-          }
-          
-          tradesMap.set(trade.symbol, existing)
-        })
-
-        setUserTrades(tradesMap)
-      } catch (error) {
-        console.error('Error fetching user trades:', error)
+        const response = await fetch('/api/market/trending-hybrid')
+        if (response.ok) {
+          const data = await response.json()
+          setMarketData(data)
+        } else {
+          // Use fallback data if API fails
+          const fallbackData = await fallbackMarketDataService.getMarketMovers()
+          setMarketData(fallbackData)
+        }
+      } catch (err) {
+        console.error('Error fetching market data:', err)
+        // Use fallback data
+        const fallbackData = await fallbackMarketDataService.getMarketMovers()
+        setMarketData(fallbackData)
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    fetchUserTrades()
-  }, [user])
+    fetchMarketData()
 
-  // Load user's watchlist
-  useEffect(() => {
-    if (!user) return
+    // Set up auto-refresh
+    const interval = setInterval(fetchMarketData, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
-    const loadWatchlist = async () => {
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from('watchlist')
-          .select('symbol')
-          .eq('user_id', user.id)
-
-        if (error) throw error
-
-        setWatchlistSymbols(data?.map(item => item.symbol) || [])
-      } catch (error) {
-        console.error('Error loading watchlist:', error)
-      }
-    }
-
-    loadWatchlist()
-  }, [user])
-
-  // Convert market movers to extended tickers with user data
+  // Convert market movers to extended tickers
   const allTickers: ExtendedTicker[] = useMemo(() => {
     const tickers: ExtendedTicker[] = []
     
     // Add gainers
-    gainers.forEach(mover => {
-      const userTradeData = userTrades.get(mover.ticker) || { count: 0, pnl: 0 }
+    marketData.gainers.forEach(mover => {
       tickers.push({
-        symbol: mover.ticker,
-        name: mover.ticker, // We'll need to fetch company names separately
-        price: mover.value,
-        change: mover.change_amount,
-        changePercent: mover.change_percentage,
-        volume: mover.session?.close || 0,
-        marketCap: 'N/A', // Will be fetched separately
-        sector: 'Unknown', // Will be fetched separately
-        yourTrades: userTradeData.count,
-        yourPnL: userTradeData.pnl,
-        watchlisted: watchlistSymbols.includes(mover.ticker),
-        high: mover.session?.high || 0,
-        low: mover.session?.low || 0,
-        open: mover.session?.open || 0
+        symbol: mover.symbol || mover.ticker,
+        name: mover.name || mover.symbol || mover.ticker,
+        price: mover.price || mover.value,
+        change: mover.change || mover.change_amount,
+        changePercent: mover.changePercent || mover.change_percentage,
+        volume: mover.volume || 0,
+        marketCap: mover.marketCap || 'N/A',
+        sector: mover.sector || 'Unknown',
+        yourTrades: 0,
+        yourPnL: 0,
+        watchlisted: false,
+        high: mover.high || 0,
+        low: mover.low || 0,
+        open: mover.open || 0
       })
     })
 
     // Add losers
-    losers.forEach(mover => {
-      const userTradeData = userTrades.get(mover.ticker) || { count: 0, pnl: 0 }
+    marketData.losers.forEach(mover => {
       tickers.push({
-        symbol: mover.ticker,
-        name: mover.ticker,
-        price: mover.value,
-        change: mover.change_amount,
-        changePercent: mover.change_percentage,
-        volume: mover.session?.close || 0,
-        marketCap: 'N/A',
-        sector: 'Unknown',
-        yourTrades: userTradeData.count,
-        yourPnL: userTradeData.pnl,
-        watchlisted: watchlistSymbols.includes(mover.ticker),
-        high: mover.session?.high || 0,
-        low: mover.session?.low || 0,
-        open: mover.session?.open || 0
+        symbol: mover.symbol || mover.ticker,
+        name: mover.name || mover.symbol || mover.ticker,
+        price: mover.price || mover.value,
+        change: mover.change || mover.change_amount,
+        changePercent: mover.changePercent || mover.change_percentage,
+        volume: mover.volume || 0,
+        marketCap: mover.marketCap || 'N/A',
+        sector: mover.sector || 'Unknown',
+        yourTrades: 0,
+        yourPnL: 0,
+        watchlisted: false,
+        high: mover.high || 0,
+        low: mover.low || 0,
+        open: mover.open || 0
       })
     })
 
     // Add most active
-    mostActive.forEach(snapshot => {
-      const userTradeData = userTrades.get(snapshot.ticker) || { count: 0, pnl: 0 }
+    marketData.mostActive.forEach(mover => {
       tickers.push({
-        symbol: snapshot.ticker,
-        name: snapshot.ticker,
-        price: snapshot.value || snapshot.day?.c || 0,
-        change: snapshot.todaysChange || 0,
-        changePercent: snapshot.todaysChangePerc || 0,
-        volume: snapshot.day?.v || 0,
-        marketCap: 'N/A',
-        sector: 'Unknown',
-        yourTrades: userTradeData.count,
-        yourPnL: userTradeData.pnl,
-        watchlisted: watchlistSymbols.includes(snapshot.ticker),
-        high: snapshot.day?.h || 0,
-        low: snapshot.day?.l || 0,
-        open: snapshot.day?.o || 0
+        symbol: mover.symbol || mover.ticker,
+        name: mover.name || mover.symbol || mover.ticker,
+        price: mover.price || mover.value,
+        change: mover.change || mover.change_amount,
+        changePercent: mover.changePercent || mover.change_percentage,
+        volume: mover.volume || 0,
+        marketCap: mover.marketCap || 'N/A',
+        sector: mover.sector || 'Unknown',
+        yourTrades: 0,
+        yourPnL: 0,
+        watchlisted: false,
+        high: mover.high || 0,
+        low: mover.low || 0,
+        open: mover.open || 0
       })
     })
 
@@ -288,7 +278,7 @@ export default function TrendingTickers() {
     )
 
     return uniqueTickers.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
-  }, [gainers, losers, mostActive, userTrades, watchlistSymbols])
+  }, [marketData])
 
   const filteredTickers = allTickers
     .filter((ticker) => {
@@ -296,8 +286,6 @@ export default function TrendingTickers() {
         ticker.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticker.name.toLowerCase().includes(searchTerm.toLowerCase())
 
-      if (filterBy === "watchlist") return matchesSearch && ticker.watchlisted
-      if (filterBy === "traded") return matchesSearch && ticker.yourTrades > 0
       if (filterBy === "gainers") return matchesSearch && ticker.changePercent > 0
       if (filterBy === "losers") return matchesSearch && ticker.changePercent < 0
 
@@ -318,47 +306,20 @@ export default function TrendingTickers() {
       }
     })
 
-  const toggleWatchlist = async (symbol: string) => {
-    if (!user) return
-
-    try {
-      const supabase = createClient()
-      const isWatchlisted = watchlistSymbols.includes(symbol)
-
-      if (isWatchlisted) {
-        await supabase
-          .from('watchlist')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('symbol', symbol)
-        
-        setWatchlistSymbols(prev => prev.filter(s => s !== symbol))
-      } else {
-        await supabase
-          .from('watchlist')
-          .insert({ user_id: user.id, symbol })
-        
-        setWatchlistSymbols(prev => [...prev, symbol])
-      }
-    } catch (error) {
-      console.error('Error toggling watchlist:', error)
-    }
-  }
-
   const marketStats = {
-    totalGainers: gainers.length,
-    totalLosers: losers.length,
+    totalGainers: marketData.gainers.length,
+    totalLosers: marketData.losers.length,
     avgChange: allTickers.length > 0 
       ? allTickers.reduce((sum, t) => sum + t.changePercent, 0) / allTickers.length 
       : 0,
-    watchlistCount: allTickers.filter((t) => t.watchlisted).length,
+    watchlistCount: 0,
   }
 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <p className="text-red-600">Error loading market data: {error.message}</p>
-        <Button onClick={() => refresh()}>
+        <p className="text-red-600">Error loading market data: {error}</p>
+        <Button onClick={() => window.location.reload()}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Retry
         </Button>
@@ -373,10 +334,10 @@ export default function TrendingTickers() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Trending Tickers</h1>
             <p className="text-muted-foreground">
-              Real-time market data from Polygon.io • Updates every 30 seconds
+              Real-time market data • Updates every 30 seconds
             </p>
           </div>
-          <Button onClick={() => refresh()} variant="outline" size="sm">
+          <Button onClick={() => window.location.reload()} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -406,8 +367,8 @@ export default function TrendingTickers() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">{marketStats.watchlistCount}</div>
-              <p className="text-xs text-muted-foreground">Watchlisted</p>
+              <div className="text-2xl font-bold">{allTickers.length}</div>
+              <p className="text-xs text-muted-foreground">Total Tickers</p>
             </CardContent>
           </Card>
         </div>
@@ -442,8 +403,6 @@ export default function TrendingTickers() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Tickers</SelectItem>
-                  <SelectItem value="watchlist">Watchlist</SelectItem>
-                  <SelectItem value="traded">Previously Traded</SelectItem>
                   <SelectItem value="gainers">Gainers</SelectItem>
                   <SelectItem value="losers">Losers</SelectItem>
                 </SelectContent>
@@ -455,8 +414,6 @@ export default function TrendingTickers() {
         <Tabs defaultValue="movers" className="space-y-4">
           <TabsList>
             <TabsTrigger value="movers">Market Movers</TabsTrigger>
-            <TabsTrigger value="watchlist">My Watchlist</TabsTrigger>
-            <TabsTrigger value="search">Search</TabsTrigger>
           </TabsList>
 
           <TabsContent value="movers">
@@ -469,7 +426,7 @@ export default function TrendingTickers() {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Real-time market movers from Polygon.io • Showing {filteredTickers.length} tickers
+                  Real-time market data • Showing {filteredTickers.length} tickers
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -489,7 +446,6 @@ export default function TrendingTickers() {
                           <TableHead>Change</TableHead>
                           <TableHead>Volume</TableHead>
                           <TableHead>High/Low</TableHead>
-                          <TableHead>Your Trades</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -498,8 +454,8 @@ export default function TrendingTickers() {
                           <TableRow key={ticker.symbol}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
-                                {ticker.watchlisted && <Star className="h-4 w-4 text-yellow-500 fill-current" />}
                                 <span className="font-bold">{ticker.symbol}</span>
+                                <span className="text-sm text-muted-foreground">{ticker.name}</span>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -528,18 +484,6 @@ export default function TrendingTickers() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {ticker.yourTrades > 0 ? (
-                                <div className="text-sm">
-                                  <Badge variant="secondary">{ticker.yourTrades} trades</Badge>
-                                  <div className={ticker.yourPnL >= 0 ? "text-green-600" : "text-red-600"}>
-                                    ${ticker.yourPnL.toFixed(2)}
-                                  </div>
-                                </div>
-                              ) : (
-                                "-"
-                              )}
-                            </TableCell>
-                            <TableCell>
                               <div className="flex items-center gap-1">
                                 <Button 
                                   variant="ghost" 
@@ -548,12 +492,8 @@ export default function TrendingTickers() {
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => toggleWatchlist(ticker.symbol)}
-                                >
-                                  <Star className={`h-4 w-4 ${ticker.watchlisted ? "text-yellow-500 fill-current" : ""}`} />
+                                <Button variant="ghost" size="sm">
+                                  <Star className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="sm">
                                   <Plus className="h-4 w-4" />
@@ -566,105 +506,6 @@ export default function TrendingTickers() {
                     </Table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="watchlist">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Watchlist</CardTitle>
-                <CardDescription>
-                  {allTickers.filter((t) => t.watchlisted).length} symbols you're tracking
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {allTickers
-                    .filter((t) => t.watchlisted)
-                    .map((ticker) => (
-                      <Card key={ticker.symbol} className="cursor-pointer hover:shadow-md transition-shadow">
-                        <CardContent className="p-4" onClick={() => setSelectedTicker(ticker.symbol)}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-lg">{ticker.symbol}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                toggleWatchlist(ticker.symbol)
-                              }}
-                            >
-                              <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                            </Button>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-2xl font-bold">${ticker.price.toFixed(2)}</span>
-                              <div className={`flex items-center gap-1 ${ticker.changePercent >= 0 ? "text-green-600" : "text-red-600"}`}>
-                                {ticker.changePercent >= 0 ? (
-                                  <TrendingUp className="h-4 w-4" />
-                                ) : (
-                                  <TrendingDown className="h-4 w-4" />
-                                )}
-                                <span className="font-medium">{ticker.changePercent.toFixed(2)}%</span>
-                              </div>
-                            </div>
-                            {ticker.yourTrades > 0 && (
-                              <div className="flex items-center justify-between text-sm">
-                                <span>{ticker.yourTrades} trades</span>
-                                <span className={ticker.yourPnL >= 0 ? "text-green-600" : "text-red-600"}>
-                                  ${ticker.yourPnL.toFixed(2)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="search">
-            <Card>
-              <CardHeader>
-                <CardTitle>Search Stocks</CardTitle>
-                <CardDescription>Search for any stock ticker to view real-time data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Enter ticker symbol (e.g., AAPL, TSLA)..."
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      className="pl-8"
-                    />
-                  </div>
-                  
-                  {results.length > 0 && (
-                    <div className="space-y-2">
-                      {results.map((result) => (
-                        <div 
-                          key={result.symbol}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                          onClick={() => setSelectedTicker(result.symbol)}
-                        >
-                          <div>
-                            <div className="font-semibold">{result.symbol}</div>
-                            <div className="text-sm text-muted-foreground">{result.name}</div>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant="outline">{result.exchange}</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </CardContent>
             </Card>
           </TabsContent>

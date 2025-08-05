@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { polygonService } from '@/lib/polygon-api'
 
-// Force this API route to use Node.js runtime
+// Force this API route to use Node.js runtime and disable static generation
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
@@ -10,7 +11,7 @@ export async function GET(
 ) {
   try {
     const ticker = params.ticker.toUpperCase()
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = request.nextUrl
     
     const multiplier = parseInt(searchParams.get('multiplier') || '1')
     const timespan = searchParams.get('timespan') as 'minute' | 'hour' | 'day' | 'week' | 'month' || 'day'
