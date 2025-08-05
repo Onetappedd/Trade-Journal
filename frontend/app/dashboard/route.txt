@@ -1,2 +1,0 @@
-// This was route.ts - renamed to .txt to avoid conflict with page.tsx
-// Next.js doesn't allow both route.ts and page.tsx in the same directory

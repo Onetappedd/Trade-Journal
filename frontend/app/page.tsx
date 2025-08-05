@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-// Route group solution - old dashboard page neutralized
+// Using regular dashboard directory - no route groups needed
 export default function HomePage() {
   redirect("/dashboard")
 }
