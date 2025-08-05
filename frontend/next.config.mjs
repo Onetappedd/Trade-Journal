@@ -25,17 +25,6 @@ const nextConfig = {
         ]
       }
     ]
-  },
-  // Skip static generation for dashboard routes
-  exportPathMap: async function (defaultPathMap) {
-    const pathMap = {}
-    // Only include non-dashboard routes for static generation
-    for (const [path, page] of Object.entries(defaultPathMap)) {
-      if (!path.startsWith('/dashboard')) {
-        pathMap[path] = page
-      }
-    }
-    return pathMap
   }
 }
 
