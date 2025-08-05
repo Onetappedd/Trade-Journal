@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { marketDataService } from '@/lib/market-data'
 
-// Force this API route to use Node.js runtime
+// Force this API route to use Node.js runtime and disable static generation
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {

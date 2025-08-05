@@ -3,6 +3,7 @@
 
 import { polygonService } from './polygon-api'
 import { marketDataService } from './market-data'
+import { fallbackMarketDataService, type FallbackTicker } from './fallback-market-data'
 
 export interface HybridTicker {
   symbol: string
@@ -67,10 +68,16 @@ class HybridMarketDataService {
     }
   }
 
-  // Get market movers (gainers/losers) using Finnhub data
+  // Get market movers (gainers/losers) using Finnhub data with fallback
   async getMarketMovers(): Promise<HybridMarketMovers> {
     try {
       const tickers = await this.getTrendingStocks()
+      
+      // If no tickers from API, use fallback data
+      if (tickers.length === 0) {
+        console.log('Using fallback market data...')
+        return await fallbackMarketDataService.getMarketMovers()
+      }
       
       const gainers = tickers
         .filter(t => t.changePercent > 0)
@@ -88,8 +95,8 @@ class HybridMarketDataService {
 
       return { gainers, losers, mostActive }
     } catch (error) {
-      console.error('Error fetching market movers:', error)
-      return { gainers: [], losers: [], mostActive: [] }
+      console.error('Error fetching market movers, using fallback:', error)
+      return await fallbackMarketDataService.getMarketMovers()
     }
   }
 

@@ -1,41 +1,103 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useEffect, useRef, memo } from 'react';
 
-const stocks = [
-  { symbol: "AAPL", price: 175.43, change: 2.34 },
-  { symbol: "GOOGL", price: 2847.52, change: -15.67 },
-  { symbol: "MSFT", price: 378.85, change: 5.21 },
-  { symbol: "TSLA", price: 248.42, change: -8.93 },
-  { symbol: "AMZN", price: 3127.45, change: 12.78 },
-]
-
-export function FinancialTicker() {
-  const [currentIndex, setCurrentIndex] = useState(0)
+function TradingViewWidget() {
+  const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % stocks.length)
-    }, 2000)
+    if (!container.current) return;
 
-    return () => clearInterval(interval)
-  }, [])
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+    script.type = "text/javascript";
+    script.async = true;
+    script.innerHTML = `
+      {
+        "symbols": [
+          {
+            "proName": "SP:SPX",
+            "title": "S&P 500 Index"
+          },
+          {
+            "proName": "NASDAQ:NDX",
+            "title": "Nasdaq 100 Index"
+          },
+          {
+            "proName": "NASDAQ:NVDA",
+            "title": "NVDA"
+          },
+          {
+            "proName": "NASDAQ:AAPL",
+            "title": "AAPL"
+          },
+          {
+            "proName": "NASDAQ:TSLA",
+            "title": "TSLA"
+          },
+          {
+            "proName": "NASDAQ:GOOGL",
+            "title": "GOOGL"
+          },
+          {
+            "proName": "NASDAQ:MSFT",
+            "title": "MSFT"
+          },
+          {
+            "proName": "NASDAQ:AMZN",
+            "title": "AMZN"
+          },
+          {
+            "proName": "NASDAQ:META",
+            "title": "META"
+          },
+          {
+            "proName": "CRYPTO:BTCUSD",
+            "title": "Bitcoin"
+          },
+          {
+            "proName": "CRYPTO:ETHUSD",
+            "title": "Ethereum"
+          }
+        ],
+        "colorTheme": "dark",
+        "locale": "en",
+        "largeChartUrl": "",
+        "isTransparent": false,
+        "showSymbolLogo": true,
+        "displayMode": "adaptive"
+      }`;
 
-  const currentStock = stocks[currentIndex]
-  const isPositive = currentStock.change > 0
+    container.current.appendChild(script);
+
+    // Cleanup function to remove script when component unmounts
+    return () => {
+      if (container.current) {
+        const scripts = container.current.querySelectorAll('script');
+        scripts.forEach(script => script.remove());
+      }
+    };
+  }, []);
 
   return (
-    <div className="mt-4 p-3 bg-black/30 rounded-lg backdrop-blur-sm">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-white font-mono">{currentStock.symbol}</span>
-        <div className="flex items-center space-x-2">
-          <span className="text-white font-mono">${currentStock.price.toFixed(2)}</span>
-          <span className={`font-mono ${isPositive ? "text-green-400" : "text-red-400"}`}>
-            {isPositive ? "+" : ""}
-            {currentStock.change.toFixed(2)}
-          </span>
+    <div className="mt-4 rounded-lg overflow-hidden">
+      <div className="tradingview-widget-container" ref={container}>
+        <div className="tradingview-widget-container__widget"></div>
+        <div className="tradingview-widget-copyright">
+          <a 
+            href="https://www.tradingview.com/" 
+            rel="noopener nofollow" 
+            target="_blank"
+            className="text-xs text-blue-400 hover:text-blue-300"
+          >
+            <span className="blue-text">Ticker tape by TradingView</span>
+          </a>
         </div>
       </div>
     </div>
-  )
+  );
 }
+
+// Export as FinancialTicker to maintain compatibility with existing imports
+export const FinancialTicker = memo(TradingViewWidget);
+export default memo(TradingViewWidget);
