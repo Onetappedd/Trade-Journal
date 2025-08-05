@@ -25,3 +25,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ignore conflicting route files
+app/dashboard/route.ts
+app/dashboard/route.ts.bak
+app/dashboard/route.backup
