@@ -4,6 +4,9 @@ import { RecentTrades } from "@/components/dashboard/RecentTrades"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel"
 
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
