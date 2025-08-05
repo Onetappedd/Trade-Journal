@@ -1,5 +1,4 @@
-// REMOVED - This page conflicts with route.ts
-// Content moved to avoid build errors
-export default function RemovedPage() {
-  return null
-}
+// This file has been moved to (dashboard)/dashboard/page.tsx
+// This file is kept empty to avoid breaking imports but doesn't export a page component
+
+// No default export = no page route
