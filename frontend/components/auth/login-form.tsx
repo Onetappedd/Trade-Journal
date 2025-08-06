@@ -11,8 +11,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { TrendingUp, Mail, Lock, User, Eye, EyeOff } from "lucide-react"
 
+// Google SVG icon
+const GoogleIcon = () => (
+  <svg className="h-5 w-5 mr-2" viewBox="0 0 48 48">
+    <g>
+      <path fill="#4285F4" d="M24 9.5c3.54 0 6.36 1.53 7.82 2.81l5.77-5.77C34.64 3.36 29.74 1 24 1 14.82 1 6.88 6.98 3.44 15.09l6.91 5.36C12.13 14.09 17.62 9.5 24 9.5z"/>
+      <path fill="#34A853" d="M46.1 24.55c0-1.64-.15-3.21-.43-4.73H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.01l7.19 5.6C43.98 37.36 46.1 31.45 46.1 24.55z"/>
+      <path fill="#FBBC05" d="M10.35 28.45c-1.04-3.09-1.04-6.41 0-9.5l-6.91-5.36C.99 17.36 0 20.57 0 24c0 3.43.99 6.64 3.44 9.41l6.91-5.36z"/>
+      <path fill="#EA4335" d="M24 46.5c5.74 0 10.54-1.89 14.06-5.14l-7.19-5.6c-2.01 1.35-4.59 2.14-7.37 2.14-6.38 0-11.87-4.59-13.65-10.86l-6.91 5.36C6.88 41.02 14.82 46.5 24 46.5z"/>
+      <path fill="none" d="M0 0h48v48H0z"/>
+    </g>
+  </svg>
+)
+
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const router = useRouter()
@@ -79,6 +93,47 @@ export default function LoginForm() {
     }
   }
 
+  // Google OAuth handler
+  const signInWithOAuth = async () => {
+    setIsOAuthLoading(true)
+    setMessage(null)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+        },
+      })
+      if (error) {
+        setMessage({ type: "error", text: error.message })
+        setIsOAuthLoading(false)
+      }
+      // On success, Supabase will redirect, so no need to set loading false here
+    } catch (error) {
+      setMessage({ type: "error", text: "Google sign-in failed. Please try again." })
+      setIsOAuthLoading(false)
+    }
+  }
+
+  // Google button (shared)
+  const GoogleButton = (
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full flex items-center justify-center mb-4"
+      onClick={signInWithOAuth}
+      disabled={isOAuthLoading || isLoading}
+    >
+      {isOAuthLoading ? (
+        <span className="w-full flex items-center justify-center">Loading...</span>
+      ) : (
+        <>
+          <GoogleIcon /> Continue with Google
+        </>
+      )}
+    </Button>
+  )
+
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="flex items-center justify-center space-x-2 mb-8">
@@ -99,6 +154,7 @@ export default function LoginForm() {
               <CardDescription>Enter your credentials to access your trading journal</CardDescription>
             </CardHeader>
             <CardContent>
+              {GoogleButton}
               <form action={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -111,7 +167,7 @@ export default function LoginForm() {
                       placeholder="Enter your email"
                       className="pl-10"
                       required
-                      disabled={isLoading}
+                      disabled={isLoading || isOAuthLoading}
                     />
                   </div>
                 </div>
@@ -127,7 +183,7 @@ export default function LoginForm() {
                       placeholder="Enter your password"
                       className="pl-10 pr-10"
                       required
-                      disabled={isLoading}
+                      disabled={isLoading || isOAuthLoading}
                     />
                     <button
                       type="button"
@@ -149,7 +205,7 @@ export default function LoginForm() {
                   </Alert>
                 )}
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading}>
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
@@ -164,6 +220,7 @@ export default function LoginForm() {
               <CardDescription>Start your trading journey with a new account</CardDescription>
             </CardHeader>
             <CardContent>
+              {GoogleButton}
               <form action={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
@@ -176,7 +233,7 @@ export default function LoginForm() {
                       placeholder="Enter your full name"
                       className="pl-10"
                       required
-                      disabled={isLoading}
+                      disabled={isLoading || isOAuthLoading}
                     />
                   </div>
                 </div>
@@ -192,7 +249,7 @@ export default function LoginForm() {
                       placeholder="Enter your email"
                       className="pl-10"
                       required
-                      disabled={isLoading}
+                      disabled={isLoading || isOAuthLoading}
                     />
                   </div>
                 </div>
@@ -208,7 +265,7 @@ export default function LoginForm() {
                       placeholder="Create a password"
                       className="pl-10 pr-10"
                       required
-                      disabled={isLoading}
+                      disabled={isLoading || isOAuthLoading}
                       minLength={6}
                     />
                     <button
@@ -231,7 +288,7 @@ export default function LoginForm() {
                   </Alert>
                 )}
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading}>
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
               </form>
