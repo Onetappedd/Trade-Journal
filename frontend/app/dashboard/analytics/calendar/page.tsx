@@ -33,16 +33,14 @@ export default async function CalendarPage() {
     )
   }
   
-  // Get calendar data for the last 12 months
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setMonth(startDate.getMonth() - 12)
+  // Get calendar data - don't filter by date to ensure we get all trades
+  // The calendar component will handle the date filtering for display
+  const calendarData = await getUserTradesGroupedByDay(user.id)
   
   // Debug: Also get simplified data to check
   const simpleData = await getSimplifiedCalendarData(user.id)
   console.log("[Calendar Page] Simple data check:", simpleData)
-  
-  const calendarData = await getUserTradesGroupedByDay(user.id, startDate, endDate)
+  console.log("[Calendar Page] Calendar data days:", Object.keys(calendarData.dailyData).length)
   
   const formatCurrency = (value: number) => {
     const prefix = value >= 0 ? "+" : ""

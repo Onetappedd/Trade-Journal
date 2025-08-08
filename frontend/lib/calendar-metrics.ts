@@ -93,6 +93,8 @@ export async function getUserTradesGroupedByDay(
   let totalUnrealizedPnL = 0
   
   // Process trades - group by EXIT date for closed trades
+  console.log(`[Calendar] Processing ${trades.length} trades for P&L calculation`)
+  
   for (const trade of trades) {
     // For closed trades, use exit date; for open trades, use entry date
     const dateKey = (trade.status === 'closed' && trade.exit_date) 
@@ -113,16 +115,34 @@ export async function getUserTradesGroupedByDay(
     
     // Calculate P&L for closed trades
     let tradePnL = 0
-    const multiplier = trade.asset_type === 'option' ? 100 : 1
+    
+    // For options, the multiplier is 100 (each contract represents 100 shares)
+    // IMPORTANT: Check if prices are already per contract or per share
+    const isOption = trade.asset_type === 'option' || trade.asset_type === 'Option'
+    const multiplier = isOption ? 100 : 1
     
     if (trade.status === 'closed' && trade.exit_price !== null && trade.exit_price !== undefined) {
+      // Log the trade details for debugging
+      console.log(`[Calendar] Processing closed ${trade.asset_type} trade:`, {
+        symbol: trade.symbol,
+        side: trade.side,
+        quantity: trade.quantity,
+        entry: trade.entry_price,
+        exit: trade.exit_price,
+        multiplier: multiplier
+      })
+      
       // Calculate realized P&L
-      if (trade.side === 'buy') {
+      // For options, prices are typically quoted per share, so we multiply by 100
+      if (trade.side === 'buy' || trade.side === 'Buy' || trade.side === 'BUY') {
+        // Long position: profit when exit > entry
         tradePnL = (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
-      } else if (trade.side === 'sell') {
-        // For sell trades (shorts), profit when price goes down
+      } else if (trade.side === 'sell' || trade.side === 'Sell' || trade.side === 'SELL') {
+        // Short position: profit when exit < entry
         tradePnL = (trade.entry_price - trade.exit_price) * trade.quantity * multiplier
       }
+      
+      console.log(`[Calendar] Calculated P&L for ${trade.symbol}: ${tradePnL.toFixed(2)}`)
       
       dailyData[dateKey].realizedPnL += tradePnL
       dailyData[dateKey].totalPnL += tradePnL
@@ -142,8 +162,10 @@ export async function getUserTradesGroupedByDay(
       })
       
       dailyData[dateKey].tradeCount++
-    } else if (trade.status === 'open' || trade.status === null) {
+    } else if (trade.status === 'open' || trade.status === null || trade.status === undefined || trade.status === '') {
       // Track open trades (no P&L yet)
+      console.log(`[Calendar] Skipping open trade: ${trade.symbol} (no exit price)`)
+      
       dailyData[dateKey].trades.push({
         id: trade.id,
         symbol: trade.symbol,
@@ -159,6 +181,9 @@ export async function getUserTradesGroupedByDay(
       dailyData[dateKey].tradeCount++
     }
   }
+  
+  console.log(`[Calendar] Total Realized P&L calculated: ${totalRealizedPnL.toFixed(2)}`)
+  console.log(`[Calendar] Daily data entries: ${Object.keys(dailyData).length}`)
   
   // Calculate unrealized P&L for open positions
   // (This would need real-time prices in production)

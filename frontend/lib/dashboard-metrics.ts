@@ -43,42 +43,61 @@ export async function getDashboardMetrics(userId: string): Promise<DashboardMetr
 
   console.log(`[Dashboard Metrics] Found ${trades.length} trades for user ${userId}`)
 
-  // Separate open and closed trades
-  const openTrades = trades.filter(t => t.status !== "closed" && t.status !== "expired")
+  // Separate open and closed trades - ONLY count trades with explicit "open" status or no status
+  const openTrades = trades.filter(t => 
+    t.status === "open" || 
+    t.status === null || 
+    t.status === undefined || 
+    t.status === ""
+  )
   const closedTrades = trades.filter(t => t.status === "closed")
   
-  // Initial capital (configurable)
-  const INITIAL_CAPITAL = 10000
+  console.log(`[Dashboard Metrics] Open trades: ${openTrades.length}, Closed trades: ${closedTrades.length}`)
+  
+  // Get user's initial capital from settings
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("initial_capital")
+    .eq("user_id", userId)
+    .single()
+  
+  const INITIAL_CAPITAL = settings?.initial_capital || 10000
+  console.log(`[Dashboard Metrics] Initial capital: ${INITIAL_CAPITAL}`)
 
   // Calculate realized P&L from closed trades
   let totalRealizedPnL = 0
   let winningTrades = 0
+  let losingTrades = 0
+  
+  console.log(`[Dashboard Metrics] Calculating P&L for ${closedTrades.length} closed trades`)
   
   for (const trade of closedTrades) {
     if (trade.exit_price !== null && trade.exit_price !== undefined) {
       const pnl = calculateTradePnL(trade)
+      console.log(`[Dashboard Metrics] Trade ${trade.symbol}: Entry=${trade.entry_price}, Exit=${trade.exit_price}, Qty=${trade.quantity}, Side=${trade.side}, P&L=${pnl}`)
       totalRealizedPnL += pnl
-      if (pnl > 0) winningTrades++
+      if (pnl > 0) {
+        winningTrades++
+      } else if (pnl < 0) {
+        losingTrades++
+      }
     }
   }
-
-  // Calculate open position values
-  let openPositionValue = 0
-  let unrealizedPnL = 0
   
-  for (const trade of openTrades) {
-    const positionValue = calculatePositionValue(trade)
-    openPositionValue += positionValue
-    
-    // For unrealized P&L, we'd need current market prices
-    // For now, we'll estimate based on entry price
-    // In production, integrate with a real-time price API
-    const estimatedUnrealizedPnL = estimateUnrealizedPnL(trade)
-    unrealizedPnL += estimatedUnrealizedPnL
-  }
+  console.log(`[Dashboard Metrics] Total Realized P&L: ${totalRealizedPnL.toFixed(2)}`)
+  console.log(`[Dashboard Metrics] Winning trades: ${winningTrades}, Losing trades: ${losingTrades}`)
 
-  // Total portfolio value = initial capital + realized P&L + open position value
-  const totalPortfolioValue = INITIAL_CAPITAL + totalRealizedPnL + openPositionValue
+  // For now, we don't add open position values to portfolio value
+  // because we don't have current market prices
+  // Portfolio value = initial capital + realized P&L only
+  const totalPortfolioValue = INITIAL_CAPITAL + totalRealizedPnL
+  
+  // Count open positions but don't add their value
+  const openPositionCount = openTrades.length
+  
+  // Unrealized P&L would need real-time prices
+  const unrealizedPnL = 0 // Set to 0 until we have real-time prices
+  const openPositionValue = 0 // Set to 0 until we have real-time prices
 
   // Calculate period P&L
   const now = new Date()
@@ -115,7 +134,7 @@ export async function getDashboardMetrics(userId: string): Promise<DashboardMetr
     monthPnL,
     monthPnLPercent,
     winRate,
-    activePositions: openTrades.length,
+    activePositions: openPositionCount,
     totalTrades: trades.length,
     openPositionValue,
   }

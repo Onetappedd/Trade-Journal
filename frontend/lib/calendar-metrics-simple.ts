@@ -37,20 +37,28 @@ export async function getSimplifiedCalendarData(userId: string) {
   
   for (const trade of trades) {
     // Only process closed trades with exit data
-    if (trade.status === 'closed' && trade.exit_date && trade.exit_price !== null) {
+    if (trade.status === 'closed' && trade.exit_date && trade.exit_price !== null && trade.exit_price !== undefined) {
       closedTradesCount++
       
       // Use exit date as the key
       const dateKey = trade.exit_date.split('T')[0]
       
-      // Calculate P&L
-      const multiplier = trade.asset_type === 'option' ? 100 : 1
+      // Check if it's an option
+      const isOption = trade.asset_type === 'option' || trade.asset_type === 'Option'
+      
+      // For options: 1 contract = 100 shares
+      // Prices are typically per share, so multiply by 100
+      const multiplier = isOption ? 100 : 1
+      
       let pnl = 0
       
-      if (trade.side === 'buy') {
+      // Handle different case variations of side
+      const side = trade.side?.toLowerCase()
+      
+      if (side === 'buy') {
         // Long position: profit when price goes up
         pnl = (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
-      } else if (trade.side === 'sell') {
+      } else if (side === 'sell') {
         // Short position: profit when price goes down
         pnl = (trade.entry_price - trade.exit_price) * trade.quantity * multiplier
       }
@@ -59,7 +67,25 @@ export async function getSimplifiedCalendarData(userId: string) {
       dailyPnL[dateKey] = (dailyPnL[dateKey] || 0) + pnl
       totalPnL += pnl
       
-      console.log(`[Calendar] Trade ${trade.symbol} on ${dateKey}: P&L = $${pnl.toFixed(2)}`)
+      console.log(`[Calendar] ${isOption ? 'Option' : 'Stock'} Trade:`, {
+        symbol: trade.symbol,
+        date: dateKey,
+        side: trade.side,
+        quantity: trade.quantity,
+        entry: trade.entry_price,
+        exit: trade.exit_price,
+        multiplier: multiplier,
+        pnl: pnl.toFixed(2)
+      })
+    } else {
+      // Log why trade was skipped
+      if (trade.status !== 'closed') {
+        console.log(`[Calendar] Skipping ${trade.symbol}: status is '${trade.status}' (not closed)`)
+      } else if (!trade.exit_date) {
+        console.log(`[Calendar] Skipping ${trade.symbol}: no exit date`)
+      } else if (trade.exit_price === null || trade.exit_price === undefined) {
+        console.log(`[Calendar] Skipping ${trade.symbol}: no exit price`)
+      }
     }
   }
   
