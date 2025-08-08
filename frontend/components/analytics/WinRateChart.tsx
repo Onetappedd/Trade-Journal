@@ -6,11 +6,14 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recha
 interface WinRateChartProps {
   winRate: number
   totalTrades: number
+  wins?: number
+  losses?: number
 }
 
-export function WinRateChart({ winRate, totalTrades }: WinRateChartProps) {
-  const wins = Math.round((winRate / 100) * totalTrades)
-  const losses = totalTrades - wins
+export function WinRateChart({ winRate, totalTrades, wins: propWins, losses: propLosses }: WinRateChartProps) {
+  // Use provided wins/losses or calculate from win rate
+  const wins = propWins !== undefined ? propWins : Math.round((winRate / 100) * totalTrades)
+  const losses = propLosses !== undefined ? propLosses : totalTrades - wins
   
   const data = [
     { name: "Wins", value: wins },

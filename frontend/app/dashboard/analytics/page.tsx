@@ -9,7 +9,7 @@ import { TradeDistributionChart } from "@/components/analytics/TradeDistribution
 import { StrategyMetrics } from "@/components/analytics/StrategyMetrics"
 import { TopTrades } from "@/components/analytics/TopTrades"
 import { PerformanceComparison } from "@/components/analytics/PerformanceComparison"
-import { getAnalyticsData } from "@/lib/metrics"
+import { getAnalyticsData } from "@/lib/analytics-metrics"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
@@ -45,6 +45,8 @@ export default async function AnalyticsPage() {
     winRate: 0,
     totalTrades: 0,
     totalPnL: 0,
+    wins: 0,
+    losses: 0,
   }
 
   return (
@@ -62,7 +64,12 @@ export default async function AnalyticsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <WinRateChart winRate={analytics.winRate} totalTrades={analytics.totalTrades} />
+        <WinRateChart 
+          winRate={analytics.winRate} 
+          totalTrades={analytics.totalTrades}
+          wins={analytics.wins || 0}
+          losses={analytics.losses || 0}
+        />
         <TradeDistributionChart data={analytics.tradeDistribution} />
         <StrategyMetrics metrics={analytics.strategyMetrics} />
       </div>
