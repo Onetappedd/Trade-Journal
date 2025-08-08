@@ -65,7 +65,7 @@ const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
 export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPerformanceProps) {
   const [viewMode, setViewMode] = useState<"percent" | "dollar">("percent")
   const [hoveredData, setHoveredData] = useState<PortfolioData | null>(null)
-  const [selectedPeriod, setSelectedPeriod] = useState<"1D" | "1W" | "1M" | "3M" | "1Y" | "ALL">("1M")
+  const [selectedPeriod, setSelectedPeriod] = useState<"1D" | "1W" | "1M" | "3M" | "1Y" | "ALL">("ALL")
 
   // Filter data based on selected period
   const filteredData = useMemo(() => {
@@ -210,16 +210,14 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
               aria-label="Percent view"
               className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
             >
-              <Percent className="h-4 w-4 mr-1" />
-              %
+              <Percent className="h-4 w-4" />
             </ToggleGroupItem>
             <ToggleGroupItem 
               value="dollar" 
               aria-label="Dollar view"
               className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
             >
-              <DollarSign className="h-4 w-4 mr-1" />
-              $
+              <DollarSign className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
