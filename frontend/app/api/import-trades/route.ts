@@ -3,22 +3,24 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-
-  let payload: any
   try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
-  }
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll() } }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+
+    let payload: any
+    try {
+      payload = await req.json()
+    } catch (e) {
+      console.error("Failed to parse JSON:", e)
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
+    }
 
   const trades = Array.isArray(payload.trades) ? payload.trades : []
   if (!trades.length) return NextResponse.json({ error: "No trades to import" }, { status: 400 })
@@ -136,11 +138,21 @@ export async function POST(req: NextRequest) {
   }
 
   // Return detailed information including duplicates
-  return NextResponse.json({ 
-    success, 
-    error,
-    duplicates,
-    errors: errors.length > 0 ? errors.slice(0, 10) : [], // Return first 10 errors for debugging
-    message: `Imported ${success} trades, ${duplicates} duplicates skipped, ${error} failed` 
-  })
+    return NextResponse.json({ 
+      success, 
+      error,
+      duplicates,
+      errors: errors.length > 0 ? errors.slice(0, 10) : [], // Return first 10 errors for debugging
+      message: `Imported ${success} trades, ${duplicates} duplicates skipped, ${error} failed` 
+    })
+  } catch (error) {
+    // Catch any unexpected errors and return JSON
+    console.error("Unexpected error in import-trades API:", error)
+    return NextResponse.json({ 
+      error: "An unexpected error occurred during import",
+      success: 0,
+      duplicates: 0,
+      errors: [error instanceof Error ? error.message : String(error)]
+    }, { status: 500 })
+  }
 }

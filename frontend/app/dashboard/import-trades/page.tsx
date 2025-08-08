@@ -301,7 +301,22 @@ export default function ImportTradesPage() {
         body: JSON.stringify({ trades: valid }),
       })
       
-      const result = await res.json()
+      // Check if response is JSON
+      let result
+      const contentType = res.headers.get("content-type")
+      if (contentType && contentType.includes("application/json")) {
+        result = await res.json()
+      } else {
+        // If not JSON, try to get text and create error response
+        const text = await res.text()
+        console.error("Non-JSON response:", text)
+        result = {
+          error: text || "Server returned non-JSON response",
+          success: 0,
+          duplicates: 0,
+          errors: [text || "Invalid server response"]
+        }
+      }
       console.log("Import result:", result)
       
       // Clear the progress interval and set to 100%
