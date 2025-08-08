@@ -279,6 +279,14 @@ export default function ImportTradesPage() {
           description: description || undefined,
           variant: "default" 
         })
+        
+        // Update trade statuses after successful import
+        try {
+          await fetch("/api/update-trade-status", { method: "POST" })
+        } catch (e) {
+          console.error("Failed to update trade statuses:", e)
+        }
+        
         // Clear the data after successful import
         clearData()
       } else if (res.ok && result.duplicates > 0) {

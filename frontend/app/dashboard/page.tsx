@@ -3,6 +3,7 @@ import { PerformanceChart } from "@/components/dashboard/PerformanceChart"
 import { RecentTrades } from "@/components/dashboard/RecentTrades"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel"
+import { PositionsTable } from "@/components/dashboard/PositionsTable"
 import { getPortfolioStats } from "@/lib/metrics"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
@@ -60,6 +61,9 @@ export default async function DashboardPage() {
           <AlertsPanel />
         </div>
       </div>
+
+      {/* Open Positions with Real-Time Prices */}
+      <PositionsTable />
     </div>
   )
 }

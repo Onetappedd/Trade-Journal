@@ -8,6 +8,7 @@ import { WinRateChart } from "@/components/analytics/WinRateChart"
 import { TradeDistributionChart } from "@/components/analytics/TradeDistributionChart"
 import { StrategyMetrics } from "@/components/analytics/StrategyMetrics"
 import { TopTrades } from "@/components/analytics/TopTrades"
+import { PerformanceComparison } from "@/components/analytics/PerformanceComparison"
 import { getAnalyticsData } from "@/lib/metrics"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
@@ -67,6 +68,9 @@ export default async function AnalyticsPage() {
       </div>
 
       <TopTrades bestTrades={analytics.bestTrades} worstTrades={analytics.worstTrades} />
+      
+      {/* Performance Comparison Section */}
+      <PerformanceComparison />
     </div>
   )
 }

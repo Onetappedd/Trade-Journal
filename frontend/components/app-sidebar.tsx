@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { GalleryVerticalEnd, BarChart3, TrendingUp, Home, Calculator, Target, Settings } from "lucide-react"
+import { GalleryVerticalEnd, BarChart3, TrendingUp, Home, Calculator, Target, Settings, Calendar } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -53,6 +53,10 @@ const data = {
         {
           title: "Performance",
           url: "/dashboard/analytics",
+        },
+        {
+          title: "P&L Calendar",
+          url: "/dashboard/analytics/calendar",
         },
         {
           title: "Reports",
