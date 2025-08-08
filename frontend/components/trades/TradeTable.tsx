@@ -38,10 +38,22 @@ function useUserTrades() {
       .select("*")
       .eq("user_id", user.id)
       .order("entry_date", { ascending: false })
-    if (error) throw error
+    if (error) {
+      console.error("Error fetching trades:", error)
+      throw error
+    }
+    console.log("Fetched trades:", data)
     return data as Trade[]
   }
-  const { data, error, isLoading, mutate } = useSWR(user ? ["user-trades", user.id] : null, fetcher)
+  const { data, error, isLoading, mutate } = useSWR(
+    user ? ["user-trades", user.id] : null, 
+    fetcher,
+    {
+      refreshInterval: 5000, // Refresh every 5 seconds
+      revalidateOnFocus: true,
+      revalidateOnMount: true,
+    }
+  )
   return { trades: data || [], error, isLoading, mutate }
 }
 

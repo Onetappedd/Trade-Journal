@@ -29,12 +29,12 @@ type TradeForm = z.infer<typeof tradeSchema>
 function parseOptionSymbol(symbol: string) {
   const match = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([PC])(\d{8})$/)
   if (!match) return null
-  const [_, _underlying, yy, mm, dd, type, strikeRaw] = match
+  const [_, underlying, yy, mm, dd, type, strikeRaw] = match
   const year = Number(yy) < 50 ? "20" + yy : "19" + yy
   const expiry = `${year}-${mm}-${dd}`
   const strike = parseInt(strikeRaw, 10) / 1000
   return {
-    underlying: symbol,
+    underlying: underlying, // Extract the actual ticker (e.g., "ARM" from "ARM250703C00155000")
     expiry,
     option_type: type === "P" ? "put" : "call",
     strike_price: strike,
@@ -79,16 +79,20 @@ export default function AddTradePage() {
         body: JSON.stringify({ trades: [trade] }),
       })
 
-      if (res.ok) {
+      const result = await res.json()
+      
+      if (res.ok && result.success > 0) {
         toast({ title: "Trade saved successfully!", variant: "default" })
         form.reset()
       } else {
-        const err = await res.json()
+        // Show detailed error message
+        const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
         toast({ 
           title: "Failed to save trade", 
-          description: err.error || "Unknown error", 
+          description: errorMsg, 
           variant: "destructive" 
         })
+        console.error("Trade save failed:", result)
       }
     } catch (e) {
       toast({ 

@@ -60,13 +60,13 @@ type TradePreview = {
 function parseOptionSymbol(symbol: string) {
   const match = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([PC])(\d{8})$/)
   if (!match) return null
-  const [_, _underlying, yy, mm, dd, type, strikeRaw] = match
+  const [_, underlying, yy, mm, dd, type, strikeRaw] = match
   const year = Number(yy) < 50 ? "20" + yy : "19" + yy
   const expiry = `${year}-${mm}-${dd}`
   const strike = parseInt(strikeRaw, 10) / 1000
   return {
-    // underlying should always be the symbol itself
-    underlying: symbol,
+    // Extract the actual underlying ticker (e.g., "ARM" from "ARM250703C00155000")
+    underlying: underlying,
     expiry,
     option_type: type === "P" ? "put" : "call",
     strike_price: strike,

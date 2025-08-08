@@ -24,27 +24,72 @@ export async function POST(req: NextRequest) {
   if (!trades.length) return NextResponse.json({ error: "No trades to import" }, { status: 400 })
 
   let success = 0, error = 0
+  const errors: string[] = []
+  
   for (const t of trades) {
+    // Validate required fields
     if (!t.symbol || !t.side || typeof t.quantity !== "number" || typeof t.entry_price !== "number" || !t.entry_date || !t.asset_type || !t.broker) {
       error++
+      errors.push(`Missing required fields for trade: ${t.symbol || 'unknown'}`)
       continue
     }
-    const { error: insertError } = await supabase.from("trades").insert({
+
+    // Prepare the trade data with proper formatting
+    const tradeData: any = {
       user_id: user.id,
-      symbol: t.symbol,
-      side: t.side,
-      quantity: t.quantity,
-      entry_price: t.entry_price,
-      entry_date: t.entry_date,
-      asset_type: t.asset_type,
-      broker: t.broker,
-      underlying: t.underlying || null,
-      expiry: t.expiry || null,
-      option_type: t.option_type || null,
-      strike_price: t.strike_price || null,
+      symbol: String(t.symbol),
+      side: String(t.side).toLowerCase(),
+      quantity: Number(t.quantity),
+      entry_price: Number(t.entry_price),
+      entry_date: new Date(t.entry_date).toISOString(),
+      asset_type: String(t.asset_type).toLowerCase(),
+      broker: String(t.broker),
+      notes: t.notes || null,
+    }
+
+    // Add optional fields only if they exist
+    if (t.underlying) tradeData.underlying = String(t.underlying)
+    if (t.expiry) tradeData.expiry = String(t.expiry).split('T')[0] // Ensure date format YYYY-MM-DD
+    if (t.option_type) tradeData.option_type = String(t.option_type).toLowerCase()
+    if (t.strike_price !== undefined && t.strike_price !== null) tradeData.strike_price = Number(t.strike_price)
+    
+    // Only add status if it's a valid value
+    if (t.status === "open" || t.status === "closed") {
+      tradeData.status = t.status
+    }
+
+    console.log("Attempting to insert trade:", tradeData)
+
+    const { data: insertedData, error: insertError } = await supabase
+      .from("trades")
+      .insert(tradeData)
+      .select()
+      .single()
+    
+    if (insertError) {
+      error++
+      errors.push(`Failed to insert ${t.symbol}: ${insertError.message} (${insertError.code})`)
+      console.error("Insert error details:", {
+        error: insertError,
+        tradeData,
+        code: insertError.code,
+        details: insertError.details,
+        hint: insertError.hint
+      })
+    } else {
+      success++
+      console.log("Successfully inserted trade:", insertedData)
+    }
+  }
+
+  // Return detailed error information if there were failures
+  if (errors.length > 0) {
+    return NextResponse.json({ 
+      success, 
+      error,
+      errors: errors.slice(0, 10), // Return first 10 errors for debugging
+      message: `Imported ${success} trades, ${error} failed` 
     })
-    if (insertError) error++
-    else success++
   }
 
   return NextResponse.json({ success, error })
