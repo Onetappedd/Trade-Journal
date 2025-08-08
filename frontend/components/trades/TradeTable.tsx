@@ -112,7 +112,14 @@ export function TradeTable() {
           {trades.map((trade) => (
             <TableRow key={trade.id}>
               <TableCell>{trade.symbol}</TableCell>
-              <TableCell><Badge>{trade.side.toUpperCase()}</Badge></TableCell>
+              <TableCell>
+                <Badge 
+                  variant={trade.side === "buy" ? "default" : "destructive"}
+                  className={trade.side === "buy" ? "bg-green-600 hover:bg-green-700" : ""}
+                >
+                  {trade.side.toUpperCase()}
+                </Badge>
+              </TableCell>
               <TableCell>{editingId === trade.id ? (
                 <input
                   type="number"
@@ -130,7 +137,11 @@ export function TradeTable() {
                 />
               ) : `$${trade.entry_price.toFixed(2)}`}</TableCell>
               <TableCell>{new Date(trade.entry_date).toLocaleDateString()}</TableCell>
-              <TableCell>{trade.status || "-"}</TableCell>
+              <TableCell>
+                <Badge variant={trade.status === "closed" ? "secondary" : "default"}>
+                  {trade.status || "open"}
+                </Badge>
+              </TableCell>
               <TableCell>
                 {editingId === trade.id ? (
                   <>
