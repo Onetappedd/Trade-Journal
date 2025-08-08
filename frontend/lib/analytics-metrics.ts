@@ -74,6 +74,8 @@ export async function getAnalyticsData(userId: string) {
     totalPnL: stats.totalPnL,
     wins,
     losses,
+    closedTrades,
+    initialCapital: INITIAL_CAPITAL,
   }
 }
 
@@ -293,5 +295,7 @@ function getDefaultAnalytics() {
     totalPnL: 0,
     wins: 0,
     losses: 0,
+    closedTrades: [],
+    initialCapital: 10000,
   }
 }
