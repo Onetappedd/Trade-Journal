@@ -3,22 +3,28 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
-const data = [
-  { date: "Jan", value: 10000 },
-  { date: "Feb", value: 10500 },
-  { date: "Mar", value: 9800 },
-  { date: "Apr", value: 11200 },
-  { date: "May", value: 12100 },
-  { date: "Jun", value: 11800 },
-  { date: "Jul", value: 13200 },
-  { date: "Aug", value: 12900 },
-  { date: "Sep", value: 14100 },
-  { date: "Oct", value: 13800 },
-  { date: "Nov", value: 15200 },
-  { date: "Dec", value: 16500 },
-]
+interface EquityCurveChartProps {
+  data: Array<{
+    date: string
+    value: number
+  }>
+}
 
-export function EquityCurveChart() {
+export function EquityCurveChart({ data }: EquityCurveChartProps) {
+  // Use placeholder data if no real data
+  const chartData = data.length > 0 ? data.slice(-90) : [ // Last 90 days
+    { date: "Jan", value: 100000 },
+    { date: "Feb", value: 100000 },
+    { date: "Mar", value: 100000 },
+  ]
+
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    if (dateStr.length <= 3) return dateStr // Month names
+    const date = new Date(dateStr)
+    return `${date.getMonth() + 1}/${date.getDate()}`
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -26,17 +32,24 @@ export function EquityCurveChart() {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={formatDate}
+              interval="preserveStartEnd"
+            />
             <YAxis />
-            <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, "Portfolio Value"]} />
+            <Tooltip 
+              formatter={(value: any) => [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, "Portfolio Value"]}
+              labelFormatter={(label) => formatDate(label)}
+            />
             <Line
               type="monotone"
               dataKey="value"
               stroke="#3b82f6"
               strokeWidth={2}
-              dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+              dot={false}
             />
           </LineChart>
         </ResponsiveContainer>

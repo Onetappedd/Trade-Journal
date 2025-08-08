@@ -1,59 +1,54 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Target, Clock } from "lucide-react"
 
-const metrics = [
-  {
-    title: "Expectancy",
-    value: "$52.30",
-    description: "Average profit per trade",
-    icon: Target,
-    color: "text-green-600",
-  },
-  {
-    title: "Sharpe Ratio",
-    value: "1.42",
-    description: "Risk-adjusted returns",
-    icon: TrendingUp,
-    color: "text-blue-600",
-  },
-  {
-    title: "Max Drawdown",
-    value: "-8.5%",
-    description: "Largest peak-to-trough decline",
-    icon: TrendingDown,
-    color: "text-red-600",
-  },
-  {
-    title: "Avg Hold Time",
-    value: "3.2 days",
-    description: "Average position duration",
-    icon: Clock,
-    color: "text-purple-600",
-  },
-]
+interface StrategyMetricsProps {
+  metrics: {
+    expectancy: number
+    sharpeRatio: number
+    maxDrawdown: number
+    avgHoldTime: number
+    profitFactor: number
+    avgWin: number
+    avgLoss: number
+    largestWin: number
+    largestLoss: number
+  }
+}
 
-export function StrategyMetrics() {
+export function StrategyMetrics({ metrics }: StrategyMetricsProps) {
+  const formatCurrency = (value: number) => {
+    const prefix = value >= 0 ? "+" : ""
+    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  const formatNumber = (value: number, decimals: number = 2) => {
+    return value.toFixed(decimals)
+  }
+
+  const metricsList = [
+    { label: "Expectancy", value: formatCurrency(metrics.expectancy) },
+    { label: "Sharpe Ratio", value: formatNumber(metrics.sharpeRatio) },
+    { label: "Max Drawdown", value: `${formatNumber(metrics.maxDrawdown, 1)}%` },
+    { label: "Avg Hold Time", value: `${formatNumber(metrics.avgHoldTime, 1)} days` },
+    { label: "Profit Factor", value: formatNumber(metrics.profitFactor) },
+    { label: "Avg Win", value: formatCurrency(metrics.avgWin) },
+    { label: "Avg Loss", value: formatCurrency(Math.abs(metrics.avgLoss)) },
+    { label: "Largest Win", value: formatCurrency(metrics.largestWin) },
+    { label: "Largest Loss", value: formatCurrency(metrics.largestLoss) },
+  ]
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Strategy Metrics</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {metrics.map((metric) => (
-            <div key={metric.title} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-800 ${metric.color}`}>
-                  <metric.icon className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="font-medium">{metric.title}</div>
-                  <div className="text-xs text-muted-foreground">{metric.description}</div>
-                </div>
-              </div>
-              <div className={`font-bold ${metric.color}`}>{metric.value}</div>
+        <div className="space-y-3">
+          {metricsList.map((metric) => (
+            <div key={metric.label} className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">{metric.label}</span>
+              <span className="font-medium">{metric.value}</span>
             </div>
           ))}
         </div>

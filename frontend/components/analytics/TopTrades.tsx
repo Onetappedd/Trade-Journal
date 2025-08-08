@@ -1,121 +1,97 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, TrendingDown } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
-const topTrades = [
-  {
-    symbol: "NVDA",
-    side: "Buy",
-    pnl: 2450.0,
-    return: 18.5,
-    date: "2024-01-15",
-    duration: "5 days",
-  },
-  {
-    symbol: "TSLA",
-    side: "Sell",
-    pnl: 1890.0,
-    return: 12.3,
-    date: "2024-01-20",
-    duration: "3 days",
-  },
-  {
-    symbol: "AAPL",
-    side: "Buy",
-    pnl: 1250.0,
-    return: 8.7,
-    date: "2024-01-25",
-    duration: "7 days",
-  },
-]
+interface Trade {
+  id: string
+  symbol: string
+  entry_date: string
+  exit_date?: string | null
+  pnl: number
+}
 
-const worstTrades = [
-  {
-    symbol: "META",
-    side: "Buy",
-    pnl: -1200.0,
-    return: -15.2,
-    date: "2024-01-10",
-    duration: "2 days",
-  },
-  {
-    symbol: "AMZN",
-    side: "Sell",
-    pnl: -890.0,
-    return: -8.9,
-    date: "2024-01-18",
-    duration: "4 days",
-  },
-  {
-    symbol: "GOOGL",
-    side: "Buy",
-    pnl: -650.0,
-    return: -5.4,
-    date: "2024-01-22",
-    duration: "6 days",
-  },
-]
+interface TopTradesProps {
+  bestTrades: Trade[]
+  worstTrades: Trade[]
+}
 
-export function TopTrades() {
+export function TopTrades({ bestTrades, worstTrades }: TopTradesProps) {
+  const formatCurrency = (value: number) => {
+    const prefix = value >= 0 ? "+" : ""
+    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  const calculateDuration = (entry: string, exit?: string | null) => {
+    if (!exit) return "Open"
+    const entryDate = new Date(entry)
+    const exitDate = new Date(exit)
+    const days = Math.round((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24))
+    return `${days} days`
+  }
+
+  // Use placeholder if no trades
+  const displayBestTrades = bestTrades.length > 0 ? bestTrades : [
+    { id: "1", symbol: "No trades", entry_date: new Date().toISOString(), pnl: 0 }
+  ]
+  
+  const displayWorstTrades = worstTrades.length > 0 ? worstTrades : [
+    { id: "1", symbol: "No trades", entry_date: new Date().toISOString(), pnl: 0 }
+  ]
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Best & Worst Trades</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="best" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="best">Best Trades</TabsTrigger>
-            <TabsTrigger value="worst">Worst Trades</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="best" className="space-y-4">
-            {topTrades.map((trade, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Best Trades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {displayBestTrades.map((trade, index) => (
+              <div key={trade.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                  </div>
+                  <div className="text-lg font-bold text-muted-foreground">#{index + 1}</div>
                   <div>
                     <div className="font-medium">{trade.symbol}</div>
                     <div className="text-sm text-muted-foreground">
-                      {trade.date} • {trade.duration}
+                      {new Date(trade.entry_date).toLocaleDateString()} • {calculateDuration(trade.entry_date, trade.exit_date)}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-bold text-green-600">+${trade.pnl.toLocaleString()}</div>
-                  <div className="text-sm text-green-600">+{trade.return}%</div>
-                </div>
+                <Badge variant="default" className="bg-green-600">
+                  {formatCurrency(trade.pnl)}
+                </Badge>
               </div>
             ))}
-          </TabsContent>
+          </div>
+        </CardContent>
+      </Card>
 
-          <TabsContent value="worst" className="space-y-4">
-            {worstTrades.map((trade, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+      <Card>
+        <CardHeader>
+          <CardTitle>Worst Trades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {displayWorstTrades.map((trade, index) => (
+              <div key={trade.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 bg-red-100 dark:bg-red-900 rounded-full">
-                    <TrendingDown className="w-4 h-4 text-red-600" />
-                  </div>
+                  <div className="text-lg font-bold text-muted-foreground">#{index + 1}</div>
                   <div>
                     <div className="font-medium">{trade.symbol}</div>
                     <div className="text-sm text-muted-foreground">
-                      {trade.date} • {trade.duration}
+                      {new Date(trade.entry_date).toLocaleDateString()} • {calculateDuration(trade.entry_date, trade.exit_date)}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-bold text-red-600">${trade.pnl.toLocaleString()}</div>
-                  <div className="text-sm text-red-600">{trade.return}%</div>
-                </div>
+                <Badge variant="destructive">
+                  {formatCurrency(trade.pnl)}
+                </Badge>
               </div>
             ))}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

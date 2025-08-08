@@ -3,22 +3,36 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
-const data = [
-  { date: "Jan", portfolio: 10000, benchmark: 10000 },
-  { date: "Feb", portfolio: 10500, benchmark: 10200 },
-  { date: "Mar", portfolio: 9800, benchmark: 9900 },
-  { date: "Apr", portfolio: 11200, benchmark: 10800 },
-  { date: "May", portfolio: 12100, benchmark: 11200 },
-  { date: "Jun", portfolio: 11800, benchmark: 11000 },
-  { date: "Jul", portfolio: 13200, benchmark: 11800 },
-  { date: "Aug", portfolio: 12900, benchmark: 11600 },
-  { date: "Sep", portfolio: 14100, benchmark: 12200 },
-  { date: "Oct", portfolio: 13800, benchmark: 12000 },
-  { date: "Nov", portfolio: 15200, benchmark: 12800 },
-  { date: "Dec", portfolio: 16500, benchmark: 13200 },
-]
+interface PerformanceChartProps {
+  data: Array<{
+    month: string
+    value: number
+  }>
+}
 
-export function PerformanceChart() {
+export function PerformanceChart({ data }: PerformanceChartProps) {
+  // If no data, show placeholder
+  const chartData = data.length > 0 ? data : [
+    { month: "Jan", value: 100000 },
+    { month: "Feb", value: 100000 },
+    { month: "Mar", value: 100000 },
+    { month: "Apr", value: 100000 },
+    { month: "May", value: 100000 },
+    { month: "Jun", value: 100000 },
+    { month: "Jul", value: 100000 },
+    { month: "Aug", value: 100000 },
+    { month: "Sep", value: 100000 },
+    { month: "Oct", value: 100000 },
+    { month: "Nov", value: 100000 },
+    { month: "Dec", value: 100000 },
+  ]
+
+  // Add benchmark data (simple 8% annual growth)
+  const dataWithBenchmark = chartData.map((item, index) => ({
+    ...item,
+    benchmark: 100000 * Math.pow(1.08, index / 12),
+  }))
+
   return (
     <Card>
       <CardHeader>
@@ -26,17 +40,17 @@ export function PerformanceChart() {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={data}>
+          <LineChart data={dataWithBenchmark}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
+            <XAxis dataKey="month" />
             <YAxis />
             <Tooltip
-              formatter={(value, name) => [
-                `$${value.toLocaleString()}`,
-                name === "portfolio" ? "Your Portfolio" : "S&P 500",
+              formatter={(value: any, name: string) => [
+                `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                name === "value" ? "Your Portfolio" : "S&P 500",
               ]}
             />
-            <Line type="monotone" dataKey="portfolio" stroke="#3b82f6" strokeWidth={2} name="portfolio" />
+            <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} name="value" />
             <Line
               type="monotone"
               dataKey="benchmark"
