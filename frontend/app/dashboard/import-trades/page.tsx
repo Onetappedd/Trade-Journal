@@ -54,7 +54,7 @@ type TradePreview = {
   underlying?: string
   expiry?: string
   option_type?: string
-  strike_price?: string
+  strike_price?: number
 }
 
 function parseOptionSymbol(symbol: string) {
@@ -63,7 +63,7 @@ function parseOptionSymbol(symbol: string) {
   const [_, _underlying, yy, mm, dd, type, strikeRaw] = match
   const year = Number(yy) < 50 ? "20" + yy : "19" + yy
   const expiry = `${year}-${mm}-${dd}`
-  const strike = (parseInt(strikeRaw, 10) / 1000).toFixed(3)
+  const strike = parseInt(strikeRaw, 10) / 1000
   return {
     // underlying should always be the symbol itself
     underlying: symbol,
@@ -71,6 +71,31 @@ function parseOptionSymbol(symbol: string) {
     option_type: type === "P" ? "put" : "call",
     strike_price: strike,
   }
+}
+
+function parseFilledTimeToISO(input: string): string | null {
+  // Expected format: MM/DD/YYYY HH:mm:ss TZ (e.g., 07/02/2025 09:33:18 EDT)
+  const m = input.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+([A-Z]{3})$/)
+  if (!m) return null
+  const [, MM, DD, YYYY, hh, mm, ss, tz] = m
+  const month = Number(MM)
+  const day = Number(DD)
+  const year = Number(YYYY)
+  const hour = Number(hh)
+  const minute = Number(mm)
+  const second = Number(ss)
+  // Map common US timezones to UTC offsets (hours)
+  const offsets: Record<string, number> = {
+    EST: -5, EDT: -4,
+    CST: -6, CDT: -5,
+    MST: -7, MDT: -6,
+    PST: -8, PDT: -7,
+  }
+  const offset = offsets[tz]
+  if (offset === undefined) return null
+  // Convert local time to UTC by subtracting the timezone offset from local time: UTC = local - offset
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour - offset, minute, second))
+  return utcDate.toISOString()
 }
 
 export default function ImportTradesPage() {
@@ -167,7 +192,7 @@ export default function ImportTradesPage() {
               side: (row.Side || "").toLowerCase(),
               quantity: Number(row["Total Qty"]),
               entry_price: Number(row["Avg Price"]),
-              entry_date: row["Filled Time"],
+              entry_date: parseFilledTimeToISO(row["Filled Time"]) || new Date(row["Filled Time"]).toISOString(),
               asset_type: "option",
               broker: broker,
               status,
@@ -438,7 +463,7 @@ export default function ImportTradesPage() {
                               <TableCell>{trade.underlying || "-"}</TableCell>
                               <TableCell>{trade.expiry || "-"}</TableCell>
                               <TableCell>{trade.option_type ? trade.option_type.charAt(0).toUpperCase() + trade.option_type.slice(1) : "-"}</TableCell>
-                              <TableCell>{trade.strike_price || "-"}</TableCell>
+                              <TableCell>{trade.strike_price != null ? trade.strike_price.toFixed(3) : "-"}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

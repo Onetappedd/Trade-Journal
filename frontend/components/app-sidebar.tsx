@@ -93,10 +93,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       if (user) {
         const { data, error } = await supabase
           .from("users")
-          .select("username, email")
+          .select("username")
           .eq("id", user.id)
           .single()
-        if (data) setDbUser(data)
+        if (data) setDbUser({ ...data, email: user.email || "" })
       }
     }
     fetchDbUser()
