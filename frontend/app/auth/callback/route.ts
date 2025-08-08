@@ -41,12 +41,12 @@ export async function GET(request: NextRequest) {
       if (userError || !user) {
         errorMsg = "Could not fetch user profile after OAuth login."
       } else {
-        // Upsert user profile in 'profiles' table (if exists)
-        // Assumes 'profiles' table with id, email, full_name fields
-        const { error: upsertError } = await supabase.from('profiles').upsert({
+        // Upsert user record in 'users' table (id, email, username, full_name)
+        const { error: upsertError } = await supabase.from('users').upsert({
           id: user.id,
           email: user.email,
-          full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email,
+          username: (user.user_metadata as any)?.username || null,
+          full_name: (user.user_metadata as any)?.full_name || (user.user_metadata as any)?.name || user.email,
         })
         if (upsertError) {
           errorMsg = "Could not update user profile."

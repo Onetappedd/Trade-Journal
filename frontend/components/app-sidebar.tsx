@@ -7,14 +7,11 @@ import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase"
+import { useAuth } from "@/components/auth/auth-provider"
 
-// This is sample data.
 const data = {
-  user: {
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: "/placeholder-user.jpg",
-  },
   teams: [
     {
       name: "Trading Journal",
@@ -87,6 +84,24 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuth()
+  const [dbUser, setDbUser] = useState<{ username: string; email: string; avatar?: string } | null>(null)
+  const supabase = createClient()
+
+  React.useEffect(() => {
+    async function fetchDbUser() {
+      if (user) {
+        const { data, error } = await supabase
+          .from("users")
+          .select("username, email")
+          .eq("id", user.id)
+          .single()
+        if (data) setDbUser(data)
+      }
+    }
+    fetchDbUser()
+  }, [user])
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -96,7 +111,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={{
+          name: dbUser?.username || user?.user_metadata?.username || "-",
+          email: dbUser?.email || user?.email || "-",
+          avatar: "/placeholder-user.jpg"
+        }} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

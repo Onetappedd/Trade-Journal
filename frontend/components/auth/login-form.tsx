@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { TrendingUp, Mail, Lock, User, Eye, EyeOff } from "lucide-react"
+
+const USERNAME_REGEX = /^[a-z0-9]{3,15}$/
 
 // Google SVG icon
 const GoogleIcon = () => (
@@ -29,9 +31,20 @@ export default function LoginForm() {
   const [isOAuthLoading, setIsOAuthLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
+  // Signup fields and username validation state
+  const [signupFullName, setSignupFullName] = useState("")
+  const [signupEmail, setSignupEmail] = useState("")
+  const [signupPassword, setSignupPassword] = useState("")
+  const [username, setUsername] = useState("")
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle")
+  const [usernameMsg, setUsernameMsg] = useState("")
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+
   const router = useRouter()
   const supabase = createClient()
 
+  // LOGIN HANDLER
   const handleLogin = async (formData: FormData) => {
     setIsLoading(true)
     setMessage(null)
@@ -59,38 +72,95 @@ export default function LoginForm() {
     }
   }
 
-  const handleSignup = async (formData: FormData) => {
-    setIsLoading(true)
+  // SIGNUP HANDLER
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
     setMessage(null)
 
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-    const fullName = formData.get("fullName") as string
+    const v = username.toLowerCase()
+    if (!USERNAME_REGEX.test(v)) {
+      setUsernameStatus("invalid")
+      setMessage({ type: "error", text: "Invalid username format." })
+      return
+    }
+
+    // Re-check availability to avoid race conditions
+    try {
+      const res = await fetch(`/api/username-check?username=${v}`)
+      const json = await res.json()
+      if (!res.ok || !json.available) {
+        setUsernameStatus("taken")
+        setMessage({ type: "error", text: "Username is already taken." })
+        return
+      }
+    } catch {
+      setMessage({ type: "error", text: "Could not verify username availability." })
+      return
+    }
+
+    setIsLoading(true)
 
     try {
       const { error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: signupEmail,
+        password: signupPassword,
         options: {
-          data: {
-            full_name: fullName,
-          },
+          data: { full_name: signupFullName, username: v },
+          emailRedirectTo: process.env.NODE_ENV === "production"
+            ? "https://v0-modern-trading-dashboard-liard.vercel.app/auth/callback"
+            : "http://localhost:3000/auth/callback",
         },
       })
 
       if (error) {
         setMessage({ type: "error", text: error.message })
       } else {
-        setMessage({
-          type: "success",
-          text: "Account created! Please check your email to verify your account.",
-        })
+        setMessage({ type: "success", text: "Account created! Please check your email to verify your account." })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "An unexpected error occurred" })
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // USERNAME CHECK HELPERS
+  const checkUsername = async (value: string) => {
+    const v = value.toLowerCase()
+    if (!USERNAME_REGEX.test(v)) {
+      setUsernameStatus("invalid")
+      setUsernameMsg("Username must be 3-15 lowercase letters or numbers.")
+      return
+    }
+    setUsernameStatus("checking")
+    setUsernameMsg("Checking...")
+    try {
+      const res = await fetch(`/api/username-check?username=${v}`)
+      const json = await res.json()
+      if (res.ok && json.available) {
+        setUsernameStatus("available")
+        setUsernameMsg("Username is available")
+      } else {
+        setUsernameStatus("taken")
+        setUsernameMsg("Username is already taken")
+      }
+    } catch {
+      setUsernameStatus("invalid")
+      setUsernameMsg("Error checking username")
+    }
+  }
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value.toLowerCase()
+    setUsername(v)
+    setUsernameStatus("idle")
+    setUsernameMsg("")
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => checkUsername(v), 400)
+  }
+
+  const handleUsernameBlur = () => {
+    if (username) checkUsername(username)
   }
 
   // Google OAuth handler
@@ -98,10 +168,13 @@ export default function LoginForm() {
     setIsOAuthLoading(true)
     setMessage(null)
     try {
+      const redirectTo = process.env.NODE_ENV === "production"
+        ? "https://v0-modern-trading-dashboard-liard.vercel.app/auth/callback"
+        : "http://localhost:3000/auth/callback";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
+          redirectTo,
         },
       })
       if (error) {
@@ -221,52 +294,55 @@ export default function LoginForm() {
             </CardHeader>
             <CardContent>
               {GoogleButton}
-              <form action={handleSignup} className="space-y-4">
+              <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="fullName"
-                      name="fullName"
                       type="text"
                       placeholder="Enter your full name"
                       className="pl-10"
                       required
                       disabled={isLoading || isOAuthLoading}
+                      value={signupFullName}
+                      onChange={(e) => setSignupFullName(e.target.value)}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="signupEmail">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      id="email"
-                      name="email"
+                      id="signupEmail"
                       type="email"
                       placeholder="Enter your email"
                       className="pl-10"
                       required
                       disabled={isLoading || isOAuthLoading}
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="signupPassword">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      id="password"
-                      name="password"
+                      id="signupPassword"
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a password"
                       className="pl-10 pr-10"
                       required
                       disabled={isLoading || isOAuthLoading}
                       minLength={6}
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
                     />
                     <button
                       type="button"
@@ -278,17 +354,38 @@ export default function LoginForm() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    minLength={3}
+                    maxLength={15}
+                    pattern="[a-z0-9]{3,15}"
+                    placeholder="Choose a username (lowercase, 3-15 chars)"
+                    onChange={handleUsernameChange}
+                    onBlur={handleUsernameBlur}
+                    required
+                    autoComplete="off"
+                    disabled={isLoading || isOAuthLoading}
+                    className={usernameStatus === "taken" || usernameStatus === "invalid" ? "border-red-500" : usernameStatus === "available" ? "border-green-500" : ""}
+                  />
+                  {usernameMsg && (
+                    <div className={`text-sm mt-1 ${usernameStatus === "taken" || usernameStatus === "invalid" ? "text-red-600" : "text-green-600"}`}>
+                      {usernameMsg}
+                    </div>
+                  )}
+                </div>
+
                 {message && (
-                  <Alert
-                    className={message.type === "error" ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}
-                  >
+                  <Alert className={message.type === "error" ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
                     <AlertDescription className={message.type === "error" ? "text-red-800" : "text-green-800"}>
                       {message.text}
                     </AlertDescription>
                   </Alert>
                 )}
 
-                <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading || usernameStatus === "taken" || usernameStatus === "invalid"}>
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
               </form>
