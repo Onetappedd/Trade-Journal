@@ -6,12 +6,17 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useToast } from "@/components/ui/use-toast"
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-  Tabs, TabsContent, TabsList, TabsTrigger,
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-  Alert, AlertDescription, Badge, Progress, Separator, Button, Input, Label, Select, SelectItem, SelectContent, SelectTrigger, SelectValue
-} from "@/components/ui"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
