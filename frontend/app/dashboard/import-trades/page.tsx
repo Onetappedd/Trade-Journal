@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -34,12 +35,12 @@ const brokers = [
 ]
 
 const manualSchema = z.object({
-  symbol: z.string().min(1),
-  side: z.enum(["buy", "sell"]),
-  quantity: z.coerce.number().positive(),
-  price: z.coerce.number().positive(),
-  date: z.string().min(1),
-  fees: z.coerce.number().optional(),
+  symbol: z.string().min(1, "Symbol is required"),
+  side: z.enum(["buy", "sell"], { required_error: "Trade type is required" }),
+  quantity: z.coerce.number().positive("Quantity must be positive"),
+  price: z.coerce.number().positive("Price must be positive"),
+  date: z.string().min(1, "Date is required"),
+  notes: z.string().optional(),
 })
 type ManualForm = z.infer<typeof manualSchema>
 
@@ -49,12 +50,14 @@ type TradePreview = {
   quantity: number
   entry_price: number
   entry_date: string
-  status: string
+  status?: string
+  validation_status?: string
   error?: string
   underlying?: string
   expiry?: string
   option_type?: string
   strike_price?: number
+  full_symbol?: string
 }
 
 function parseOptionSymbol(symbol: string) {
@@ -111,9 +114,17 @@ export default function ImportTradesPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Manual entry form
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const manualForm = useForm<ManualForm>({
     resolver: zodResolver(manualSchema),
-    defaultValues: { side: "buy" },
+    defaultValues: {
+      symbol: "",
+      side: "buy",
+      quantity: 1,
+      price: 0,
+      date: new Date().toISOString().split('T')[0], // Today's date
+      notes: "",
+    },
   })
 
   // CSV Dropzone
@@ -243,7 +254,7 @@ export default function ImportTradesPage() {
   }
 
   async function handleImport() {
-    const valid = previewRows.filter((t) => t.status === "valid")
+    const valid = previewRows.filter((t) => t.validation_status === "valid")
     if (!valid.length) {
       toast({ title: "No valid trades to import", variant: "destructive" })
       return
@@ -283,6 +294,7 @@ export default function ImportTradesPage() {
 
   // Manual Entry
   async function onManualSubmit(data: ManualForm) {
+    setIsSubmitting(true)
     try {
       const parsed = parseOptionSymbol(data.symbol)
       const trade = {
@@ -293,22 +305,46 @@ export default function ImportTradesPage() {
         entry_date: new Date(data.date).toISOString(),
         asset_type: parsed ? "option" : "stock",
         broker: "Manual",
+        notes: data.notes || null,
         ...(parsed ? parsed : {}),
       }
+
       const res = await fetch("/api/import-trades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trades: [trade] }),
       })
-      if (res.ok) {
-        toast({ title: "Trade added!", variant: "default" })
-        manualForm.reset()
+
+      const result = await res.json()
+      
+      if (res.ok && result.success > 0) {
+        toast({ title: "Trade saved successfully!", variant: "default" })
+        manualForm.reset({
+          symbol: "",
+          side: "buy",
+          quantity: 1,
+          price: 0,
+          date: new Date().toISOString().split('T')[0],
+          notes: "",
+        })
       } else {
-        const err = await res.json()
-        toast({ title: "Failed to add trade", description: err.error || "Unknown error", variant: "destructive" })
+        // Show detailed error message
+        const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
+        toast({ 
+          title: "Failed to save trade", 
+          description: errorMsg, 
+          variant: "destructive" 
+        })
+        console.error("Trade save failed:", result)
       }
     } catch (e) {
-      toast({ title: "Failed to add trade", description: String(e), variant: "destructive" })
+      toast({ 
+        title: "Failed to save trade", 
+        description: String(e), 
+        variant: "destructive" 
+      })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -478,7 +514,7 @@ export default function ImportTradesPage() {
                               <TableCell className="tabular-nums">${trade.entry_price.toFixed(2)}</TableCell>
                               <TableCell>{new Date(trade.entry_date).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                <Badge variant={trade.status === "valid" ? "default" : trade.status === "error" ? "destructive" : "secondary"}>{trade.status}</Badge>
+                                <Badge variant={trade.validation_status === "valid" ? "default" : trade.validation_status === "error" ? "destructive" : "secondary"}>{trade.validation_status}</Badge>
                                 {trade.error && <div className="text-xs text-red-600 mt-1">{trade.error}</div>}
                               </TableCell>
                               <TableCell>{trade.underlying || "-"}</TableCell>
@@ -536,50 +572,114 @@ export default function ImportTradesPage() {
         <TabsContent value="manual" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Manual Trade Entry</CardTitle>
-              <CardDescription>Enter a trade manually. This does not persist to the database.</CardDescription>
+              <CardTitle>Record New Trade</CardTitle>
+              <CardDescription>Enter the details of your trade transaction</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={manualForm.handleSubmit(onManualSubmit)}>
-                <div className="space-y-2">
-                  <Label htmlFor="symbol">Symbol</Label>
-                  <Input id="symbol" {...manualForm.register("symbol")} />
-                  {manualForm.formState.errors.symbol && <span className="text-xs text-red-600">{manualForm.formState.errors.symbol.message}</span>}
+            <CardContent className="space-y-6">
+              <form onSubmit={manualForm.handleSubmit(onManualSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="symbol">Symbol</Label>
+                    <Input 
+                      id="symbol" 
+                      placeholder="e.g., AAPL" 
+                      {...manualForm.register("symbol")}
+                    />
+                    {manualForm.formState.errors.symbol && (
+                      <span className="text-xs text-red-600">
+                        {manualForm.formState.errors.symbol.message}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="side">Trade Type</Label>
+                    <Select 
+                      value={manualForm.watch("side")} 
+                      onValueChange={(value) => manualForm.setValue("side", value as "buy" | "sell")}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="buy">Buy</SelectItem>
+                        <SelectItem value="sell">Sell</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {manualForm.formState.errors.side && (
+                      <span className="text-xs text-red-600">
+                        {manualForm.formState.errors.side.message}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="side">Side</Label>
-                  <Select value={manualForm.watch("side")} onValueChange={v => manualForm.setValue("side", v as "buy" | "sell")}> 
-                    <SelectTrigger id="side">
-                      <SelectValue placeholder="Select side" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="buy">Buy</SelectItem>
-                      <SelectItem value="sell">Sell</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {manualForm.formState.errors.side && <span className="text-xs text-red-600">{manualForm.formState.errors.side.message}</span>}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input 
+                      id="quantity" 
+                      type="number" 
+                      placeholder="100" 
+                      {...manualForm.register("quantity", { valueAsNumber: true })}
+                    />
+                    {manualForm.formState.errors.quantity && (
+                      <span className="text-xs text-red-600">
+                        {manualForm.formState.errors.quantity.message}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price</Label>
+                    <Input 
+                      id="price" 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="150.00" 
+                      {...manualForm.register("price", { valueAsNumber: true })}
+                    />
+                    {manualForm.formState.errors.price && (
+                      <span className="text-xs text-red-600">
+                        {manualForm.formState.errors.price.message}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input id="quantity" type="number" {...manualForm.register("quantity", { valueAsNumber: true })} />
-                  {manualForm.formState.errors.quantity && <span className="text-xs text-red-600">{manualForm.formState.errors.quantity.message}</span>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price</Label>
-                  <Input id="price" type="number" step="0.01" {...manualForm.register("price", { valueAsNumber: true })} />
-                  {manualForm.formState.errors.price && <span className="text-xs text-red-600">{manualForm.formState.errors.price.message}</span>}
-                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="date">Date</Label>
-                  <Input id="date" type="date" {...manualForm.register("date")} />
-                  {manualForm.formState.errors.date && <span className="text-xs text-red-600">{manualForm.formState.errors.date.message}</span>}
+                  <Input 
+                    id="date" 
+                    type="date" 
+                    {...manualForm.register("date")}
+                  />
+                  {manualForm.formState.errors.date && (
+                    <span className="text-xs text-red-600">
+                      {manualForm.formState.errors.date.message}
+                    </span>
+                  )}
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="fees">Fees (Optional)</Label>
-                  <Input id="fees" type="number" step="0.01" {...manualForm.register("fees", { valueAsNumber: true })} />
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea 
+                    id="notes" 
+                    placeholder="Add any notes about this trade..." 
+                    {...manualForm.register("notes")}
+                  />
                 </div>
-                <div className="md:col-span-2">
-                  <Button type="submit" className="w-full">Add Trade</Button>
+
+                <div className="flex space-x-4">
+                  <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                    {isSubmitting ? "Saving..." : "Save Trade"}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1 bg-transparent"
+                    onClick={() => manualForm.reset()}
+                  >
+                    Clear
+                  </Button>
                 </div>
               </form>
             </CardContent>
