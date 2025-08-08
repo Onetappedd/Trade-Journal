@@ -1,5 +1,6 @@
 // Calendar metrics for P&L heatmap
 import { createClient } from "@/lib/supabase"
+import { calculatePositions } from "@/lib/position-tracker"
 
 export interface DailyPnL {
   date: string

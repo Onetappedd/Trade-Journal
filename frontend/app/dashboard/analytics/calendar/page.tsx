@@ -2,8 +2,7 @@ import { PnLCalendar } from "@/components/analytics/PnLCalendar"
 import { PnLCalendarMonthly } from "@/components/analytics/PnLCalendarMonthly"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getUserTradesGroupedByDay } from "@/lib/calendar-metrics"
-import { getSimplifiedCalendarData } from "@/lib/calendar-metrics-simple"
+import { getUserTradesGroupedByDay } from "@/lib/calendar-metrics-matched"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { TrendingUp, TrendingDown, Calendar, DollarSign } from "lucide-react"
@@ -37,10 +36,8 @@ export default async function CalendarPage() {
   // The calendar component will handle the date filtering for display
   const calendarData = await getUserTradesGroupedByDay(user.id)
   
-  // Debug: Also get simplified data to check
-  const simpleData = await getSimplifiedCalendarData(user.id)
-  console.log("[Calendar Page] Simple data check:", simpleData)
   console.log("[Calendar Page] Calendar data days:", Object.keys(calendarData.dailyData).length)
+  console.log("[Calendar Page] Total P&L:", calendarData.totalRealizedPnL)
   
   const formatCurrency = (value: number) => {
     const prefix = value >= 0 ? "+" : ""
