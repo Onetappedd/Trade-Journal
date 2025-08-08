@@ -1,6 +1,6 @@
 "use client"
 
-import type * as React from "react"
+import * as React from "react"
 import { GalleryVerticalEnd, BarChart3, TrendingUp, Home, Calculator, Target, Settings } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
