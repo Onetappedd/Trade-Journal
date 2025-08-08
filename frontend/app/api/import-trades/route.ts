@@ -25,20 +25,37 @@ export async function POST(req: NextRequest) {
   const trades = Array.isArray(payload.trades) ? payload.trades : []
   if (!trades.length) return NextResponse.json({ error: "No trades to import" }, { status: 400 })
 
-  // Fetch existing trades to check for duplicates
+  // Limit batch size to prevent timeouts
+  const BATCH_SIZE = 50
+  if (trades.length > BATCH_SIZE) {
+    return NextResponse.json({ 
+      error: `Too many trades. Please import in batches of ${BATCH_SIZE} or less.`,
+      success: 0,
+      duplicates: 0,
+      errors: [`Current batch size: ${trades.length}, Maximum: ${BATCH_SIZE}`]
+    }, { status: 400 })
+  }
+
+  // Fetch existing trades to check for duplicates (more efficient query)
   const { data: existingTrades } = await supabase
     .from("trades")
     .select("symbol, side, quantity, entry_price, entry_date, asset_type, broker, strike_price, expiration_date, option_type")
     .eq("user_id", user.id)
+    .gte("entry_date", new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()) // Only check last year for duplicates
 
   let success = 0, error = 0, duplicates = 0
   const errors: string[] = []
+  const validTrades: any[] = []
+  const invalidTrades: any[] = []
   
+  // First pass: validate all trades and prepare for batch insert
   for (const t of trades) {
     // Validate required fields
     if (!t.symbol || !t.side || typeof t.quantity !== "number" || typeof t.entry_price !== "number" || !t.entry_date || !t.asset_type || !t.broker) {
-      error++
-      errors.push(`Missing required fields for trade: ${t.symbol || 'unknown'}`)
+      invalidTrades.push({
+        trade: t,
+        error: `Missing required fields for trade: ${t.symbol || 'unknown'}`
+      })
       continue
     }
 
@@ -67,8 +84,10 @@ export async function POST(req: NextRequest) {
       
       // Ensure all required option fields are present
       if (!tradeData.expiration_date || !tradeData.option_type || tradeData.strike_price === undefined) {
-        error++
-        errors.push(`Missing required option fields for ${t.symbol}: expiration_date, option_type, or strike_price`)
+        invalidTrades.push({
+          trade: t,
+          error: `Missing required option fields for ${t.symbol}: expiration_date, option_type, or strike_price`
+        })
         continue
       }
     }
@@ -104,38 +123,45 @@ export async function POST(req: NextRequest) {
       
       if (isDuplicate) {
         duplicates++
-        errors.push(`Duplicate trade skipped: ${t.symbol} ${t.side} ${t.quantity} @ ${t.entry_price}`)
-        console.log("Skipping duplicate trade:", tradeData)
+        errors.push(`Duplicate: ${t.symbol} ${t.side} ${t.quantity} @ ${t.entry_price}`)
         continue
       }
     }
     
-    // Don't send status field - let database default handle it
-    // The database likely has a constraint or default value for status
+    // Add to valid trades for batch insert
+    validTrades.push(tradeData)
+  }
 
-    console.log("Attempting to insert trade:", tradeData)
-
-    const { data: insertedData, error: insertError } = await supabase
-      .from("trades")
-      .insert(tradeData)
-      .select()
-      .single()
+  // Batch insert all valid trades at once (much faster)
+  if (validTrades.length > 0) {
+    console.log(`Attempting to batch insert ${validTrades.length} trades`)
     
-    if (insertError) {
-      error++
-      errors.push(`Failed to insert ${t.symbol}: ${insertError.message} (${insertError.code})`)
-      console.error("Insert error details:", {
-        error: insertError,
-        tradeData,
-        code: insertError.code,
-        details: insertError.details,
-        hint: insertError.hint
-      })
-    } else {
-      success++
-      console.log("Successfully inserted trade:", insertedData)
+    // Insert in smaller chunks to avoid database limits
+    const CHUNK_SIZE = 10
+    for (let i = 0; i < validTrades.length; i += CHUNK_SIZE) {
+      const chunk = validTrades.slice(i, i + CHUNK_SIZE)
+      
+      const { data: insertedData, error: insertError } = await supabase
+        .from("trades")
+        .insert(chunk)
+        .select()
+      
+      if (insertError) {
+        error += chunk.length
+        errors.push(`Failed to insert batch ${i/CHUNK_SIZE + 1}: ${insertError.message}`)
+        console.error("Batch insert error:", insertError)
+      } else {
+        success += insertedData?.length || 0
+        console.log(`Successfully inserted batch ${i/CHUNK_SIZE + 1}: ${insertedData?.length} trades`)
+      }
     }
   }
+
+  // Add invalid trade errors to the errors array
+  invalidTrades.forEach(({ error: err }) => {
+    errors.push(err)
+    error++
+  })
 
   // Return detailed information including duplicates
     return NextResponse.json({ 

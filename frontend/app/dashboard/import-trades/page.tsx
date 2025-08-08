@@ -228,8 +228,20 @@ export default function ImportTradesPage() {
               full_symbol: row.Symbol,  // Keep the full option symbol for reference
             })
           }
-          setPreviewRows(rows)
-          setImportSummary({ total: rows.length, valid, errors, duplicates })
+          // If more than 50 trades, show a warning
+          if (rows.length > 50) {
+            setParseError(`File contains ${rows.length} trades. Due to timeout limits, please split into batches of 50 or less. You can import the first 50 trades now.`)
+            // Only keep first 50 for import
+            const limitedRows = rows.slice(0, 50)
+            const limitedValid = limitedRows.filter(r => r.validation_status === "valid").length
+            const limitedErrors = limitedRows.filter(r => r.validation_status === "error").length
+            const limitedDuplicates = limitedRows.filter(r => r.validation_status === "duplicate").length
+            setPreviewRows(limitedRows)
+            setImportSummary({ total: limitedRows.length, valid: limitedValid, errors: limitedErrors, duplicates: limitedDuplicates })
+          } else {
+            setPreviewRows(rows)
+            setImportSummary({ total: rows.length, valid, errors, duplicates })
+          }
         } else {
           setParseError("Only Webull + Options is supported in this version.")
         }
