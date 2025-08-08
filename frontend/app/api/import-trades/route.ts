@@ -49,14 +49,24 @@ export async function POST(req: NextRequest) {
 
     // Add optional fields only if they exist
     if (t.underlying) tradeData.underlying = String(t.underlying)
-    if (t.expiry) tradeData.expiry = String(t.expiry).split('T')[0] // Ensure date format YYYY-MM-DD
-    if (t.option_type) tradeData.option_type = String(t.option_type).toLowerCase()
-    if (t.strike_price !== undefined && t.strike_price !== null) tradeData.strike_price = Number(t.strike_price)
     
-    // Only add status if it's a valid value
-    if (t.status === "open" || t.status === "closed") {
-      tradeData.status = t.status
+    // For options, these fields are REQUIRED by the database constraint
+    if (t.asset_type === "option") {
+      // Use expiration_date (not expiry) as that's the actual column name
+      if (t.expiry) tradeData.expiration_date = String(t.expiry).split('T')[0] // Ensure date format YYYY-MM-DD
+      if (t.option_type) tradeData.option_type = String(t.option_type).toLowerCase()
+      if (t.strike_price !== undefined && t.strike_price !== null) tradeData.strike_price = Number(t.strike_price)
+      
+      // Ensure all required option fields are present
+      if (!tradeData.expiration_date || !tradeData.option_type || tradeData.strike_price === undefined) {
+        error++
+        errors.push(`Missing required option fields for ${t.symbol}: expiration_date, option_type, or strike_price`)
+        continue
+      }
     }
+    
+    // Don't send status field - let database default handle it
+    // The database likely has a constraint or default value for status
 
     console.log("Attempting to insert trade:", tradeData)
 

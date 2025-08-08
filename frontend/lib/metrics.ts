@@ -18,7 +18,7 @@ const TradeSchema = z.object({
   underlying: z.string().nullable().optional(),
   option_type: z.string().nullable().optional(),
   strike_price: z.number().nullable().optional(),
-  expiry: z.string().nullable().optional(),
+  expiration_date: z.string().nullable().optional(),
 })
 
 type Trade = z.infer<typeof TradeSchema>
