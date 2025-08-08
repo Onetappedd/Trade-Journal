@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
       entry_date: t.entry_date,
       asset_type: t.asset_type,
       broker: t.broker,
+      underlying: t.underlying || null,
+      expiry: t.expiry || null,
+      option_type: t.option_type || null,
+      strike_price: t.strike_price || null,
     })
     if (insertError) error++
     else success++
