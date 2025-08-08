@@ -1,5 +1,7 @@
 import { PnLCalendar } from "@/components/analytics/PnLCalendar"
+import { PnLCalendarMonthly } from "@/components/analytics/PnLCalendarMonthly"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getUserTradesGroupedByDay } from "@/lib/calendar-metrics"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
@@ -131,8 +133,21 @@ export default async function CalendarPage() {
         </Card>
       </div>
 
-      {/* Calendar Heatmap */}
-      <PnLCalendar data={calendarData} />
+      {/* Calendar Views */}
+      <Tabs defaultValue="daily" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="daily">Daily View</TabsTrigger>
+          <TabsTrigger value="monthly">Monthly View</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="daily">
+          <PnLCalendar data={calendarData} />
+        </TabsContent>
+        
+        <TabsContent value="monthly">
+          <PnLCalendarMonthly data={calendarData} />
+        </TabsContent>
+      </Tabs>
 
       {/* Additional Stats */}
       <div className="grid gap-4 md:grid-cols-2">

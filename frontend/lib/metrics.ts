@@ -93,10 +93,12 @@ export async function getPortfolioStats(userId: string) {
   // Active positions count
   const activePositions = openTrades.length
   
-  // Total portfolio value (sum of open position values using entry price as placeholder)
-  const totalValue = openTrades.reduce((sum, trade) => {
-    return sum + (trade.quantity * trade.entry_price)
-  }, 0) + totalPnL // Add realized P&L to portfolio value
+  // Calculate initial capital (you can make this configurable)
+  const initialCapital = 10000 // Start with $10,000 as a realistic starting amount
+  
+  // Total portfolio value = initial capital + realized P&L from closed trades
+  // For open positions, we'd need current prices which we don't have here
+  const totalValue = initialCapital + totalPnL
   
   // Calculate monthly equity curve
   const monthlyEquity = calculateMonthlyEquity(validTrades)
@@ -157,7 +159,7 @@ function calculateMonthlyEquity(trades: Trade[]) {
   
   // Calculate cumulative P&L for each month
   let cumulativePnL = 0
-  const baseValue = 100000 // Starting portfolio value
+  const baseValue = 10000 // Starting portfolio value (realistic $10k)
   
   for (let i = 0; i < 12; i++) {
     const monthTrades = trades.filter(t => {
@@ -303,7 +305,7 @@ function calculateEquityCurve(trades: Trade[]) {
   
   const equityCurve = []
   let cumulativePnL = 0
-  const baseEquity = 100000
+  const baseEquity = 10000 // Realistic starting capital
   
   for (let i = 0; i <= Math.min(days, 365); i++) { // Limit to 1 year
     const currentDate = new Date(startDate.getTime() + i * dayMs)
