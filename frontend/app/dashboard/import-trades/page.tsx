@@ -187,8 +187,11 @@ export default function ImportTradesPage() {
               valid++
               seen.add(key)
             }
+            // For options, use the underlying as the symbol
+            const symbolToUse = parsed ? parsed.underlying : row.Symbol
+            
             rows.push({
-              symbol: row.Symbol,
+              symbol: symbolToUse,  // Use underlying ticker as symbol
               side: (row.Side || "").toLowerCase(),
               quantity: Number(row["Total Qty"]),
               entry_price: Number(row["Avg Price"]),
@@ -198,6 +201,7 @@ export default function ImportTradesPage() {
               status,
               error,
               ...parsed,
+              full_symbol: row.Symbol,  // Keep the full option symbol for reference
             })
           }
           setPreviewRows(rows)
@@ -249,14 +253,30 @@ export default function ImportTradesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trades: valid }),
       })
-      if (res.ok) {
-        toast({ title: `Successfully imported ${valid.length} trades!`, variant: "default" })
+      
+      const result = await res.json()
+      console.log("Import result:", result)
+      
+      if (res.ok && result.success > 0) {
+        toast({ 
+          title: `Successfully imported ${result.success} trades!`,
+          description: result.error > 0 ? `${result.error} trades failed` : undefined,
+          variant: "default" 
+        })
+        // Clear the data after successful import
+        clearData()
       } else {
-        const err = await res.json()
-        toast({ title: "Import failed", description: err.error || "Unknown error", variant: "destructive" })
+        const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
+        toast({ 
+          title: "Import failed", 
+          description: errorMsg, 
+          variant: "destructive" 
+        })
+        console.error("Import failed:", result)
       }
     } catch (e) {
       toast({ title: "Import failed", description: String(e), variant: "destructive" })
+      console.error("Import error:", e)
     }
   }
 
