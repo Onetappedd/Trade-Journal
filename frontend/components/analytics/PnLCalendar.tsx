@@ -198,18 +198,18 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
       
       <CardContent>
         {/* Calendar Grid */}
-        <div className="space-y-4">
+        <div className="space-y-2 max-w-2xl mx-auto">
           {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5">
             {weekDays.map(day => (
-              <div key={day} className="text-center text-sm font-medium text-muted-foreground p-2">
+              <div key={day} className="text-center text-xs font-medium text-muted-foreground p-1">
                 {day}
               </div>
             ))}
           </div>
           
           {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5">
             {calendarDays.map((day, idx) => {
               if (!day) {
                 return <div key={`empty-${idx}`} className="aspect-square" />
@@ -224,15 +224,18 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
                     <TooltipTrigger asChild>
                       <div
                         className={cn(
-                          "aspect-square p-2 rounded-lg cursor-pointer transition-colors",
-                          "flex flex-col items-center justify-center gap-1",
+                          "aspect-square p-1 rounded cursor-pointer transition-colors",
+                          "flex flex-col items-center justify-center",
+                          "text-xs",
                           getColorClass(pnl, isToday(day.date))
                         )}
                       >
-                        <span className="text-xs font-medium">{dayNumber}</span>
-                        {day.tradeCount > 0 && (
-                          <span className="text-xs font-bold">
-                            {formatCurrency(pnl).replace(/\.\d{2}$/, '')}
+                        <span className="font-medium leading-none">{dayNumber}</span>
+                        {day.tradeCount > 0 && pnl !== 0 && (
+                          <span className="text-[10px] font-semibold leading-none mt-0.5">
+                            {pnl >= 0 ? '+' : '-'}${Math.abs(pnl) >= 1000 
+                              ? `${(Math.abs(pnl)/1000).toFixed(1)}k` 
+                              : Math.abs(pnl).toFixed(0)}
                           </span>
                         )}
                       </div>

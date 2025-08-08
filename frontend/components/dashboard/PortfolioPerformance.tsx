@@ -102,19 +102,28 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
     if (filteredData.length === 0) return { value: initialValue, change: 0, percentChange: 0, isGain: true }
     
     const latest = filteredData[filteredData.length - 1]
-    const first = filteredData[0]
-    const change = latest.value - first.value
-    const percentChange = ((latest.value - first.value) / first.value) * 100
     
-    // For ALL time, compare to initial value
-    const allTimeChange = selectedPeriod === "ALL" ? latest.value - initialValue : change
-    const allTimePercent = selectedPeriod === "ALL" ? ((latest.value - initialValue) / initialValue) * 100 : percentChange
+    // Always compare to initial value to determine if we're in profit or loss overall
+    const overallChange = latest.value - initialValue
+    const overallPercent = ((latest.value - initialValue) / initialValue) * 100
+    const overallIsGain = overallChange >= 0
+    
+    // For period comparison (display purposes)
+    const first = filteredData[0]
+    const periodChange = latest.value - first.value
+    const periodPercent = ((latest.value - first.value) / first.value) * 100
+    
+    // Use overall comparison for ALL time, period comparison for others
+    const displayChange = selectedPeriod === "ALL" ? overallChange : periodChange
+    const displayPercent = selectedPeriod === "ALL" ? overallPercent : periodPercent
     
     return {
       value: latest.value,
-      change: allTimeChange,
-      percentChange: allTimePercent,
-      isGain: allTimeChange >= 0
+      change: displayChange,
+      percentChange: displayPercent,
+      isGain: overallIsGain, // Always use overall P&L for color
+      overallChange,
+      overallPercent
     }
   }, [filteredData, initialValue, selectedPeriod])
 

@@ -20,6 +20,7 @@ import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ImportProgressModal } from "@/components/import/ImportProgressModal"
 
 const WEBULL_OPTIONS_COLUMNS = [
   "Name", "Symbol", "Side", "Status", "Filled", "Total Qty", "Price", "Avg Price", "Time-in-Force", "Placed Time", "Filled Time"
@@ -112,6 +113,17 @@ export default function ImportTradesPage() {
   const [assetType, setAssetType] = React.useState("Options")
   const { toast } = useToast()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  
+  // Import progress modal state
+  const [importModalOpen, setImportModalOpen] = React.useState(false)
+  const [importProgress, setImportProgress] = React.useState(0)
+  const [importStatus, setImportStatus] = React.useState<"importing" | "success" | "error">("importing")
+  const [importResults, setImportResults] = React.useState({
+    successCount: 0,
+    errorCount: 0,
+    duplicateCount: 0,
+    errorMessage: ""
+  })
 
   // Manual entry form
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -259,6 +271,29 @@ export default function ImportTradesPage() {
       toast({ title: "No valid trades to import", variant: "destructive" })
       return
     }
+    
+    // Open the progress modal
+    setImportModalOpen(true)
+    setImportStatus("importing")
+    setImportProgress(0)
+    setImportResults({
+      successCount: 0,
+      errorCount: 0,
+      duplicateCount: 0,
+      errorMessage: ""
+    })
+    
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setImportProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval)
+          return 90
+        }
+        return prev + 10
+      })
+    }, 200)
+    
     try {
       const res = await fetch("/api/import-trades", {
         method: "POST",
@@ -269,15 +304,18 @@ export default function ImportTradesPage() {
       const result = await res.json()
       console.log("Import result:", result)
       
+      // Clear the progress interval and set to 100%
+      clearInterval(progressInterval)
+      setImportProgress(100)
+      
       if (res.ok && result.success > 0) {
-        let description = ""
-        if (result.duplicates > 0) description += `${result.duplicates} duplicates skipped. `
-        if (result.error > 0) description += `${result.error} trades failed.`
-        
-        toast({ 
-          title: `Successfully imported ${result.success} trades!`,
-          description: description || undefined,
-          variant: "default" 
+        // Set success status
+        setImportStatus("success")
+        setImportResults({
+          successCount: result.success || 0,
+          errorCount: result.error || 0,
+          duplicateCount: result.duplicates || 0,
+          errorMessage: ""
         })
         
         // Update trade statuses after successful import
@@ -287,26 +325,54 @@ export default function ImportTradesPage() {
           console.error("Failed to update trade statuses:", e)
         }
         
-        // Clear the data after successful import
-        clearData()
+        // Clear the data after successful import (but wait for user to close modal)
+        setTimeout(() => {
+          if (importStatus === "success") {
+            clearData()
+          }
+        }, 2000)
+        
       } else if (res.ok && result.duplicates > 0) {
-        toast({ 
-          title: "All trades were duplicates", 
-          description: `${result.duplicates} duplicate trades were skipped`,
-          variant: "default" 
+        // All duplicates case
+        setImportStatus("success")
+        setImportResults({
+          successCount: 0,
+          errorCount: 0,
+          duplicateCount: result.duplicates,
+          errorMessage: "All trades were duplicates"
         })
       } else {
+        // Error case
         const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
-        toast({ 
-          title: "Import failed", 
-          description: errorMsg, 
-          variant: "destructive" 
+        setImportStatus("error")
+        setImportResults({
+          successCount: result.success || 0,
+          errorCount: result.error || valid.length,
+          duplicateCount: result.duplicates || 0,
+          errorMessage: errorMsg
         })
         console.error("Import failed:", result)
       }
     } catch (e) {
-      toast({ title: "Import failed", description: String(e), variant: "destructive" })
+      // Network or other error
+      clearInterval(progressInterval)
+      setImportProgress(100)
+      setImportStatus("error")
+      setImportResults({
+        successCount: 0,
+        errorCount: valid.length,
+        duplicateCount: 0,
+        errorMessage: String(e)
+      })
       console.error("Import error:", e)
+    }
+  }
+  
+  // Handle modal close
+  const handleModalClose = () => {
+    setImportModalOpen(false)
+    if (importStatus === "success") {
+      clearData()
     }
   }
 
@@ -704,6 +770,19 @@ export default function ImportTradesPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Import Progress Modal */}
+      <ImportProgressModal
+        isOpen={importModalOpen}
+        onClose={handleModalClose}
+        totalTrades={importSummary?.valid || 0}
+        currentProgress={importProgress}
+        status={importStatus}
+        successCount={importResults.successCount}
+        errorCount={importResults.errorCount}
+        duplicateCount={importResults.duplicateCount}
+        errorMessage={importResults.errorMessage}
+      />
     </div>
   )
 }

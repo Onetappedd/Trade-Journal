@@ -59,8 +59,9 @@ export async function calculatePortfolioHistory(
   const { closedTrades, stats } = calculatePositions(trades)
   
   console.log(`[Portfolio History] Initial capital: ${INITIAL_CAPITAL}`)
-  console.log(`[Portfolio History] Total P&L from position tracker: ${stats.totalPnL}`)
+  console.log(`[Portfolio History] Total P&L from position tracker: ${stats.totalPnL.toFixed(2)}`)
   console.log(`[Portfolio History] Closed trades: ${closedTrades.length}`)
+  console.log(`[Portfolio History] Current portfolio value: ${(INITIAL_CAPITAL + stats.totalPnL).toFixed(2)}`)
   
   // Group closed trades by exit date
   const dailyPnL = new Map<string, number>()
