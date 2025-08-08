@@ -23,7 +23,13 @@ export async function POST(req: NextRequest) {
   const trades = Array.isArray(payload.trades) ? payload.trades : []
   if (!trades.length) return NextResponse.json({ error: "No trades to import" }, { status: 400 })
 
-  let success = 0, error = 0
+  // Fetch existing trades to check for duplicates
+  const { data: existingTrades } = await supabase
+    .from("trades")
+    .select("symbol, side, quantity, entry_price, entry_date, asset_type, broker, strike_price, expiration_date, option_type")
+    .eq("user_id", user.id)
+
+  let success = 0, error = 0, duplicates = 0
   const errors: string[] = []
   
   for (const t of trades) {
@@ -65,6 +71,43 @@ export async function POST(req: NextRequest) {
       }
     }
     
+    // Check for duplicates in existing trades
+    if (existingTrades && existingTrades.length > 0) {
+      const isDuplicate = existingTrades.some(existing => {
+        // Check if entry dates are within 1 minute of each other (to account for timezone differences)
+        const existingDate = new Date(existing.entry_date).getTime()
+        const newDate = new Date(tradeData.entry_date).getTime()
+        const timeDiff = Math.abs(existingDate - newDate)
+        const oneMinute = 60 * 1000
+        
+        // For options, check all option-specific fields
+        if (tradeData.asset_type === "option" && existing.asset_type === "option") {
+          return existing.symbol === tradeData.symbol &&
+                 existing.side === tradeData.side &&
+                 existing.quantity === tradeData.quantity &&
+                 Math.abs(existing.entry_price - tradeData.entry_price) < 0.01 && // Allow small price differences
+                 timeDiff < oneMinute &&
+                 existing.strike_price === tradeData.strike_price &&
+                 existing.expiration_date === tradeData.expiration_date &&
+                 existing.option_type === tradeData.option_type
+        }
+        
+        // For stocks, check basic fields
+        return existing.symbol === tradeData.symbol &&
+               existing.side === tradeData.side &&
+               existing.quantity === tradeData.quantity &&
+               Math.abs(existing.entry_price - tradeData.entry_price) < 0.01 &&
+               timeDiff < oneMinute
+      })
+      
+      if (isDuplicate) {
+        duplicates++
+        errors.push(`Duplicate trade skipped: ${t.symbol} ${t.side} ${t.quantity} @ ${t.entry_price}`)
+        console.log("Skipping duplicate trade:", tradeData)
+        continue
+      }
+    }
+    
     // Don't send status field - let database default handle it
     // The database likely has a constraint or default value for status
 
@@ -92,15 +135,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Return detailed error information if there were failures
-  if (errors.length > 0) {
-    return NextResponse.json({ 
-      success, 
-      error,
-      errors: errors.slice(0, 10), // Return first 10 errors for debugging
-      message: `Imported ${success} trades, ${error} failed` 
-    })
-  }
-
-  return NextResponse.json({ success, error })
+  // Return detailed information including duplicates
+  return NextResponse.json({ 
+    success, 
+    error,
+    duplicates,
+    errors: errors.length > 0 ? errors.slice(0, 10) : [], // Return first 10 errors for debugging
+    message: `Imported ${success} trades, ${duplicates} duplicates skipped, ${error} failed` 
+  })
 }

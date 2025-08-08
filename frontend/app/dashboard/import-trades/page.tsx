@@ -270,13 +270,23 @@ export default function ImportTradesPage() {
       console.log("Import result:", result)
       
       if (res.ok && result.success > 0) {
+        let description = ""
+        if (result.duplicates > 0) description += `${result.duplicates} duplicates skipped. `
+        if (result.error > 0) description += `${result.error} trades failed.`
+        
         toast({ 
           title: `Successfully imported ${result.success} trades!`,
-          description: result.error > 0 ? `${result.error} trades failed` : undefined,
+          description: description || undefined,
           variant: "default" 
         })
         // Clear the data after successful import
         clearData()
+      } else if (res.ok && result.duplicates > 0) {
+        toast({ 
+          title: "All trades were duplicates", 
+          description: `${result.duplicates} duplicate trades were skipped`,
+          variant: "default" 
+        })
       } else {
         const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
         toast({ 
