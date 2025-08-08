@@ -60,14 +60,15 @@ type TradePreview = {
 function parseOptionSymbol(symbol: string) {
   const match = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([PC])(\d{8})$/)
   if (!match) return null
-  const [_, underlying, yy, mm, dd, type, strikeRaw] = match
+  const [_, _underlying, yy, mm, dd, type, strikeRaw] = match
   const year = Number(yy) < 50 ? "20" + yy : "19" + yy
   const expiry = `${year}-${mm}-${dd}`
   const strike = (parseInt(strikeRaw, 10) / 1000).toFixed(3)
   return {
-    underlying,
+    // underlying should always be the symbol itself
+    underlying: symbol,
     expiry,
-    option_type: type === "P" ? "put" : "call",
+    option_type: type === "P" ? "Put" : "Call",
     strike_price: strike,
   }
 }
@@ -209,20 +210,47 @@ export default function ImportTradesPage() {
     window.URL.revokeObjectURL(url)
   }
 
-  function handleImport() {
+  async function handleImport() {
     const valid = previewRows.filter((t) => t.status === "valid")
     if (!valid.length) {
       toast({ title: "No valid trades to import", variant: "destructive" })
       return
     }
-    toast({ title: `Successfully imported ${valid.length} trades!`, variant: "default" })
-    // Optionally: POST to /api/import-trades here
+    try {
+      const res = await fetch("/api/import-trades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trades: valid }),
+      })
+      if (res.ok) {
+        toast({ title: `Successfully imported ${valid.length} trades!`, variant: "default" })
+      } else {
+        const err = await res.json()
+        toast({ title: "Import failed", description: err.error || "Unknown error", variant: "destructive" })
+      }
+    } catch (e) {
+      toast({ title: "Import failed", description: String(e), variant: "destructive" })
+    }
   }
 
   // Manual Entry
-  function onManualSubmit(data: ManualForm) {
-    toast({ title: "Trade added (not persisted)", description: JSON.stringify(data), variant: "default" })
-    manualForm.reset()
+  async function onManualSubmit(data: ManualForm) {
+    try {
+      const res = await fetch("/api/import-trades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trades: [data] }),
+      })
+      if (res.ok) {
+        toast({ title: "Trade added!", variant: "default" })
+        manualForm.reset()
+      } else {
+        const err = await res.json()
+        toast({ title: "Failed to add trade", description: err.error || "Unknown error", variant: "destructive" })
+      }
+    } catch (e) {
+      toast({ title: "Failed to add trade", description: String(e), variant: "destructive" })
+    }
   }
 
   return (

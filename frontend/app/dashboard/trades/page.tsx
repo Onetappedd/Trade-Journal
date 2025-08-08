@@ -1,46 +1,14 @@
 "use client"
 
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
-
-import { useState } from "react"
-import { TradesStats } from "@/components/trades/TradesStats"
-import { TradesFilters } from "@/components/trades/TradesFilters"
-import { TradesTable } from "@/components/trades/TradesTable"
-import { AddTradeDialog } from "@/components/trades/AddTradeDialog"
-import { ImportTradesDialog } from "@/components/trades/ImportTradesDialog"
-import { Button } from "@/components/ui/button"
-import { Plus, Upload } from "lucide-react"
+import { TradeTable } from "@/components/trades/TradeTable"
+import { TradeStats } from "@/components/trades/TradeStats"
 
 export default function TradesPage() {
-  const [showAddTrade, setShowAddTrade] = useState(false)
-  const [showImportTrades, setShowImportTrades] = useState(false)
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Trades</h2>
-          <p className="text-muted-foreground">Manage and analyze your trading positions</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowImportTrades(true)} variant="outline">
-            <Upload className="mr-2 h-4 w-4" />
-            Import Trades
-          </Button>
-          <Button onClick={() => setShowAddTrade(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Trade
-          </Button>
-        </div>
-      </div>
-
-      <TradesStats />
-      <TradesFilters />
-      <TradesTable />
-
-      <AddTradeDialog open={showAddTrade} onOpenChange={setShowAddTrade} />
-      <ImportTradesDialog open={showImportTrades} onOpenChange={setShowImportTrades} />
+    <div className="max-w-7xl mx-auto flex-1 space-y-6 p-4 md:p-8 pt-6">
+      <h1 className="text-2xl font-bold mb-4">Trade History</h1>
+      <TradeStats />
+      <TradeTable />
     </div>
   )
 }
