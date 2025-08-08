@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { calculatePositions } from "@/lib/position-tracker-server"
 
 export interface DashboardMetrics {
   totalPortfolioValue: number
@@ -43,16 +44,13 @@ export async function getDashboardMetrics(userId: string): Promise<DashboardMetr
 
   console.log(`[Dashboard Metrics] Found ${trades.length} trades for user ${userId}`)
 
-  // Separate open and closed trades - ONLY count trades with explicit "open" status or no status
-  const openTrades = trades.filter(t => 
-    t.status === "open" || 
-    t.status === null || 
-    t.status === undefined || 
-    t.status === ""
-  )
-  const closedTrades = trades.filter(t => t.status === "closed")
+  // Use position tracker to calculate P&L (same as Trade History page)
+  const { positions, closedTrades, stats } = calculatePositions(trades)
   
-  console.log(`[Dashboard Metrics] Open trades: ${openTrades.length}, Closed trades: ${closedTrades.length}`)
+  console.log(`[Dashboard Metrics] Using position tracker:`)
+  console.log(`[Dashboard Metrics] Total P&L: ${stats.totalPnL}`)
+  console.log(`[Dashboard Metrics] Win Rate: ${stats.winRate}%`)
+  console.log(`[Dashboard Metrics] Open Positions: ${stats.openPositions}`)
   
   // Get user's initial capital from settings
   const { data: settings } = await supabase
@@ -64,50 +62,37 @@ export async function getDashboardMetrics(userId: string): Promise<DashboardMetr
   const INITIAL_CAPITAL = settings?.initial_capital || 10000
   console.log(`[Dashboard Metrics] Initial capital: ${INITIAL_CAPITAL}`)
 
-  // Calculate realized P&L from closed trades
-  let totalRealizedPnL = 0
-  let winningTrades = 0
-  let losingTrades = 0
-  
-  console.log(`[Dashboard Metrics] Calculating P&L for ${closedTrades.length} closed trades`)
-  
-  for (const trade of closedTrades) {
-    if (trade.exit_price !== null && trade.exit_price !== undefined) {
-      const pnl = calculateTradePnL(trade)
-      console.log(`[Dashboard Metrics] Trade ${trade.symbol}: Entry=${trade.entry_price}, Exit=${trade.exit_price}, Qty=${trade.quantity}, Side=${trade.side}, P&L=${pnl}`)
-      totalRealizedPnL += pnl
-      if (pnl > 0) {
-        winningTrades++
-      } else if (pnl < 0) {
-        losingTrades++
-      }
-    }
-  }
-  
-  console.log(`[Dashboard Metrics] Total Realized P&L: ${totalRealizedPnL.toFixed(2)}`)
-  console.log(`[Dashboard Metrics] Winning trades: ${winningTrades}, Losing trades: ${losingTrades}`)
+  // Use stats from position tracker
+  const totalRealizedPnL = stats.totalPnL
+  const winningTrades = stats.winningTrades
+  const losingTrades = stats.losingTrades
+  const openPositionCount = stats.openPositions
 
-  // For now, we don't add open position values to portfolio value
-  // because we don't have current market prices
-  // Portfolio value = initial capital + realized P&L only
+  // Portfolio value = initial capital + realized P&L
   const totalPortfolioValue = INITIAL_CAPITAL + totalRealizedPnL
-  
-  // Count open positions but don't add their value
-  const openPositionCount = openTrades.length
   
   // Unrealized P&L would need real-time prices
   const unrealizedPnL = 0 // Set to 0 until we have real-time prices
   const openPositionValue = 0 // Set to 0 until we have real-time prices
 
-  // Calculate period P&L
+  // Calculate period P&L from closed trades
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
   const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
 
-  const todayPnL = calculatePeriodPnL(closedTrades, todayStart)
-  const weekPnL = calculatePeriodPnL(closedTrades, weekAgo)
-  const monthPnL = calculatePeriodPnL(closedTrades, monthAgo)
+  // Calculate period P&L using the closed trades with their P&L already calculated
+  const todayPnL = closedTrades
+    .filter(t => t.exit_date && new Date(t.exit_date) >= todayStart)
+    .reduce((sum, t) => sum + t.pnl, 0)
+    
+  const weekPnL = closedTrades
+    .filter(t => t.exit_date && new Date(t.exit_date) >= weekAgo)
+    .reduce((sum, t) => sum + t.pnl, 0)
+    
+  const monthPnL = closedTrades
+    .filter(t => t.exit_date && new Date(t.exit_date) >= monthAgo)
+    .reduce((sum, t) => sum + t.pnl, 0)
 
   // Calculate percentages
   const totalPnLPercent = (totalRealizedPnL / INITIAL_CAPITAL) * 100
