@@ -1,11 +1,13 @@
-import { DashboardStats } from "@/components/dashboard/DashboardStats"
-import { PerformanceChart } from "@/components/dashboard/PerformanceChart"
+import { DashboardStatsSimple } from "@/components/dashboard/DashboardStatsSimple"
+import { PortfolioPerformance } from "@/components/dashboard/PortfolioPerformance"
 import { RecentTrades } from "@/components/dashboard/RecentTrades"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel"
 import { PositionsTable } from "@/components/dashboard/PositionsTable"
 import { ExpiredOptionsAlert } from "@/components/dashboard/ExpiredOptionsAlert"
 import { getPortfolioStats } from "@/lib/metrics"
+import { getDashboardMetrics } from "@/lib/dashboard-metrics"
+import { calculatePortfolioHistory } from "@/lib/portfolio-history"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { updateExpiredOptionsTrades } from "@/lib/trades/updateExpiredOptions"
@@ -33,7 +35,10 @@ export default async function DashboardPage() {
     }
   }
   
-  // Get portfolio stats
+  // Get comprehensive dashboard metrics
+  const metrics = user ? await getDashboardMetrics(user.id) : null
+  
+  // Get portfolio stats for other components
   const stats = user ? await getPortfolioStats(user.id) : {
     totalValue: 0,
     totalPnL: 0,
@@ -45,6 +50,20 @@ export default async function DashboardPage() {
     weekPnL: 0,
     monthPnL: 0,
   }
+  
+  // Use comprehensive metrics if available, otherwise fall back to basic stats
+  const dashboardStats = metrics ? {
+    totalValue: metrics.totalPortfolioValue,
+    totalPnL: metrics.totalPnL,
+    winRate: metrics.winRate,
+    activePositions: metrics.activePositions,
+    todayPnL: metrics.todayPnL,
+    weekPnL: metrics.weekPnL,
+    monthPnL: metrics.monthPnL,
+  } : stats
+  
+  // Get portfolio history for the performance chart
+  const portfolioHistory = user ? await calculatePortfolioHistory(user.id) : []
 
   return (
     <div className="space-y-6">
@@ -56,16 +75,10 @@ export default async function DashboardPage() {
       {/* Expired Options Alert */}
       <ExpiredOptionsAlert />
 
-      <DashboardStats stats={stats} />
+      <DashboardStatsSimple stats={dashboardStats} />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4">
-          <PerformanceChart data={stats.monthlyEquity} />
-        </div>
-        <div className="col-span-3">
-          <QuickActions />
-        </div>
-      </div>
+      {/* Robinhood-style Portfolio Performance Chart */}
+      <PortfolioPerformance data={portfolioHistory} initialValue={10000} />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4">

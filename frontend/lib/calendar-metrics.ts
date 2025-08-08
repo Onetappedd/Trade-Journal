@@ -62,6 +62,8 @@ export async function getUserTradesGroupedByDay(
   
   const { data: trades, error } = await query
   
+  console.log(`Fetching trades for user ${userId}:`, trades?.length || 0, 'trades found')
+  
   if (error || !trades) {
     console.error("Error fetching trades:", error)
     return {
@@ -90,9 +92,12 @@ export async function getUserTradesGroupedByDay(
   let totalRealizedPnL = 0
   let totalUnrealizedPnL = 0
   
-  // Process trades chronologically
+  // Process trades - group by EXIT date for closed trades
   for (const trade of trades) {
-    const dateKey = trade.entry_date.split('T')[0] // YYYY-MM-DD format
+    // For closed trades, use exit date; for open trades, use entry date
+    const dateKey = (trade.status === 'closed' && trade.exit_date) 
+      ? trade.exit_date.split('T')[0]
+      : trade.entry_date.split('T')[0]
     
     // Initialize daily data if not exists
     if (!dailyData[dateKey]) {
@@ -106,82 +111,53 @@ export async function getUserTradesGroupedByDay(
       }
     }
     
-    // Create position key (symbol + option details if applicable)
-    const positionKey = trade.asset_type === 'option' 
-      ? `${trade.symbol}_${trade.option_type}_${trade.strike_price}_${trade.expiration_date}`
-      : trade.symbol
-    
-    let position = positions.get(positionKey)
-    if (!position) {
-      position = {
-        openQuantity: 0,
-        totalCost: 0,
-        trades: []
-      }
-      positions.set(positionKey, position)
-    }
-    
-    // Calculate P&L based on trade side
+    // Calculate P&L for closed trades
     let tradePnL = 0
     const multiplier = trade.asset_type === 'option' ? 100 : 1
     
-    if (trade.side === 'buy') {
-      // Opening or adding to position
-      position.openQuantity += trade.quantity
-      position.totalCost += trade.quantity * trade.entry_price * multiplier
-      position.trades.push(trade)
-      
-      // If trade has exit price, it's closed
-      if (trade.exit_price && trade.exit_date) {
-        const exitDateKey = trade.exit_date.split('T')[0]
+    if (trade.status === 'closed' && trade.exit_price !== null && trade.exit_price !== undefined) {
+      // Calculate realized P&L
+      if (trade.side === 'buy') {
         tradePnL = (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
-        
-        if (!dailyData[exitDateKey]) {
-          dailyData[exitDateKey] = {
-            date: exitDateKey,
-            realizedPnL: 0,
-            unrealizedPnL: 0,
-            totalPnL: 0,
-            tradeCount: 0,
-            trades: []
-          }
-        }
-        
-        dailyData[exitDateKey].realizedPnL += tradePnL
-        dailyData[exitDateKey].totalPnL += tradePnL
-        totalRealizedPnL += tradePnL
+      } else if (trade.side === 'sell') {
+        // For sell trades (shorts), profit when price goes down
+        tradePnL = (trade.entry_price - trade.exit_price) * trade.quantity * multiplier
       }
-    } else if (trade.side === 'sell') {
-      // Closing or reducing position
-      const closedQuantity = Math.min(trade.quantity, position.openQuantity)
       
-      if (closedQuantity > 0 && position.openQuantity > 0) {
-        const avgCost = position.totalCost / position.openQuantity
-        tradePnL = (trade.entry_price * multiplier - avgCost) * closedQuantity
-        
-        position.openQuantity -= closedQuantity
-        position.totalCost = position.openQuantity * avgCost
-        
-        dailyData[dateKey].realizedPnL += tradePnL
-        dailyData[dateKey].totalPnL += tradePnL
-        totalRealizedPnL += tradePnL
-      }
+      dailyData[dateKey].realizedPnL += tradePnL
+      dailyData[dateKey].totalPnL += tradePnL
+      totalRealizedPnL += tradePnL
+      
+      // Add trade detail
+      dailyData[dateKey].trades.push({
+        id: trade.id,
+        symbol: trade.symbol,
+        side: trade.side,
+        quantity: trade.quantity,
+        entryPrice: trade.entry_price,
+        exitPrice: trade.exit_price,
+        pnl: tradePnL,
+        status: trade.status || 'closed',
+        assetType: trade.asset_type
+      })
+      
+      dailyData[dateKey].tradeCount++
+    } else if (trade.status === 'open' || trade.status === null) {
+      // Track open trades (no P&L yet)
+      dailyData[dateKey].trades.push({
+        id: trade.id,
+        symbol: trade.symbol,
+        side: trade.side,
+        quantity: trade.quantity,
+        entryPrice: trade.entry_price,
+        exitPrice: trade.exit_price,
+        pnl: 0,
+        status: 'open',
+        assetType: trade.asset_type
+      })
+      
+      dailyData[dateKey].tradeCount++
     }
-    
-    // Add trade detail
-    dailyData[dateKey].trades.push({
-      id: trade.id,
-      symbol: trade.symbol,
-      side: trade.side,
-      quantity: trade.quantity,
-      entryPrice: trade.entry_price,
-      exitPrice: trade.exit_price,
-      pnl: tradePnL,
-      status: trade.status || 'open',
-      assetType: trade.asset_type
-    })
-    
-    dailyData[dateKey].tradeCount++
   }
   
   // Calculate unrealized P&L for open positions

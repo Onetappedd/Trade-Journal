@@ -27,16 +27,36 @@ type Trade = z.infer<typeof TradeSchema>
 function calculatePnL(trade: Trade): number {
   if (!trade.exit_price || trade.status !== "closed") return 0
   
-  const multiplier = trade.side === "buy" ? 1 : -1
-  return (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
+  const multiplier = trade.asset_type === 'option' ? 100 : 1
+  
+  if (trade.side === "buy") {
+    return (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
+  } else {
+    // For sell/short positions
+    return (trade.entry_price - trade.exit_price) * trade.quantity * multiplier
+  }
 }
 
-// Calculate unrealized P&L for open positions (using placeholder current price)
+// Calculate unrealized P&L for open positions
 function calculateUnrealizedPnL(trade: Trade, currentPrice: number = 0): number {
   if (trade.status === "closed" || currentPrice === 0) return 0
   
-  const multiplier = trade.side === "buy" ? 1 : -1
-  return (currentPrice - trade.entry_price) * trade.quantity * multiplier
+  const multiplier = trade.asset_type === 'option' ? 100 : 1
+  
+  if (trade.side === "buy") {
+    return (currentPrice - trade.entry_price) * trade.quantity * multiplier
+  } else {
+    // For sell/short positions
+    return (trade.entry_price - currentPrice) * trade.quantity * multiplier
+  }
+}
+
+// Calculate value of open position
+function calculatePositionValue(trade: Trade): number {
+  if (trade.status === "closed") return 0
+  
+  const multiplier = trade.asset_type === 'option' ? 100 : 1
+  return trade.entry_price * trade.quantity * multiplier
 }
 
 // Get portfolio statistics for dashboard

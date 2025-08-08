@@ -3,6 +3,7 @@ import { PnLCalendarMonthly } from "@/components/analytics/PnLCalendarMonthly"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getUserTradesGroupedByDay } from "@/lib/calendar-metrics"
+import { getSimplifiedCalendarData } from "@/lib/calendar-metrics-simple"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { TrendingUp, TrendingDown, Calendar, DollarSign } from "lucide-react"
@@ -36,6 +37,10 @@ export default async function CalendarPage() {
   const endDate = new Date()
   const startDate = new Date()
   startDate.setMonth(startDate.getMonth() - 12)
+  
+  // Debug: Also get simplified data to check
+  const simpleData = await getSimplifiedCalendarData(user.id)
+  console.log("[Calendar Page] Simple data check:", simpleData)
   
   const calendarData = await getUserTradesGroupedByDay(user.id, startDate, endDate)
   
