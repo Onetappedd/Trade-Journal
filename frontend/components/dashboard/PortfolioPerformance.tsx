@@ -99,20 +99,24 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
 
   // Calculate current performance
   const currentPerformance = useMemo(() => {
-    if (filteredData.length === 0) return { value: initialValue, change: 0, percentChange: 0 }
+    if (filteredData.length === 0) return { value: initialValue, change: 0, percentChange: 0, isGain: true }
     
     const latest = filteredData[filteredData.length - 1]
     const first = filteredData[0]
     const change = latest.value - first.value
     const percentChange = ((latest.value - first.value) / first.value) * 100
     
+    // For ALL time, compare to initial value
+    const allTimeChange = selectedPeriod === "ALL" ? latest.value - initialValue : change
+    const allTimePercent = selectedPeriod === "ALL" ? ((latest.value - initialValue) / initialValue) * 100 : percentChange
+    
     return {
       value: latest.value,
-      change,
-      percentChange,
-      isGain: change >= 0
+      change: allTimeChange,
+      percentChange: allTimePercent,
+      isGain: allTimeChange >= 0
     }
-  }, [filteredData, initialValue])
+  }, [filteredData, initialValue, selectedPeriod])
 
   // Determine chart color based on performance
   const chartColor = currentPerformance.isGain ? "#10b981" : "#ef4444"

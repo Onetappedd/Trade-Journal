@@ -59,7 +59,10 @@ export default async function AnalyticsPage() {
       <AnalyticsFilters />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <EquityCurveChart data={analytics.equityCurve} />
+        <EquityCurveChart 
+          data={analytics.equityCurve} 
+          initialValue={analytics.initialCapital || 10000}
+        />
         <PnLByMonthChart data={analytics.pnlByMonth} />
       </div>
 
