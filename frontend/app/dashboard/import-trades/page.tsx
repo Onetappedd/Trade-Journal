@@ -68,7 +68,7 @@ function parseOptionSymbol(symbol: string) {
     // underlying should always be the symbol itself
     underlying: symbol,
     expiry,
-    option_type: type === "P" ? "Put" : "Call",
+    option_type: type === "P" ? "put" : "call",
     strike_price: strike,
   }
 }
@@ -168,6 +168,8 @@ export default function ImportTradesPage() {
               quantity: Number(row["Total Qty"]),
               entry_price: Number(row["Avg Price"]),
               entry_date: row["Filled Time"],
+              asset_type: "option",
+              broker: broker,
               status,
               error,
               ...parsed,
@@ -236,10 +238,21 @@ export default function ImportTradesPage() {
   // Manual Entry
   async function onManualSubmit(data: ManualForm) {
     try {
+      const parsed = parseOptionSymbol(data.symbol)
+      const trade = {
+        symbol: data.symbol,
+        side: data.side,
+        quantity: Number(data.quantity),
+        entry_price: Number(data.price),
+        entry_date: new Date(data.date).toISOString(),
+        asset_type: parsed ? "option" : "stock",
+        broker: "Manual",
+        ...(parsed ? parsed : {}),
+      }
       const res = await fetch("/api/import-trades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trades: [data] }),
+        body: JSON.stringify({ trades: [trade] }),
       })
       if (res.ok) {
         toast({ title: "Trade added!", variant: "default" })
@@ -424,7 +437,7 @@ export default function ImportTradesPage() {
                               </TableCell>
                               <TableCell>{trade.underlying || "-"}</TableCell>
                               <TableCell>{trade.expiry || "-"}</TableCell>
-                              <TableCell>{trade.option_type || "-"}</TableCell>
+                              <TableCell>{trade.option_type ? trade.option_type.charAt(0).toUpperCase() + trade.option_type.slice(1) : "-"}</TableCell>
                               <TableCell>{trade.strike_price || "-"}</TableCell>
                             </TableRow>
                           ))}
