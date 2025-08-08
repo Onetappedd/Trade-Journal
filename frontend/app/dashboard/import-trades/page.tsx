@@ -483,7 +483,7 @@ export default function ImportTradesPage() {
                               <TableCell>{trade.underlying || "-"}</TableCell>
                               <TableCell>{trade.expiry || "-"}</TableCell>
                               <TableCell>{trade.option_type ? trade.option_type.charAt(0).toUpperCase() + trade.option_type.slice(1) : "-"}</TableCell>
-                              <TableCell>{trade.strike_price != null ? trade.strike_price.toFixed(3) : "-"}</TableCell>
+                              <TableCell>{trade.strike_price != null ? `${trade.strike_price.toFixed(2)}` : "-"}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
