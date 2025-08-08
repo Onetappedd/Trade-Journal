@@ -7,8 +7,9 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, AlertTriangle, Clock } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { useExpiredOptions } from "@/hooks/useExpiredOptions"
 
 export type Trade = {
   id: string
@@ -62,6 +63,14 @@ export function TradeTable() {
   const { toast } = useToast()
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editValue, setEditValue] = React.useState<Partial<Trade>>({})
+  const { checkAndUpdateExpiredOptions } = useExpiredOptions()
+
+  // Check for expired options on mount and when trades change
+  React.useEffect(() => {
+    if (trades.length > 0) {
+      checkAndUpdateExpiredOptions()
+    }
+  }, [trades.length])
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this trade?")) return
@@ -138,9 +147,32 @@ export function TradeTable() {
               ) : `$${trade.entry_price.toFixed(2)}`}</TableCell>
               <TableCell>{new Date(trade.entry_date).toLocaleDateString()}</TableCell>
               <TableCell>
-                <Badge variant={trade.status === "closed" ? "secondary" : "default"}>
-                  {trade.status || "open"}
-                </Badge>
+                {trade.status === "expired" ? (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive" className="gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Expired
+                    </Badge>
+                    {trade.asset_type === "option" && trade.expiry && (
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(trade.expiry).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <Badge 
+                    variant={
+                      trade.status === "closed" ? "secondary" : 
+                      trade.status === "open" ? "default" : 
+                      "outline"
+                    }
+                  >
+                    {trade.status === "open" && trade.asset_type === "option" && trade.expiry && (
+                      <Clock className="h-3 w-3 mr-1" />
+                    )}
+                    {trade.status || "open"}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 {editingId === trade.id ? (

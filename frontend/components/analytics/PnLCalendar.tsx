@@ -98,25 +98,31 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
 
   const getColorClass = (pnl: number, isToday: boolean = false) => {
     if (pnl > 0) {
+      // Profit - Green shades
       return cn(
-        "bg-green-100 hover:bg-green-200 text-green-900",
-        pnl > 100 && "bg-green-200 hover:bg-green-300",
-        pnl > 500 && "bg-green-300 hover:bg-green-400",
-        pnl > 1000 && "bg-green-400 hover:bg-green-500",
-        isToday && "ring-2 ring-blue-500"
+        "text-green-900 dark:text-green-100",
+        pnl <= 100 && "bg-green-100 hover:bg-green-200 dark:bg-green-950/50 dark:hover:bg-green-900/50",
+        pnl > 100 && pnl <= 500 && "bg-green-200 hover:bg-green-300 dark:bg-green-900/60 dark:hover:bg-green-800/60",
+        pnl > 500 && pnl <= 1000 && "bg-green-300 hover:bg-green-400 dark:bg-green-800/70 dark:hover:bg-green-700/70",
+        pnl > 1000 && "bg-green-400 hover:bg-green-500 dark:bg-green-700/80 dark:hover:bg-green-600/80",
+        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
       )
     } else if (pnl < 0) {
+      // Loss - Red shades
       return cn(
-        "bg-red-100 hover:bg-red-200 text-red-900",
-        pnl < -100 && "bg-red-200 hover:bg-red-300",
-        pnl < -500 && "bg-red-300 hover:bg-red-400",
-        pnl < -1000 && "bg-red-400 hover:bg-red-500",
-        isToday && "ring-2 ring-blue-500"
+        "text-red-900 dark:text-red-100",
+        pnl >= -100 && "bg-red-100 hover:bg-red-200 dark:bg-red-950/50 dark:hover:bg-red-900/50",
+        pnl < -100 && pnl >= -500 && "bg-red-200 hover:bg-red-300 dark:bg-red-900/60 dark:hover:bg-red-800/60",
+        pnl < -500 && pnl >= -1000 && "bg-red-300 hover:bg-red-400 dark:bg-red-800/70 dark:hover:bg-red-700/70",
+        pnl < -1000 && "bg-red-400 hover:bg-red-500 dark:bg-red-700/80 dark:hover:bg-red-600/80",
+        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
       )
     } else {
+      // No trades or break-even
       return cn(
         "bg-gray-50 hover:bg-gray-100 text-gray-600",
-        isToday && "ring-2 ring-blue-500"
+        "dark:bg-gray-900/30 dark:hover:bg-gray-800/40 dark:text-gray-400",
+        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
       )
     }
   }
@@ -306,15 +312,15 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
           <div className="flex items-center justify-between pt-4 border-t">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-300 rounded" />
+                <div className="w-4 h-4 bg-green-300 dark:bg-green-800/70 rounded" />
                 <span className="text-xs text-muted-foreground">Profit</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-300 rounded" />
+                <div className="w-4 h-4 bg-red-300 dark:bg-red-800/70 rounded" />
                 <span className="text-xs text-muted-foreground">Loss</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-100 rounded" />
+                <div className="w-4 h-4 bg-gray-100 dark:bg-gray-900/30 rounded" />
                 <span className="text-xs text-muted-foreground">No trades</span>
               </div>
             </div>

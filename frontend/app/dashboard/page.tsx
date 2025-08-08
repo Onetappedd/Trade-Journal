@@ -4,9 +4,11 @@ import { RecentTrades } from "@/components/dashboard/RecentTrades"
 import { QuickActions } from "@/components/dashboard/QuickActions"
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel"
 import { PositionsTable } from "@/components/dashboard/PositionsTable"
+import { ExpiredOptionsAlert } from "@/components/dashboard/ExpiredOptionsAlert"
 import { getPortfolioStats } from "@/lib/metrics"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { updateExpiredOptionsTrades } from "@/lib/trades/updateExpiredOptions"
 
 // Force dynamic rendering to avoid static generation issues
 export const dynamic = 'force-dynamic'
@@ -21,6 +23,15 @@ export default async function DashboardPage() {
   )
   
   const { data: { user } } = await supabase.auth.getUser()
+  
+  // Check and update expired options on dashboard load
+  if (user) {
+    try {
+      await updateExpiredOptionsTrades(user.id)
+    } catch (error) {
+      console.error("Failed to update expired options:", error)
+    }
+  }
   
   // Get portfolio stats
   const stats = user ? await getPortfolioStats(user.id) : {
@@ -41,6 +52,9 @@ export default async function DashboardPage() {
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <p className="text-muted-foreground">Welcome back! Here's your trading overview.</p>
       </div>
+
+      {/* Expired Options Alert */}
+      <ExpiredOptionsAlert />
 
       <DashboardStats stats={stats} />
 
