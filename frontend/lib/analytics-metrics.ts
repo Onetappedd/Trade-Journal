@@ -3,7 +3,14 @@ import { cookies } from "next/headers"
 import { calculatePositions } from "@/lib/position-tracker-server"
 
 // Get analytics data using position tracker for accurate P&L
-export async function getAnalyticsData(userId: string) {
+export type AnalyticsFilter = {
+  assetType?: 'stock' | 'option' | 'futures' | 'crypto'
+  strategy?: string
+  start?: string // ISO date (YYYY-MM-DD or full ISO)
+  end?: string   // ISO date
+}
+
+export async function getAnalyticsData(userId: string, filter?: AnalyticsFilter) {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,12 +18,21 @@ export async function getAnalyticsData(userId: string) {
     { cookies: { getAll: () => cookieStore.getAll() } }
   )
 
-  // Fetch all trades
-  const { data: trades, error } = await supabase
+  // Fetch all trades (filter asset type and strategy early when possible)
+  let query = supabase
     .from("trades")
     .select("*")
     .eq("user_id", userId)
     .order("entry_date", { ascending: true })
+
+  if (filter?.assetType) {
+    query = query.eq('asset_type', filter.assetType)
+  }
+  if (filter?.strategy && filter.strategy !== 'all') {
+    query = query.eq('strategy', filter.strategy)
+  }
+
+  const { data: trades, error } = await query
 
   if (error || !trades) {
     console.error("Error fetching trades for analytics:", error)
@@ -33,7 +49,21 @@ export async function getAnalyticsData(userId: string) {
   const INITIAL_CAPITAL = settings?.initial_capital || 10000
 
   // Use position tracker to match buy/sell orders and calculate P&L
-  const { positions, closedTrades, stats } = calculatePositions(trades)
+  const { positions, closedTrades: allClosed, stats } = calculatePositions(trades)
+
+  // Apply date filtering to closed trades using exit_date (for realized P&L)
+  let closedTrades = allClosed
+  if (filter?.start || filter?.end) {
+    const start = filter.start ? new Date(filter.start) : undefined
+    const end = filter.end ? new Date(filter.end) : undefined
+    closedTrades = allClosed.filter(t => {
+      if (!t.exit_date) return false
+      const d = new Date(t.exit_date)
+      if (start && d < start) return false
+      if (end && d > end) return false
+      return true
+    })
+  }
   
   console.log(`[Analytics] Position tracker results:`)
   console.log(`[Analytics] Total trades: ${trades.length}`)
@@ -192,7 +222,8 @@ function calculateStrategyMetrics(closedTrades: any[], initialCapital: number) {
   
   // Expectancy
   const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + t.pnl, 0) / wins.length : 0
-  const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0) / losses.length) : 0
+  // Keep avgLoss negative to display with proper sign
+  const avgLoss = losses.length > 0 ? (losses.reduce((sum, t) => sum + t.pnl, 0) / losses.length) : 0
   const winRate = closedTrades.length > 0 ? wins.length / closedTrades.length : 0
   const lossRate = 1 - winRate
   const expectancy = (avgWin * winRate) - (avgLoss * lossRate)

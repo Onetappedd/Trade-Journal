@@ -33,7 +33,7 @@ export function StrategyMetrics({ metrics }: StrategyMetricsProps) {
     { label: "Avg Hold Time", value: `${formatNumber(metrics.avgHoldTime, 1)} days` },
     { label: "Profit Factor", value: formatNumber(metrics.profitFactor) },
     { label: "Avg Win", value: formatCurrency(metrics.avgWin) },
-    { label: "Avg Loss", value: formatCurrency(Math.abs(metrics.avgLoss)) },
+    { label: "Avg Loss", value: formatCurrency(metrics.avgLoss) },
     { label: "Largest Win", value: formatCurrency(metrics.largestWin) },
     { label: "Largest Loss", value: formatCurrency(metrics.largestLoss) },
   ]

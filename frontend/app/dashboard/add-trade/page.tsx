@@ -4,9 +4,7 @@
 export const dynamic = 'force-dynamic'
 
 import * as React from "react"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,96 +12,136 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-
-const tradeSchema = z.object({
-  symbol: z.string().min(1, "Symbol is required"),
-  side: z.enum(["buy", "sell"], { required_error: "Trade type is required" }),
-  quantity: z.coerce.number().positive("Quantity must be positive"),
-  price: z.coerce.number().positive("Price must be positive"),
-  date: z.string().min(1, "Date is required"),
-  notes: z.string().optional(),
-})
-
-type TradeForm = z.infer<typeof tradeSchema>
-
-function parseOptionSymbol(symbol: string) {
-  const match = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([PC])(\d{8})$/)
-  if (!match) return null
-  const [_, underlying, yy, mm, dd, type, strikeRaw] = match
-  const year = Number(yy) < 50 ? "20" + yy : "19" + yy
-  const expiry = `${year}-${mm}-${dd}`
-  const strike = parseInt(strikeRaw, 10) / 1000
-  return {
-    underlying: underlying, // Extract the actual ticker (e.g., "ARM" from "ARM250703C00155000")
-    expiry,
-    option_type: type === "P" ? "put" : "call",
-    strike_price: strike,
-  }
-}
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FUTURES_SPECS, enforceTick, roundToTick, previewPnl } from "@/lib/trading"
+import { addTradeAction } from "@/app/actions/add-trade"
 
 export default function AddTradePage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  
-  const form = useForm<TradeForm>({
-    resolver: zodResolver(tradeSchema),
-    defaultValues: {
-      symbol: "",
-      side: "buy",
-      quantity: 1,
-      price: 0,
-      date: new Date().toISOString().split('T')[0], // Today's date
-      notes: "",
-    },
+  const [tradeType, setTradeType] = React.useState<"stock" | "option" | "futures">("stock")
+
+  const [formData, setFormData] = React.useState<any>({
+    symbol: "",
+    side: "buy",
+    quantity: "1",
+    entry_price: "",
+    exit_price: "",
+    entry_date: new Date().toISOString().split('T')[0], // yyyy-mm-dd
+    exit_date: "",
+    isClosed: false,
+    notes: "",
+    // options
+    optionType: "call",
+    strike: "",
+    expiration: "",
+    multiplier: 100,
+    // futures
+    contractCode: "",
+    tickSize: "",
+    tickValue: "",
+    pointMultiplier: "",
   })
 
-  async function onSubmit(data: TradeForm) {
+  const handleChange = (field: string, value: any) => setFormData((p: any) => ({ ...p, [field]: value }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setIsSubmitting(true)
     try {
-      const parsed = parseOptionSymbol(data.symbol)
-      const trade = {
-        symbol: data.symbol,
-        side: data.side,
-        quantity: Number(data.quantity),
-        entry_price: Number(data.price),
-        entry_date: new Date(data.date).toISOString(),
-        asset_type: parsed ? "option" : "stock",
-        broker: "Manual",
-        notes: data.notes || null,
-        ...(parsed ? parsed : {}),
+      const common = {
+        symbol: String(formData.symbol).trim(),
+        side: formData.side as "buy" | "sell",
+        quantity: Number(formData.quantity),
+        entry_price: Number(formData.entry_price),
+        entry_date: new Date(formData.entry_date || new Date()).toISOString(),
+        isClosed: Boolean(formData.isClosed && formData.exit_price && formData.exit_date),
+        exit_price: formData.exit_price ? Number(formData.exit_price) : undefined,
+        exit_date: formData.exit_date ? new Date(formData.exit_date).toISOString() : undefined,
+        notes: formData.notes || undefined,
       }
 
-      const res = await fetch("/api/import-trades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trades: [trade] }),
-      })
-
-      const result = await res.json()
-      
-      if (res.ok && result.success > 0) {
-        toast({ title: "Trade saved successfully!", variant: "default" })
-        form.reset()
+      let payload: any
+      if (tradeType === "stock") {
+        payload = { ...common, asset_type: "stock" as const }
+      } else if (tradeType === "option") {
+        payload = {
+          ...common,
+          asset_type: "option" as const,
+          optionType: formData.optionType,
+          strike: Number(formData.strike),
+          expiration: new Date(formData.expiration || formData.entry_date).toISOString(),
+          multiplier: Number(formData.multiplier) || 100,
+        }
       } else {
-        // Show detailed error message
-        const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
-        toast({ 
-          title: "Failed to save trade", 
-          description: errorMsg, 
-          variant: "destructive" 
-        })
-        console.error("Trade save failed:", result)
+        payload = {
+          ...common,
+          asset_type: "futures" as const,
+          contractCode: formData.contractCode,
+          tickSize: Number(formData.tickSize),
+          tickValue: Number(formData.tickValue),
+          pointMultiplier: Number(formData.pointMultiplier),
+        }
+        // Enforce tick grid
+        const entryOk = enforceTick(payload.entry_price, payload.tickSize)
+        const exitOk = payload.isClosed && payload.exit_price ? enforceTick(payload.exit_price, payload.tickSize) : true
+        if (!entryOk || !exitOk) {
+          const which = !entryOk ? "Entry" : "Exit"
+          const suggested = roundToTick(!entryOk ? payload.entry_price : payload.exit_price, payload.tickSize)
+          toast({ title: `${which} price off tick`, description: `Align to tick ${payload.tickSize}. Try ${suggested.toFixed(8)}`, variant: "destructive" })
+          setIsSubmitting(false)
+          return
+        }
       }
+
+      const res = await addTradeAction(payload)
+      if (!res.ok) {
+        const err = res.errors as any
+        const msg = err?.formErrors?.join("; ") || "Failed to add trade"
+        toast({ title: "Failed", description: msg, variant: "destructive" })
+        setIsSubmitting(false)
+        return
+      }
+
+      toast({ title: "Trade saved", variant: "default" })
+      router.push("/trades")
     } catch (e) {
-      toast({ 
-        title: "Failed to save trade", 
-        description: String(e), 
-        variant: "destructive" 
-      })
+      toast({ title: "Unexpected error", description: String(e), variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const realizedPreview = (() => {
+    try {
+      const input: any = {
+        asset_type: tradeType,
+        symbol: formData.symbol,
+        side: formData.side,
+        quantity: Number(formData.quantity),
+        entry_price: Number(formData.entry_price),
+        entry_date: new Date(formData.entry_date || new Date()).toISOString(),
+        isClosed: Boolean(formData.isClosed && formData.exit_price && formData.exit_date),
+        exit_price: formData.exit_price ? Number(formData.exit_price) : undefined,
+        exit_date: formData.exit_date ? new Date(formData.exit_date).toISOString() : undefined,
+      }
+      if (tradeType === "option") {
+        input.optionType = formData.optionType
+        input.strike = Number(formData.strike)
+        input.expiration = new Date(formData.expiration || formData.entry_date).toISOString()
+        input.multiplier = Number(formData.multiplier) || 100
+      } else if (tradeType === "futures") {
+        input.contractCode = formData.contractCode
+        input.tickSize = Number(formData.tickSize)
+        input.tickValue = Number(formData.tickValue)
+        input.pointMultiplier = Number(formData.pointMultiplier)
+      }
+      return previewPnl(input).realized
+    } catch {
+      return 0
+    }
+  })()
 
   return (
     <div className="space-y-6">
@@ -112,115 +150,194 @@ export default function AddTradePage() {
         <p className="text-muted-foreground">Record a new trading position</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-3xl">
         <Card>
           <CardHeader>
             <CardTitle>Record New Trade</CardTitle>
             <p className="text-sm text-muted-foreground">Enter the details of your trade transaction</p>
           </CardHeader>
           <CardContent className="space-y-6">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Trade type selector */}
+            <Tabs value={tradeType} onValueChange={(v) => setTradeType(v as any)}>
+              <TabsList>
+                <TabsTrigger value="stock">Stock</TabsTrigger>
+                <TabsTrigger value="option">Options</TabsTrigger>
+                <TabsTrigger value="futures">Futures</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="symbol">Symbol</Label>
-                  <Input 
-                    id="symbol" 
-                    placeholder="e.g., AAPL" 
-                    {...form.register("symbol")}
-                  />
-                  {form.formState.errors.symbol && (
-                    <span className="text-xs text-red-600">
-                      {form.formState.errors.symbol.message}
-                    </span>
-                  )}
+                  <Input id="symbol" placeholder="e.g., AAPL" value={formData.symbol} onChange={(e) => handleChange("symbol", e.target.value)} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="side">Trade Type</Label>
-                  <Select 
-                    value={form.watch("side")} 
-                    onValueChange={(value) => form.setValue("side", value as "buy" | "sell")}
-                  >
+                <div className="space-y-1.5">
+                  <Label htmlFor="side">Side</Label>
+                  <Select value={formData.side} onValueChange={(v) => handleChange("side", v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Select side" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="buy">Buy</SelectItem>
                       <SelectItem value="sell">Sell</SelectItem>
                     </SelectContent>
                   </Select>
-                  {form.formState.errors.side && (
-                    <span className="text-xs text-red-600">
-                      {form.formState.errors.side.message}
-                    </span>
-                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input 
-                    id="quantity" 
-                    type="number" 
-                    placeholder="100" 
-                    {...form.register("quantity", { valueAsNumber: true })}
-                  />
-                  {form.formState.errors.quantity && (
-                    <span className="text-xs text-red-600">
-                      {form.formState.errors.quantity.message}
-                    </span>
-                  )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="quantity">{tradeType === "stock" ? "Shares" : "Contracts"}</Label>
+                  <Input id="quantity" type="number" step="1" value={formData.quantity} onChange={(e) => handleChange("quantity", e.target.value)} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price</Label>
-                  <Input 
-                    id="price" 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="150.00" 
-                    {...form.register("price", { valueAsNumber: true })}
-                  />
-                  {form.formState.errors.price && (
-                    <span className="text-xs text-red-600">
-                      {form.formState.errors.price.message}
-                    </span>
-                  )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="entry_price">Entry Price</Label>
+                  <Input id="entry_price" type="number" step="0.00000001" value={formData.entry_price} onChange={(e) => handleChange("entry_price", e.target.value)} />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input 
-                  id="date" 
-                  type="date" 
-                  {...form.register("date")}
-                />
-                {form.formState.errors.date && (
-                  <span className="text-xs text-red-600">
-                    {form.formState.errors.date.message}
-                  </span>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="exit_price">Exit Price</Label>
+                  <Input id="exit_price" type="number" step="0.00000001" value={formData.exit_price} onChange={(e) => handleChange("exit_price", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="isClosed">Status</Label>
+                  <Select value={formData.isClosed ? "closed" : "open"} onValueChange={(v) => handleChange("isClosed", v === "closed")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Open/Closed" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="entry_date">Entry Date</Label>
+                  <Input id="entry_date" type="date" value={formData.entry_date} onChange={(e) => handleChange("entry_date", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="exit_date">Exit Date</Label>
+                  <Input id="exit_date" type="date" value={formData.exit_date} onChange={(e) => handleChange("exit_date", e.target.value)} />
+                </div>
+              </div>
+
+              {/* Options fields */}
+              {tradeType === "option" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Option Type</Label>
+                    <Select value={formData.optionType} onValueChange={(v) => handleChange("optionType", v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="call">Call</SelectItem>
+                        <SelectItem value="put">Put</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Strike</Label>
+                    <Input type="number" step="0.01" value={formData.strike} onChange={(e) => handleChange("strike", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Expiration</Label>
+                    <Input type="date" value={formData.expiration} onChange={(e) => handleChange("expiration", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Multiplier</Label>
+                    <Input type="number" step="1" value={formData.multiplier} onChange={(e) => handleChange("multiplier", Number(e.target.value))} />
+                  </div>
+                </div>
+              )}
+
+              {/* Futures fields */}
+              {tradeType === "futures" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Contract</Label>
+                    <Select value={formData.contractCode} onValueChange={(v) => {
+                      handleChange("contractCode", v)
+                      const spec = (FUTURES_SPECS as any)[v]
+                      if (spec) {
+                        handleChange("tickSize", String(spec.tickSize))
+                        handleChange("tickValue", String(spec.tickValue))
+                        handleChange("pointMultiplier", String(spec.pointMultiplier))
+                      }
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select contract" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(FUTURES_SPECS).map((k) => (
+                          <SelectItem key={k} value={k}>{k}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tick Size</Label>
+                    <Input type="number" step="0.00000001" value={formData.tickSize} onChange={(e) => handleChange("tickSize", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tick Value</Label>
+                    <Input type="number" step="0.00000001" value={formData.tickValue} onChange={(e) => handleChange("tickValue", e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Point Multiplier</Label>
+                    <Input type="number" step="0.00000001" value={formData.pointMultiplier} onChange={(e) => handleChange("pointMultiplier", e.target.value)} />
+                  </div>
+                  {formData.contractCode && (
+                    <div className="col-span-2 text-xs text-muted-foreground">
+                      Tick: {formData.tickSize}, Tick Value: {formData.tickValue}, Point Multiplier: {formData.pointMultiplier}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
                 <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea 
-                  id="notes" 
-                  placeholder="Add any notes about this trade..." 
-                  {...form.register("notes")}
-                />
+                <Textarea id="notes" placeholder="Add any notes about this trade..." value={formData.notes} onChange={(e) => handleChange("notes", e.target.value)} />
+              </div>
+
+              {/* P&L preview */}
+              <div className="rounded-md border p-3 text-sm flex items-center justify-between">
+                <div className="text-muted-foreground">P&L Preview</div>
+                <div className={`font-semibold ${realizedPreview >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {realizedPreview >= 0 ? "+" : "-"}
+                  {new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(realizedPreview))}
+                </div>
               </div>
 
               <div className="flex space-x-4">
                 <Button type="submit" className="flex-1" disabled={isSubmitting}>
                   {isSubmitting ? "Saving..." : "Save Trade"}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="flex-1 bg-transparent"
-                  onClick={() => form.reset()}
-                >
+                <Button type="button" variant="outline" className="flex-1 bg-transparent" onClick={() => setFormData({
+                  symbol: "",
+                  side: "buy",
+                  quantity: "1",
+                  entry_price: "",
+                  exit_price: "",
+                  entry_date: new Date().toISOString().split('T')[0],
+                  exit_date: "",
+                  isClosed: false,
+                  notes: "",
+                  optionType: "call",
+                  strike: "",
+                  expiration: "",
+                  multiplier: 100,
+                  contractCode: "",
+                  tickSize: "",
+                  tickValue: "",
+                  pointMultiplier: "",
+                })}>
                   Clear
                 </Button>
               </div>
