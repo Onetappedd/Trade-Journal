@@ -13,6 +13,7 @@ export type RealizedTrade = {
   exit_date: string | null
   status: "open" | "closed"
   pnl: number | null
+  asset_type?: string | null
 }
 
 export type DailyRealized = Record<string, number>
@@ -37,7 +38,7 @@ export async function getRealizedCalendarData(userId: string, startDateISO: stri
   // Only closed trades will contribute to realized P&L
   const { data, error } = await supabase
     .from("trades")
-    .select("id,user_id,symbol,side,quantity,entry_price,exit_price,entry_date,exit_date,status,pnl")
+    .select("id,user_id,symbol,side,quantity,entry_price,exit_price,entry_date,exit_date,status,pnl,asset_type")
     .eq("user_id", userId)
     .or(
       `and(exit_date.gte.${startDateISO},exit_date.lte.${endDateISO}),and(entry_date.gte.${startDateISO},entry_date.lte.${endDateISO})`
@@ -64,9 +65,10 @@ export async function getRealizedCalendarData(userId: string, startDateISO: stri
 
     const key = toLocalKey(new Date(t.exit_date))
     // Realized formula with side adjustment
+    const multiplier = (t.asset_type === "option") ? 100 : 1
     const realized = t.side === "buy"
-      ? (t.exit_price - t.entry_price) * t.quantity
-      : (t.entry_price - t.exit_price) * t.quantity
+      ? (t.exit_price - t.entry_price) * t.quantity * multiplier
+      : (t.entry_price - t.exit_price) * t.quantity * multiplier
 
     dailyPnL[key] = (dailyPnL[key] || 0) + realized
 

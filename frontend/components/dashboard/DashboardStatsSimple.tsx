@@ -16,8 +16,8 @@ interface DashboardStatsSimpleProps {
 
 export function DashboardStatsSimple({ stats }: DashboardStatsSimpleProps) {
   const formatCurrency = (value: number, showSign: boolean = false) => {
-    const prefix = showSign && value >= 0 ? "+" : ""
-    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { 
+    const sign = value < 0 ? "-" : (showSign ? "+" : "")
+    return `${sign}${Math.abs(value).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     })}`

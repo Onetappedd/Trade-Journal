@@ -17,6 +17,7 @@ interface Trade {
   exit_date?: string | null
   status?: string
   pnl: number
+  asset_type?: string
 }
 
 interface RecentTradesProps {
@@ -51,37 +52,55 @@ export function RecentTrades({ trades }: RecentTradesProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {displayTrades.map((trade) => (
-            <div
-              key={trade.id}
-              className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="font-medium">{trade.symbol}</div>
-                  {trade.quantity > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      {trade.side.charAt(0).toUpperCase() + trade.side.slice(1)} {trade.quantity} @ ${trade.entry_price.toFixed(2)}
+          {displayTrades.map((trade) => {
+            const statusNorm = (trade.status || "").toLowerCase()
+            const closedByFields = Boolean(trade.exit_date) && trade.exit_price !== null && trade.exit_price !== undefined
+            const isClosed = statusNorm === "closed" || statusNorm === "expired" || closedByFields
+            const isExpired = statusNorm === "expired"
+            const multiplier = trade.asset_type === "option" ? 100 : 1
+            let pnlValue = trade.pnl
+            if (isClosed && (!pnlValue || pnlValue === 0)) {
+              if (trade.exit_price !== null && trade.exit_price !== undefined) {
+                pnlValue = trade.side?.toLowerCase() === "buy"
+                  ? (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
+                  : (trade.entry_price - trade.exit_price) * trade.quantity * multiplier
+              }
+            }
+            const pnlClass = pnlValue >= 0 ? "text-green-600" : "text-red-600"
+            const dateDisplay = new Date((isClosed && trade.exit_date) ? trade.exit_date! : trade.entry_date).toLocaleDateString()
+
+            return (
+              <div
+                key={trade.id}
+                className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="font-medium">{trade.symbol}</div>
+                    {trade.quantity > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        {trade.side.charAt(0).toUpperCase() + trade.side.slice(1)} {trade.quantity} @ ${trade.entry_price.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className={`font-medium ${pnlClass}`}>
+                      {pnlValue !== 0 && (pnlValue >= 0 ? "+" : "")}
+                      {pnlValue !== 0 ? `${Math.abs(pnlValue).toFixed(2)}` : "-"}
                     </div>
-                  )}
+                    <div className="text-sm text-muted-foreground">
+                      {dateDisplay}
+                    </div>
+                  </div>
+                  <Badge variant={isClosed ? (isExpired ? "destructive" : "default") : "destructive"}>
+                    {isClosed ? (isExpired ? "Expired" : "Closed") : "Open"}
+                  </Badge>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className={`font-medium ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {trade.pnl !== 0 && (trade.pnl >= 0 ? "+" : "")}
-                    {trade.pnl !== 0 ? `$${Math.abs(trade.pnl).toFixed(2)}` : "-"}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(trade.exit_date || trade.entry_date).toLocaleDateString()}
-                  </div>
-                </div>
-                <Badge variant={trade.status === "open" ? "destructive" : "default"}>
-                  {trade.status === "open" ? "Open" : "Closed"}
-                </Badge>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </CardContent>
     </Card>

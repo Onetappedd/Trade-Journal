@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
@@ -18,6 +19,7 @@ export function PnLCalendar() {
   const [dailyPnL, setDailyPnL] = useState<Record<string, number>>({})
   const [tradesByDay, setTradesByDay] = useState<Record<string, Array<{ id: string; symbol: string; quantity: number; entry_price: number; exit_price: number; realized: number }>>>({})
   const [debug, setDebug] = useState<boolean>(process.env.NODE_ENV !== "production" ? false : false)
+  const [summary, setSummary] = useState<{ total: number; trades: number; pct: number }>({ total: 0, trades: 0, pct: 0 })
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   // Helpers
@@ -64,8 +66,16 @@ export function PnLCalendar() {
         throw new Error(j?.error || `HTTP ${res.status}`)
       }
       const j = (await res.json()) as { dailyPnL: Record<string, number>; tradesByDay: Record<string, any[]> }
-      setDailyPnL(j.dailyPnL || {})
-      setTradesByDay(j.tradesByDay || {})
+      const daily = j.dailyPnL || {}
+      const byDay = j.tradesByDay || {}
+      setDailyPnL(daily)
+      setTradesByDay(byDay)
+      // Compute summary for P&L card: total P&L, trades taken, % gain vs $10k baseline over visible range
+      const total = Object.values(daily).reduce((s, v) => s + v, 0)
+      const trades = Object.values(byDay).reduce((s, arr) => s + (arr?.length || 0), 0)
+      const base = 10000
+      const pct = base > 0 ? (total / base) * 100 : 0
+      setSummary({ total, trades, pct })
     } catch (e: any) {
       setError(e?.message || "Failed to load calendar data")
     } finally {
@@ -142,7 +152,24 @@ export function PnLCalendar() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 max-w-2xl mx-auto">
+        <div className="space-y-3 max-w-2xl mx-auto">
+          {/* Summary card for visible range */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-md border p-2 text-center">
+              <div className="text-xs text-muted-foreground">Profit/Loss</div>
+              <div className={`text-sm font-semibold ${summary.total >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {summary.total >= 0 ? "+" : ""}{Math.abs(summary.total).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div className="rounded-md border p-2 text-center">
+              <div className="text-xs text-muted-foreground">Trades Taken</div>
+              <div className="text-sm font-semibold">{summary.trades}</div>
+            </div>
+            <div className="rounded-md border p-2 text-center">
+              <div className="text-xs text-muted-foreground">% Gain</div>
+              <div className={`text-sm font-semibold ${summary.pct >= 0 ? "text-green-600" : "text-red-600"}`}>{summary.pct.toFixed(2)}%</div>
+            </div>
+          </div>
           <div className="grid grid-cols-7 gap-0.5">
             {weekDays.map((d) => (
               <div key={d} className="text-center text-xs font-medium text-muted-foreground p-1">
@@ -167,11 +194,9 @@ export function PnLCalendar() {
                     <TooltipTrigger asChild>
                       <div className={classes} onClick={() => setSelectedDay(key)}>
                         <span className="font-medium leading-none">{dayNum}</span>
-                        {pnl !== 0 && (
-                          <span className="text-[10px] font-semibold leading-none mt-0.5">
-                            {pnl >= 0 ? "+" : "-"}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl) / 1000).toFixed(1)}k` : Math.abs(pnl).toFixed(0)}
-                          </span>
-                        )}
+                        <span className="text-[10px] font-semibold leading-none mt-0.5">
+                          {pnl === 0 ? "-" : `${pnl >= 0 ? "+" : "-"}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl) / 1000).toFixed(1)}k` : Math.abs(pnl).toFixed(0)}`}
+                        </span>
                         {debug && (
                           <span className="mt-0.5 text-[9px] opacity-70">{key}</span>
                         )}
