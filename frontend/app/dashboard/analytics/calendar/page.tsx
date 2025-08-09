@@ -141,7 +141,7 @@ export default async function CalendarPage() {
         </TabsList>
         
         <TabsContent value="daily">
-          <PnLCalendar data={calendarData} />
+          <PnLCalendar />
         </TabsContent>
         
         <TabsContent value="monthly">

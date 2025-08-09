@@ -1,11 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { createClient } from "@/lib/supabase"
+import type { Database } from "@/lib/database.types"
+
+// Database row type for trades
+type DbTrade = Database["public"]["Tables"]["trades"]["Row"]
 
 type Trade = {
   id: string
@@ -19,70 +24,88 @@ type Trade = {
   taxType: "SHORT" | "LONG"
 }
 
-const mockTrades: Trade[] = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    symbol: "AAPL",
-    type: "SELL",
-    quantity: 100,
-    price: 185.5,
-    pnl: 2450.0,
-    holdingPeriod: 45,
-    taxType: "SHORT",
-  },
-  {
-    id: "2",
-    date: "2024-01-20",
-    symbol: "TSLA",
-    type: "SELL",
-    quantity: 50,
-    price: 220.75,
-    pnl: -850.0,
-    holdingPeriod: 12,
-    taxType: "SHORT",
-  },
-  {
-    id: "3",
-    date: "2024-02-10",
-    symbol: "MSFT",
-    type: "SELL",
-    quantity: 75,
-    price: 415.25,
-    pnl: 3200.0,
-    holdingPeriod: 380,
-    taxType: "LONG",
-  },
-  {
-    id: "4",
-    date: "2024-02-28",
-    symbol: "GOOGL",
-    type: "SELL",
-    quantity: 25,
-    price: 142.8,
-    pnl: 1850.0,
-    holdingPeriod: 28,
-    taxType: "SHORT",
-  },
-  {
-    id: "5",
-    date: "2024-03-15",
-    symbol: "NVDA",
-    type: "SELL",
-    quantity: 30,
-    price: 875.25,
-    pnl: 4200.0,
-    holdingPeriod: 420,
-    taxType: "LONG",
-  },
-]
-
 type SortField = keyof Trade
 type SortDirection = "asc" | "desc"
 
 export function RealizedTradesTable() {
+  const [trades, setTrades] = useState<Trade[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>("date")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchClosedTrades() {
+      try {
+        setLoading(true)
+        setError(null)
+        const supabase = createClient()
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError) throw userError
+        if (!user) {
+          if (!cancelled) {
+            setTrades([])
+            setLoading(false)
+          }
+          return
+        }
+
+        const { data, error } = await supabase
+          .from("trades")
+          .select(
+            "id, symbol, side, quantity, entry_price, exit_price, entry_date, exit_date, status, pnl"
+          )
+          .eq("user_id", user.id)
+          .eq("status", "closed")
+          .order("exit_date", { ascending: false })
+
+        if (error) throw error
+
+        const mapped: Trade[] = (data as DbTrade[]).map((t) => {
+          const entryDate = t.entry_date ? new Date(t.entry_date) : null
+          const exitDate = t.exit_date ? new Date(t.exit_date) : null
+          const holdingDays = entryDate && exitDate
+            ? Math.max(0, Math.floor((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)))
+            : 0
+
+          // Prefer stored pnl if present; otherwise compute
+          const computedPnL =
+            t.exit_price != null && t.entry_price != null && t.quantity != null
+              ? (t.exit_price - t.entry_price) * t.quantity * (t.side === "buy" ? 1 : -1)
+              : 0
+
+          return {
+            id: t.id,
+            date: (t.exit_date || t.entry_date),
+            symbol: t.symbol,
+            type: (t.side === "buy" ? "BUY" : "SELL") as Trade["type"],
+            quantity: t.quantity,
+            price: t.exit_price ?? t.entry_price ?? 0,
+            pnl: t.pnl ?? computedPnL,
+            holdingPeriod: holdingDays,
+            taxType: holdingDays > 365 ? "LONG" : "SHORT",
+          }
+        })
+
+        if (!cancelled) setTrades(mapped)
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message ?? "Failed to load realized trades")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    fetchClosedTrades()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -93,20 +116,30 @@ export function RealizedTradesTable() {
     }
   }
 
-  const sortedTrades = [...mockTrades].sort((a, b) => {
-    const aValue = a[sortField]
-    const bValue = b[sortField]
+  const sortedTrades = useMemo(() => {
+    const rows = [...trades]
+    rows.sort((a, b) => {
+      const aValue = a[sortField]
+      const bValue = b[sortField]
 
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
-    }
+      if (sortField === "date") {
+        const aTime = new Date(aValue as string).getTime()
+        const bTime = new Date(bValue as string).getTime()
+        return sortDirection === "asc" ? aTime - bTime : bTime - aTime
+      }
 
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc" ? aValue - bValue : bValue - aValue
-    }
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortDirection === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
+      }
 
-    return 0
-  })
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue
+      }
+
+      return 0
+    })
+    return rows
+  }, [trades, sortField, sortDirection])
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />
@@ -120,6 +153,9 @@ export function RealizedTradesTable() {
         <CardDescription>All closed positions with tax implications for the current year</CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="mb-3 text-sm text-red-600">{error}</div>
+        )}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -163,24 +199,38 @@ export function RealizedTradesTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedTrades.map((trade) => (
-                <TableRow key={trade.id}>
-                  <TableCell>{new Date(trade.date).toLocaleDateString()}</TableCell>
-                  <TableCell className="font-medium">{trade.symbol}</TableCell>
-                  <TableCell>
-                    <Badge variant={trade.type === "BUY" ? "default" : "secondary"}>{trade.type}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{trade.quantity}</TableCell>
-                  <TableCell className="text-right">${trade.price.toFixed(2)}</TableCell>
-                  <TableCell className={`text-right font-medium ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    ${trade.pnl.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">{trade.holdingPeriod} days</TableCell>
-                  <TableCell>
-                    <Badge variant={trade.taxType === "LONG" ? "default" : "destructive"}>{trade.taxType}</Badge>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
+                    Loading realized trades...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : sortedTrades.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
+                    No realized trades yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedTrades.map((trade) => (
+                  <TableRow key={trade.id}>
+                    <TableCell>{new Date(trade.date).toLocaleDateString()}</TableCell>
+                    <TableCell className="font-medium">{trade.symbol}</TableCell>
+                    <TableCell>
+                      <Badge variant={trade.type === "BUY" ? "default" : "secondary"}>{trade.type}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{trade.quantity}</TableCell>
+                    <TableCell className="text-right">${trade.price.toFixed(2)}</TableCell>
+                    <TableCell className={`text-right font-medium ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      ${Math.abs(trade.pnl).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">{trade.holdingPeriod} days</TableCell>
+                    <TableCell>
+                      <Badge variant={trade.taxType === "LONG" ? "default" : "destructive"}>{trade.taxType}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

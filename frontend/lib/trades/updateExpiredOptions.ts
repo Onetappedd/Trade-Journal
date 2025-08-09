@@ -8,7 +8,8 @@ export interface ExpiredOptionUpdate {
 
 /**
  * Updates open option trades that have passed their expiration date
- * Marks them as 'expired' and sets them as editable for user resolution
+ * Marks them as 'expired' (worthless) with exit_price = 0.00 and exit_date = expiration_date
+ * and sets them as editable for user review/correction.
  */
 export async function updateExpiredOptionsTrades(userId: string): Promise<ExpiredOptionUpdate> {
   const supabase = createClient()
@@ -63,10 +64,12 @@ export async function updateExpiredOptionsTrades(userId: string): Promise<Expire
         .update({
           status: 'expired',
           editable: true,
+          exit_price: 0,
+          exit_date: trade.expiration_date || today,
           // Add a note about automatic expiration
           notes: trade.notes 
-            ? `${trade.notes}\n[Auto-marked as expired on ${today}]`
-            : `[Auto-marked as expired on ${today}]`
+            ? `${trade.notes}\n[Auto-marked as expired worthless on ${today} (exit_price set to 0.00)]`
+            : `[Auto-marked as expired worthless on ${today} (exit_price set to 0.00)]`
         })
         .eq('id', trade.id)
         .eq('user_id', userId) // Extra safety check

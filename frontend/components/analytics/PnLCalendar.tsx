@@ -1,136 +1,121 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { CalendarIcon, TrendingUp, TrendingDown, DollarSign } from "lucide-react"
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { CalendarData, DailyPnL } from "@/lib/calendar-metrics"
 
-interface PnLCalendarProps {
-  data: CalendarData
-}
+// Calendar props are now purely realized; data is fetched based on visible range
+export function PnLCalendar() {
+  const [month, setMonth] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [dailyPnL, setDailyPnL] = useState<Record<string, number>>({})
+  const [tradesByDay, setTradesByDay] = useState<Record<string, Array<{ id: string; symbol: string; quantity: number; entry_price: number; exit_price: number; realized: number }>>>({})
+  const [debug, setDebug] = useState<boolean>(process.env.NODE_ENV !== "production" ? false : false)
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
-export function PnLCalendar({ data }: PnLCalendarProps) {
-  const currentDate = new Date()
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
-  const [viewMode, setViewMode] = useState<"realized" | "unrealized" | "all">("realized")
+  // Helpers
+  const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 
-  // Generate calendar days
-  const calendarDays = useMemo(() => {
-    const firstDay = new Date(selectedYear, selectedMonth, 1)
-    const lastDay = new Date(selectedYear, selectedMonth + 1, 0)
-    const startPadding = firstDay.getDay()
-    const daysInMonth = lastDay.getDate()
-    
-    const days: (DailyPnL | null)[] = []
-    
-    // Add padding for start of month
-    for (let i = 0; i < startPadding; i++) {
-      days.push(null)
+  const startOfCalendar = useMemo(() => {
+    const first = new Date(month)
+    const dow = first.getDay()
+    const start = new Date(first)
+    start.setDate(first.getDate() - dow)
+    start.setHours(0, 0, 0, 0)
+    return start
+  }, [month])
+
+  const endOfCalendar = useMemo(() => {
+    const first = new Date(month)
+    const last = new Date(first.getFullYear(), first.getMonth() + 1, 0)
+    const dow = last.getDay()
+    const end = new Date(last)
+    end.setDate(last.getDate() + (6 - dow))
+    end.setHours(23, 59, 59, 999)
+    return end
+  }, [month])
+
+  const daysArray = useMemo(() => {
+    const arr: Date[] = []
+    const cur = new Date(startOfCalendar)
+    while (cur <= endOfCalendar) {
+      arr.push(new Date(cur))
+      cur.setDate(cur.getDate() + 1)
     }
-    
-    // Add actual days
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      const dayData = data.dailyData[dateStr]
-      
-      if (dayData) {
-        days.push(dayData)
-      } else {
-        days.push({
-          date: dateStr,
-          realizedPnL: 0,
-          unrealizedPnL: 0,
-          totalPnL: 0,
-          tradeCount: 0,
-          trades: []
-        })
+    return arr
+  }, [startOfCalendar, endOfCalendar])
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const start = toISO(startOfCalendar)
+      const end = toISO(endOfCalendar)
+      const res = await fetch(`/api/calendar-realized?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j?.error || `HTTP ${res.status}`)
       }
+      const j = (await res.json()) as { dailyPnL: Record<string, number>; tradesByDay: Record<string, any[]> }
+      setDailyPnL(j.dailyPnL || {})
+      setTradesByDay(j.tradesByDay || {})
+    } catch (e: any) {
+      setError(e?.message || "Failed to load calendar data")
+    } finally {
+      setLoading(false)
     }
-    
-    return days
-  }, [selectedYear, selectedMonth, data.dailyData])
+  }, [startOfCalendar, endOfCalendar])
 
-  // Get available years from data
-  const availableYears = useMemo(() => {
-    const years = new Set<number>()
-    Object.keys(data.dailyData).forEach(date => {
-      years.add(new Date(date).getFullYear())
-    })
-    // Add current year if not present
-    years.add(currentDate.getFullYear())
-    return Array.from(years).sort((a, b) => b - a)
-  }, [data.dailyData])
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ]
+  const formatCurrency = useMemo(() => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }), [])
+
+  const colorFor = (value: number, isToday: boolean) => {
+    if (value > 0) {
+      return cn(
+        "text-green-900 dark:text-green-100",
+        value <= 100 && "bg-green-100 hover:bg-green-200 dark:bg-green-950/50 dark:hover:bg-green-900/50",
+        value > 100 && value <= 500 && "bg-green-200 hover:bg-green-300 dark:bg-green-900/60 dark:hover:bg-green-800/60",
+        value > 500 && value <= 1000 && "bg-green-300 hover:bg-green-400 dark:bg-green-800/70 dark:hover:bg-green-700/70",
+        value > 1000 && "bg-green-400 hover:bg-green-500 dark:bg-green-700/80 dark:hover:bg-green-600/80",
+        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
+      )
+    }
+    if (value < 0) {
+      return cn(
+        "text-red-900 dark:text-red-100",
+        value >= -100 && "bg-red-100 hover:bg-red-200 dark:bg-red-950/50 dark:hover:bg-red-900/50",
+        value < -100 && value >= -500 && "bg-red-200 hover:bg-red-300 dark:bg-red-900/60 dark:hover:bg-red-800/60",
+        value < -500 && value >= -1000 && "bg-red-300 hover:bg-red-400 dark:bg-red-800/70 dark:hover:bg-red-700/70",
+        value < -1000 && "bg-red-400 hover:bg-red-500 dark:bg-red-700/80 dark:hover:bg-red-600/80",
+        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
+      )
+    }
+    return cn(
+      "bg-gray-50 hover:bg-gray-100 text-gray-600",
+      "dark:bg-gray-900/30 dark:hover:bg-gray-800/40 dark:text-gray-400",
+      isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
+    )
+  }
 
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-  const formatCurrency = (value: number) => {
-    const prefix = value >= 0 ? "+" : ""
-    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    })}`
+  const isToday = (d: Date) => {
+    const t = new Date()
+    return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate()
   }
 
-  const getPnLValue = (day: DailyPnL | null) => {
-    if (!day) return 0
-    switch (viewMode) {
-      case "realized":
-        return day.realizedPnL
-      case "unrealized":
-        return day.unrealizedPnL
-      case "all":
-        return day.totalPnL
-      default:
-        return day.realizedPnL
-    }
-  }
-
-  const getColorClass = (pnl: number, isToday: boolean = false) => {
-    if (pnl > 0) {
-      // Profit - Green shades
-      return cn(
-        "text-green-900 dark:text-green-100",
-        pnl <= 100 && "bg-green-100 hover:bg-green-200 dark:bg-green-950/50 dark:hover:bg-green-900/50",
-        pnl > 100 && pnl <= 500 && "bg-green-200 hover:bg-green-300 dark:bg-green-900/60 dark:hover:bg-green-800/60",
-        pnl > 500 && pnl <= 1000 && "bg-green-300 hover:bg-green-400 dark:bg-green-800/70 dark:hover:bg-green-700/70",
-        pnl > 1000 && "bg-green-400 hover:bg-green-500 dark:bg-green-700/80 dark:hover:bg-green-600/80",
-        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
-      )
-    } else if (pnl < 0) {
-      // Loss - Red shades
-      return cn(
-        "text-red-900 dark:text-red-100",
-        pnl >= -100 && "bg-red-100 hover:bg-red-200 dark:bg-red-950/50 dark:hover:bg-red-900/50",
-        pnl < -100 && pnl >= -500 && "bg-red-200 hover:bg-red-300 dark:bg-red-900/60 dark:hover:bg-red-800/60",
-        pnl < -500 && pnl >= -1000 && "bg-red-300 hover:bg-red-400 dark:bg-red-800/70 dark:hover:bg-red-700/70",
-        pnl < -1000 && "bg-red-400 hover:bg-red-500 dark:bg-red-700/80 dark:hover:bg-red-600/80",
-        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
-      )
-    } else {
-      // No trades or break-even
-      return cn(
-        "bg-gray-50 hover:bg-gray-100 text-gray-600",
-        "dark:bg-gray-900/30 dark:hover:bg-gray-800/40 dark:text-gray-400",
-        isToday && "ring-2 ring-blue-500 dark:ring-blue-400"
-      )
-    }
-  }
-
-  const isToday = (dateStr: string) => {
-    const today = new Date().toISOString().split('T')[0]
-    return dateStr === today
-  }
+  const prevMonth = () => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+  const nextMonth = () => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
 
   return (
     <Card>
@@ -141,168 +126,66 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
               <CalendarIcon className="h-5 w-5" />
               P&L Calendar
             </CardTitle>
-            <CardDescription>
-              Daily profit and loss heatmap
-            </CardDescription>
+            <CardDescription>Daily realized P&L heatmap</CardDescription>
           </div>
-          
           <div className="flex items-center gap-2">
-            {/* View Mode Selector */}
-            <Select value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="realized">Realized</SelectItem>
-                <SelectItem value="unrealized">Unrealized</SelectItem>
-                <SelectItem value="all">All P&L</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {/* Month Selector */}
-            <Select 
-              value={selectedMonth.toString()} 
-              onValueChange={(v) => setSelectedMonth(parseInt(v))}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month, idx) => (
-                  <SelectItem key={idx} value={idx.toString()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Year Selector */}
-            <Select 
-              value={selectedYear.toString()} 
-              onValueChange={(v) => setSelectedYear(parseInt(v))}
-            >
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableYears.map(year => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Button variant="ghost" size="icon" onClick={prevMonth} aria-label="Previous month">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-sm tabular-nums w-28 text-center">
+              {month.toLocaleString("en-US", { month: "long", year: "numeric" })}
+            </div>
+            <Button variant="ghost" size="icon" onClick={nextMonth} aria-label="Next month">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>
-      
       <CardContent>
-        {/* Calendar Grid */}
         <div className="space-y-2 max-w-2xl mx-auto">
-          {/* Weekday Headers */}
           <div className="grid grid-cols-7 gap-0.5">
-            {weekDays.map(day => (
-              <div key={day} className="text-center text-xs font-medium text-muted-foreground p-1">
-                {day}
+            {weekDays.map((d) => (
+              <div key={d} className="text-center text-xs font-medium text-muted-foreground p-1">
+                {d}
               </div>
             ))}
           </div>
-          
-          {/* Calendar Days */}
           <div className="grid grid-cols-7 gap-0.5">
-            {calendarDays.map((day, idx) => {
-              if (!day) {
-                return <div key={`empty-${idx}`} className="aspect-square" />
-              }
-              
-              const pnl = getPnLValue(day)
-              const dayNumber = new Date(day.date).getDate()
-              
+            {daysArray.map((d) => {
+              const key = toISO(d)
+              const pnl = dailyPnL[key] || 0
+              const dayNum = d.getDate()
+              const inMonth = d.getMonth() === month.getMonth()
+              const classes = cn(
+                "aspect-square p-1 rounded cursor-pointer transition-colors flex flex-col items-center justify-center text-xs",
+                colorFor(pnl, isToday(d)),
+                !inMonth && "opacity-50"
+              )
               return (
-                <TooltipProvider key={day.date}>
+                <TooltipProvider key={key}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div
-                        className={cn(
-                          "aspect-square p-1 rounded cursor-pointer transition-colors",
-                          "flex flex-col items-center justify-center",
-                          "text-xs",
-                          getColorClass(pnl, isToday(day.date))
-                        )}
-                      >
-                        <span className="font-medium leading-none">{dayNumber}</span>
-                        {day.tradeCount > 0 && pnl !== 0 && (
+                      <div className={classes} onClick={() => setSelectedDay(key)}>
+                        <span className="font-medium leading-none">{dayNum}</span>
+                        {pnl !== 0 && (
                           <span className="text-[10px] font-semibold leading-none mt-0.5">
-                            {pnl >= 0 ? '+' : '-'}${Math.abs(pnl) >= 1000 
-                              ? `${(Math.abs(pnl)/1000).toFixed(1)}k` 
-                              : Math.abs(pnl).toFixed(0)}
+                            {pnl >= 0 ? "+" : "-"}${Math.abs(pnl) >= 1000 ? `${(Math.abs(pnl) / 1000).toFixed(1)}k` : Math.abs(pnl).toFixed(0)}
                           </span>
+                        )}
+                        {debug && (
+                          <span className="mt-0.5 text-[9px] opacity-70">{key}</span>
                         )}
                       </div>
                     </TooltipTrigger>
-                    
                     <TooltipContent className="w-64 p-3">
                       <div className="space-y-2">
                         <div className="font-semibold">
-                          {new Date(day.date).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
+                          {d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                         </div>
-                        
-                        {day.tradeCount > 0 ? (
-                          <>
-                            <div className="space-y-1 text-sm">
-                              <div className="flex justify-between">
-                                <span>Realized P&L:</span>
-                                <span className={day.realizedPnL >= 0 ? "text-green-600" : "text-red-600"}>
-                                  {formatCurrency(day.realizedPnL)}
-                                </span>
-                              </div>
-                              {day.unrealizedPnL !== 0 && (
-                                <div className="flex justify-between">
-                                  <span>Unrealized P&L:</span>
-                                  <span className={day.unrealizedPnL >= 0 ? "text-green-600" : "text-red-600"}>
-                                    {formatCurrency(day.unrealizedPnL)}
-                                  </span>
-                                </div>
-                              )}
-                              <div className="flex justify-between font-semibold pt-1 border-t">
-                                <span>Total:</span>
-                                <span className={day.totalPnL >= 0 ? "text-green-600" : "text-red-600"}>
-                                  {formatCurrency(day.totalPnL)}
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-1 pt-2 border-t">
-                              <div className="text-xs font-semibold">
-                                Trades ({day.tradeCount}):
-                              </div>
-                              {day.trades.slice(0, 5).map((trade, i) => (
-                                <div key={i} className="text-xs flex justify-between">
-                                  <span>
-                                    {trade.symbol} {trade.side.toUpperCase()} {trade.quantity}
-                                  </span>
-                                  <span className={trade.pnl >= 0 ? "text-green-600" : "text-red-600"}>
-                                    {formatCurrency(trade.pnl)}
-                                  </span>
-                                </div>
-                              ))}
-                              {day.trades.length > 5 && (
-                                <div className="text-xs text-muted-foreground">
-                                  +{day.trades.length - 5} more trades
-                                </div>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            No trades on this day
-                          </div>
-                        )}
+                        <div className="flex justify-between text-sm">
+                          <span>Realized P&L:</span>
+                          <span className={pnl >= 0 ? "text-green-600" : "text-red-600"}>{formatCurrency.format(pnl)}</span>
+                        </div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -310,36 +193,44 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
               )
             })}
           </div>
-          
-          {/* Legend */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-300 dark:bg-green-800/70 rounded" />
-                <span className="text-xs text-muted-foreground">Profit</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-300 dark:bg-red-800/70 rounded" />
-                <span className="text-xs text-muted-foreground">Loss</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-100 dark:bg-gray-900/30 rounded" />
-                <span className="text-xs text-muted-foreground">No trades</span>
-              </div>
+          {error && (
+            <div className="text-xs text-red-600">{error}</div>
+          )}
+          {loading && (
+            <div className="grid grid-cols-7 gap-0.5">
+              {Array.from({ length: daysArray.length }).map((_, i) => (
+                <div key={i} className="aspect-square animate-pulse rounded bg-muted/40" />
+              ))}
             </div>
-            
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-                <span>{data.winningDays} winning days</span>
+          )}
+        </div>
+
+        {/* Drilldown drawer/modal */}
+        {selectedDay && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/20 p-4" onClick={() => setSelectedDay(null)}>
+            <div className="w-full max-w-md rounded-lg bg-background p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-semibold">{new Date(selectedDay).toLocaleDateString()}</div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDay(null)}>Close</Button>
               </div>
-              <div className="flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-red-600" />
-                <span>{data.losingDays} losing days</span>
+              <div className="space-y-2 max-h-80 overflow-auto">
+                {(tradesByDay[selectedDay] || []).length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No closed trades</div>
+                ) : (
+                  tradesByDay[selectedDay].map((t) => (
+                    <div key={t.id} className="text-sm flex justify-between border-b py-1">
+                      <div>
+                        <div className="font-medium">{t.symbol}</div>
+                        <div className="text-xs text-muted-foreground">Qty {t.quantity} · Entry {formatCurrency.format(t.entry_price)} · Exit {formatCurrency.format(t.exit_price)}</div>
+                      </div>
+                      <div className={t.realized >= 0 ? "text-green-600" : "text-red-600"}>{formatCurrency.format(t.realized)}</div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   )

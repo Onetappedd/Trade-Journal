@@ -157,6 +157,41 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Post-insert: automatically flag expired, still-open options as expired worthless
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const { data: openOptions } = await supabase
+      .from("trades")
+      .select("id, notes, expiration_date")
+      .eq("user_id", user.id)
+      .eq("asset_type", "option")
+      .eq("status", "open")
+
+    if (openOptions && openOptions.length > 0) {
+      const toExpire = openOptions.filter(t => t.expiration_date && t.expiration_date < today)
+      for (const t of toExpire) {
+        const { error: upErr } = await supabase
+          .from("trades")
+          .update({
+            status: "expired",
+            editable: true,
+            exit_price: 0,
+            exit_date: t.expiration_date || today,
+            notes: t.notes
+              ? `${t.notes}\n[Auto-marked as expired worthless on ${today} (exit_price set to 0.00)]`
+              : `[Auto-marked as expired worthless on ${today} (exit_price set to 0.00)]`
+          })
+          .eq("id", t.id)
+          .eq("user_id", user.id)
+        if (upErr) {
+          console.error("Failed to mark expired option after import:", upErr)
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error flagging expired options after import:", e)
+  }
+
   // Add invalid trade errors to the errors array
   invalidTrades.forEach(({ error: err }) => {
     errors.push(err)
