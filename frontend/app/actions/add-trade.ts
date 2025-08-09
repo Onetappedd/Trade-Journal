@@ -3,21 +3,11 @@
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
-import { z } from "zod"
-import {
-  stockTradeSchema,
-  optionTradeSchema,
-  futuresTradeSchema,
-  type AnyTradeInput,
-  calcStockPnl,
-  calcOptionPnl,
-  calcFuturesPnl,
-} from "@/lib/trading"
-
-const anySchema = z.discriminatedUnion("asset_type", [stockTradeSchema, optionTradeSchema, futuresTradeSchema])
+import { anyTradeSchema, type AnyTradeInput } from "@/lib/trading-schemas"
+import { calcStockPnl, calcOptionPnl, calcFuturesPnl } from "@/lib/trading"
 
 export async function addTradeAction(input: AnyTradeInput) {
-  const parsed = anySchema.safeParse(input)
+  const parsed = anyTradeSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false as const, errors: parsed.error.flatten() }
   }
