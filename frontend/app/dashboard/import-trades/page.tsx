@@ -228,11 +228,11 @@ export default function ImportTradesPage() {
               full_symbol: row.Symbol,  // Keep the full option symbol for reference
             })
           }
-          // If more than 50 trades, show a warning
-          if (rows.length > 50) {
-            setParseError(`File contains ${rows.length} trades. Due to timeout limits, please split into batches of 50 or less. You can import the first 50 trades now.`)
-            // Only keep first 50 for import
-            const limitedRows = rows.slice(0, 50)
+          // If more than 1000 trades, show a warning and limit to 1000 for a single import request
+          const MAX_UI_BATCH = 1000
+          if (rows.length > MAX_UI_BATCH) {
+            setParseError(`File contains ${rows.length} trades. For reliability, importing the first ${MAX_UI_BATCH} now. After this completes, upload the remaining trades.`)
+            const limitedRows = rows.slice(0, MAX_UI_BATCH)
             const limitedValid = limitedRows.filter(r => r.validation_status === "valid").length
             const limitedErrors = limitedRows.filter(r => r.validation_status === "error").length
             const limitedDuplicates = limitedRows.filter(r => r.validation_status === "duplicate").length
