@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { 
   AreaChart, Area, XAxis, YAxis, ResponsiveContainer, 
-  Tooltip, ReferenceLine, BarChart, Bar, LineChart, Line, CartesianGrid
+  Tooltip, ReferenceLine, BarChart, Bar, LineChart, Line, CartesianGrid, Cell
 } from "recharts"
 import { TrendingUp, TrendingDown, DollarSign, Percent, Calendar, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -200,6 +200,21 @@ export function PerformanceComparisonNew({
     return filteredData
   }, [filteredData, viewMode])
 
+  // Generate first-of-month ticks for X axis to avoid repeated month labels
+  const xTicks = useMemo(() => {
+    if (chartData.length === 0) return [] as string[]
+    const ticks: string[] = []
+    for (let i = 0; i < chartData.length; i++) {
+      const d = new Date(chartData[i].date)
+      if (d.getDate() === 1) ticks.push(chartData[i].date)
+    }
+    // Ensure first and last are included
+    if (ticks.length === 0 || ticks[0] !== chartData[0].date) ticks.unshift(chartData[0].date)
+    const last = chartData[chartData.length - 1].date
+    if (ticks[ticks.length - 1] !== last) ticks.push(last)
+    return ticks
+  }, [chartData])
+
   return (
     <div className="space-y-6">
       <Card>
@@ -352,8 +367,10 @@ export function PerformanceComparisonNew({
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 11, fill: '#888' }}
-                    tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short' })}
-                    interval="preserveStartEnd"
+                    tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    ticks={xTicks}
+                    interval={0}
+                    minTickGap={30}
                   />
                   
                   <YAxis 
@@ -452,8 +469,11 @@ export function PerformanceComparisonNew({
                     <Bar 
                       dataKey="return" 
                       name="Return (%)"
-                      fill={(entry: any) => entry.return >= 0 ? "#10b981" : "#ef4444"}
-                    />
+                    >
+                      {periodBreakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.return > 0 ? "#10b981" : entry.return < 0 ? "#ef4444" : "#9ca3af"} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
                 
@@ -476,23 +496,23 @@ export function PerformanceComparisonNew({
                           <td className="p-2">{period.period}</td>
                           <td className={cn(
                             "text-right p-2 font-medium",
-                            period.return >= 0 ? "text-green-600" : "text-red-600"
+                            period.return === 0 ? "text-muted-foreground" : (period.return > 0 ? "text-green-600" : "text-red-600")
                           )}>
-                            {period.return >= 0 ? "+" : ""}{period.return.toFixed(2)}%
+                            {period.return > 0 ? "+" : period.return < 0 ? "-" : ""}{Math.abs(period.return).toFixed(2)}%
                           </td>
                           <td className={cn(
                             "text-right p-2",
-                            period.pnl >= 0 ? "text-green-600" : "text-red-600"
+                            period.pnl === 0 ? "text-muted-foreground" : (period.pnl > 0 ? "text-green-600" : "text-red-600")
                           )}>
-                            {period.pnl >= 0 ? "+" : ""}${Math.abs(period.pnl).toFixed(2)}
+                            {period.pnl > 0 ? "+" : period.pnl < 0 ? "-" : ""}${Math.abs(period.pnl).toFixed(2)}
                           </td>
                           <td className="text-right p-2">{period.trades}</td>
                           <td className="text-right p-2">{period.winRate.toFixed(1)}%</td>
                           <td className={cn(
                             "text-right p-2",
-                            period.avgTrade >= 0 ? "text-green-600" : "text-red-600"
+                            period.avgTrade === 0 ? "text-muted-foreground" : (period.avgTrade > 0 ? "text-green-600" : "text-red-600")
                           )}>
-                            {period.avgTrade >= 0 ? "+" : ""}${Math.abs(period.avgTrade).toFixed(2)}
+                            {period.avgTrade > 0 ? "+" : period.avgTrade < 0 ? "-" : ""}${Math.abs(period.avgTrade).toFixed(2)}
                           </td>
                         </tr>
                       ))}

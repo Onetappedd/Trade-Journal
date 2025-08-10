@@ -10,10 +10,11 @@ import { StrategyMetrics } from "@/components/analytics/StrategyMetrics"
 import { TopTrades } from "@/components/analytics/TopTrades"
 import { PerformanceComparisonNew } from "@/components/analytics/PerformanceComparisonNew"
 import { getAnalyticsData } from "@/lib/analytics-metrics"
+import { notFound } from "next/navigation"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({ searchParams }: { searchParams?: Record<string,string> }) {
   // Get current user
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -24,8 +25,37 @@ export default async function AnalyticsPage() {
   
   const { data: { user } } = await supabase.auth.getUser()
   
+  // Map search params to filter
+  const assetType = searchParams?.assetType as any
+  const strategy = searchParams?.strategy || undefined
+  const time = searchParams?.time || 'all'
+  const start = searchParams?.start
+  const end = searchParams?.end
+
+  // Derive start/end from time if not custom
+  let rangeStart: string | undefined = start
+  let rangeEnd: string | undefined = end
+  if (time && time !== 'custom' && time !== 'all') {
+    const now = new Date()
+    const d = new Date(now)
+    if (time === '1m') d.setMonth(d.getMonth() - 1)
+    if (time === '3m') d.setMonth(d.getMonth() - 3)
+    if (time === '6m') d.setMonth(d.getMonth() - 6)
+    if (time === '1y') d.setFullYear(d.getFullYear() - 1)
+    rangeStart = d.toISOString()
+    rangeEnd = now.toISOString()
+  } else if (time === 'all') {
+    rangeStart = undefined
+    rangeEnd = undefined
+  }
+
   // Get analytics data
-  const analytics = user ? await getAnalyticsData(user.id) : {
+  const analytics = user ? await getAnalyticsData(user.id, {
+    assetType: assetType && assetType !== 'all' ? assetType : undefined,
+    strategy: strategy && strategy !== 'all' ? strategy : undefined,
+    start: rangeStart,
+    end: rangeEnd,
+  }) : {
     pnlByMonth: [],
     equityCurve: [],
     tradeDistribution: [],

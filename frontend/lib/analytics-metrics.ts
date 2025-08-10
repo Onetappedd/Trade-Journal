@@ -299,6 +299,10 @@ function formatTrade(trade: any) {
     status: trade.status || 'closed',
     pnl: trade.pnl,
     asset_type: trade.asset_type,
+    // Option details if available
+    option_type: trade.option_type || trade.details?.optionType || null,
+    strike: trade.strike_price ?? trade.details?.strike ?? null,
+    expiration: trade.expiration_date ?? trade.details?.expiration ?? null,
   }
 }
 

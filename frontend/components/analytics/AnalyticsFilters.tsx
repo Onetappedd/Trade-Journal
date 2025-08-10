@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
@@ -10,11 +11,29 @@ import { CalendarIcon, Filter } from "lucide-react"
 import { format } from "date-fns"
 
 export function AnalyticsFilters() {
-  const [timeRange, setTimeRange] = useState("3m")
-  const [assetType, setAssetType] = useState("")
-  const [strategy, setStrategy] = useState("")
-  const [dateFrom, setDateFrom] = useState<Date>()
-  const [dateTo, setDateTo] = useState<Date>()
+  const router = useRouter()
+  const pathname = usePathname()
+  const search = useSearchParams()
+
+  const [timeRange, setTimeRange] = useState(search.get('time') || "3m")
+  const [assetType, setAssetType] = useState(search.get('assetType') || "all")
+  const [strategy, setStrategy] = useState(search.get('strategy') || "all")
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(search.get('start') ? new Date(search.get('start')!) : undefined)
+  const [dateTo, setDateTo] = useState<Date | undefined>(search.get('end') ? new Date(search.get('end')!) : undefined)
+
+  const applyFilters = () => {
+    const params = new URLSearchParams(search.toString())
+    params.set('time', timeRange)
+    params.set('assetType', assetType)
+    params.set('strategy', strategy)
+    if (timeRange === 'custom') {
+      if (dateFrom) params.set('start', dateFrom.toISOString())
+      if (dateTo) params.set('end', dateTo.toISOString())
+    } else {
+      params.delete('start'); params.delete('end')
+    }
+    router.push(`${pathname}?${params.toString()}`)
+  }
 
   return (
     <Card>
@@ -42,8 +61,8 @@ export function AnalyticsFilters() {
               <SelectItem value="all">All Assets</SelectItem>
               <SelectItem value="stock">Stocks</SelectItem>
               <SelectItem value="option">Options</SelectItem>
+              <SelectItem value="futures">Futures</SelectItem>
               <SelectItem value="crypto">Crypto</SelectItem>
-              <SelectItem value="forex">Forex</SelectItem>
             </SelectContent>
           </Select>
 
@@ -88,7 +107,7 @@ export function AnalyticsFilters() {
             </>
           )}
 
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" onClick={applyFilters}>
             <Filter className="h-4 w-4" />
           </Button>
         </div>

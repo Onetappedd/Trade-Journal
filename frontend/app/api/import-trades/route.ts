@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!trades.length) return NextResponse.json({ error: "No trades to import" }, { status: 400 })
 
   // Limit batch size to prevent timeouts
-  const BATCH_SIZE = 50
+  const BATCH_SIZE = 2000
   if (trades.length > BATCH_SIZE) {
     return NextResponse.json({ 
       error: `Too many trades. Please import in batches of ${BATCH_SIZE} or less.`,
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     console.log(`Attempting to batch insert ${validTrades.length} trades`)
     
     // Insert in smaller chunks to avoid database limits
-    const CHUNK_SIZE = 10
+    const CHUNK_SIZE = 200
     for (let i = 0; i < validTrades.length; i += CHUNK_SIZE) {
       const chunk = validTrades.slice(i, i + CHUNK_SIZE)
       
