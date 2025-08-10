@@ -9,6 +9,10 @@ interface Trade {
   entry_date: string
   exit_date?: string | null
   pnl: number
+  asset_type?: string
+  option_type?: string | null
+  strike?: number | null
+  expiration?: string | null
 }
 
 interface TopTradesProps {
@@ -52,7 +56,14 @@ export function TopTrades({ bestTrades, worstTrades }: TopTradesProps) {
                 <div className="flex items-center gap-3">
                   <div className="text-lg font-bold text-muted-foreground">#{index + 1}</div>
                   <div>
-                    <div className="font-medium">{trade.symbol}</div>
+                    <div className="font-medium">
+                      {trade.symbol}
+                      {trade.asset_type === 'option' && trade.strike && trade.expiration && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          {trade.option_type?.toUpperCase()} {trade.strike} @ {new Date(trade.expiration).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {new Date(trade.entry_date).toLocaleDateString()} • {calculateDuration(trade.entry_date, trade.exit_date)}
                     </div>
@@ -78,7 +89,14 @@ export function TopTrades({ bestTrades, worstTrades }: TopTradesProps) {
                 <div className="flex items-center gap-3">
                   <div className="text-lg font-bold text-muted-foreground">#{index + 1}</div>
                   <div>
-                    <div className="font-medium">{trade.symbol}</div>
+                    <div className="font-medium">
+                      {trade.symbol}
+                      {trade.asset_type === 'option' && trade.strike && trade.expiration && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          {trade.option_type?.toUpperCase()} {trade.strike} @ {new Date(trade.expiration).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {new Date(trade.entry_date).toLocaleDateString()} • {calculateDuration(trade.entry_date, trade.exit_date)}
                     </div>

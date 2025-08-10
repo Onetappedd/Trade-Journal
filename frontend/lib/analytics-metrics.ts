@@ -78,7 +78,7 @@ export async function getAnalyticsData(userId: string, filter?: AnalyticsFilter)
   const equityCurve = calculateEquityCurve(closedTrades, INITIAL_CAPITAL)
   
   // Trade distribution by asset type
-  const tradeDistribution = calculateTradeDistribution(trades)
+  const tradeDistribution = calculateTradeDistribution(trades, filter?.start, filter?.end)
   
   // Strategy metrics
   const strategyMetrics = calculateStrategyMetrics(closedTrades, INITIAL_CAPITAL)
@@ -109,21 +109,26 @@ export async function getAnalyticsData(userId: string, filter?: AnalyticsFilter)
   }
 }
 
-// Calculate P&L by month for bar chart
+// Calculate P&L by month for bar chart (last 12 months rolling)
 function calculatePnLByMonth(closedTrades: any[]) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-  const currentYear = new Date().getFullYear()
-  
-  return months.map((month, index) => {
+  const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  const now = new Date()
+  const months: Array<{ start: Date; end: Date; label: string }> = []
+  for (let i = 11; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0)
+    const label = `${labels[start.getMonth()]}`
+    months.push({ start, end, label })
+  }
+
+  return months.map(m => {
     const monthTrades = closedTrades.filter(t => {
       if (!t.exit_date) return false
-      const date = new Date(t.exit_date)
-      return date.getMonth() === index && date.getFullYear() === currentYear
+      const d = new Date(t.exit_date)
+      return d >= m.start && d <= m.end
     })
-    
     const pnl = monthTrades.reduce((sum, t) => sum + t.pnl, 0)
-    
-    return { month, pnl }
+    return { month: m.label, pnl }
   })
 }
 
@@ -187,9 +192,20 @@ function calculateEquityCurve(closedTrades: any[], initialCapital: number) {
   return equityCurve
 }
 
-// Calculate trade distribution
-function calculateTradeDistribution(trades: any[]) {
-  const distribution = trades.reduce((acc, trade) => {
+// Calculate trade distribution (respect date filters if present via exit or entry date)
+function calculateTradeDistribution(trades: any[], start?: string, end?: string) {
+  let filtered = trades
+  if (start || end) {
+    const s = start ? new Date(start) : undefined
+    const e = end ? new Date(end) : undefined
+    filtered = trades.filter(t => {
+      const refDate = t.exit_date ? new Date(t.exit_date) : new Date(t.entry_date)
+      if (s && refDate < s) return false
+      if (e && refDate > e) return false
+      return true
+    })
+  }
+  const distribution = filtered.reduce((acc: Record<string, number>, trade: any) => {
     const type = trade.asset_type || "unknown"
     acc[type] = (acc[type] || 0) + 1
     return acc
