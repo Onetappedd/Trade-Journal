@@ -4,28 +4,24 @@ export const dynamic = 'force-dynamic'
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters"
 import { EquityCurveChart } from "@/components/analytics/EquityCurveChart"
 import { PnLByMonthChart } from "@/components/analytics/PnLByMonthChart"
-import { WinRateChart } from "@/components/analytics/WinRateChart"
-import { TradeDistributionChart } from "@/components/analytics/TradeDistributionChart"
-import { StrategyMetrics } from "@/components/analytics/StrategyMetrics"
-import { TopTrades } from "@/components/analytics/TopTrades"
-import { PerformanceComparisonNew } from "@/components/analytics/PerformanceComparisonNew"
 import { getUnifiedAnalytics } from "@/lib/analytics-server"
-import { getAnalyticsData } from "@/lib/analytics-metrics"
-import { notFound } from "next/navigation"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 export default async function AnalyticsPage({ searchParams }: { searchParams?: Record<string,string> }) {
-  // Get current user
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  )
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  // Get current user (guard against missing env or session)
+  let userId: string | null = null
+  try {
+    const cookieStore = await cookies()
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    if (url && key) {
+      const supabase = createServerClient(url, key, { cookies: { getAll: () => cookieStore.getAll() } })
+      const { data: { user } } = await supabase.auth.getUser()
+      userId = user?.id ?? null
+    }
+  } catch {}
+
   // Map search params to filter
   const assetType = searchParams?.assetType as any
   const strategy = searchParams?.strategy || undefined
@@ -50,15 +46,25 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: R
     rangeEnd = undefined
   }
 
-  const unified = user ? await getUnifiedAnalytics({
-    userId: user.id,
-    assetType: assetType && assetType !== 'all' ? assetType : undefined,
-    strategy: strategy && strategy !== 'all' ? strategy : undefined,
-    start: rangeStart,
-    end: rangeEnd,
-  }) : null
+  // Fetch unified analytics, but never throw SSR errors
+  let unified: any = null
+  if (userId) {
+    try {
+      unified = await getUnifiedAnalytics({
+        userId,
+        assetType: assetType && assetType !== 'all' ? assetType : undefined,
+        strategy: strategy && strategy !== 'all' ? strategy : undefined,
+        start: rangeStart,
+        end: rangeEnd,
+      })
+    } catch (e) {
+      unified = null
+    }
+  }
 
-  // Only use unified analytics (from /analytics/* endpoints)
+  const equity = unified?.equity || { points: [], initialBalance: 10000, finalBalance: 10000, pctReturn: 0 }
+  const monthly = unified?.monthly || { months: [], totals: {} }
+
   return (
     <div className="space-y-6">
       <div>
@@ -70,14 +76,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: R
 
       <div className="grid gap-6 md:grid-cols-2">
         <EquityCurveChart 
-          data={unified?.equity.points || []}
-          initialValue={unified?.equity.initialBalance || 10000}
-          finalValue={unified?.equity.finalBalance || 10000}
-          pctReturn={unified?.equity.pctReturn || 0}
+          data={equity.points}
+          initialValue={equity.initialBalance}
+          finalValue={equity.finalBalance}
+          pctReturn={equity.pctReturn}
         />
         <PnLByMonthChart 
-          months={unified?.monthly.months || []}
-          totals={unified?.monthly.totals || {}}
+          months={monthly.months}
+          totals={monthly.totals}
         />
       </div>
     </div>
