@@ -1,21 +1,18 @@
-export async function callAnalytics(path: string, payload: any) {
+import { AnalyticsFilters } from './analytics-contracts'
+
+export async function callAnalytics<T = any>(path: string, payload: any, opts?: RequestInit): Promise<T> {
   const res = await fetch(`/api/analytics/${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    ...opts,
   })
-  let data
-  try {
-    data = await res.json()
-  } catch {
-    data = null
+  if (res.status === 401) {
+    // Optionally trigger session refresh logic here
+    throw new Error('Session expired')
   }
   if (!res.ok) {
-    const msg = data?.error || data?.message || res.statusText
-    const err = new Error(msg)
-    // @ts-ignore
-    err.status = res.status
-    throw err
+    throw new Error(await res.text())
   }
-  return data
+  return res.json()
 }

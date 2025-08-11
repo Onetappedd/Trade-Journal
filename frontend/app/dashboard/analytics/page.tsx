@@ -1,120 +1,128 @@
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
+"use client"
 
-import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters"
-import { EquityCurveChart } from "@/components/analytics/EquityCurveChart"
-import { PnLByMonthChart } from "@/components/analytics/PnLByMonthChart"
-import { WinRateChart } from "@/components/analytics/WinRateChart"
-import { TradeDistributionChart } from "@/components/analytics/TradeDistributionChart"
-import { StrategyMetrics } from "@/components/analytics/StrategyMetrics"
-import { TopTrades } from "@/components/analytics/TopTrades"
-import { PerformanceComparisonNew } from "@/components/analytics/PerformanceComparisonNew"
-import { getAnalyticsData } from "@/lib/analytics-metrics"
-import { notFound } from "next/navigation"
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
+import React from "react"
+import { useAnalyticsFiltersStore } from "@/store/analytics-filters"
 
-export default async function AnalyticsPage({ searchParams }: { searchParams?: Record<string,string> }) {
-  // Get current user
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  )
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  // Map search params to filter
-  const assetType = searchParams?.assetType as any
-  const strategy = searchParams?.strategy || undefined
-  const time = searchParams?.time || 'all'
-  const start = searchParams?.start
-  const end = searchParams?.end
+// --- Placeholder Components ---
+const Skeleton = ({ height = 32 }) => (
+  <div className="bg-gray-200 animate-pulse rounded" style={{ height }} />
+)
 
-  // Derive start/end from time if not custom
-  let rangeStart: string | undefined = start
-  let rangeEnd: string | undefined = end
-  if (time && time !== 'custom' && time !== 'all') {
-    const now = new Date()
-    const d = new Date(now)
-    if (time === '1m') d.setMonth(d.getMonth() - 1)
-    if (time === '3m') d.setMonth(d.getMonth() - 3)
-    if (time === '6m') d.setMonth(d.getMonth() - 6)
-    if (time === '1y') d.setFullYear(d.getFullYear() - 1)
-    rangeStart = d.toISOString()
-    rangeEnd = now.toISOString()
-  } else if (time === 'all') {
-    rangeStart = undefined
-    rangeEnd = undefined
-  }
+const ErrorBoundary = ({ children }: { children: React.ReactNode }) => {
+  // TODO: Implement real error boundary
+  return <>{children}</>
+}
 
-  // Get analytics data
-  const analytics = user ? await getAnalyticsData(user.id, {
-    assetType: assetType && assetType !== 'all' ? assetType : undefined,
-    strategy: strategy && strategy !== 'all' ? strategy : undefined,
-    start: rangeStart,
-    end: rangeEnd,
-  }) : {
-    pnlByMonth: [],
-    equityCurve: [],
-    tradeDistribution: [],
-    strategyMetrics: {
-      expectancy: 0,
-      sharpeRatio: 0,
-      maxDrawdown: 0,
-      avgHoldTime: 0,
-      profitFactor: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      largestWin: 0,
-      largestLoss: 0,
-    },
-    bestTrades: [],
-    worstTrades: [],
-    winRate: 0,
-    totalTrades: 0,
-    totalPnL: 0,
-    wins: 0,
-    losses: 0,
-  }
-
+// --- Header & Filters ---
+function AnalyticsHeader() {
+  const filters = useAnalyticsFiltersStore()
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
-        <p className="text-muted-foreground">Deep dive into your trading performance and metrics</p>
+    <div className="flex flex-wrap gap-2 items-center justify-between mb-4">
+      <div className="text-2xl font-bold">Analytics</div>
+      {/* TODO: Date presets, account multi-select, asset chips, strategy/tag, ticker, timezone, compare, benchmark, save view */}
+      <div className="flex flex-wrap gap-2">
+        <Skeleton height={36} />
+        <Skeleton height={36} />
+        <Skeleton height={36} />
+        <Skeleton height={36} />
+        <Skeleton height={36} />
       </div>
+    </div>
+  )
+}
 
-      <AnalyticsFilters />
+// --- KPI Cards ---
+function KpiCardsRow() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2 mb-4">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-lg shadow p-3 flex flex-col items-center">
+          <Skeleton height={24} />
+          <div className="w-full mt-2"><Skeleton height={16} /></div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <EquityCurveChart 
-          data={analytics.equityCurve} 
-          initialValue={analytics.initialCapital || 10000}
-        />
-        <PnLByMonthChart data={analytics.pnlByMonth} />
+// --- Equity & Drawdown ---
+function EquityDrawdownRow() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="bg-white rounded-lg shadow p-4 col-span-2">
+        <Skeleton height={180} />
       </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        <WinRateChart 
-          winRate={analytics.winRate} 
-          totalTrades={analytics.totalTrades}
-          wins={analytics.wins || 0}
-          losses={analytics.losses || 0}
-        />
-        <TradeDistributionChart data={analytics.tradeDistribution} />
-        <StrategyMetrics metrics={analytics.strategyMetrics} />
+      <div className="bg-white rounded-lg shadow p-4">
+        <Skeleton height={60} />
       </div>
+    </div>
+  )
+}
 
-      <TopTrades bestTrades={analytics.bestTrades} worstTrades={analytics.worstTrades} />
-      
-      {/* Performance Comparison Section */}
-      <PerformanceComparisonNew 
-        portfolioData={analytics.equityCurve}
-        initialCapital={analytics.initialCapital || 10000}
-        closedTrades={analytics.closedTrades || []}
-      />
+// --- Monthly PnL ---
+function MonthlyPnlRow() {
+  return (
+    <div className="bg-white rounded-lg shadow p-4 mb-4">
+      <Skeleton height={120} />
+    </div>
+  )
+}
+
+// --- Breakdowns Tabs ---
+function BreakdownsRow() {
+  return (
+    <div className="bg-white rounded-lg shadow p-4 mb-4">
+      <Skeleton height={40} />
+      <div className="mt-2"><Skeleton height={80} /></div>
+    </div>
+  )
+}
+
+// --- Distributions & Trade Quality ---
+function DistributionsRow() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="bg-white rounded-lg shadow p-4">
+        <Skeleton height={100} />
+      </div>
+      <div className="bg-white rounded-lg shadow p-4">
+        <Skeleton height={100} />
+      </div>
+    </div>
+  )
+}
+
+// --- Time Analytics ---
+function TimeAnalyticsRow() {
+  return (
+    <div className="bg-white rounded-lg shadow p-4 mb-4">
+      <Skeleton height={120} />
+    </div>
+  )
+}
+
+// --- Costs & Efficiency ---
+function CostsRow() {
+  return (
+    <div className="bg-white rounded-lg shadow p-4 mb-4">
+      <Skeleton height={80} />
+    </div>
+  )
+}
+
+export default function AnalyticsPage() {
+  return (
+    <div className="container mx-auto px-2 py-4 max-w-7xl">
+      <AnalyticsHeader />
+      <ErrorBoundary>
+        <KpiCardsRow />
+        <EquityDrawdownRow />
+        <MonthlyPnlRow />
+        <BreakdownsRow />
+        <DistributionsRow />
+        <TimeAnalyticsRow />
+        <CostsRow />
+      </ErrorBoundary>
     </div>
   )
 }
