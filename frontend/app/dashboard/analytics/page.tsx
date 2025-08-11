@@ -54,31 +54,31 @@ export default function AnalyticsPage() {
     queryKey: ["analytics", filtersHash, "equity-curve"],
     queryFn: () => analyticsEquityCurve(filters),
     retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!session
+    enabled: !!user
   })
   const monthlyQuery = useQuery({
     queryKey: ["analytics", filtersHash, "monthly-pnl"],
     queryFn: () => analyticsMonthlyPnl(filters),
     retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!session
+    enabled: !!user
   })
   const cardsQuery = useQuery({
     queryKey: ["analytics", filtersHash, "cards"],
     queryFn: () => analyticsCards(filters),
     retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!session
+    enabled: !!user
   })
   const costsQuery = useQuery({
     queryKey: ["analytics", filtersHash, "costs"],
     queryFn: () => analyticsCosts(filters),
     retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!session
+    enabled: !!user
   })
   const tradesQuery = useQuery({
     queryKey: ["analytics", filtersHash, "trades"],
     queryFn: () => analyticsTrades(filters),
     retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!session
+    enabled: !!user
   })
 
   // 401 session expired handling
