@@ -35,6 +35,23 @@ import { useEffect, useState } from "react"
 import { callAnalytics } from "@/lib/call-analytics"
 import { CardsSummary } from "@/lib/analytics-contracts"
 
+// --- KPI Card Component ---
+export function KpiCard({ label, value, delta, deltaSign, }: { label: string; value: React.ReactNode; delta?: string; deltaSign?: "pos"|"neg" }) {
+  return (
+    <div className="tk-card p-4">
+      <div className="flex items-center justify-between mb-1">
+        <span className="tk-subtle text-xs uppercase tracking-wide">{label}</span>
+        {delta && (
+          <span className={deltaSign === "neg" ? "tk-negative text-xs" : "tk-positive text-xs"}>{delta}</span>
+        )}
+      </div>
+      <div className="text-2xl font-semibold leading-tight text-[hsl(var(--card-foreground))]">
+        {value}
+      </div>
+    </div>
+  )
+}
+
 // --- KPI Cards ---
 function KpiCardsRow() {
   const filters = useAnalyticsFiltersStore()
@@ -74,11 +91,8 @@ function KpiCardsRow() {
   if (loading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2 mb-4">
-        {cards.map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-3 flex flex-col items-center">
-            <Skeleton height={24} />
-            <div className="w-full mt-2"><Skeleton height={16} /></div>
-          </div>
+        {cards.map((card, i) => (
+          <KpiCard key={i} label={card.label} value={<Skeleton height={24} />} />
         ))}
       </div>
     )
@@ -89,11 +103,7 @@ function KpiCardsRow() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2 mb-4">
       {cards.map((card, i) => (
-        <div key={i} className="bg-white rounded-lg shadow p-3 flex flex-col items-center">
-          <div className="text-lg font-semibold">{card.label}</div>
-          <div className="w-full mt-2 text-xl font-bold">{card.value !== undefined ? card.value : '-'}</div>
-          {/* TODO: Add sparkline here */}
-        </div>
+        <KpiCard key={i} label={card.label} value={card.value !== undefined ? card.value : '-'} />
       ))}
     </div>
   )
