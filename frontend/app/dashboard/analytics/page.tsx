@@ -1,118 +1,120 @@
-"use client"
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from "react"
-import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
-import { useAuth } from "@/components/auth/auth-provider"
-import { analyticsEquityCurve, analyticsMonthlyPnl, analyticsCards, analyticsCosts, analyticsTrades } from "@/lib/edge-invoke"
-import { useAnalyticsFilters } from "@/store/analytics-filters"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { checkSupabaseEnv } from "@/lib/env-guard"
-import { useToast } from "@/components/ui/use-toast"
+import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters"
+import { EquityCurveChart } from "@/components/analytics/EquityCurveChart"
+import { PnLByMonthChart } from "@/components/analytics/PnLByMonthChart"
+import { WinRateChart } from "@/components/analytics/WinRateChart"
+import { TradeDistributionChart } from "@/components/analytics/TradeDistributionChart"
+import { StrategyMetrics } from "@/components/analytics/StrategyMetrics"
+import { TopTrades } from "@/components/analytics/TopTrades"
+import { PerformanceComparisonNew } from "@/components/analytics/PerformanceComparisonNew"
+import { getAnalyticsData } from "@/lib/analytics-metrics"
+import { notFound } from "next/navigation"
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
-function DevBanner({ user }: { user: any }) {
-  if (process.env.NODE_ENV !== "development" || !user) return null
-  return (
-    <div style={{ background: "#222", color: "#fff", padding: 8, fontSize: 12 }}>
-      <span>User: {user.email || "?"}</span>
-      <Button size="sm" style={{ marginLeft: 16 }} onClick={async () => {
-        const supabase = getSupabaseBrowserClient()
-        await supabase.auth.refreshSession()
-        window.location.reload()
-      }}>Refresh Token</Button>
-    </div>
+export default async function AnalyticsPage({ searchParams }: { searchParams?: Record<string,string> }) {
+  // Get current user
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll() } }
   )
-}
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  // Map search params to filter
+  const assetType = searchParams?.assetType as any
+  const strategy = searchParams?.strategy || undefined
+  const time = searchParams?.time || 'all'
+  const start = searchParams?.start
+  const end = searchParams?.end
 
-export default function AnalyticsPage() {
-  const supabase = getSupabaseBrowserClient()
-  const { user, loading } = useAuth()
-  const [reauth, setReauth] = useState(false)
-  const store = useAnalyticsFilters()
-  const filters = store.getRequestFilters()
-  const filtersHash = JSON.stringify(filters)
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  if (loading) return <div>Loading...</div>
-  if (!user || reauth) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <h2 className="text-2xl font-bold mb-2">Sign in to view analytics</h2>
-        <Button
-          onClick={() => supabase.auth.signInWithOAuth({ provider: "google" })}
-        >
-          Sign In with Google
-        </Button>
-      </div>
-    )
+  // Derive start/end from time if not custom
+  let rangeStart: string | undefined = start
+  let rangeEnd: string | undefined = end
+  if (time && time !== 'custom' && time !== 'all') {
+    const now = new Date()
+    const d = new Date(now)
+    if (time === '1m') d.setMonth(d.getMonth() - 1)
+    if (time === '3m') d.setMonth(d.getMonth() - 3)
+    if (time === '6m') d.setMonth(d.getMonth() - 6)
+    if (time === '1y') d.setFullYear(d.getFullYear() - 1)
+    rangeStart = d.toISOString()
+    rangeEnd = now.toISOString()
+  } else if (time === 'all') {
+    rangeStart = undefined
+    rangeEnd = undefined
   }
 
-  // Widget fetchers using React Query and callAnalytics
-  const equityQuery = useQuery({
-    queryKey: ["analytics", filtersHash, "equity-curve"],
-    queryFn: () => analyticsEquityCurve(filters),
-    retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!user
-  })
-  const monthlyQuery = useQuery({
-    queryKey: ["analytics", filtersHash, "monthly-pnl"],
-    queryFn: () => analyticsMonthlyPnl(filters),
-    retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!user
-  })
-  const cardsQuery = useQuery({
-    queryKey: ["analytics", filtersHash, "cards"],
-    queryFn: () => analyticsCards(filters),
-    retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!user
-  })
-  const costsQuery = useQuery({
-    queryKey: ["analytics", filtersHash, "costs"],
-    queryFn: () => analyticsCosts(filters),
-    retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!user
-  })
-  const tradesQuery = useQuery({
-    queryKey: ["analytics", filtersHash, "trades"],
-    queryFn: () => analyticsTrades(filters),
-    retry: (fails, err: any) => (err?.status === 401 ? false : fails < 2),
-    enabled: !!user
-  })
-
-  // 401 session expired handling
-  if ([equityQuery, monthlyQuery, cardsQuery, costsQuery, tradesQuery].some(q => q.error?.status === 401)) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <h2 className="text-2xl font-bold mb-2">Session expired</h2>
-        <Button
-          onClick={async () => {
-            await supabase.auth.refreshSession()
-            setReauth(false)
-            queryClient.invalidateQueries()
-          }}
-        >
-          Reauthenticate
-        </Button>
-      </div>
-    )
+  // Get analytics data
+  const analytics = user ? await getAnalyticsData(user.id, {
+    assetType: assetType && assetType !== 'all' ? assetType : undefined,
+    strategy: strategy && strategy !== 'all' ? strategy : undefined,
+    start: rangeStart,
+    end: rangeEnd,
+  }) : {
+    pnlByMonth: [],
+    equityCurve: [],
+    tradeDistribution: [],
+    strategyMetrics: {
+      expectancy: 0,
+      sharpeRatio: 0,
+      maxDrawdown: 0,
+      avgHoldTime: 0,
+      profitFactor: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      largestWin: 0,
+      largestLoss: 0,
+    },
+    bestTrades: [],
+    worstTrades: [],
+    winRate: 0,
+    totalTrades: 0,
+    totalPnL: 0,
+    wins: 0,
+    losses: 0,
   }
 
   return (
-    <>
-      <DevBanner user={user} />
-      <div className="p-4">
-        <Card>
-          <CardContent>
-            <div>Equity Curve: {equityQuery.isLoading ? "Loading..." : JSON.stringify(equityQuery.data)}</div>
-            <div>Monthly PnL: {monthlyQuery.isLoading ? "Loading..." : JSON.stringify(monthlyQuery.data)}</div>
-            <div>Cards: {cardsQuery.isLoading ? "Loading..." : JSON.stringify(cardsQuery.data)}</div>
-            <div>Costs: {costsQuery.isLoading ? "Loading..." : JSON.stringify(costsQuery.data)}</div>
-            <div>Trades: {tradesQuery.isLoading ? "Loading..." : JSON.stringify(tradesQuery.data)}</div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
+        <p className="text-muted-foreground">Deep dive into your trading performance and metrics</p>
       </div>
-    </>
+
+      <AnalyticsFilters />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <EquityCurveChart 
+          data={analytics.equityCurve} 
+          initialValue={analytics.initialCapital || 10000}
+        />
+        <PnLByMonthChart data={analytics.pnlByMonth} />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <WinRateChart 
+          winRate={analytics.winRate} 
+          totalTrades={analytics.totalTrades}
+          wins={analytics.wins || 0}
+          losses={analytics.losses || 0}
+        />
+        <TradeDistributionChart data={analytics.tradeDistribution} />
+        <StrategyMetrics metrics={analytics.strategyMetrics} />
+      </div>
+
+      <TopTrades bestTrades={analytics.bestTrades} worstTrades={analytics.worstTrades} />
+      
+      {/* Performance Comparison Section */}
+      <PerformanceComparisonNew 
+        portfolioData={analytics.equityCurve}
+        initialCapital={analytics.initialCapital || 10000}
+        closedTrades={analytics.closedTrades || []}
+      />
+    </div>
   )
 }
