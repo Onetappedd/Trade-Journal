@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+import { useAuth } from "@/components/auth/auth-provider"
 import { analyticsEquityCurve, analyticsMonthlyPnl, analyticsCards, analyticsCosts, analyticsTrades } from "@/lib/edge-invoke"
 import { useAnalyticsFilters } from "@/store/analytics-filters"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -28,8 +29,7 @@ function DevBanner({ session }: { session: any }) {
 
 export default function AnalyticsPage() {
   const supabase = getSupabaseBrowserClient()
-  const [session, setSession] = useState<any>(null)
-  const [checking, setChecking] = useState(true)
+  const { user, loading } = useAuth()
   const [reauth, setReauth] = useState(false)
   const store = useAnalyticsFilters()
   const filters = store.getRequestFilters()
@@ -37,28 +37,15 @@ export default function AnalyticsPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  useEffect(() => {
-    checkSupabaseEnv()
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session)
-      setChecking(false)
-      if (data.session && process.env.NODE_ENV === "development") {
-        const { data: user } = await supabase.auth.getUser()
-        // eslint-disable-next-line no-console
-        console.log("[Supabase] User:", user.user?.email, "exp:", user.user?.exp)
-      }
-    })
-  }, [])
-
-  if (checking) return <div>Loading...</div>
-  if (!session || reauth) {
+  if (loading) return <div>Loading...</div>
+  if (!user || reauth) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
         <h2 className="text-2xl font-bold mb-2">Sign in to view analytics</h2>
         <Button
-          onClick={() => supabase.auth.signInWithOAuth({ provider: "github" })}
+          onClick={() => supabase.auth.signInWithOAuth({ provider: "google" })}
         >
-          Sign In
+          Sign In with Google
         </Button>
       </div>
     )
@@ -116,7 +103,7 @@ export default function AnalyticsPage() {
 
   return (
     <>
-      <DevBanner session={session} />
+      <DevBanner session={{ user }} />
       <div className="p-4">
         <Card>
           <CardContent>
