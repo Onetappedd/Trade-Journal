@@ -11,13 +11,11 @@ import { Button } from "@/components/ui/button"
 import { checkSupabaseEnv } from "@/lib/env-guard"
 import { useToast } from "@/components/ui/use-toast"
 
-function DevBanner({ session }: { session: any }) {
-  if (process.env.NODE_ENV !== "development" || !session) return null
-  const exp = session?.expires_at ? new Date(session.expires_at * 1000) : null
+function DevBanner({ user }: { user: any }) {
+  if (process.env.NODE_ENV !== "development" || !user) return null
   return (
     <div style={{ background: "#222", color: "#fff", padding: 8, fontSize: 12 }}>
-      <span>User: {session.user?.email || "?"}</span>
-      <span style={{ marginLeft: 16 }}>Token exp: {exp ? exp.toLocaleString() : "?"}</span>
+      <span>User: {user.email || "?"}</span>
       <Button size="sm" style={{ marginLeft: 16 }} onClick={async () => {
         const supabase = getSupabaseBrowserClient()
         await supabase.auth.refreshSession()
@@ -103,7 +101,7 @@ export default function AnalyticsPage() {
 
   return (
     <>
-      <DevBanner session={{ user }} />
+      <DevBanner user={user} />
       <div className="p-4">
         <Card>
           <CardContent>
