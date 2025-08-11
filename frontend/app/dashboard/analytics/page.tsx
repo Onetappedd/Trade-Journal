@@ -31,14 +31,69 @@ function AnalyticsHeader() {
   )
 }
 
+import { useEffect, useState } from "react"
+import { callAnalytics } from "@/lib/call-analytics"
+import { CardsSummary } from "@/lib/analytics-contracts"
+import { useAnalyticsFiltersStore } from "@/store/analytics-filters"
+
 // --- KPI Cards ---
 function KpiCardsRow() {
+  const filters = useAnalyticsFiltersStore()
+  const [data, setData] = useState<CardsSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    callAnalytics<CardsSummary>("cards", filters)
+      .then((res) => {
+        setData(res)
+        setLoading(false)
+      })
+      .catch((err) => {
+        setError(err.message)
+        setLoading(false)
+      })
+  }, [filters])
+
+  const cards = [
+    { label: "Net P&L", value: data?.net },
+    { label: "Realized", value: data?.realized },
+    { label: "Fees", value: data?.fees },
+    { label: "Win Rate", value: data?.winRate },
+    { label: "Avg Win", value: data?.avgWin },
+    { label: "Avg Loss", value: data?.avgLoss },
+    { label: "Expectancy", value: data?.expectancy },
+    { label: "Profit Factor", value: data?.profitFactor },
+    { label: "Trade Count", value: data?.tradeCount },
+    { label: "Max DD", value: data?.maxDrawdown },
+    { label: "Sharpe", value: data?.sharpe },
+    { label: "Sortino", value: data?.sortino },
+  ]
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2 mb-4">
+        {cards.map((_, i) => (
+          <div key={i} className="bg-white rounded-lg shadow p-3 flex flex-col items-center">
+            <Skeleton height={24} />
+            <div className="w-full mt-2"><Skeleton height={16} /></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  if (error) {
+    return <div className="text-red-500">Error loading KPI cards: {error}</div>
+  }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2 mb-4">
-      {Array.from({ length: 10 }).map((_, i) => (
+      {cards.map((card, i) => (
         <div key={i} className="bg-white rounded-lg shadow p-3 flex flex-col items-center">
-          <Skeleton height={24} />
-          <div className="w-full mt-2"><Skeleton height={16} /></div>
+          <div className="text-lg font-semibold">{card.label}</div>
+          <div className="w-full mt-2 text-xl font-bold">{card.value !== undefined ? card.value : '-'}</div>
+          {/* TODO: Add sparkline here */}
         </div>
       ))}
     </div>
