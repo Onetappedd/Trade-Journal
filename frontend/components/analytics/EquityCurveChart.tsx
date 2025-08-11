@@ -1,157 +1,82 @@
 "use client"
+import React, { useMemo, useState } from "react"
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { chartTheme } from "@/lib/chart-theme"
+import { useAnalyticsFiltersStore } from '@/store/analytics-filters'
 
-import { useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
-import { cn } from "@/lib/utils"
+// Example data shape: [{ t: '2024-01-01', equity: 10000 }, ...]
+export function EquityCurveChart({ data }: { data: { t: string; equity: number }[] }) {
+  const [percent, setPercent] = useState(false)
+  const theme = chartTheme()
+  const filters = useAnalyticsFiltersStore()
 
-interface EquityCurveChartProps {
-  data: Array<{
-    date: string
-    value: number
-  }>
-  initialValue?: number
-}
-
-export function EquityCurveChart({ data, initialValue = 10000 }: EquityCurveChartProps) {
-  // Use placeholder data if no real data
-  const chartData = data.length > 0 ? data.slice(-90) : [ // Last 90 days
-    { date: "Jan", value: initialValue },
-    { date: "Feb", value: initialValue },
-    { date: "Mar", value: initialValue },
-  ]
-
-  // Calculate if we're in profit or loss
-  const performance = useMemo(() => {
-    if (chartData.length === 0) return { isGain: true, change: 0, percentChange: 0 }
-    
-    const latestValue = chartData[chartData.length - 1].value
-    const change = latestValue - initialValue
-    const percentChange = ((latestValue - initialValue) / initialValue) * 100
-    
-    return {
-      isGain: change >= 0,
-      change,
-      percentChange,
-      latestValue
-    }
-  }, [chartData, initialValue])
-
-  // Dynamic colors based on performance
-  const chartColor = performance.isGain ? "#10b981" : "#ef4444"
-  const gradientId = performance.isGain ? "equityGainGradient" : "equityLossGradient"
-
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    if (dateStr.length <= 3) return dateStr // Month names
-    const date = new Date(dateStr)
-    return `${date.getMonth() + 1}/${date.getDate()}`
-  }
-
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload[0]) return null
-
-    const value = payload[0].value
-    const change = value - initialValue
-    const percentChange = ((value - initialValue) / initialValue) * 100
-    const isGain = change >= 0
-
-    return (
-      <div className="bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
-        <p className="text-xs text-muted-foreground mb-1">
-          {formatDate(label)}
-        </p>
-        <p className="text-lg font-semibold">
-          ${value.toLocaleString('en-US', { 
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2 
-          })}
-        </p>
-        <p className={cn(
-          "text-sm font-medium",
-          isGain ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-        )}>
-          {isGain ? "+" : ""}${Math.abs(change).toLocaleString('en-US', { 
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2 
-          })} ({percentChange >= 0 ? "+" : ""}{percentChange.toFixed(2)}%)
-        </p>
-      </div>
-    )
-  }
+  // Transform data for percent toggle
+  const chartData = useMemo(() => {
+    if (!percent || !data.length) return data
+    const base = data[0]?.equity || 1
+    return data.map(d => ({ ...d, equity: ((d.equity - base) / base) * 100 }))
+  }, [percent, data])
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Equity Curve</CardTitle>
-          <div className={cn(
-            "text-sm font-medium",
-            performance.isGain ? "text-green-600" : "text-red-600"
-          )}>
-            {performance.isGain ? "+" : ""}
-            ${Math.abs(performance.change).toLocaleString('en-US', { 
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2 
-            })} ({performance.percentChange >= 0 ? "+" : ""}{performance.percentChange.toFixed(2)}%)
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="equityGainGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="equityLossGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.1} />
-            
-            <XAxis 
-              dataKey="date" 
-              tickFormatter={formatDate}
-              interval="preserveStartEnd"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: '#888' }}
-            />
-            
-            <YAxis 
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: '#888' }}
-              tickFormatter={(value) => `$${(value/1000).toFixed(0)}k`}
-            />
-            
-            <Tooltip content={<CustomTooltip />} cursor={false} />
-            
-            <ReferenceLine 
-              y={initialValue} 
-              stroke="#888" 
-              strokeDasharray="3 3" 
-              strokeOpacity={0.3}
-              label={{ value: "Initial", position: "left", style: { fontSize: 10, fill: '#888' } }}
-            />
-            
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke={chartColor}
-              strokeWidth={2}
-              fill={`url(#${gradientId})`}
-              animationDuration={500}
-              animationEasing="ease-in-out"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <div className="w-full">
+      <div className="flex items-center mb-2">
+        <span className="tk-heading text-base mr-4">Equity Curve</span>
+        <button
+          className={`tk-chip ml-auto text-xs ${percent ? 'ring-1 ring-[hsl(var(--primary))] text-[hsl(var(--foreground))]' : ''}`}
+          onClick={() => setPercent(p => !p)}
+        >
+          {percent ? "%" : "$"}
+        </button>
+      </div>
+      <ResponsiveContainer width="100%" height={240}>
+        <AreaChart data={chartData} margin={{ top: 16, right: 24, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={theme.primary} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={theme.primary} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis
+            dataKey="t"
+            tick={{ fill: theme.axis, fontSize: 12 }}
+            axisLine={{ stroke: theme.axis, strokeWidth: 1 }}
+            tickLine={false}
+            minTickGap={24}
+          />
+          <YAxis
+            tick={{ fill: theme.axis, fontSize: 12 }}
+            axisLine={{ stroke: theme.axis, strokeWidth: 1 }}
+            tickLine={false}
+            width={60}
+            domain={["auto", "auto"]}
+            tickFormatter={v => percent ? `${v.toFixed(1)}%` : `$${v.toLocaleString()}`}
+          />
+          <CartesianGrid stroke={theme.grid} strokeOpacity={0.25} vertical={false} />
+          <Tooltip
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null
+              const d = payload[0].payload
+              return (
+                <div className="tk-card p-2 border border-[hsl(var(--border))] shadow-lg" style={{ background: theme.bg, color: theme.fg }}>
+                  <div className="text-xs mb-1">{label}</div>
+                  <div className="font-bold text-sm">
+                    {percent ? `${d.equity.toFixed(2)}%` : `$${d.equity.toLocaleString()}`}
+                  </div>
+                </div>
+              )
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey="equity"
+            stroke={theme.primary}
+            strokeWidth={2}
+            fill="url(#equityGradient)"
+            dot={false}
+            activeDot={{ r: 4, fill: theme.primary, stroke: theme.bg, strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   )
 }
