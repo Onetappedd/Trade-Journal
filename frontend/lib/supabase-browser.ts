@@ -49,7 +49,9 @@ const SupabaseContext = createContext<SupabaseClient | undefined>(undefined)
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const client = getSupabaseBrowserClient()
-  return <SupabaseContext.Provider value={client}>{children}</SupabaseContext.Provider>
+  return (
+    <SupabaseContext.Provider value={client}>{children}</SupabaseContext.Provider>
+  )
 }
 
 export function useSupabase() {
