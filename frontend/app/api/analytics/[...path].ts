@@ -18,6 +18,24 @@ export async function POST(req: NextRequest, { params }: { params: { path: strin
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const subpath = params.path.join('/')
+  // Handle /api/analytics/cards with a stub response for now
+  if (subpath === "cards") {
+    return NextResponse.json({
+      net: 1000,
+      realized: 800,
+      fees: 50,
+      winRate: 0.6,
+      avgWin: 200,
+      avgLoss: -100,
+      expectancy: 0.5,
+      profitFactor: 1.5,
+      tradeCount: 20,
+      maxDrawdown: -200,
+      sharpe: 1.2,
+      sortino: 1.5
+    })
+  }
+  // Fallback: proxy to backend (Edge Function or FastAPI)
   const url = `${SUPABASE_URL}/functions/v1/${subpath}`
   const body = await req.text()
   const res = await fetch(url, {
