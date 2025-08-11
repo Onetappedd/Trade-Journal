@@ -27,6 +27,22 @@ from supabase_rest import (
 
 app = FastAPI(title="TradeJournal Pro API", version="1.1.0")
 
+# Simple in-memory cache with TTL
+from time import time as _now
+_CACHE: Dict[str, Tuple[float, Any]] = {}
+
+def cache_get(key: str) -> Optional[Any]:
+  ent = _CACHE.get(key)
+  if not ent: return None
+  exp, val = ent
+  if _now() > exp:
+    _CACHE.pop(key, None)
+    return None
+  return val
+
+def cache_set(key: str, val: Any, ttl: int = 10) -> None:
+  _CACHE[key] = (_now() + ttl, val)
+
 security = HTTPBearer()
 
 # CORS middleware
@@ -126,6 +142,42 @@ class MonthlyPnlRequest(AnalyticsFilters):
 
 class CardsRequest(AnalyticsFilters):
     userTimezone: Optional[str] = None
+
+class CostsRequest(AnalyticsFilters):
+    userTimezone: Optional[str] = None
+
+class FeesByGroup(BaseModel):
+    group: str
+    fees: float
+
+class DteBucket(BaseModel):
+    bucket: str
+    tradeCount: int
+
+class CostsResponse(BaseModel):
+    fees: Dict[str, Any]
+    slippage: Dict[str, Any]
+    efficiency: Dict[str, Any]
+    futures: Dict[str, Any]
+    options: Dict[str, Any]
+    totals: Dict[str, Any]
+
+class TradesRequest(AnalyticsFilters):
+    userTimezone: Optional[str] = None
+
+class TradeOut(BaseModel):
+    symbol: str
+    assetClass: str
+    side: Optional[str] = None
+    quantity: float
+    entryPrice: Optional[float] = None
+    exitPrice: Optional[float] = None
+    fees: Optional[float] = 0.0
+    entryTime: Optional[str] = None
+    exitTime: Optional[str] = None
+    netPnl: Optional[float] = None
+    returnPct: Optional[float] = None
+    durationMinutes: Optional[float] = None
 
 # ----------------------
 # In-memory storage (replace with database)
@@ -872,11 +924,15 @@ async def import_detect(
         if not is_excel:
             import pandas as pd
             import io as _io
+            txt = content.decode("utf-8", errors="ignore")
             try:
-                df = pd.read_csv(_io.StringIO(content.decode("utf-8", errors="ignore")), nrows=N)
+                df = pd.read_csv(_io.StringIO(txt), nrows=N)
             except Exception:
-                # try semicolon delimiter
-                df = pd.read_csv(_io.StringIO(content.decode("utf-8", errors="ignore")), nrows=N, sep=";")
+                # try common alternatives
+                try:
+                    df = pd.read_csv(_io.StringIO(txt), nrows=N, sep=",", engine="python")
+                except Exception:
+                    df = pd.read_csv(_io.StringIO(txt), nrows=N, sep=";", engine="python")
             headers = [str(c) for c in list(df.columns)]
             sample_rows = df.head(min(N, 50)).to_dict(orient="records")
 
@@ -890,8 +946,20 @@ async def import_detect(
         best_map = {}
         best_warnings: list[str] = []
 
+        # Special-case: Webull options with headers like Total Qty / Filled Time
+        if any(h.lower() == "total qty".lower() for h in headers) and any(h.lower() == "filled time".lower() for h in headers):
+            user_hint = {"brokerId": user_hint.get("brokerId") or "webull", "assetClass": user_hint.get("assetClass") or "options"}
+
         for pat in _BROKER_PATTERNS:
             conf, hmap, warns = _score_candidate(headers, pat, user_hint, sample_rows)
+            # Strengthen Webull match: map Total Qty -> quantity and Filled Time -> execTime
+            if pat.get("brokerId") == "webull":
+                for src in headers:
+                    ns = src.strip().lower()
+                    if ns == "total qty".lower():
+                        hmap[src] = "quantity"
+                    if ns == "filled time".lower():
+                        hmap[src] = "execTime"
             if conf > best_conf or (abs(conf - best_conf) < 1e-6 and (
                 (user_hint.get("brokerId") == pat.get("brokerId")) or (user_hint.get("assetClass") == pat.get("assetClass"))
             )):
@@ -1077,6 +1145,73 @@ async def import_commit(
         pass
 
     return {"inserted": inserted, "duplicates": duplicates, "skipped": skipped, "errors": len(error_rows)}
+
+# ----------------------
+# Trades endpoint (per-trade rows for distributions/time analytics)
+# ----------------------
+@app.post("/analytics/trades", response_model=List[TradeOut])
+async def analytics_trades(
+    req: TradesRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    if req.userId != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    tz = req.userTimezone or "America/New_York"
+    trades = filter_and_collect_trades(current_user.user_id, credentials, req)
+
+    out: List[TradeOut] = []
+    for t in trades:
+        # Extract fields with multiple key support
+        symbol = str(t.get("symbol") or "").upper()
+        asset_type = str(t.get("asset_type") or t.get("assetType") or "stock").lower()
+        side = (t.get("side") or None)
+        qty = float(t.get("quantity") or 0)
+        entry = t.get("entry_price") or t.get("entryPrice")
+        exitp = t.get("exit_price") or t.get("exitPrice")
+        fees = float(t.get("fees") or 0.0)
+
+        # Times: prefer *_time then *_date
+        raw_entry_dt = t.get("entry_time") or t.get("entryTime") or t.get("entry_date") or t.get("entryDate")
+        raw_exit_dt = t.get("exit_time") or t.get("exitTime") or t.get("exit_date") or t.get("exitDate")
+        entry_dt = to_user_date(parse_iso(raw_entry_dt), tz) if raw_entry_dt else None
+        exit_dt = to_user_date(parse_iso(raw_exit_dt), tz) if raw_exit_dt else None
+
+        # Compute net pnl (normalized by multipliers if available via instruments in other endpoints; here use basic calculation)
+        net = None
+        retpct = None
+        if entry is not None and exitp is not None:
+            entry_f = float(entry)
+            exit_f = float(exitp)
+            # sign convention: buy>0, sell<0 assumed
+            # realized before fees
+            realized = (exit_f - entry_f) * qty
+            net = realized - fees
+            denom = abs(entry_f * qty) if entry_f and qty else None
+            if denom and denom != 0:
+                retpct = (net / denom) * 100.0
+
+        dur_min = None
+        if entry_dt and exit_dt:
+            dur_min = (exit_dt - entry_dt).total_seconds() / 60.0
+
+        out.append(TradeOut(
+            symbol=symbol,
+            assetClass=asset_type if asset_type != "stock" else "stocks",
+            side=side,
+            quantity=qty,
+            entryPrice=float(entry) if entry is not None else None,
+            exitPrice=float(exitp) if exitp is not None else None,
+            fees=fees,
+            entryTime=entry_dt.isoformat() if entry_dt else None,
+            exitTime=exit_dt.isoformat() if exit_dt else None,
+            netPnl=net,
+            returnPct=retpct,
+            durationMinutes=dur_min,
+        ))
+
+    return out
 
 # ----------------------
 # Analytics endpoints (single source of truth)
@@ -1277,6 +1412,166 @@ async def analytics_monthly_pnl(
 
     return MonthlyPnlResponse(months=points, totals=totals)
 
+
+@app.post("/analytics/costs", response_model=CostsResponse)
+async def analytics_costs(
+    req: CostsRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    if req.userId != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Cache key
+    key = f"costs:{current_user.user_id}:{json.dumps(req.dict(), sort_keys=True)}"
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+
+    trades = filter_and_collect_trades(current_user.user_id, credentials, req)
+
+    total_fees = 0.0
+    commissions = 0.0
+    regulatory = 0.0
+    exchange = 0.0
+
+    by_asset: Dict[str, float] = {}
+    by_symbol: Dict[str, float] = {}
+
+    # Best-effort extraction of fee components
+    for t in trades:
+        f = float(t.get("fees") or 0.0)
+        total_fees += f
+        # If specific components exist, sum them, else treat all as commissions
+        commissions += float(t.get("commission") or 0.0) if (t.get("commission") is not None) else 0.0
+        regulatory += float(t.get("regulatory_fees") or t.get("regulatoryFee") or 0.0) if (t.get("regulatory_fees") is not None or t.get("regulatoryFee") is not None) else 0.0
+        exchange += float(t.get("exchange_fees") or t.get("exchangeFee") or 0.0) if (t.get("exchange_fees") is not None or t.get("exchangeFee") is not None) else 0.0
+        if (t.get("commission") is None and t.get("regulatory_fees") is None and t.get("exchange_fees") is None and t.get("regulatoryFee") is None and t.get("exchangeFee") is None):
+            commissions += f
+
+        a = str(t.get("asset_type") or t.get("assetType") or "stocks").lower()
+        s = str(t.get("symbol") or "").upper()
+        by_asset[a] = by_asset.get(a, 0.0) + f
+        by_symbol[s] = by_symbol.get(s, 0.0) + f
+
+    fees_section = {
+        "total": round(total_fees, 2),
+        "commissions": round(commissions, 2),
+        "regulatory": round(regulatory, 2),
+        "exchange": round(exchange, 2),
+        "byAssetClass": [{"group": k, "fees": round(v,2)} for k,v in by_asset.items()],
+        "bySymbol": [{"group": k, "fees": round(v,2)} for k,v in sorted(by_symbol.items(), key=lambda kv: kv[1], reverse=True)[:50]],
+    }
+
+    # Slippage (supported only if fields exist)
+    slippages_by_asset: Dict[str, list] = {}
+    slippages_by_symbol: Dict[str, list] = {}
+    supported_slip = False
+    for t in trades:
+        # Typical fields: slippage, limit_price/mark_price vs fill (not guaranteed)
+        slip = t.get("slippage")
+        if slip is None:
+            lp = t.get("limit_price") or t.get("limitPrice")
+            fp = t.get("exit_price") or t.get("exitPrice") or t.get("fill_price") or t.get("fillPrice")
+            if lp is not None and fp is not None:
+                try:
+                    slip = float(fp) - float(lp)
+                except Exception:
+                    slip = None
+        if slip is None:
+            continue
+        supported_slip = True
+        a = str(t.get("asset_type") or t.get("assetType") or "stocks").lower()
+        s = str(t.get("symbol") or "").upper()
+        slippages_by_asset.setdefault(a, []).append(float(slip))
+        slippages_by_symbol.setdefault(s, []).append(float(slip))
+
+    def avg(vals: list[float]) -> float:
+        return round(sum(vals)/len(vals), 4) if vals else 0.0
+
+    slippage_section = {
+        "supported": supported_slip,
+        "byAssetClass": [{"group": k, "avg": avg(v)} for k,v in slippages_by_asset.items()],
+        "bySymbol": [{"group": k, "avg": avg(v)} for k,v in slippages_by_symbol.items()][:50],
+        "scatter": [],  # Fill later if size/slippage available
+    }
+
+    # Efficiency (requires OHLC/mark); not available => indicate unsupported
+    efficiency_section = {
+        "entry": {"supported": False},
+        "exit": {"supported": False},
+    }
+
+    # Futures specifics
+    fut_by_root: Dict[str, Dict[str, Any]] = {}
+    fut_by_expiry: Dict[str, Dict[str, Any]] = {}
+    for t in trades:
+        a = str(t.get("asset_type") or t.get("assetType") or "stocks").lower()
+        if a not in ("futures","future"):
+            continue
+        sym = str(t.get("symbol") or "").upper()
+        # Root: leading letters
+        import re as _re
+        m = _re.match(r"^[A-Z]+", sym)
+        root = m.group(0) if m else sym
+        # Expiry from symbol or explicit expiry field
+        expiry = str(t.get("expiry") or t.get("expiry_date") or "")
+        d = fut_by_root.setdefault(root, {"netPnl": 0.0, "tradeCount": 0})
+        d["tradeCount"] += 1
+        # net approx from pnl fields if present else 0
+        if t.get("pnl") is not None:
+            try: d["netPnl"] += float(t.get("pnl") or 0.0)
+            except: pass
+        if expiry:
+            de = fut_by_expiry.setdefault(expiry, {"netPnl": 0.0, "tradeCount": 0})
+            de["tradeCount"] += 1
+            if t.get("pnl") is not None:
+                try: de["netPnl"] += float(t.get("pnl") or 0.0)
+                except: pass
+
+    futures_section = {
+        "byRoot": [{"root": k, **{ "netPnl": round(v["netPnl"],2), "tradeCount": v["tradeCount"] }} for k,v in fut_by_root.items()],
+        "byExpiry": [{"expiry": k, **{ "netPnl": round(v["netPnl"],2), "tradeCount": v["tradeCount"] }} for k,v in fut_by_expiry.items()],
+    }
+
+    # Options specifics: DTE buckets
+    buckets = {"0-7":0, "8-30":0, "31-90":0, "90+":0}
+    for t in trades:
+        a = str(t.get("asset_type") or t.get("assetType") or "stocks").lower()
+        if a not in ("options","option"):
+            continue
+        expiry_raw = t.get("expiry") or t.get("expiration")
+        entry_raw = t.get("entry_time") or t.get("entryTime") or t.get("entry_date") or t.get("entryDate")
+        if not expiry_raw or not entry_raw:
+            continue
+        try:
+            exd = parse_iso(str(expiry_raw))
+            etd = parse_iso(str(entry_raw))
+            dte = (exd - etd).days
+            if dte <= 7: buckets["0-7"] += 1
+            elif dte <= 30: buckets["8-30"] += 1
+            elif dte <= 90: buckets["31-90"] += 1
+            else: buckets["90+"] += 1
+        except Exception:
+            continue
+
+    options_section = {
+        "byDteBucket": [{"bucket": k, "tradeCount": v} for k,v in buckets.items()],
+        "byMoneyness": [],
+        "supportedMoneyness": False,
+    }
+
+    result = {
+        "fees": fees_section,
+        "slippage": slippage_section,
+        "efficiency": efficiency_section,
+        "futures": futures_section,
+        "options": options_section,
+        "totals": {"feesTotal": round(total_fees, 2)},
+    }
+
+    cache_set(key, result, ttl=10)
+    return result
 
 @app.post("/analytics/cards", response_model=CardsSummary)
 async def analytics_cards(

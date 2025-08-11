@@ -340,11 +340,15 @@ export const schwabAdapter: BrokerAdapter = { id: "schwab", label: "Charles Schw
 // -----------------------------
 // Adapters: Webull
 // -----------------------------
-function webullDetect({ headers }: { headers: string[]; sampleRows: any[] }): DetectionResult | null {
-  const ok = hasAll(headers, ["Symbol","Side","Quantity"]) && (hasAll(headers,["Avg Price"]) || hasAll(headers,["Price"]))
+function webullDetect({ headers, sampleRows }: { headers: string[]; sampleRows: any[] }): DetectionResult | null {
+  const ok = hasAll(headers, ["Symbol","Side"]) && (hasAll(headers,["Total Qty"]) || hasAll(headers,["Quantity"])) && (hasAll(headers,["Avg Price"]) || hasAll(headers,["Price"]))
   if (!ok) return null
-  const headerMap: Record<string,string> = { symbol: "Symbol", side: "Side", quantity: "Quantity", price: "Avg Price", time: "Time Executed", fee1: "Commission", fee2: "Regulatory Fees" }
-  return { brokerId: "webull", assetClass: "stocks", schemaId: "webull-trades", confidence: 0.8, headerMap, warnings: [] }
+  // Guess asset class: if OCC-like string present in Symbol or Name, treat as options
+  const first = sampleRows[0] || {}
+  const symStr = String(first["Symbol"] || first["Name"] || "")
+  const isOpt = /\d{6}[CP]\d{8}$/.test(symStr.replace(/\s+/g, ""))
+  const headerMap: Record<string,string> = { symbol: "Symbol", side: "Side", quantity: "Total Qty", price: "Avg Price", time: "Filled Time", fee1: "Commission", fee2: "Regulatory Fees" }
+  return { brokerId: "webull", assetClass: isOpt ? "options" : "stocks", schemaId: "webull-trades", confidence: 0.9, headerMap, warnings: [] }
 }
 
 function webullParse({ rows, headerMap, userTimezone, assetClass }: any) {
