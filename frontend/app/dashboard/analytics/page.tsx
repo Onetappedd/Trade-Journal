@@ -9,6 +9,7 @@ import { TradeDistributionChart } from "@/components/analytics/TradeDistribution
 import { StrategyMetrics } from "@/components/analytics/StrategyMetrics"
 import { TopTrades } from "@/components/analytics/TopTrades"
 import { PerformanceComparisonNew } from "@/components/analytics/PerformanceComparisonNew"
+import { getUnifiedAnalytics } from "@/lib/analytics-server"
 import { getAnalyticsData } from "@/lib/analytics-metrics"
 import { notFound } from "next/navigation"
 import { createServerClient } from "@supabase/ssr"
@@ -49,36 +50,15 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: R
     rangeEnd = undefined
   }
 
-  // Get analytics data
-  const analytics = user ? await getAnalyticsData(user.id, {
+  const unified = user ? await getUnifiedAnalytics({
+    userId: user.id,
     assetType: assetType && assetType !== 'all' ? assetType : undefined,
     strategy: strategy && strategy !== 'all' ? strategy : undefined,
     start: rangeStart,
     end: rangeEnd,
-  }) : {
-    pnlByMonth: [],
-    equityCurve: [],
-    tradeDistribution: [],
-    strategyMetrics: {
-      expectancy: 0,
-      sharpeRatio: 0,
-      maxDrawdown: 0,
-      avgHoldTime: 0,
-      profitFactor: 0,
-      avgWin: 0,
-      avgLoss: 0,
-      largestWin: 0,
-      largestLoss: 0,
-    },
-    bestTrades: [],
-    worstTrades: [],
-    winRate: 0,
-    totalTrades: 0,
-    totalPnL: 0,
-    wins: 0,
-    losses: 0,
-  }
+  }) : null
 
+  // Only use unified analytics (from /analytics/* endpoints)
   return (
     <div className="space-y-6">
       <div>
@@ -90,31 +70,16 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: R
 
       <div className="grid gap-6 md:grid-cols-2">
         <EquityCurveChart 
-          data={analytics.equityCurve} 
-          initialValue={analytics.initialCapital || 10000}
+          data={unified?.equity.points || []}
+          initialValue={unified?.equity.initialBalance || 10000}
+          finalValue={unified?.equity.finalBalance || 10000}
+          pctReturn={unified?.equity.pctReturn || 0}
         />
-        <PnLByMonthChart data={analytics.pnlByMonth} />
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        <WinRateChart 
-          winRate={analytics.winRate} 
-          totalTrades={analytics.totalTrades}
-          wins={analytics.wins || 0}
-          losses={analytics.losses || 0}
+        <PnLByMonthChart 
+          months={unified?.monthly.months || []}
+          totals={unified?.monthly.totals || {}}
         />
-        <TradeDistributionChart data={analytics.tradeDistribution} />
-        <StrategyMetrics metrics={analytics.strategyMetrics} />
       </div>
-
-      <TopTrades bestTrades={analytics.bestTrades} worstTrades={analytics.worstTrades} />
-      
-      {/* Performance Comparison Section */}
-      <PerformanceComparisonNew 
-        portfolioData={analytics.equityCurve}
-        initialCapital={analytics.initialCapital || 10000}
-        closedTrades={analytics.closedTrades || []}
-      />
     </div>
   )
 }
