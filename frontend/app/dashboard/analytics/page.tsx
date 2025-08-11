@@ -34,7 +34,6 @@ function AnalyticsHeader() {
 import { useEffect, useState } from "react"
 import { callAnalytics } from "@/lib/call-analytics"
 import { CardsSummary } from "@/lib/analytics-contracts"
-import { useAnalyticsFiltersStore } from "@/store/analytics-filters"
 
 // --- KPI Cards ---
 function KpiCardsRow() {
