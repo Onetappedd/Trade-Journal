@@ -61,6 +61,8 @@ interface TradeRow {
   exit_price?: number | null
   exit_date?: string | null
   status?: string
+  asset_type?: string
+  multiplier?: number | null
 }
 
 // --- HELPERS ---
@@ -214,7 +216,7 @@ function useRecentTrades(limit: number = 15) {
         setLoading(true)
         const { data, error } = await supabase
           .from("trades")
-          .select("id, symbol, side, quantity, entry_price, entry_date, exit_price, exit_date, status")
+          .select("id, symbol, side, quantity, entry_price, entry_date, exit_price, exit_date, status, asset_type, multiplier")
           .eq("user_id", user.id)
           .order("entry_date", { ascending: false })
           .limit(limit)
@@ -594,8 +596,10 @@ export function AnalyticsPage() {
                   )}
                   {recentTrades.map((t) => {
                     const isClosed = !!(t.exit_price && t.exit_date)
+                    const assetType = String(t.asset_type || 'stock').toLowerCase()
+                    const mult = t.multiplier != null ? Number(t.multiplier) : (assetType === 'option' ? 100 : assetType === 'futures' ? 1 : 1)
                     const pnl = isClosed
-                      ? (t.side === 'buy' ? (t.exit_price! - t.entry_price) : (t.entry_price - t.exit_price!)) * t.quantity
+                      ? (t.side === 'buy' ? (t.exit_price! - t.entry_price) : (t.entry_price - t.exit_price!)) * t.quantity * mult
                       : 0
                     return (
                       <TableRow key={t.id} className="hover:bg-[#2D2D2D]/70">

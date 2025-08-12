@@ -75,16 +75,26 @@ export async function GET(request: NextRequest) {
     // Calculate realized P&L for closed trades
     const closedTrades = trades.filter(trade => trade.status === 'closed' && trade.exit_price)
     const realizedTrades = closedTrades.map(trade => {
-      const quantity = trade.quantity
-      const entryPrice = trade.entry_price
-      const exitPrice = trade.exit_price
-      const side = trade.side
-      
+      const quantity = Number(trade.quantity) || 0
+      const entryPrice = Number(trade.entry_price) || 0
+      const exitPrice = Number(trade.exit_price) || 0
+      const side = String(trade.side || 'buy').toLowerCase()
+      const assetType = String(trade.asset_type || 'stock').toLowerCase()
+      // Use stored multiplier if present; otherwise sensible defaults
+      const storedMultiplier = (trade as any).multiplier
+      const multiplier = storedMultiplier != null
+        ? Number(storedMultiplier)
+        : assetType === 'option'
+          ? 100
+          : assetType === 'futures'
+            ? 1
+            : 1
+
       let pnl = 0
       if (side === 'buy') {
-        pnl = (exitPrice - entryPrice) * quantity
+        pnl = (exitPrice - entryPrice) * quantity * multiplier
       } else {
-        pnl = (entryPrice - exitPrice) * quantity
+        pnl = (entryPrice - exitPrice) * quantity * multiplier
       }
       
       return {
