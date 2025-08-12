@@ -195,8 +195,8 @@ function CandlestickSeries({ data, colorUp, colorDown }: { data: Candle[]; color
   )
 }
 
-// Fetch recent trades from API (server-authenticated)
-function useRecentTrades(limit: number = 15) {
+// Fetch all trades for top gainers/losers calculation
+function useRecentTrades(limit: number = 1000) {
   const { user } = useAuth()
   const [trades, setTrades] = useState<TradeRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -245,7 +245,7 @@ export function AnalyticsPage() {
   // Use real analytics + positions
   const { analytics, isLoading: analyticsLoading } = usePortfolioAnalytics(60000)
   const { positions, summary: posSummary, isLoading: positionsLoading } = usePortfolioPositions(30000)
-  const { trades: recentTrades, loading: tradesLoading } = useRecentTrades(15)
+  const { trades: recentTrades, loading: tradesLoading } = useRecentTrades(1000)
 
   const isLoading = analyticsLoading || positionsLoading
 
@@ -302,13 +302,65 @@ export function AnalyticsPage() {
     return []
   }, [positions, analytics?.performanceBySymbol])
 
-  // Market movers from current positions by % change (unrealizedPnLPercent)
-  const marketMovers = useMemo(() => {
-    const sorted = [...positions].sort((a, b) => b.unrealizedPnLPercent - a.unrealizedPnLPercent)
-    const gainers = sorted.filter(p => p.unrealizedPnLPercent > 0).slice(0, 5).map(p => ({ symbol: p.symbol, price: p.currentPrice, change: +p.unrealizedPnLPercent.toFixed(2) }))
-    const losers = [...positions].sort((a, b) => a.unrealizedPnLPercent - b.unrealizedPnLPercent).filter(p => p.unrealizedPnLPercent < 0).slice(0, 5).map(p => ({ symbol: p.symbol, price: p.currentPrice, change: +p.unrealizedPnLPercent.toFixed(2) }))
+  // Top historical trades by percentage gain/loss
+  const topTrades = useMemo(() => {
+    if (!recentTrades || recentTrades.length === 0) {
+      return { gainers: [], losers: [] }
+    }
+    
+    // Calculate percentage gain/loss for closed trades
+    const closedWithPercent = recentTrades
+      .filter(t => t.exit_price && t.exit_date && t.status === 'closed')
+      .map(t => {
+        const assetType = String(t.asset_type || 'stock').toLowerCase()
+        let percentChange = 0
+        
+        if (t.side === 'buy') {
+          // Long position: (exit - entry) / entry * 100
+          percentChange = ((t.exit_price! - t.entry_price) / t.entry_price) * 100
+        } else {
+          // Short position: (entry - exit) / entry * 100
+          percentChange = ((t.entry_price - t.exit_price!) / t.entry_price) * 100
+        }
+        
+        return {
+          symbol: t.symbol,
+          entryPrice: t.entry_price,
+          exitPrice: t.exit_price!,
+          side: t.side,
+          percentChange,
+          assetType
+        }
+      })
+      .sort((a, b) => b.percentChange - a.percentChange)
+    
+    const gainers = closedWithPercent
+      .filter(t => t.percentChange > 0)
+      .slice(0, 5)
+      .map(t => ({
+        symbol: t.symbol,
+        entry: t.entryPrice,
+        exit: t.exitPrice,
+        change: +t.percentChange.toFixed(2),
+        side: t.side,
+        type: t.assetType
+      }))
+    
+    const losers = closedWithPercent
+      .filter(t => t.percentChange < 0)
+      .sort((a, b) => a.percentChange - b.percentChange)
+      .slice(0, 5)
+      .map(t => ({
+        symbol: t.symbol,
+        entry: t.entryPrice,
+        exit: t.exitPrice,
+        change: +t.percentChange.toFixed(2),
+        side: t.side,
+        type: t.assetType
+      }))
+    
     return { gainers, losers }
-  }, [positions])
+  }, [recentTrades])
 
   // Monthly P&L - ensure proper formatting
   const monthly = useMemo(() => {
@@ -337,46 +389,59 @@ export function AnalyticsPage() {
 
   const expectancy = useMemo(() => calcExpectancy(winRate, analytics?.avgWin || 0, analytics?.avgLoss || 0), [winRate, analytics?.avgWin, analytics?.avgLoss])
 
-  // Candlestick demo (kept for price chart aesthetic); this does not use real OHLC yet
-  const [timeframe, setTimeframe] = useState<"1D" | "1W" | "1M" | "3M" | "1Y" | "All">("All")
-  const baseCandles = useMemo(() => {
-    switch (timeframe) {
-      case "1D":
-        return genOHLC(100, 78, "10:00")
-      case "1W":
-        return genOHLC(100, 5 * 8, "D")
-      case "1M":
-        return genOHLC(100, 22, "D")
-      case "3M":
-        return genOHLC(100, 66, "D")
-      case "1Y":
-        return genOHLC(100, 52, "W")
-      case "All":
-        return genOHLC(100, 260, "W") // 5 years of weekly data
-      default:
-        return genOHLC(100, 22, "D")
+  // Generate equity curve as candlesticks from monthly P&L data
+  const equityCandles = useMemo(() => {
+    if (!analytics?.monthlyReturns || analytics.monthlyReturns.length === 0) {
+      // Return demo data if no real data
+      return genOHLC(INITIAL_CAPITAL, 12, "Month")
     }
-  }, [timeframe])
-  const [liveOHLC, setLiveOHLC] = useState<Candle[]>(baseCandles)
-  useEffect(() => setLiveOHLC(baseCandles), [baseCandles])
-  useEffect(() => {
-    if (timeframe !== "1D") return
-    const id = setInterval(() => {
-      setLiveOHLC(prev => {
-        if (!prev.length) return prev
-        const last = prev[prev.length - 1]
-        const move = (Math.random() - 0.5) * 0.4
-        const close = Math.max(1, last.close * (1 + move / 100))
-        const high = Math.max(last.high, close + Math.random() * 0.1)
-        const low = Math.min(last.low, close - Math.random() * 0.1)
-        const updated = [...prev]
-        updated[updated.length - 1] = { ...last, close, high, low }
-        return updated
+    
+    let runningEquity = INITIAL_CAPITAL
+    const candles: Candle[] = []
+    
+    // Group by period based on available data
+    const sortedMonths = [...analytics.monthlyReturns].sort((a, b) => 
+      a.month.localeCompare(b.month)
+    )
+    
+    sortedMonths.forEach((month, idx) => {
+      const startEquity = runningEquity
+      const monthPnL = month.pnl || 0
+      const endEquity = startEquity + monthPnL
+      
+      // For OHLC, we'll simulate intra-month volatility based on the final P&L
+      // This gives a more realistic view of potential drawdowns/peaks
+      const volatility = Math.abs(monthPnL) * 0.5 // Assume 50% of the move as potential volatility
+      
+      let high, low
+      if (monthPnL >= 0) {
+        // Profitable month - high is above close, low might dip below open
+        high = endEquity + volatility * 0.3
+        low = Math.min(startEquity - volatility * 0.2, endEquity - volatility * 0.1)
+      } else {
+        // Losing month - low is below close, high might peak above open
+        high = Math.max(startEquity + volatility * 0.2, endEquity + volatility * 0.1)
+        low = endEquity - volatility * 0.3
+      }
+      
+      // Ensure high/low are sensible
+      high = Math.max(high, Math.max(startEquity, endEquity))
+      low = Math.min(low, Math.min(startEquity, endEquity))
+      
+      candles.push({
+        t: month.month,
+        open: startEquity,
+        high: high,
+        low: low,
+        close: endEquity,
+        volume: month.trades // Use trade count as volume
       })
-    }, 1800)
-    return () => clearInterval(id)
-  }, [timeframe])
-  const candles = timeframe === "1D" ? liveOHLC : baseCandles
+      
+      runningEquity = endEquity
+    })
+    
+    return candles
+  }, [analytics?.monthlyReturns])
 
   // Pie labels safe percent
   const renderPieLabel = ({ name, percent }: any) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
@@ -388,19 +453,6 @@ export function AnalyticsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white">Analytics</h1>
           <p className="text-[#9CA3AF]">Comprehensive trading analytics with your real data</p>
-        </div>
-        <div className="flex items-center gap-2" role="tablist" aria-label="Select timeframe">
-          {["1D","1W","1M","3M","1Y","All"].map(tf => (
-            <button key={tf}
-              role="tab"
-              aria-selected={timeframe === tf}
-              tabIndex={0}
-              onClick={() => setTimeframe(tf as any)}
-              className={`px-3 py-1.5 rounded-md text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:ring-[#00C896] ${
-                timeframe === tf ? "bg-[#2D2D2D] text-white" : "bg-[#1E1E1E] text-[#9CA3AF] hover:text-white"
-              }`}
-            >{tf}</button>
-          ))}
         </div>
       </div>
 
@@ -442,8 +494,8 @@ export function AnalyticsPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Price Candlestick</CardTitle>
-                <CardDescription className="text-[#9CA3AF]">Interactive OHLC with multiple timeframes</CardDescription>
+                <CardTitle className="text-white">Equity Curve Candlesticks</CardTitle>
+                <CardDescription className="text-[#9CA3AF]">Your portfolio value as OHLC candles by month</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -455,13 +507,32 @@ export function AnalyticsPage() {
               }}
               className="h-[360px] w-full"
             >
-              <ComposedChart data={candles} margin={{ top: 10, left: 0, right: 12, bottom: 0 }}>
+              <ComposedChart data={equityCandles} margin={{ top: 10, left: 0, right: 12, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.grid} opacity={0.25} vertical={false} />
-                <XAxis dataKey="t" tick={{ fill: COLORS.subtext, fontSize: 12 }} axisLine={{ stroke: COLORS.grid }} tickLine={false} minTickGap={22} />
-                <YAxis domain={["auto", "auto"]} tick={{ fill: COLORS.subtext, fontSize: 12 }} axisLine={{ stroke: COLORS.grid }} tickLine={false} width={64} />
+                <XAxis 
+                  dataKey="t" 
+                  tick={{ fill: COLORS.subtext, fontSize: 11 }} 
+                  axisLine={{ stroke: COLORS.grid }} 
+                  tickLine={false} 
+                  minTickGap={22}
+                  tickFormatter={(value) => {
+                    // Format as MMM-YY
+                    const [year, month] = value.split('-')
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                    return month ? `${monthNames[parseInt(month) - 1]}-${year.slice(2)}` : value
+                  }}
+                />
+                <YAxis 
+                  domain={["auto", "auto"]} 
+                  tick={{ fill: COLORS.subtext, fontSize: 11 }} 
+                  axisLine={{ stroke: COLORS.grid }} 
+                  tickLine={false} 
+                  width={72}
+                  tickFormatter={(value) => `${value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}`}
+                />
                 {/* Transparent Bar to enable tooltip hitboxes */}
                 <Bar dataKey="close" fill="transparent" barSize={8} />
-                <CandlestickSeries data={candles} colorUp={COLORS.gain} colorDown={COLORS.loss} />
+                <CandlestickSeries data={equityCandles} colorUp={COLORS.gain} colorDown={COLORS.loss} />
                 <ChartTooltip
                   cursor={{ stroke: COLORS.grid, strokeOpacity: 0.35 }}
                   content={
@@ -469,18 +540,42 @@ export function AnalyticsPage() {
                       formatter={(value: any, _name: any, item: any) => {
                         const d: Candle = item?.payload
                         if (!d) return null
+                        const pnl = d.close - d.open
+                        const pnlPercent = d.open !== 0 ? (pnl / d.open) * 100 : 0
+                        const monthName = (() => {
+                          if (d.t.includes('-')) {
+                            const [year, month] = d.t.split('-')
+                            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                            return `${monthNames[parseInt(month) - 1]} ${year}`
+                          }
+                          return d.t
+                        })()
                         return (
                           <div className="grid gap-1">
-                            <div className="text-xs text-[#9CA3AF]">{d.t}</div>
+                            <div className="text-xs text-[#9CA3AF] font-semibold">{monthName}</div>
                             <div className="grid grid-cols-2 gap-x-4 text-xs">
                               <span className="text-[#9CA3AF]">Open</span>
-                              <span className="text-white justify-self-end">{d.open.toFixed(2)}</span>
+                              <span className="text-white justify-self-end">{formatCurrency(d.open)}</span>
                               <span className="text-[#9CA3AF]">High</span>
-                              <span className="text-white justify-self-end">{d.high.toFixed(2)}</span>
+                              <span className="text-white justify-self-end">{formatCurrency(d.high)}</span>
                               <span className="text-[#9CA3AF]">Low</span>
-                              <span className="text-white justify-self-end">{d.low.toFixed(2)}</span>
+                              <span className="text-white justify-self-end">{formatCurrency(d.low)}</span>
                               <span className="text-[#9CA3AF]">Close</span>
-                              <span className="text-white justify-self-end">{d.close.toFixed(2)}</span>
+                              <span className="text-white justify-self-end">{formatCurrency(d.close)}</span>
+                              <span className="text-[#9CA3AF]">P&L</span>
+                              <span className={`justify-self-end font-semibold ${pnl >= 0 ? 'text-[#00C896]' : 'text-[#FF6B6B]'}`}>
+                                {pnl >= 0 ? '+' : ''}{formatCurrency(Math.abs(pnl))}
+                              </span>
+                              <span className="text-[#9CA3AF]">Change</span>
+                              <span className={`justify-self-end ${pnl >= 0 ? 'text-[#00C896]' : 'text-[#FF6B6B]'}`}>
+                                {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+                              </span>
+                              {d.volume && (
+                                <>
+                                  <span className="text-[#9CA3AF]">Trades</span>
+                                  <span className="text-white justify-self-end">{d.volume}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         )
@@ -571,58 +666,80 @@ export function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm" aria-label="Market movers gainers">
+        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm" aria-label="Top winning trades">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Top Gainers</CardTitle>
-                <CardDescription className="text-[#9CA3AF]">Based on unrealized % change</CardDescription>
+                <CardTitle className="text-white">Top Winners</CardTitle>
+                <CardDescription className="text-[#9CA3AF]">Best trades by % gain</CardDescription>
               </div>
               <TrendingUp className="h-5 w-5 text-[#00C896]" />
             </div>
           </CardHeader>
           <CardContent className="pt-2">
             <div className="space-y-2">
-              {marketMovers.gainers.map((m) => (
-                <div key={m.symbol} className="flex items-center justify-between p-2 rounded-md bg-[#2D2D2D] hover:bg-[#323232] transition-colors" role="listitem">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-[#00C896]" />
-                    <span className="text-white font-medium">{m.symbol}</span>
+              {topTrades.gainers.length > 0 ? (
+                topTrades.gainers.map((t, idx) => (
+                  <div key={`${t.symbol}-${idx}`} className="flex items-center justify-between p-2 rounded-md bg-[#2D2D2D] hover:bg-[#323232] transition-colors" role="listitem">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-[#00C896]" />
+                      <div>
+                        <span className="text-white font-medium">{t.symbol}</span>
+                        <span className="text-[#9CA3AF] text-xs ml-1">
+                          {t.type === 'option' ? 'OPT' : t.type === 'futures' ? 'FUT' : t.type === 'crypto' ? 'CRYPTO' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[#00C896] text-sm font-semibold">+{t.change}%</div>
+                      <div className="text-[#9CA3AF] text-xs">
+                        {t.side === 'buy' ? 'Long' : 'Short'}: ${t.entry.toFixed(2)} → ${t.exit.toFixed(2)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-white text-sm">{formatCurrency(m.price)}</div>
-                    <div className="text-[#00C896] text-xs">+{m.change}%</div>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-center text-[#9CA3AF] py-4">No winning trades yet</div>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm" aria-label="Market movers losers">
+        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm" aria-label="Top losing trades">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Top Losers</CardTitle>
-                <CardDescription className="text-[#9CA3AF]">Based on unrealized % change</CardDescription>
+                <CardTitle className="text-white">Biggest Losses</CardTitle>
+                <CardDescription className="text-[#9CA3AF]">Worst trades by % loss</CardDescription>
               </div>
               <TrendingDown className="h-5 w-5 text-[#FF6B6B]" />
             </div>
           </CardHeader>
           <CardContent className="pt-2">
             <div className="space-y-2">
-              {marketMovers.losers.map((m) => (
-                <div key={m.symbol} className="flex items-center justify-between p-2 rounded-md bg-[#2D2D2D] hover:bg-[#323232] transition-colors" role="listitem">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-[#FF6B6B]" />
-                    <span className="text-white font-medium">{m.symbol}</span>
+              {topTrades.losers.length > 0 ? (
+                topTrades.losers.map((t, idx) => (
+                  <div key={`${t.symbol}-${idx}`} className="flex items-center justify-between p-2 rounded-md bg-[#2D2D2D] hover:bg-[#323232] transition-colors" role="listitem">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-[#FF6B6B]" />
+                      <div>
+                        <span className="text-white font-medium">{t.symbol}</span>
+                        <span className="text-[#9CA3AF] text-xs ml-1">
+                          {t.type === 'option' ? 'OPT' : t.type === 'futures' ? 'FUT' : t.type === 'crypto' ? 'CRYPTO' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[#FF6B6B] text-sm font-semibold">{t.change}%</div>
+                      <div className="text-[#9CA3AF] text-xs">
+                        {t.side === 'buy' ? 'Long' : 'Short'}: ${t.entry.toFixed(2)} → ${t.exit.toFixed(2)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-white text-sm">{formatCurrency(m.price)}</div>
-                    <div className="text-[#FF6B6B] text-xs">{m.change}%</div>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-center text-[#9CA3AF] py-4">No losing trades yet</div>
+              )}
             </div>
           </CardContent>
         </Card>
