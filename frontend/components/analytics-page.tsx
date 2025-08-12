@@ -257,15 +257,28 @@ export function AnalyticsPage() {
 
   const winRate = analytics?.winRate || 0
 
-  // Asset allocation from positions (by market value %)
+  // Asset allocation - if no positions, show by symbol performance
   const allocation = useMemo(() => {
-    const total = positions.reduce((s, p) => s + p.marketValue, 0)
-    if (total <= 0) return [] as { name: string; value: number; color: string }[]
-    const colors = ["#00C896", "#13B981", "#0EA5A6", "#37C99E", "#06796B", "#34D399", "#10B981", "#0891B2"]
-    return positions
-      .slice(0, 8)
-      .map((p, i) => ({ name: p.symbol, value: +(p.marketValue / total * 100).toFixed(2), color: colors[i % colors.length] }))
-  }, [positions])
+    if (positions.length > 0) {
+      const total = positions.reduce((s, p) => s + p.marketValue, 0)
+      if (total <= 0) return []
+      const colors = ["#00C896", "#13B981", "#0EA5A6", "#37C99E", "#06796B", "#34D399", "#10B981", "#0891B2"]
+      return positions
+        .slice(0, 8)
+        .map((p, i) => ({ name: p.symbol, value: +(p.marketValue / total * 100).toFixed(2), color: colors[i % colors.length] }))
+    } else if (analytics?.performanceBySymbol && analytics.performanceBySymbol.length > 0) {
+      // Show top traded symbols by trade count
+      const colors = ["#00C896", "#13B981", "#0EA5A6", "#37C99E", "#06796B", "#34D399", "#10B981", "#0891B2"]
+      const topSymbols = analytics.performanceBySymbol.slice(0, 8)
+      const totalTrades = topSymbols.reduce((s, p) => s + p.trades, 0)
+      return topSymbols.map((p, i) => ({ 
+        name: p.symbol, 
+        value: +(p.trades / totalTrades * 100).toFixed(2), 
+        color: colors[i % colors.length] 
+      }))
+    }
+    return []
+  }, [positions, analytics?.performanceBySymbol])
 
   // Market movers from current positions by % change (unrealizedPnLPercent)
   const marketMovers = useMemo(() => {
@@ -275,8 +288,24 @@ export function AnalyticsPage() {
     return { gainers, losers }
   }, [positions])
 
-  // Monthly P&L real
-  const monthly = analytics?.monthlyReturns || []
+  // Monthly P&L - ensure proper formatting
+  const monthly = useMemo(() => {
+    if (!analytics?.monthlyReturns || analytics.monthlyReturns.length === 0) {
+      // Generate empty months for current year if no data
+      const currentYear = new Date().getFullYear()
+      const months = []
+      for (let i = 0; i < 12; i++) {
+        const date = new Date(currentYear, i, 1)
+        months.push({
+          month: date.toISOString().substring(0, 7),
+          pnl: 0,
+          trades: 0
+        })
+      }
+      return months
+    }
+    return analytics.monthlyReturns
+  }, [analytics?.monthlyReturns])
 
   // Additional performance computations
   const vol = useMemo(() => {
@@ -446,21 +475,29 @@ export function AnalyticsPage() {
             <CardDescription className="text-[#9CA3AF]">Portfolio distribution (by market value)</CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
-            <ChartContainer
-              config={{ alloc: { color: COLORS.gain, label: "Allocation" } }}
-              className="h-[360px] w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={allocation} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} labelLine={false} label={renderPieLabel}>
-                    {allocation.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RTooltip contentStyle={{ background: COLORS.bgDark, border: `1px solid ${COLORS.bgMuted}` }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {allocation.length > 0 ? (
+              <ChartContainer
+                config={{ alloc: { color: COLORS.gain, label: "Allocation" } }}
+                className="h-[360px] w-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={allocation} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} labelLine={false} label={renderPieLabel}>
+                      {allocation.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RTooltip contentStyle={{ background: COLORS.bgDark, border: `1px solid ${COLORS.bgMuted}` }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-[360px] w-full flex items-center justify-center">
+                <p className="text-[#9CA3AF] text-center">
+                  {positions.length === 0 ? "No open positions" : "No data available"}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -629,14 +666,39 @@ export function AnalyticsPage() {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthly} margin={{ top: 10, left: 0, right: 8, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.grid} opacity={0.25} vertical={false} />
-                <XAxis dataKey="month" tick={{ fill: COLORS.subtext }} axisLine={{ stroke: COLORS.grid }} tickLine={false} />
-                <YAxis tick={{ fill: COLORS.subtext }} axisLine={{ stroke: COLORS.grid }} tickLine={false} width={64} />
+                <XAxis 
+                  dataKey="month" 
+                  tick={{ fill: COLORS.subtext, fontSize: 11 }} 
+                  axisLine={{ stroke: COLORS.grid }} 
+                  tickLine={false}
+                  tickFormatter={(value) => {
+                    // Format as MMM-YY
+                    const [year, month] = value.split('-')
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                    return `${monthNames[parseInt(month) - 1]}-${year.slice(2)}`
+                  }}
+                />
+                <YAxis 
+                  tick={{ fill: COLORS.subtext, fontSize: 11 }} 
+                  axisLine={{ stroke: COLORS.grid }} 
+                  tickLine={false} 
+                  width={64}
+                  tickFormatter={(value) => `${value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}`}
+                />
                 <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                   {monthly.map((d, i) => (
                     <Cell key={`cell-${i}`} fill={(d.pnl || 0) >= 0 ? COLORS.gain : COLORS.loss} />
                   ))}
                 </Bar>
-                <RTooltip contentStyle={{ background: COLORS.bgDark, border: `1px solid ${COLORS.bgMuted}` }} />
+                <RTooltip 
+                  contentStyle={{ background: COLORS.bgDark, border: `1px solid ${COLORS.bgMuted}` }}
+                  formatter={(value: any) => formatCurrency(Number(value))}
+                  labelFormatter={(label) => {
+                    const [year, month] = label.split('-')
+                    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                    return `${monthNames[parseInt(month) - 1]} ${year}`
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -653,15 +715,67 @@ export function AnalyticsPage() {
           <CardContent className="pt-2">
             {(() => {
               let cum = 0
-              const data = (monthly || []).map(m => ({ t: m.month, equity: (cum += (m.pnl || 0)) }))
+              const data = monthly.map(m => ({ 
+                t: m.month, 
+                equity: (cum += (m.pnl || 0)),
+                monthlyPnL: m.pnl || 0
+              }))
+              
+              // Add initial point if we have data
+              if (data.length > 0 && data[0].equity !== 0) {
+                const firstMonth = data[0].t
+                const [year, month] = firstMonth.split('-')
+                const prevMonth = new Date(parseInt(year), parseInt(month) - 2, 1)
+                data.unshift({
+                  t: prevMonth.toISOString().substring(0, 7),
+                  equity: 0,
+                  monthlyPnL: 0
+                })
+              }
+              
               return (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={data} margin={{ top: 10, left: 0, right: 8, bottom: 0 }}>
                     <CartesianGrid stroke={COLORS.grid} opacity={0.25} vertical={false} />
-                    <XAxis dataKey="t" tick={{ fill: COLORS.subtext }} axisLine={{ stroke: COLORS.grid }} tickLine={false} minTickGap={22} />
-                    <YAxis tick={{ fill: COLORS.subtext }} axisLine={{ stroke: COLORS.grid }} tickLine={false} width={64} tickFormatter={(v) => formatCurrency(Number(v))} />
-                    <Line type="monotone" dataKey="equity" stroke={COLORS.gain} strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
-                    <RTooltip contentStyle={{ background: COLORS.bgDark, border: `1px solid ${COLORS.bgMuted}` }} formatter={(v: any) => formatCurrency(Number(v))} />
+                    <XAxis 
+                      dataKey="t" 
+                      tick={{ fill: COLORS.subtext, fontSize: 11 }} 
+                      axisLine={{ stroke: COLORS.grid }} 
+                      tickLine={false} 
+                      minTickGap={22}
+                      tickFormatter={(value) => {
+                        const [year, month] = value.split('-')
+                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        return `${monthNames[parseInt(month) - 1]}-${year.slice(2)}`
+                      }}
+                    />
+                    <YAxis 
+                      tick={{ fill: COLORS.subtext, fontSize: 11 }} 
+                      axisLine={{ stroke: COLORS.grid }} 
+                      tickLine={false} 
+                      width={64} 
+                      tickFormatter={(v) => `${v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="equity" 
+                      stroke={COLORS.gain} 
+                      strokeWidth={2} 
+                      dot={{ fill: COLORS.gain, r: 3 }} 
+                      activeDot={{ r: 5 }}
+                    />
+                    <RTooltip 
+                      contentStyle={{ background: COLORS.bgDark, border: `1px solid ${COLORS.bgMuted}` }}
+                      formatter={(value: any, name: string) => {
+                        if (name === 'equity') return [`Cumulative: ${formatCurrency(Number(value))}`, '']
+                        return [formatCurrency(Number(value)), name]
+                      }}
+                      labelFormatter={(label) => {
+                        const [year, month] = label.split('-')
+                        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                        return `${monthNames[parseInt(month) - 1]} ${year}`
+                      }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               )
