@@ -316,7 +316,7 @@ export function AnalyticsPage() {
   const expectancy = useMemo(() => calcExpectancy(winRate, analytics?.avgWin || 0, analytics?.avgLoss || 0), [winRate, analytics?.avgWin, analytics?.avgLoss])
 
   // Candlestick demo (kept for price chart aesthetic); this does not use real OHLC yet
-  const [timeframe, setTimeframe] = useState<"1D" | "1W" | "1M" | "3M" | "1Y">("1M")
+  const [timeframe, setTimeframe] = useState<"1D" | "1W" | "1M" | "3M" | "1Y" | "All">("All")
   const baseCandles = useMemo(() => {
     switch (timeframe) {
       case "1D":
@@ -329,6 +329,8 @@ export function AnalyticsPage() {
         return genOHLC(100, 66, "D")
       case "1Y":
         return genOHLC(100, 52, "W")
+      case "All":
+        return genOHLC(100, 260, "W") // 5 years of weekly data
       default:
         return genOHLC(100, 22, "D")
     }
@@ -366,7 +368,7 @@ export function AnalyticsPage() {
           <p className="text-[#9CA3AF]">Comprehensive trading analytics with your real data</p>
         </div>
         <div className="flex items-center gap-2" role="tablist" aria-label="Select timeframe">
-          {["1D","1W","1M","3M","1Y"].map(tf => (
+          {["1D","1W","1M","3M","1Y","All"].map(tf => (
             <button key={tf}
               role="tab"
               aria-selected={timeframe === tf}
