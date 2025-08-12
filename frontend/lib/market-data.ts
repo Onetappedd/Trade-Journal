@@ -277,7 +277,6 @@ class MarketDataService {
         .from('trades')
         .select('*')
         .eq('user_id', userId)
-        .eq('status', 'open')
 
       if (error) throw error
 
