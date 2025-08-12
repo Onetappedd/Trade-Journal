@@ -26,6 +26,8 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { usePortfolioAnalytics, usePortfolioPositions } from "@/hooks/usePortfolio"
+import { useAuth } from "@/components/auth/auth-provider"
+import { createClient } from "@/lib/supabase"
 
 // --- THEME ---
 const COLORS = {
@@ -193,34 +195,46 @@ function CandlestickSeries({ data, colorUp, colorDown }: { data: Candle[]; color
 
 // Fetch recent trades from API (server-authenticated)
 function useRecentTrades(limit: number = 15) {
+  const { user } = useAuth()
   const [trades, setTrades] = useState<TradeRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
+    const supabase = createClient()
+
     async function fetchTrades() {
       try {
+        if (!user) {
+          setTrades([])
+          setLoading(false)
+          return
+        }
         setLoading(true)
-        const res = await fetch(`/api/trades?limit=${limit}`)
-        if (!res.ok) throw new Error("Failed to fetch trades")
-        const json = await res.json()
+        const { data, error } = await supabase
+          .from("trades")
+          .select("id, symbol, side, quantity, entry_price, entry_date, exit_price, exit_date, status")
+          .eq("user_id", user.id)
+          .order("entry_date", { ascending: false })
+          .limit(limit)
+        if (error) throw error
         if (!mounted) return
-        const rows: TradeRow[] = (json?.data || json) as any
-        setTrades(rows)
+        setTrades((data as any) || [])
       } catch (e: any) {
         if (mounted) setError(e.message || "Error fetching trades")
       } finally {
         if (mounted) setLoading(false)
       }
     }
+
     fetchTrades()
     const id = setInterval(fetchTrades, 30000)
     return () => {
       mounted = false
       clearInterval(id)
     }
-  }, [limit])
+  }, [user?.id, limit])
 
   return { trades, loading, error }
 }
