@@ -196,7 +196,7 @@ function CandlestickSeries({ data, colorUp, colorDown }: { data: Candle[]; color
 }
 
 // Fetch all trades for top gainers/losers calculation
-function useRecentTrades(limit: number = 1000) {
+function useRecentTrades(limit: number = 5000) {
   const { user } = useAuth()
   const [trades, setTrades] = useState<TradeRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -218,7 +218,7 @@ function useRecentTrades(limit: number = 1000) {
           .from("trades")
           .select("id, symbol, side, quantity, entry_price, entry_date, exit_price, exit_date, status, asset_type, multiplier")
           .eq("user_id", user.id)
-          .order("entry_date", { ascending: false })
+          .order("exit_date", { ascending: false })
           .limit(limit)
         if (error) throw error
         if (!mounted) return
@@ -308,26 +308,30 @@ export function AnalyticsPage() {
       return { gainers: [], losers: [] }
     }
     
-    // Calculate percentage gain/loss for closed trades
+    // Calculate percentage gain/loss for trades that have exits (don't rely on status)
     const closedWithPercent = recentTrades
-      .filter(t => t.exit_price && t.exit_date && t.status === 'closed')
+      .filter(t => t.exit_price != null && t.exit_date != null)
+      .filter(t => t.entry_price && t.entry_price !== 0)
       .map(t => {
+        const side = String(t.side || '').toLowerCase()
         const assetType = String(t.asset_type || 'stock').toLowerCase()
+        const entry = Number(t.entry_price)
+        const exit = Number(t.exit_price)
         let percentChange = 0
         
-        if (t.side === 'buy') {
+        if (side === 'buy') {
           // Long position: (exit - entry) / entry * 100
-          percentChange = ((t.exit_price! - t.entry_price) / t.entry_price) * 100
+          percentChange = ((exit - entry) / entry) * 100
         } else {
           // Short position: (entry - exit) / entry * 100
-          percentChange = ((t.entry_price - t.exit_price!) / t.entry_price) * 100
+          percentChange = ((entry - exit) / entry) * 100
         }
         
         return {
           symbol: t.symbol,
-          entryPrice: t.entry_price,
-          exitPrice: t.exit_price!,
-          side: t.side,
+          entryPrice: entry,
+          exitPrice: exit,
+          side: side,
           percentChange,
           assetType
         }
@@ -490,7 +494,7 @@ export function AnalyticsPage() {
 
       {/* Charts and Allocation */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
-        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2" aria-label="Price chart">
+        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2" aria-label="Equity curve candlestick chart">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -500,14 +504,15 @@ export function AnalyticsPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <ChartContainer
-              config={{
-                up: { color: COLORS.gain, label: "Up" },
-                down: { color: COLORS.loss, label: "Down" },
-              }}
-              className="h-[360px] w-full"
-            >
-              <ComposedChart data={equityCandles} margin={{ top: 10, left: 0, right: 12, bottom: 0 }}>
+            {equityCandles.length > 0 ? (
+              <ChartContainer
+                config={{
+                  up: { color: COLORS.gain, label: "Up" },
+                  down: { color: COLORS.loss, label: "Down" },
+                }}
+                className="h-[360px] w-full"
+              >
+                <ComposedChart data={equityCandles} margin={{ top: 10, left: 0, right: 12, bottom: 0 }}>
                 <CartesianGrid stroke={COLORS.grid} opacity={0.25} vertical={false} />
                 <XAxis 
                   dataKey="t" 
@@ -585,6 +590,11 @@ export function AnalyticsPage() {
                 />
               </ComposedChart>
             </ChartContainer>
+            ) : (
+              <div className="h-[360px] w-full flex items-center justify-center">
+                <p className="text-[#9CA3AF]">No equity data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
