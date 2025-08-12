@@ -28,6 +28,8 @@ import {
 import { usePortfolioAnalytics, usePortfolioPositions } from "@/hooks/usePortfolio"
 import { useAuth } from "@/components/auth/auth-provider"
 import { createClient } from "@/lib/supabase"
+import { PortfolioPerformance } from "@/components/dashboard/PortfolioPerformance"
+import { calculatePortfolioHistory, type PortfolioDataPoint } from "@/lib/portfolio-history"
 
 // --- THEME ---
 const COLORS = {
@@ -252,6 +254,26 @@ export function AnalyticsPage() {
   const { trades: recentTrades, loading: tradesLoading } = useRecentTrades(1000)
 
   const isLoading = analyticsLoading || positionsLoading
+
+  // Robinhood-style equity curve data (daily equity history)
+  const [equityHistory, setEquityHistory] = useState<PortfolioDataPoint[]>([])
+  const [equityLoading, setEquityLoading] = useState(false)
+  const { user } = useAuth()
+  useEffect(() => {
+    let mounted = true
+    async function loadEquity() {
+      try {
+        if (!user?.id) return
+        setEquityLoading(true)
+        const data = await calculatePortfolioHistory(user.id)
+        if (!mounted) return
+        setEquityHistory(data)
+      } finally {
+        if (mounted) setEquityLoading(false)
+      }
+    }
+    loadEquity()
+  }, [user?.id])
 
   // Overview metrics (real data)
   // Get initial capital (default to 10000 if not set)
@@ -526,107 +548,19 @@ export function AnalyticsPage() {
 
       {/* Charts and Allocation */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
-        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2" aria-label="Equity curve candlestick chart">
+        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2" aria-label="Equity performance chart">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Equity Curve Candlesticks</CardTitle>
-                <CardDescription className="text-[#9CA3AF]">Your portfolio value as OHLC candles by month</CardDescription>
+                <CardTitle className="text-white">Equity Performance</CardTitle>
+                <CardDescription className="text-[#9CA3AF]">Robinhood-style P&L with timeframe filters</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="pt-2">
-            {equityCandles.length > 0 ? (
-              <ChartContainer
-                config={{
-                  up: { color: COLORS.gain, label: "Up" },
-                  down: { color: COLORS.loss, label: "Down" },
-                }}
-                className="h-[360px] w-full"
-              >
-                <ComposedChart data={equityCandles} margin={{ top: 10, left: 0, right: 12, bottom: 0 }}>
-                <CartesianGrid stroke={COLORS.grid} opacity={0.25} vertical={false} />
-                <XAxis 
-                  dataKey="t" 
-                  tick={{ fill: COLORS.subtext, fontSize: 11 }} 
-                  axisLine={{ stroke: COLORS.grid }} 
-                  tickLine={false} 
-                  minTickGap={22}
-                  tickFormatter={(value) => {
-                    // Format as MMM-YY
-                    const [year, month] = value.split('-')
-                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                    return month ? `${monthNames[parseInt(month) - 1]}-${year.slice(2)}` : value
-                  }}
-                />
-                <YAxis 
-                  domain={["auto", "auto"]} 
-                  tick={{ fill: COLORS.subtext, fontSize: 11 }} 
-                  axisLine={{ stroke: COLORS.grid }} 
-                  tickLine={false} 
-                  width={72}
-                  tickFormatter={(value) => `${value >= 1000 ? `${(value/1000).toFixed(1)}k` : value}`}
-                />
-                {/* Transparent Bar to enable tooltip hitboxes */}
-                <Bar dataKey="close" fill="transparent" barSize={8} />
-                <CandlestickSeries data={equityCandles} colorUp={COLORS.gain} colorDown={COLORS.loss} />
-                <ChartTooltip
-                  cursor={{ stroke: COLORS.grid, strokeOpacity: 0.35 }}
-                  content={
-                    <ChartTooltipContent
-                      formatter={(value: any, _name: any, item: any) => {
-                        const d: Candle = item?.payload
-                        if (!d) return null
-                        const pnl = d.close - d.open
-                        const pnlPercent = d.open !== 0 ? (pnl / d.open) * 100 : 0
-                        const monthName = (() => {
-                          if (d.t.includes('-')) {
-                            const [year, month] = d.t.split('-')
-                            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-                            return `${monthNames[parseInt(month) - 1]} ${year}`
-                          }
-                          return d.t
-                        })()
-                        return (
-                          <div className="grid gap-1">
-                            <div className="text-xs text-[#9CA3AF] font-semibold">{monthName}</div>
-                            <div className="grid grid-cols-2 gap-x-4 text-xs">
-                              <span className="text-[#9CA3AF]">Open</span>
-                              <span className="text-white justify-self-end">{formatCurrency(d.open)}</span>
-                              <span className="text-[#9CA3AF]">High</span>
-                              <span className="text-white justify-self-end">{formatCurrency(d.high)}</span>
-                              <span className="text-[#9CA3AF]">Low</span>
-                              <span className="text-white justify-self-end">{formatCurrency(d.low)}</span>
-                              <span className="text-[#9CA3AF]">Close</span>
-                              <span className="text-white justify-self-end">{formatCurrency(d.close)}</span>
-                              <span className="text-[#9CA3AF]">P&L</span>
-                              <span className={`justify-self-end font-semibold ${pnl >= 0 ? 'text-[#00C896]' : 'text-[#FF6B6B]'}`}>
-                                {pnl >= 0 ? '+' : ''}{formatCurrency(Math.abs(pnl))}
-                              </span>
-                              <span className="text-[#9CA3AF]">Change</span>
-                              <span className={`justify-self-end ${pnl >= 0 ? 'text-[#00C896]' : 'text-[#FF6B6B]'}`}>
-                                {pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
-                              </span>
-                              {d.volume && (
-                                <>
-                                  <span className="text-[#9CA3AF]">Trades</span>
-                                  <span className="text-white justify-self-end">{d.volume}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      }}
-                    />
-                  }
-                />
-              </ComposedChart>
-            </ChartContainer>
-            ) : (
-              <div className="h-[360px] w-full flex items-center justify-center">
-                <p className="text-[#9CA3AF]">No equity data available</p>
-              </div>
-            )}
+            <div className="h-[360px] w-full">
+              <PortfolioPerformance data={equityHistory} initialValue={INITIAL_CAPITAL} />
+            </div>
           </CardContent>
         </Card>
 
@@ -888,84 +822,6 @@ export function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Equity curve (derived from monthly cumulative P&L) */}
-      <div className="grid grid-cols-1 gap-4 mt-4">
-        <Card className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm" aria-label="Equity trend">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-white">Equity Curve</CardTitle>
-            <CardDescription className="text-[#9CA3AF]">Cumulative realized P&L over months</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-2">
-            {(() => {
-              let cum = 0
-              const data = monthly.map(m => ({ 
-                t: m.month, 
-                equity: (cum += (m.pnl || 0)),
-                monthlyPnL: m.pnl || 0
-              }))
-              
-              // Add initial point if we have data
-              if (data.length > 0 && data[0].equity !== 0) {
-                const firstMonth = data[0].t
-                const [year, month] = firstMonth.split('-')
-                const prevMonth = new Date(parseInt(year), parseInt(month) - 2, 1)
-                data.unshift({
-                  t: prevMonth.toISOString().substring(0, 7),
-                  equity: 0,
-                  monthlyPnL: 0
-                })
-              }
-              
-              return (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data} margin={{ top: 10, left: 0, right: 8, bottom: 0 }}>
-                    <CartesianGrid stroke={COLORS.grid} opacity={0.25} vertical={false} />
-                    <XAxis 
-                      dataKey="t" 
-                      tick={{ fill: COLORS.subtext, fontSize: 11 }} 
-                      axisLine={{ stroke: COLORS.grid }} 
-                      tickLine={false} 
-                      minTickGap={22}
-                      tickFormatter={(value) => {
-                        const [year, month] = value.split('-')
-                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        return `${monthNames[parseInt(month) - 1]}-${year.slice(2)}`
-                      }}
-                    />
-                    <YAxis 
-                      tick={{ fill: COLORS.subtext, fontSize: 11 }} 
-                      axisLine={{ stroke: COLORS.grid }} 
-                      tickLine={false} 
-                      width={64} 
-                      tickFormatter={(v) => `${v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}`}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="equity" 
-                      stroke={COLORS.gain} 
-                      strokeWidth={2} 
-                      dot={{ fill: COLORS.gain, r: 3 }} 
-                      activeDot={{ r: 5 }}
-                    />
-                    <RTooltip 
-                      contentStyle={{ background: COLORS.bgDark, border: `1px solid ${COLORS.bgMuted}` }}
-                      formatter={(value: any, name: string) => {
-                        if (name === 'equity') return [`Cumulative: ${formatCurrency(Number(value))}`, '']
-                        return [formatCurrency(Number(value)), name]
-                      }}
-                      labelFormatter={(label) => {
-                        const [year, month] = label.split('-')
-                        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-                        return `${monthNames[parseInt(month) - 1]} ${year}`
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )
-            })()}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          </div>
   )
 }

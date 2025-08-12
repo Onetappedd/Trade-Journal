@@ -48,10 +48,13 @@ export async function calculatePortfolioHistory(
   // Process all trades to calculate daily P&L
   for (const trade of trades) {
     // Only count closed trades for realized P&L
-    if (trade.status === "closed" && trade.exit_date && trade.exit_price) {
+    if (trade.exit_date && trade.exit_price) {
       const exitDate = trade.exit_date.split('T')[0]
-      const multiplier = trade.asset_type === 'option' ? 100 : 1
-      const pnl = trade.side === 'buy' 
+      const multiplier = (trade as any).multiplier != null 
+        ? Number((trade as any).multiplier)
+        : (trade.asset_type === 'option' ? 100 : 1)
+      const side = String(trade.side || '').toLowerCase()
+      const pnl = side === 'buy' 
         ? (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
         : (trade.entry_price - trade.exit_price) * trade.quantity * multiplier
       
