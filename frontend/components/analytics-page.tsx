@@ -250,10 +250,32 @@ export function AnalyticsPage() {
   const isLoading = analyticsLoading || positionsLoading
 
   // Overview metrics (real data)
-  const portfolioValue = posSummary.totalMarketValue || 0
-  const dayPnL = posSummary.totalUnrealizedPnL || 0
-  const totalCost = posSummary.totalCost || 0
-  const totalReturnPct = totalCost !== 0 ? (((portfolioValue + (analytics?.realizedPnL || 0)) - totalCost) / Math.abs(totalCost)) * 100 : 0
+  // Get initial capital (default to 10000 if not set)
+  const INITIAL_CAPITAL = 10000
+  
+  // Calculate actual portfolio value: initial capital + realized P&L + unrealized P&L
+  const realizedPnL = analytics?.realizedPnL || 0
+  const unrealizedPnL = posSummary.totalUnrealizedPnL || 0
+  const portfolioValue = INITIAL_CAPITAL + realizedPnL + unrealizedPnL
+  
+  // For day P&L, we'll show unrealized P&L if there are positions, otherwise show today's realized P&L
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todaysPnL = useMemo(() => {
+    if (!analytics?.monthlyReturns || analytics.monthlyReturns.length === 0) return 0
+    const currentMonth = todayStart.toISOString().substring(0, 7)
+    const currentMonthData = analytics.monthlyReturns.find(m => m.month === currentMonth)
+    // This is an approximation - ideally we'd have daily P&L
+    return currentMonthData ? currentMonthData.pnl / 30 : 0
+  }, [analytics?.monthlyReturns])
+  
+  const dayPnL = positions.length > 0 ? unrealizedPnL : todaysPnL
+  
+  // Total return percentage based on initial capital
+  const totalReturnPct = ((portfolioValue - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100
+  
+  // Day P&L percentage
+  const dayPnLPct = portfolioValue > 0 ? (dayPnL / portfolioValue) * 100 : 0
 
   const winRate = analytics?.winRate || 0
 
@@ -385,25 +407,25 @@ export function AnalyticsPage() {
       {/* Overview cards (real) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Total Portfolio Value"
+          title="Account Value"
           value={isLoading ? "—" : formatCurrency(portfolioValue)}
-          delta={isLoading ? undefined : `${positions.length} positions`}
-          positive
-          ariaLabel="Total portfolio value"
+          delta={isLoading ? undefined : positions.length > 0 ? `${positions.length} open positions` : "All positions closed"}
+          positive={portfolioValue >= INITIAL_CAPITAL}
+          ariaLabel="Total account value"
         />
         <MetricCard
-          title="Day P&L"
-          value={isLoading ? "—" : `${dayPnL >= 0 ? "+" : ""}${formatCurrency(Math.abs(dayPnL))}`}
-          delta={isLoading ? undefined : `${posSummary.totalUnrealizedPnLPercent.toFixed(2)}%`}
-          positive={dayPnL >= 0}
-          ariaLabel="Day profit and loss"
+          title="Total P&L"
+          value={isLoading ? "—" : `${realizedPnL >= 0 ? "+" : ""}${formatCurrency(Math.abs(realizedPnL))}`}
+          delta={isLoading ? undefined : `${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(2)}% return`}
+          positive={realizedPnL >= 0}
+          ariaLabel="Total profit and loss"
         />
         <MetricCard
-          title="Total Return"
-          value={isLoading ? "—" : `${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(2)}%`}
-          delta={isLoading ? undefined : `Realized: ${formatCurrency(analytics?.realizedPnL || 0)}`}
-          positive={totalReturnPct >= 0}
-          ariaLabel="Total return percentage"
+          title="Unrealized P&L"
+          value={isLoading ? "—" : positions.length > 0 ? `${unrealizedPnL >= 0 ? "+" : ""}${formatCurrency(Math.abs(unrealizedPnL))}` : "No open positions"}
+          delta={isLoading ? undefined : positions.length > 0 ? `${posSummary.totalUnrealizedPnLPercent.toFixed(2)}%` : undefined}
+          positive={unrealizedPnL >= 0}
+          ariaLabel="Unrealized profit and loss"
         />
         <MetricCard
           title="Win Rate"
