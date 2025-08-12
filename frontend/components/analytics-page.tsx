@@ -63,6 +63,10 @@ interface TradeRow {
   status?: string
   asset_type?: string
   multiplier?: number | null
+  underlying?: string | null
+  option_type?: string | null
+  strike_price?: number | null
+  expiration_date?: string | null
 }
 
 // --- HELPERS ---
@@ -216,7 +220,7 @@ function useRecentTrades(limit: number = 5000) {
         setLoading(true)
         const { data, error } = await supabase
           .from("trades")
-          .select("id, symbol, side, quantity, entry_price, entry_date, exit_price, exit_date, status, asset_type, multiplier")
+          .select("id, symbol, side, quantity, entry_price, entry_date, exit_price, exit_date, status, asset_type, multiplier, underlying, option_type, strike_price, expiration_date")
           .eq("user_id", user.id)
           .order("exit_date", { ascending: false })
           .limit(limit)
@@ -302,67 +306,95 @@ export function AnalyticsPage() {
     return []
   }, [positions, analytics?.performanceBySymbol])
 
-  // Top historical trades by percentage gain/loss
+  // Top historical trades by percentage gain/loss using client-side leg matching (FIFO)
   const topTrades = useMemo(() => {
-    if (!recentTrades || recentTrades.length === 0) {
-      return { gainers: [], losers: [] }
+    if (!recentTrades || recentTrades.length === 0) return { gainers: [], losers: [] }
+
+    const keyFor = (t: TradeRow) => {
+      const at = String(t.asset_type || '').toLowerCase()
+      if (at === 'option') {
+        return `${t.underlying || t.symbol}_${t.option_type}_${t.strike_price}_${t.expiration_date}`
+      }
+      return t.symbol
     }
-    
-    // Calculate percentage gain/loss for trades that have exits (don't rely on status)
-    const closedWithPercent = recentTrades
-      .filter(t => t.exit_price != null && t.exit_date != null)
-      .filter(t => t.entry_price && t.entry_price !== 0)
-      .map(t => {
-        const side = String(t.side || '').toLowerCase()
-        const assetType = String(t.asset_type || 'stock').toLowerCase()
-        const entry = Number(t.entry_price)
-        const exit = Number(t.exit_price)
-        let percentChange = 0
-        
-        if (side === 'buy') {
-          // Long position: (exit - entry) / entry * 100
-          percentChange = ((exit - entry) / entry) * 100
+
+    type PosState = { openQty: number; avg: number }
+    const states = new Map<string, PosState>()
+    const closed: { symbol: string; side: string; entry: number; exit: number; pct: number; type: string }[] = []
+
+    const sorted = [...recentTrades].sort((a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime())
+
+    for (const t of sorted) {
+      const key = keyFor(t)
+      const side = String(t.side || '').toLowerCase()
+      const qty = Number(t.quantity) || 0
+      const price = Number(t.entry_price) || 0
+      if (!qty || !price) continue
+      const type = String(t.asset_type || 'stock').toLowerCase()
+
+      const s = states.get(key) || { openQty: 0, avg: 0 }
+
+      if (side === 'buy') {
+        if (s.openQty < 0) {
+          // closing shorts
+          const closeQty = Math.min(qty, Math.abs(s.openQty))
+          if (s.avg) {
+            const pct = ((s.avg - price) / s.avg) * 100 // short profit if exit lower
+            closed.push({ symbol: t.symbol, side, entry: s.avg, exit: price, pct, type })
+          }
+          s.openQty += closeQty
+          if (s.openQty === 0) s.avg = 0
+          const leftover = qty - closeQty
+          if (leftover > 0) {
+            // open new long
+            s.avg = price
+            s.openQty += leftover
+          }
         } else {
-          // Short position: (entry - exit) / entry * 100
-          percentChange = ((entry - exit) / entry) * 100
+          // add to/ open long
+          const total = s.openQty + qty
+          s.avg = total ? ((s.avg * Math.abs(s.openQty)) + (price * qty)) / total : price
+          s.openQty = total
         }
-        
-        return {
-          symbol: t.symbol,
-          entryPrice: entry,
-          exitPrice: exit,
-          side: side,
-          percentChange,
-          assetType
+      } else if (side === 'sell') {
+        if (s.openQty > 0) {
+          // closing longs
+          const closeQty = Math.min(qty, s.openQty)
+          if (s.avg) {
+            const pct = ((price - s.avg) / s.avg) * 100 // long profit if exit higher
+            closed.push({ symbol: t.symbol, side, entry: s.avg, exit: price, pct, type })
+          }
+          s.openQty -= closeQty
+          if (s.openQty === 0) s.avg = 0
+          const leftover = qty - closeQty
+          if (leftover > 0) {
+            // open new short
+            s.avg = price
+            s.openQty -= leftover
+          }
+        } else {
+          // add to/ open short
+          const total = Math.abs(s.openQty) + qty
+          s.avg = total ? ((s.avg * Math.abs(s.openQty)) + (price * qty)) / total : price
+          s.openQty -= qty
         }
-      })
-      .sort((a, b) => b.percentChange - a.percentChange)
-    
-    const gainers = closedWithPercent
-      .filter(t => t.percentChange > 0)
+      }
+
+      states.set(key, s)
+    }
+
+    const gainers = closed
+      .filter(c => isFinite(c.pct))
+      .sort((a, b) => b.pct - a.pct)
       .slice(0, 5)
-      .map(t => ({
-        symbol: t.symbol,
-        entry: t.entryPrice,
-        exit: t.exitPrice,
-        change: +t.percentChange.toFixed(2),
-        side: t.side,
-        type: t.assetType
-      }))
-    
-    const losers = closedWithPercent
-      .filter(t => t.percentChange < 0)
-      .sort((a, b) => a.percentChange - b.percentChange)
+      .map(c => ({ symbol: c.symbol, entry: c.entry, exit: c.exit, change: +c.pct.toFixed(2), side: c.side, type: c.type }))
+
+    const losers = closed
+      .filter(c => isFinite(c.pct))
+      .sort((a, b) => a.pct - b.pct)
       .slice(0, 5)
-      .map(t => ({
-        symbol: t.symbol,
-        entry: t.entryPrice,
-        exit: t.exitPrice,
-        change: +t.percentChange.toFixed(2),
-        side: t.side,
-        type: t.assetType
-      }))
-    
+      .map(c => ({ symbol: c.symbol, entry: c.entry, exit: c.exit, change: +c.pct.toFixed(2), side: c.side, type: c.type }))
+
     return { gainers, losers }
   }, [recentTrades])
 
