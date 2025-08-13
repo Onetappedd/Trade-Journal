@@ -128,7 +128,9 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
   }, [filteredData, initialValue, selectedPeriod])
 
   // Determine chart color based on performance
-  const chartColor = currentPerformance.isGain ? "#10b981" : "#ef4444"
+  const chartColor = currentPerformance.isGain 
+    ? "hsl(var(--success))"
+    : "hsl(var(--danger))"
   const gradientId = currentPerformance.isGain ? "gainGradient" : "lossGradient"
 
   // Format axis tick
@@ -168,6 +170,15 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg">
+      {/* Chart theme container */}
+      <div data-chart className="text-muted-foreground" style={{
+        '--success': 'var(--chart-success, 158, 95%, 40%)',
+        '--danger': 'var(--chart-danger, 0, 80%, 57%)',
+        '--axis': 'var(--muted-foreground)',
+        '--grid': 'var(--border)',
+        '--card': 'var(--card)',
+        '--card-foreground': 'var(--card-foreground)',
+      } as React.CSSProperties}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -286,7 +297,7 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                   dataKey="date"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: '#888' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--axis))' }}
                   tickFormatter={formatXAxisTick}
                   interval="preserveStartEnd"
                 />
@@ -308,6 +319,10 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                 <Tooltip 
                   content={<CustomTooltip viewMode={viewMode} />}
                   cursor={false}
+                  wrapperStyle={{ zIndex: 50 }}
+                  contentStyle={{ background: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem', boxShadow: 'var(--shadow-lg,0 0 #0000)' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                 />
                 
                 <Area
@@ -327,6 +342,8 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
             </div>
           )}
         </div>
+      </div>
+      </div>
       </CardContent>
     </Card>
   )

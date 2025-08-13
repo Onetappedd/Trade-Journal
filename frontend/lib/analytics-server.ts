@@ -39,7 +39,7 @@ export async function fetchEquityCurve(req: Omit<EquityCurveRequest, "userTimezo
     ...req,
     userTimezone: req.userTimezone || "America/New_York",
   }
-  const res = await fetch(`${API_BASE_URL}/analytics/equity-curve`, {
+  const res = await fetch(`/api/analytics/equity-curve`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -58,7 +58,7 @@ export async function fetchMonthlyPnl(req: Omit<MonthlyPnlRequest, "userTimezone
     ...req,
     userTimezone: req.userTimezone || "America/New_York",
   }
-  const res = await fetch(`${API_BASE_URL}/analytics/monthly-pnl`, {
+  const res = await fetch(`/api/analytics/monthly-pnl`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -77,7 +77,7 @@ export async function fetchCardsSummary(req: Omit<CardsRequest, "userTimezone"> 
     ...req,
     userTimezone: req.userTimezone || "America/New_York",
   }
-  const res = await fetch(`${API_BASE_URL}/analytics/cards`, {
+  const res = await fetch(`/api/analytics/cards`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

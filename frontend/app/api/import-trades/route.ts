@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     // Prepare the trade data with proper formatting
     const tradeData: any = {
       user_id: user.id,
-      symbol: String(t.symbol),
+      symbol: String(t.symbol).trim().toUpperCase(),
       side: String(t.side).toLowerCase(),
       quantity: Number(t.quantity),
       entry_price: Number(t.entry_price),
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Add optional fields only if they exist
-    if (t.underlying) tradeData.underlying = String(t.underlying)
+    if (t.underlying) tradeData.underlying = String(t.underlying).trim().toUpperCase()
     
     // For options, these fields are REQUIRED by the database constraint
     if (t.asset_type === "option") {
