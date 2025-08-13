@@ -1,7 +1,7 @@
 "use client"
 
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { useState, useMemo, useCallback } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { 
@@ -21,6 +21,9 @@ interface PortfolioData {
 interface PortfolioPerformanceProps {
   data: PortfolioData[]
   initialValue?: number
+  overlay?: { date: string; value: number }[]
+  overlayLabel?: string
+  prevDeltas?: Record<string, string|number>
 }
 
 // Custom tooltip component
@@ -31,7 +34,7 @@ const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
   const isGain = data.dollarChange >= 0
 
   return (
-    <div className="bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
+    <div className="bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg" aria-hidden={true}>
       <p className="text-xs text-muted-foreground mb-1">
         {new Date(label).toLocaleDateString('en-US', { 
           month: 'short', 
@@ -62,7 +65,7 @@ const CustomTooltip = ({ active, payload, label, viewMode }: any) => {
   )
 }
 
-export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPerformanceProps) {
+export function PortfolioPerformance({ data, initialValue = 10000, overlay, overlayLabel, prevDeltas }: PortfolioPerformanceProps) {
   const [viewMode, setViewMode] = useState<"percent" | "dollar">("percent")
   const [hoveredData, setHoveredData] = useState<PortfolioData | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<"1D" | "1W" | "1M" | "3M" | "1Y" | "ALL">("ALL")
@@ -70,10 +73,8 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
   // Filter data based on selected period
   const filteredData = useMemo(() => {
     if (!data || data.length === 0) return []
-    
     const now = new Date()
     const cutoffDate = new Date()
-    
     switch (selectedPeriod) {
       case "1D":
         cutoffDate.setDate(now.getDate() - 1)
@@ -93,30 +94,26 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
       case "ALL":
         return data
     }
-    
     return data.filter(d => new Date(d.date) >= cutoffDate)
   }, [data, selectedPeriod])
 
-  // Calculate current performance
+  const overlayData = useMemo(() => {
+    if (!overlay || !overlay.length) return undefined
+    return overlay.filter(d => filteredData.find(fd => fd.date === d.date))
+  }, [overlay, filteredData])
+
+  // Current performance
   const currentPerformance = useMemo(() => {
     if (filteredData.length === 0) return { value: initialValue, change: 0, percentChange: 0, isGain: true }
-    
     const latest = filteredData[filteredData.length - 1]
-    
-    // Always compare to initial value to determine if we're in profit or loss overall
     const overallChange = latest.value - initialValue
     const overallPercent = ((latest.value - initialValue) / initialValue) * 100
     const overallIsGain = overallChange >= 0
-    
-    // For period comparison (display purposes)
     const first = filteredData[0]
     const periodChange = latest.value - first.value
     const periodPercent = ((latest.value - first.value) / first.value) * 100
-    
-    // Use overall comparison for ALL time, period comparison for others
     const displayChange = selectedPeriod === "ALL" ? overallChange : periodChange
     const displayPercent = selectedPeriod === "ALL" ? overallPercent : periodPercent
-    
     return {
       value: latest.value,
       change: displayChange,
@@ -127,13 +124,11 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
     }
   }, [filteredData, initialValue, selectedPeriod])
 
-  // Determine chart color based on performance
   const chartColor = currentPerformance.isGain 
     ? "hsl(var(--success))"
     : "hsl(var(--danger))"
   const gradientId = currentPerformance.isGain ? "gainGradient" : "lossGradient"
 
-  // Format axis tick
   const formatXAxisTick = (tickItem: string) => {
     const date = new Date(tickItem)
     if (selectedPeriod === "1D") {
@@ -153,7 +148,6 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
     }
   }
 
-  // Get chart data based on view mode
   const chartData = useMemo(() => {
     if (viewMode === "percent") {
       return filteredData.map(d => ({
@@ -220,8 +214,16 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                  selectedPeriod === "1Y" ? "Past Year" : "All Time"}
               </span>
             </div>
+            {
+              prevDeltas && (
+                <div className="flex gap-2 mt-1 text-xs">
+                  {Object.entries(prevDeltas).map(([label, delta]) => (
+                    <span className="text-muted-foreground" key={label}>{label}: <span className="font-semibold">{delta}</span></span>
+                  ))}
+                </div>
+              )
+            }
           </div>
-          
           {/* View Mode Toggle */}
           <ToggleGroup 
             type="single" 
@@ -246,7 +248,6 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
           </ToggleGroup>
         </div>
       </CardHeader>
-      
       <CardContent className="p-0">
         {/* Time Period Selector */}
         <div className="flex items-center gap-1 px-6 pb-4">
@@ -267,9 +268,8 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
             </Button>
           ))}
         </div>
-        
         {/* Chart */}
-        <div className="h-[300px] w-full">
+        <div className="h-[300px] w-full" id="chart-root">
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart 
@@ -292,7 +292,6 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                     <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                
                 <XAxis 
                   dataKey="date"
                   axisLine={false}
@@ -301,30 +300,14 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                   tickFormatter={formatXAxisTick}
                   interval="preserveStartEnd"
                 />
-                
-                <YAxis 
+                <YAxis
                   hide={true}
                   domain={['dataMin', 'dataMax']}
                 />
-                
                 {viewMode === "dollar" && (
-                  <ReferenceLine 
-                    y={initialValue} 
-                    stroke="#888" 
-                    strokeDasharray="3 3" 
-                    strokeOpacity={0.3}
-                  />
+                  <ReferenceLine y={initialValue} stroke="#888" strokeDasharray="3 3" strokeOpacity={0.3}/>
                 )}
-                
-                <Tooltip 
-                  content={<CustomTooltip viewMode={viewMode} />}
-                  cursor={false}
-                  wrapperStyle={{ zIndex: 50 }}
-                  contentStyle={{ background: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem', boxShadow: 'var(--shadow-lg,0 0 #0000)' }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
-                />
-                
+                <Tooltip content={<CustomTooltip viewMode={viewMode} />} cursor={false} wrapperStyle={{ zIndex: 50 }} contentStyle={{ background: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem', boxShadow: 'var(--shadow-lg,0 0 #0000)' }} itemStyle={{ color: 'hsl(var(--foreground))' }} labelStyle={{ color: 'hsl(var(--muted-foreground))' }} />
                 <Area
                   type="monotone"
                   dataKey="displayValue"
@@ -334,6 +317,19 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                   animationDuration={500}
                   animationEasing="ease-in-out"
                 />
+                {/* Overlay benchmark: normalized series */}
+                {overlayData && (
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    data={overlayData}
+                    stroke="#8884d8"
+                    strokeWidth={1}
+                    dot={false}
+                    fillOpacity={0}
+                    legendType="none"
+                  />
+                )}
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -342,9 +338,8 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
             </div>
           )}
         </div>
-      </div>
-      </div>
       </CardContent>
+      </div>
     </Card>
   )
 }
