@@ -9,7 +9,6 @@ import { CardsSummarySchema, EquityCurveResponseSchema, MonthlyPnlResponseSchema
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-export const revalidate = 0
 
 const FiltersSchema = z.object({
   accountIds: z.array(z.string()).optional().default([]),
