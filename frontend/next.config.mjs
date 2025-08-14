@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { dirname } from 'node:path'
+import path, { dirname } from 'node:path'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -20,8 +20,8 @@ const nextConfig = {
   },
   webpack(config) {
     config.resolve.alias = {
-      ...(config.resolve.alias ?? {})
-      // date-fns/locale/en-US alias removed; patch-package now applies the fix at node_modules level.
+      ...(config.resolve.alias ?? {}),
+      'date-fns/locale/en-US': path.resolve(__dirname, 'shims/date-fns-locale-en-US.mjs'),
     }
     return config
   },
