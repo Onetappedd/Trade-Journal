@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createSupabaseServer } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { format, addDays, isBefore, parseISO } from 'date-fns'
 import { utcToZonedTime, zonedTimeToUtc, formatInTimeZone } from 'date-fns-tz'
@@ -9,6 +8,7 @@ import { CardsSummarySchema, EquityCurveResponseSchema, MonthlyPnlResponseSchema
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 export const revalidate = 0
 
 const FiltersSchema = z.object({
@@ -69,7 +69,7 @@ function fillDays(start: string, end: string): string[] {
 }
 
 export async function POST(req: NextRequest, { params }: { params: { path?: string[] } }) {
-  const supabase = createRouteHandlerClient<Database>({ cookies })
+  const supabase = createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
