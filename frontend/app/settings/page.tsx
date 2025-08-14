@@ -56,7 +56,7 @@ export default function SettingsPage() {
       <form className="space-y-6"
         onSubmit={e => {
           e.preventDefault()
-          saveMutation.mutate({ initial_capital, theme: localTheme })
+          saveMutation.mutate({ initial_capital: initialCapital, theme: localTheme })
         }}>
         <div>
           <label htmlFor="init-cap" className="block text-sm font-medium mb-1">Initial Capital</label>
