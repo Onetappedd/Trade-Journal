@@ -15,7 +15,8 @@
     "check-db": "node scripts/check-database.js",
     "check-tables": "node scripts/check-table-structure.js",
     "test-real-data": "node scripts/test-real-data.js",
-    "test-polygon": "node scripts/test-polygon.js"
+    "test-polygon": "node scripts/test-polygon.js",
+    "deps:cycles": "madge --circular --extensions ts,tsx --warning app"
   },
   "dependencies": {
     "@hookform/resolvers": "latest",
@@ -52,9 +53,8 @@
     "@tanstack/react-query-devtools": "^5.51.1",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "date-fns": "latest",
-    "date-fns-tz": "latest",
+    "date-fns-tz": "^2.0.0",
     "autoprefixer": "^10.4.20",
     "child_process": "latest",
     "class-variance-authority": "^0.7.1",
@@ -88,6 +88,7 @@
     "dotenv": "^16.3.1",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5",
+    "madge": "^6.1.0"
   }
 }

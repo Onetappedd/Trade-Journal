@@ -3,12 +3,13 @@ import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { z } from 'zod'
 import { format, addDays, isBefore, parseISO } from 'date-fns'
-import { utcToZonedTime } from 'date-fns-tz'
+import { utcToZonedTime, zonedTimeToUtc, formatInTimeZone } from 'date-fns-tz'
 import type { Database } from '@/lib/database.types'
 import { CardsSummarySchema, EquityCurveResponseSchema, MonthlyPnlResponseSchema } from '@/lib/analytics/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const FiltersSchema = z.object({
   accountIds: z.array(z.string()).optional().default([]),
