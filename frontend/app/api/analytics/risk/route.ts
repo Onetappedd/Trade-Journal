@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createSupabaseServer } from "@/lib/supabase-server"
 import { getDailyCloses } from "@/lib/marketdata/provider"
-import { cookies } from "next/headers"
 import { addDays, format } from "date-fns"
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -30,7 +33,7 @@ const RiskOutputSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createSupabaseServer()
   // For authenticated endpoint, you could fetch user's trades view, filters, etc here
   const raw = await req.json().catch(() => ({}))
   const parsed = RiskInputSchema.safeParse(raw)
