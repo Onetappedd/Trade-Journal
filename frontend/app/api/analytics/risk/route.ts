@@ -8,9 +8,6 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
-
 const RiskInputSchema = z.object({
   ticker: z.string().optional().default('SPY'),
   tz: z.string().optional(),
