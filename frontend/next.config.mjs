@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
+import { dirname } from 'node:path'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -20,9 +20,8 @@ const nextConfig = {
   },
   webpack(config) {
     config.resolve.alias = {
-      ...(config.resolve.alias ?? {}),
-      // Alias for date-fns v2 enUS locale compatibility w/ react-day-picker
-      'date-fns/locale/en-US': resolve(__dirname, 'shims/date-fns-locale-en-US.ts'),
+      ...(config.resolve.alias ?? {})
+      // date-fns/locale/en-US alias removed; patch-package now applies the fix at node_modules level.
     }
     return config
   },

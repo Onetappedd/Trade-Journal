@@ -1,0 +1,11 @@
+diff --git a/node_modules/react-day-picker/dist/esm/classes/DateLib.js b/node_modules/react-day-picker/dist/esm/classes/DateLib.js
+index 1111111..2222222 100644
+--- a/node_modules/react-day-picker/dist/esm/classes/DateLib.js
++++ b/node_modules/react-day-picker/dist/esm/classes/DateLib.js
+@@ -1,5 +1,5 @@
+-// Import en-US locale incorrectly as a named export
+-import { enUS } from 'date-fns/locale/en-US';
++// Import en-US locale as default export (date-fns v2)
++import enUS from 'date-fns/locale/en-US';
+// ... keep the rest of the file unchanged. It must continue to export:
+// export const defaultLocale = enUS;
