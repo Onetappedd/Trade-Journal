@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { EquityCurveResponseSchema, CardsSummarySchema, MonthlyPnlResponseSchema } from "@/lib/analytics/types"
-import { shallow } from "zustand/shallow"
 import { PortfolioPerformance } from "@/components/dashboard/PortfolioPerformance"
 import { Info } from "lucide-react"
 
@@ -28,7 +27,7 @@ export function PerformanceTab() {
   const filters = useAnalyticsFiltersStore(s => ({
     ...s,
     filtersHash: s.filtersHash
-  }), shallow)
+  }))
   const filtersHash = filters.filtersHash()
   const queryClient = useQueryClient()
 
