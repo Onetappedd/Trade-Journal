@@ -108,18 +108,15 @@ export async function POST(request: NextRequest) {
       symbol: String(body.symbol).trim().toUpperCase(),
       asset_type: body.asset_type,
       side: body.side,
-      quantity: Number.parseFloat(body.quantity),
-      entry_price: Number.parseFloat(body.entry_price),
-      exit_price: body.exit_price ?? null,
-      entry_date: body.entry_date,
-      exit_date: body.exit_date ?? null,
+      quantity: Number(body.quantity),
+      entry_price: Number(body.entry_price),
+      exit_price: body.exit_price !== undefined && body.exit_price !== null && body.exit_price !== '' ? Number(body.exit_price) : null,
+      entry_date: new Date(body.entry_date).toISOString(),
+      exit_date: body.exit_date ? new Date(body.exit_date).toISOString() : null,
       notes: body.notes ?? null,
-      // strike: use if TradeInsert has strike, otherwise this line is omitted entirely
-      // strike: body.strike_price ? Number.parseFloat(body.strike_price) : null,
-      expiry_date: body.expiry_date ?? null,
-      option_type: body.option_type ?? null,
-      status: body.exit_date ? "closed" : "open",
-      underlying: body.underlying ? String(body.underlying).trim().toUpperCase() : null,
+      status: body.exit_date ? 'closed' : 'open',
+      // Optionally set updated_at if relevant, e.g.
+      // updated_at: new Date().toISOString(),
     }
 
     // Insert trade into database
