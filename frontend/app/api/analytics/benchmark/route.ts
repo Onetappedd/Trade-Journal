@@ -23,10 +23,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
   }
   const { ticker, start, end } = parsed.data
-  let result = []
+
+  // Coerce inputs to strings with sensible defaults
+  const today = new Date();
+  const defaultEnd: string = today.toISOString().slice(0, 10);
+  const defaultStart: string = new Date(today.getTime() - 1000 * 60 * 60 * 24 * 180)
+    .toISOString()
+    .slice(0, 10);
+
+  const safeTicker: string = (ticker ?? 'SPY').toString().toUpperCase();
+  const safeStart: string = (start ?? defaultStart).toString();
+  const safeEnd: string = (end ?? defaultEnd).toString();
+
+  let result = [];
   try {
-    result = await getDailyCloses(ticker || 'SPY', start, end)
-    result.sort((a, b) => a.day.localeCompare(b.day))
+    result = await getDailyCloses(safeTicker, safeStart, safeEnd);
+    result.sort((a, b) => a.day.localeCompare(b.day));
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Fetch error' }, { status: 500 })
   }
