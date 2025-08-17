@@ -1,12 +1,8 @@
+export const runtime = 'nodejs';
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase-server"
-import type { Database } from "@/lib/database.types"
-
-// Force this API route to use Node.js runtime
-export const runtime = 'nodejs'
-
-type Trade = Database['public']['Tables']['trades']['Row']
-type TradeInsert = Database['public']['Tables']['trades']['Insert']
+import { type Database } from '@/lib/supabase/types';
+type TradeInsert = Database['public']['Tables']['trades']['Insert'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,13 +110,14 @@ export async function POST(request: NextRequest) {
       side: body.side,
       quantity: Number.parseFloat(body.quantity),
       entry_price: Number.parseFloat(body.entry_price),
-      exit_price: body.exit_price ? Number.parseFloat(body.exit_price) : null,
+      exit_price: body.exit_price ?? null,
       entry_date: body.entry_date,
-      exit_date: body.exit_date || null,
-      notes: body.notes || null,
-      strike_price: body.strike_price ? Number.parseFloat(body.strike_price) : null,
-      expiry_date: body.expiry_date || null,
-      option_type: body.option_type || null,
+      exit_date: body.exit_date ?? null,
+      notes: body.notes ?? null,
+      // strike: use if TradeInsert has strike, otherwise this line is omitted entirely
+      // strike: body.strike_price ? Number.parseFloat(body.strike_price) : null,
+      expiry_date: body.expiry_date ?? null,
+      option_type: body.option_type ?? null,
       status: body.exit_date ? "closed" : "open",
       underlying: body.underlying ? String(body.underlying).trim().toUpperCase() : null,
     }
