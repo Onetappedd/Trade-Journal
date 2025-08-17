@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const { ticker, start, end } = parsed.data
   let result = []
   try {
-    result = await getDailyCloses(ticker ?? 'SPY', start, end)
+    result = await getDailyCloses((ticker ?? 'SPY') as string, start, end)
     result.sort((a, b) => a.day.localeCompare(b.day))
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Fetch error' }, { status: 500 })
