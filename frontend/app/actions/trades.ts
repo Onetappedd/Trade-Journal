@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase-server"
 import { z } from "zod"
 import type { Database } from "@/lib/database.types"
 
+// Form type (self-contained, not imported)
+type TradeFormValues = Omit<
+  Database['public']['Tables']['trades']['Insert'],
+  'id' | 'created_at' | 'user_id'
+>;
+
 // Explicitly use Node.js runtime to avoid Edge Runtime warnings
 export const runtime = "nodejs"
 
@@ -35,6 +41,9 @@ export async function addTradeAction(formData: FormData) {
   }
 
   const allowedAssetTypes = ['crypto', 'option', 'stock', 'forex', 'futures'] as const;
+type DbAssetType = typeof allowedAssetTypes[number];
+
+const allowedAssetTypes = ['crypto', 'option', 'stock', 'forex', 'futures'] as const;
 type DbAssetType = typeof allowedAssetTypes[number];
 
 export async function createTrade(payload: TradeFormValues) {
