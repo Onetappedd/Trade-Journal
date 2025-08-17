@@ -37,53 +37,50 @@ export async function addTradeAction(formData: FormData) {
   const allowedAssetTypes = ['crypto', 'option', 'stock', 'forex', 'futures'] as const;
 type DbAssetType = typeof allowedAssetTypes[number];
 
-export async function createTrade(data: TradeFormValues) {
-  if (!allowedAssetTypes.includes(data.asset_type as any)) {
-    throw new Error(`Invalid asset_type: ${data.asset_type}`);
+export async function createTrade(payload: TradeFormValues) {
+  if (!allowedAssetTypes.includes(payload.asset_type as any)) {
+    throw new Error(`Invalid asset_type: ${payload.asset_type}`);
   }
-  const assetType: DbAssetType = data.asset_type as DbAssetType;
-  const parsed = tradeSchema.safeParse({
-    ...rawFormData,
-    tags: formData.getAll("tags"),
-  })
+  const assetType: DbAssetType = payload.asset_type as DbAssetType;
+  const parsed = tradeSchema.safeParse(payload);
 
   if (!parsed.success) {
     return { error: "Invalid form data.", details: parsed.error.format() }
   }
 
-  const { data } = parsed
+  const { data: validated } = parsed;
 
   try {
     const tradeData: Database["public"]["Tables"]["trades"]["Insert"] = {
-      user_id: user.id,
-      symbol: data.symbol,
+      user_id: validated.user_id,
+      symbol: validated.symbol,
       asset_type: assetType,
-      side: data.side,
-      quantity: data.quantity,
-      entry_price: data.entry_price,
-      exit_price: data.exit_price,
-      entry_date: new Date(data.entry_date).toISOString(),
-      exit_date: data.exit_date ? new Date(data.exit_date).toISOString() : undefined,
-      notes: data.notes,
-      strike_price: data.strike_price,
-      expiry_date: data.expiry_date,
-      option_type: data.option_type,
-      status: data.exit_price ? "closed" : "open",
+      side: validated.side,
+      quantity: validated.quantity,
+      entry_price: validated.entry_price,
+      exit_price: validated.exit_price,
+      entry_date: new Date(validated.entry_date).toISOString(),
+      exit_date: validated.exit_date ? new Date(validated.exit_date).toISOString() : undefined,
+      notes: validated.notes,
+      strike_price: validated.strike_price,
+      expiry_date: validated.expiry_date,
+      option_type: validated.option_type,
+      status: validated.exit_price ? "closed" : "open",
     }
 
-    const { data: newTrade, error: tradeError } = await supabase.from("trades").insert(tradeData).select().single()
+    const { data: insertData, error: insertError } = await supabase.from("trades").insert(tradeData).select().single()
 
-    if (tradeError) throw tradeError
+    if (insertError) throw insertError
 
     // Handle tags
-    if (data.tags && data.tags.length > 0) {
-      for (const tagName of data.tags) {
-        let { data: tag } = await supabase.from("tags").select("id").eq("name", tagName).eq("user_id", user.id).single()
+    if (validated.tags && validated.tags.length > 0) {
+      for (const tagName of validated.tags) {
+        let { data: tag } = await supabase.from("tags").select("id").eq("name", tagName).eq("user_id", validated.user_id).single()
 
         if (!tag) {
           const { data: newTag, error: newTagError } = await supabase
             .from("tags")
-            .insert({ name: tagName, user_id: user.id })
+            .insert({ name: tagName, user_id: validated.user_id })
             .select("id")
             .single()
           if (newTagError) throw newTagError
@@ -91,7 +88,7 @@ export async function createTrade(data: TradeFormValues) {
         }
 
         const { error: tradeTagError } = await supabase.from("trade_tags").insert({
-          trade_id: newTrade.id,
+          trade_id: insertData.id,
           tag_id: tag.id,
         })
         if (tradeTagError) throw tradeTagError
@@ -100,7 +97,7 @@ export async function createTrade(data: TradeFormValues) {
 
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/trade-history")
-    return { data: newTrade }
+    return { data: insertData }
   } catch (error: any) {
     return { error: `Failed to add trade: ${error.message}` }
   }
