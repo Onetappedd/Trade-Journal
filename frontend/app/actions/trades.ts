@@ -5,11 +5,15 @@ import { createClient } from "@/lib/supabase-server"
 import { z } from "zod"
 import type { Database } from "@/lib/database.types"
 
-// Form type (self-contained, not imported)
+// Local form type from Supabase types (no external import)
 type TradeFormValues = Omit<
   Database['public']['Tables']['trades']['Insert'],
   'id' | 'created_at' | 'user_id'
 >;
+
+// Single, top-level declaration (keep futures)
+const allowedAssetTypes = ['crypto','option','stock','forex','futures'] as const;
+type DbAssetType = typeof allowedAssetTypes[number];
 
 // Explicitly use Node.js runtime to avoid Edge Runtime warnings
 export const runtime = "nodejs"
@@ -40,13 +44,7 @@ export async function addTradeAction(formData: FormData) {
     return { error: "You must be logged in to add a trade." }
   }
 
-  const allowedAssetTypes = ['crypto', 'option', 'stock', 'forex', 'futures'] as const;
-type DbAssetType = typeof allowedAssetTypes[number];
-
-const allowedAssetTypes = ['crypto', 'option', 'stock', 'forex', 'futures'] as const;
-type DbAssetType = typeof allowedAssetTypes[number];
-
-export async function createTrade(payload: TradeFormValues) {
+  export async function createTrade(payload: TradeFormValues) {
   if (!allowedAssetTypes.includes(payload.asset_type as any)) {
     throw new Error(`Invalid asset_type: ${payload.asset_type}`);
   }
