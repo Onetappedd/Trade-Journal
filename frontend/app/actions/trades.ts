@@ -1,8 +1,9 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
-import { createSupabaseServer } from "@/lib/supabase-server"
-import type { Database } from "@/lib/database.types"
+'use server'
+
+import { createSupabaseServer } from '@/lib/supabase-server'
+import type { Database } from '@/lib/database.types'
 
 // Local form type from Supabase Insert, without server-assigned fields
 type TradeFormValues = Omit<
@@ -48,14 +49,16 @@ export async function createTrade(payload: TradeFormValues) {
 }
 
 export async function deleteTradeAction(tradeId: string) {
-  const supabase = await createClient()
-  const { error } = await supabase.from("trades").delete().eq("id", tradeId)
-
-  if (error) {
-    return { error: `Failed to delete trade: ${error.message}` }
-  }
-
-  revalidatePath("/dashboard")
-  revalidatePath("/dashboard/trade-history")
-  return { success: true }
+  const supabase = createSupabaseServer();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  const user = authData?.user;
+  if (!user) throw new Error('Not authenticated');
+  const { error } = await supabase
+    .from('trades')
+    .delete()
+    .eq('id', tradeId)
+    .eq('user_id', user.id);
+  if (error) throw error;
+  return { ok: true };
 }
