@@ -61,16 +61,16 @@ export async function POST(request: NextRequest) {
     }
 
     const profileData: ProfileInsert = {
-      user_id: user.id,
+      id: user.id,
       full_name: body.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
       avatar_url: body.avatar_url || null,
       website: body.website || null,
     }
 
-    // Use upsert to handle both create and update
+    // Use upsert to handle both create and update (PK is id)
     const { data: profile, error } = await supabase
       .from('profiles')
-      .upsert(profileData, { onConflict: 'user_id' })
+      .upsert(profileData, { onConflict: 'id' })
       .select()
       .single()
 
