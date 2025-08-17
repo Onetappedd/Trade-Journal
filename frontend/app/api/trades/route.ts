@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase-server"
-import { type Database } from '@/lib/supabase/types';
+import type { Database } from '@/lib/database.types';
 type TradeInsert = Database['public']['Tables']['trades']['Insert'];
 
 export async function GET(request: NextRequest) {
