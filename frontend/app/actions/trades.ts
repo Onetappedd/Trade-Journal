@@ -34,7 +34,15 @@ export async function addTradeAction(formData: FormData) {
     return { error: "You must be logged in to add a trade." }
   }
 
-  const rawFormData = Object.fromEntries(formData.entries())
+  // Restrict to DB enum and block unsupported "futures"
+  const allowedAssetTypes = ['crypto', 'option', 'stock', 'forex'] as const;
+  type DbAssetType = typeof allowedAssetTypes[number];
+
+  if (!allowedAssetTypes.includes(data.asset_type as any)) {
+    throw new Error('Asset type "futures" is not supported by the current schema.');
+  }
+
+  const assetType: DbAssetType = data.asset_type as DbAssetType;
   const parsed = tradeSchema.safeParse({
     ...rawFormData,
     tags: formData.getAll("tags"),

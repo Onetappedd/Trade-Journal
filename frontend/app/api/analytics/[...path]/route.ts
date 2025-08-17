@@ -13,7 +13,7 @@ import { CardsSummarySchema, EquityCurveResponseSchema, MonthlyPnlResponseSchema
 
 const FiltersSchema = z.object({
   accountIds: z.array(z.string()).optional().default([]),
-  assetClasses: z.array(z.enum(['stocks','options','futures','crypto'])).optional().default([]),
+  assetClasses: z.array(z.enum(['stocks','options','crypto'])).optional().default([]),
   start: z.string().optional(), // YYYY-MM-DD
   end: z.string().optional(),   // YYYY-MM-DD
   timezone: z.string().optional(),
