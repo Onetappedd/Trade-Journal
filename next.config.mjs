@@ -6,9 +6,11 @@ const nextConfig = {
   webpack: (config) => {
     config.resolve ??= {};
     config.resolve.alias ??= {};
-    // Exact-match alias so it doesn't recurse
-    config.resolve.alias['date-fns/locale/en-US$'] =
-      path.resolve(process.cwd(), 'shims/date-fns-locale-en-US.mjs');
+    const shim = path.resolve(process.cwd(), 'shims/date-fns-locale-en-US.mjs');
+
+    // Alias both possible import forms used by deps
+    config.resolve.alias['date-fns/locale/en-US'] = shim;
+    config.resolve.alias['date-fns/locale/en-US/index'] = shim;
     return config;
   },
 };

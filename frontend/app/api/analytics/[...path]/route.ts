@@ -1,5 +1,8 @@
-export const runtime = 'nodejs'
-import { NextRequest, NextResponse } from 'next/server'
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { format, addDays, isBefore, parseISO } from 'date-fns'
@@ -7,9 +10,6 @@ import { utcToZonedTime, zonedTimeToUtc, formatInTimeZone } from 'date-fns-tz'
 import type { Database } from '@/lib/database.types'
 import { CardsSummarySchema, EquityCurveResponseSchema, MonthlyPnlResponseSchema } from '@/lib/analytics/types'
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 const FiltersSchema = z.object({
   accountIds: z.array(z.string()).optional().default([]),
