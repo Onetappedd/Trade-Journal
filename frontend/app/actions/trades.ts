@@ -1,5 +1,3 @@
-"use server"
-
 'use server'
 
 import { createSupabaseServer } from '@/lib/supabase-server'
