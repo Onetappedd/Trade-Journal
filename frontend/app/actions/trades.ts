@@ -34,14 +34,13 @@ export async function addTradeAction(formData: FormData) {
     return { error: "You must be logged in to add a trade." }
   }
 
-  // Restrict to DB enum
   const allowedAssetTypes = ['crypto', 'option', 'stock', 'forex', 'futures'] as const;
-  type DbAssetType = typeof allowedAssetTypes[number];
+type DbAssetType = typeof allowedAssetTypes[number];
 
+export async function createTrade(data: TradeFormValues) {
   if (!allowedAssetTypes.includes(data.asset_type as any)) {
-    throw new Error('Invalid asset_type.');
+    throw new Error(`Invalid asset_type: ${data.asset_type}`);
   }
-
   const assetType: DbAssetType = data.asset_type as DbAssetType;
   const parsed = tradeSchema.safeParse({
     ...rawFormData,
