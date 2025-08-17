@@ -1,4 +1,8 @@
-// Re-export the v2 locale in the shape react-day-picker expects
-import enUS from 'date-fns/locale/en-US'
-export { enUS }
-export default enUS
+/**
+ * Shim to expose BOTH default and named `enUS` exports.
+ * We import from the deep path to avoid alias recursion.
+ */
+import enUS from 'date-fns/locale/en-US/index';
+
+export { enUS };
+export default enUS;
