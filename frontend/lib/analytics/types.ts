@@ -5,7 +5,7 @@ export const AnalyticsFiltersSchema = z.object({
   datePreset: z.enum(['1W','1M','3M','YTD','1Y','ALL','CUSTOM']),
   dateRange: z.object({ start: z.string().optional(), end: z.string().optional() }).optional(),
   accountIds: z.array(z.string()).default([]),
-  assetClasses: z.array(z.enum(['stocks','options','crypto'])).default([]),
+  assetClasses: z.array(z.enum(['stocks','options','crypto','forex','futures'])).default([]),
   tags: z.array(z.string()).default([]),
   strategies: z.array(z.string()).default([]),
   symbols: z.array(z.string()).default([]),

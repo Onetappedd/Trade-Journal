@@ -72,6 +72,7 @@ export function AddTradeDialog({ open, onOpenChange }: AddTradeDialogProps) {
                   <SelectItem value="option">Option</SelectItem>
                   <SelectItem value="crypto">Crypto</SelectItem>
                   <SelectItem value="forex">Forex</SelectItem>
+                  <SelectItem value="futures">Futures</SelectItem>
                 </SelectContent>
               </Select>
             </div>

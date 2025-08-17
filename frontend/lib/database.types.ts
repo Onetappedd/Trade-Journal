@@ -49,7 +49,7 @@ export type Database = {
           exit_price: number | null
           entry_date: string
           exit_date: string | null
-          asset_type: "stock" | "option" | "crypto" | "forex"
+          asset_type: "stock" | "option" | "crypto" | "forex" | "futures"
           strategy: string | null
           fees: number | null
           stop_loss: number | null
@@ -71,7 +71,7 @@ export type Database = {
           exit_price?: number | null
           entry_date: string
           exit_date?: string | null
-          asset_type: "stock" | "option" | "crypto" | "forex"
+          asset_type: "stock" | "option" | "crypto" | "forex" | "futures"
           strategy?: string | null
           fees?: number | null
           stop_loss?: number | null
@@ -93,7 +93,7 @@ export type Database = {
           exit_price?: number | null
           entry_date?: string
           exit_date?: string | null
-          asset_type?: "stock" | "option" | "crypto" | "forex"
+          asset_type?: "stock" | "option" | "crypto" | "forex" | "futures"
           strategy?: string | null
           fees?: number | null
           stop_loss?: number | null
