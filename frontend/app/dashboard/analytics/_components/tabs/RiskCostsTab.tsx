@@ -3,6 +3,7 @@
 import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
+import type { FiltersState as AnalyticsFiltersState } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { shallow } from "zustand/shallow"
 
@@ -11,17 +12,18 @@ function Skeleton() {
 }
 
 export function RiskCostsTab() {
-  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash } = useAnalyticsFiltersStore(s => ({
-    dateRange: s.dateRange,
-    datePreset: s.datePreset,
-    accountIds: s.accountIds,
-    assetClasses: s.assetClasses,
-    tags: s.tags,
-    strategies: s.strategies,
-    symbols: s.symbols,
-    timezone: s.timezone,
-    filtersHash: s.filtersHash,
-  }), shallow)
+  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash } =
+    useAnalyticsFiltersStore((s: AnalyticsFiltersState) => ({
+      dateRange: s.dateRange,
+      datePreset: s.datePreset,
+      accountIds: s.accountIds,
+      assetClasses: s.assetClasses,
+      tags: s.tags,
+      strategies: s.strategies,
+      symbols: s.symbols,
+      timezone: s.timezone,
+      filtersHash: s.filtersHash,
+    }), shallow)
 
   const keyCosts = ['analytics', filtersHash(), 'costs'] as const
   const keyDrawdown = ['analytics', filtersHash(), 'drawdown'] as const
