@@ -2,29 +2,18 @@
 
 import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
-import { useAnalyticsFiltersStore, type FiltersState } from "@/lib/analytics/filtersStore"
+import { useAnalyticsFiltersStore, selectFilters } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
-import { useShallow } from "zustand/react/shallow"
+import { shallow } from "zustand/shallow"
 
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
 }
 
 export function TimeHabitsTab() {
-  const selectFilters = (s: FiltersState) => ({
-    dateRange: s.dateRange,
-    datePreset: s.datePreset,
-    accountIds: s.accountIds,
-    assetClasses: s.assetClasses,
-    tags: s.tags,
-    strategies: s.strategies,
-    symbols: s.symbols,
-    timezone: s.timezone,
-    filtersHash: s.filtersHash,
-  })
   const {
     dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore(useShallow(selectFilters))
+  } = useAnalyticsFiltersStore(selectFilters, shallow)
 
   const keyHeatmap = ['analytics', filtersHash(), 'time-heatmap'] as const
   const keyHourly = ['analytics', filtersHash(), 'hourly-winrate'] as const

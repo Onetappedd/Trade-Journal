@@ -1,32 +1,30 @@
 "use client"
 
-import { create, type StoreApi, type UseBoundStore } from 'zustand'
+import { create } from 'zustand'
+import { shallow } from "zustand/shallow"
 
 export type DatePreset = '1W'|'1M'|'3M'|'YTD'|'1Y'|'ALL'|'CUSTOM'
 export type AssetClass = 'stocks'|'options'|'futures'|'crypto'
-
 export interface DateRange { start?: string; end?: string }
-
-// export the state type so callers can reference it
 export type FiltersState = {
-  datePreset: DatePreset
-  dateRange?: DateRange
-  accountIds: string[]
-  assetClasses: AssetClass[]
-  tags: string[]
-  strategies: string[]
-  symbols: string[]
-  timezone: string
-  setDatePreset: (v: DatePreset) => void
-  setDateRange: (v?: DateRange) => void
-  setAccountIds: (v: string[]) => void
-  setAssetClasses: (v: AssetClass[]) => void
-  setTags: (v: string[]) => void
-  setStrategies: (v: string[]) => void
-  setSymbols: (v: string[]) => void
-  setTimezone: (v: string) => void
-  reset: () => void
-  filtersHash: () => string
+  dateRange?: DateRange;
+  datePreset: DatePreset;
+  accountIds: string[];
+  assetClasses: AssetClass[];
+  tags: string[];
+  strategies: string[];
+  symbols: string[];
+  timezone: string;
+  filtersHash: () => string;
+  setDatePreset: (v: DatePreset) => void;
+  setDateRange: (v?: DateRange) => void;
+  setAccountIds: (v: string[]) => void;
+  setAssetClasses: (v: AssetClass[]) => void;
+  setTags: (v: string[]) => void;
+  setStrategies: (v: string[]) => void;
+  setSymbols: (v: string[]) => void;
+  setTimezone: (v: string) => void;
+  reset: () => void;
 }
 
 function stableStringify(obj: any): string {
@@ -41,7 +39,7 @@ function stableStringify(obj: any): string {
   return String(obj)
 }
 
-const _store = create<FiltersState>()((set, get) => ({
+export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
   datePreset: 'ALL',
   dateRange: undefined,
   accountIds: [],
@@ -50,7 +48,6 @@ const _store = create<FiltersState>()((set, get) => ({
   strategies: [],
   symbols: [],
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-
   setDatePreset: (v) => set({ datePreset: v }),
   setDateRange: (v) => set({ dateRange: v }),
   setAccountIds: (v) => set({ accountIds: v }),
@@ -84,4 +81,14 @@ const _store = create<FiltersState>()((set, get) => ({
   }
 }))
 
-export const useAnalyticsFiltersStore = _store as UseBoundStore<StoreApi<FiltersState>>
+export const selectFilters = (s: FiltersState) => ({
+  dateRange: s.dateRange,
+  datePreset: s.datePreset,
+  accountIds: s.accountIds,
+  assetClasses: s.assetClasses,
+  tags: s.tags,
+  strategies: s.strategies,
+  symbols: s.symbols,
+  timezone: s.timezone,
+  filtersHash: s.filtersHash,
+});
