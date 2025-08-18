@@ -4,13 +4,14 @@ import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
+import { useShallow } from "zustand/react/shallow"
 
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
 }
 
 export function RiskCostsTab() {
-  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash } = useAnalyticsFiltersStore(s => ({
+  const selectFilters = (s: any) => ({
     dateRange: s.dateRange,
     datePreset: s.datePreset,
     accountIds: s.accountIds,
@@ -20,7 +21,9 @@ export function RiskCostsTab() {
     symbols: s.symbols,
     timezone: s.timezone,
     filtersHash: s.filtersHash,
-  }))
+  })
+  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash } =
+    useAnalyticsFiltersStore(useShallow(selectFilters))
 
   const keyCosts = ['analytics', filtersHash(), 'costs'] as const
   const keyDrawdown = ['analytics', filtersHash(), 'drawdown'] as const

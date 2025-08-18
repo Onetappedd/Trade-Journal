@@ -4,6 +4,7 @@ import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
+import { useShallow } from "zustand/react/shallow"
 
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
@@ -23,7 +24,7 @@ export function SymbolsTagsTab() {
   })
   const {
     dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore(selectFilters) as ReturnType<typeof selectFilters>
+  } = useAnalyticsFiltersStore(useShallow(selectFilters))
 
   const keySymbol = ['analytics', filtersHash(), 'symbols'] as const
   const keyTags = ['analytics', filtersHash(), 'tags'] as const
