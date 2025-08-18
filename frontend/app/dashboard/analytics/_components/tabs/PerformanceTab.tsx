@@ -10,7 +10,7 @@ import { Info } from "lucide-react"
 
 // Strict types for query responses, only the accessed properties
 
-type EquityPoint = { date: string; value: number; percentChange?: number; dollarChange?: number }
+type EquityPoint = { date: string; value: number; percentChange: number; dollarChange: number }
 const metricKeys = ['value','percentChange','dollarChange'] as const
 type MetricKey = typeof metricKeys[number]
 type EquityCurveRes = { data: EquityPoint[] }
@@ -89,7 +89,14 @@ export function PerformanceTab() {
   }
 
   // Compare previous period
-  const series: EquityPoint[] = curve.data?.data ?? []
+  // Normalize to ensure required fields exist for PortfolioPerformance (PortfolioData[])
+  const rawSeries = (curve.data?.data ?? []) as Array<Partial<EquityPoint> & { date?: unknown; value?: unknown }>
+  const series: EquityPoint[] = rawSeries.map(p => ({
+    date: String(p.date ?? ""),
+    value: Number(p.value ?? 0),
+    percentChange: Number(p.percentChange ?? 0),
+    dollarChange: Number(p.dollarChange ?? 0),
+  }))
   const cardsData = cards.data?.data ?? {}
   const benchSeries: BenchPoint[] = bench.data?.series ?? []
   const riskData = risk.data ?? { sample_size: 0 }
@@ -105,6 +112,8 @@ export function PerformanceTab() {
       .map((d, i): EquityPoint => ({
         date: d.day,
         value: b0 > 0 ? p0 * (d.close / b0) : 0,
+        percentChange: 0,
+        dollarChange: 0,
       }))
       .filter((d, i) => !!series[i] && d.date === series[i]!.date)
   }
