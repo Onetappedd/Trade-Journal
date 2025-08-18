@@ -8,6 +8,14 @@ import { EquityCurveResponseSchema, CardsSummarySchema, MonthlyPnlResponseSchema
 import { PortfolioPerformance } from "@/components/dashboard/PortfolioPerformance"
 import { Info } from "lucide-react"
 
+// Minimal types for query responses
+// Only the accessed properties (no more, no less) are modeled for TS safety
+
+type EquityCurveRes = { data: Array<Record<string, unknown>> }
+type CardsRes = { data: Record<string, unknown> }
+type BenchRes = { series: Array<Record<string, unknown>> }
+type RiskRes = Record<string, unknown>
+
 const defaultBenchmark = "SPY"
 
 function RiskMetricCard({ label, value, tooltip }: { label: string, value: any, tooltip?: string }) {
@@ -37,25 +45,25 @@ export function PerformanceTab() {
   const keyBench = ['analytics', filtersHash, 'benchmark', benchmark] as const
   const keyRisk = ['analytics', filtersHash, 'risk', benchmark] as const
 
-  const curve = useQuery({
+  const curve = useQuery<EquityCurveRes>({
     queryKey: keyCurve,
     queryFn: async () => fetchJson('equity-curve', { ...filters }),
     staleTime: 10_000,
     placeholderData: keepPreviousData,
   })
-  const cards = useQuery({
+  const cards = useQuery<CardsRes>({
     queryKey: keyCards,
     queryFn: async () => fetchJson('cards', { ...filters }),
     staleTime: 10_000,
     placeholderData: keepPreviousData,
   })
-  const bench = useQuery({
+  const bench = useQuery<BenchRes>({
     queryKey: keyBench,
     queryFn: () => fetchJson('benchmark', { ticker: benchmark, start: filters.dateRange?.start, end: filters.dateRange?.end, tz: filters.timezone }),
     staleTime: 10_000,
     placeholderData: keepPreviousData,
   })
-  const risk = useQuery({
+  const risk = useQuery<RiskRes>({
     queryKey: keyRisk,
     queryFn: () => fetchJson('risk', { ticker: benchmark, start: filters.dateRange?.start, end: filters.dateRange?.end, tz: filters.timezone }),
     staleTime: 10_000,
