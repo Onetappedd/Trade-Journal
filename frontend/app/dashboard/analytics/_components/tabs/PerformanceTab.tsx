@@ -47,19 +47,19 @@ export function PerformanceTab() {
     queryKey: keyCards,
     queryFn: async () => fetchJson('cards', { ...filters }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
   const bench = useQuery({
     queryKey: keyBench,
     queryFn: () => fetchJson('benchmark', { ticker: benchmark, start: filters.dateRange?.start, end: filters.dateRange?.end, tz: filters.timezone }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
   const risk = useQuery({
     queryKey: keyRisk,
     queryFn: () => fetchJson('risk', { ticker: benchmark, start: filters.dateRange?.start, end: filters.dateRange?.end, tz: filters.timezone }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   // UI guards
