@@ -1,8 +1,13 @@
 "use client"
 
 import * as React from "react"
-import Papa, { ParseResult } from "papaparse"
+import * as Papa from "papaparse"
 type TradeCsvRow = Record<string, string>;
+type ParseResult<T> = {
+  data: T[],
+  errors: any[],
+  meta: any,
+};
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -181,7 +186,7 @@ export default function ImportTradesPage() {
     Papa.parse(csvFile, {
       header: true,
       skipEmptyLines: true,
-      complete: (results: Papa.ParseResult<TradeCsvRow>) => {
+      complete: (results: ParseResult<TradeCsvRow>) => {
         clearInterval(progressInterval)
         setProgress(100)
         if (broker === "Webull" && assetType === "Options") {
