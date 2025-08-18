@@ -1,7 +1,7 @@
 // Pluggable parsing engine: core types, registry, utils, CSV streaming, sample adapter
 // This module can be used both in the browser and in server-side contexts for batch processing.
 
-import Papa from "papaparse"
+import * as Papa from "papaparse"
 
 // -----------------------------
 // Core Types (keep names exactly)

@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart 
+  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart, Cell 
 } from "recharts"
 import { 
   TrendingUp, TrendingDown, Calendar, BarChart3, 
