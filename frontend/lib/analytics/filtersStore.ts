@@ -7,7 +7,7 @@ export type AssetClass = 'stocks'|'options'|'futures'|'crypto'
 
 export interface DateRange { start?: string; end?: string }
 
-interface FiltersState {
+export type FiltersState = {
   datePreset: DatePreset
   dateRange?: DateRange
   accountIds: string[]
