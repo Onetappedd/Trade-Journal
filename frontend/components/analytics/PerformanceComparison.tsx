@@ -373,10 +373,13 @@ export function PerformanceComparison() {
                       <RechartsTooltip />
                       <Legend />
                       <Bar 
-                        dataKey="return" 
-                        fill={(entry: any) => entry.return >= 0 ? "#10b981" : "#ef4444"}
-                        name="Return (%)"
-                      />
+                      dataKey="return" 
+                      name="Return (%)"
+                      >
+                      {periodComparisons.map((p, idx) => (
+                      <Cell key={idx} fill={p.percentReturn >= 0 ? "#10b981" : "#ef4444"} />
+                      ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
 
