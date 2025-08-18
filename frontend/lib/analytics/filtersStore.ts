@@ -83,3 +83,6 @@ export const useAnalyticsFiltersStore = create<FiltersState>((set, get) => ({
     ].join('|')
   }
 }))
+
+// Export the state type so consumers (e.g., RiskCostsTab) can import it
+export type { FiltersState };
