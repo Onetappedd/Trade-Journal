@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { shallow } from "zustand/shallow"
@@ -23,12 +23,12 @@ export function SymbolsTagsTab() {
     filtersHash: s.filtersHash,
   }), shallow)
 
-  const keySymbols = ['analytics', filtersHash(), 'symbols-breakdown'] as const
-  const keyTags = ['analytics', filtersHash(), 'tags-breakdown'] as const
+  const keySymbol = ['analytics', filtersHash(), 'symbols'] as const
+  const keyTags = ['analytics', filtersHash(), 'tags'] as const
 
   const symbolsQuery = useQuery({
-    queryKey: keySymbols,
-    queryFn: async () => fetchJson('symbols-breakdown', {
+    queryKey: keySymbol,
+    queryFn: async () => fetchJson('symbols', {
       start: dateRange?.start,
       end: dateRange?.end,
       preset: datePreset,
@@ -40,12 +40,12 @@ export function SymbolsTagsTab() {
       timezone,
     }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   const tagsQuery = useQuery({
     queryKey: keyTags,
-    queryFn: async () => fetchJson('tags-breakdown', {
+    queryFn: async () => fetchJson('tags', {
       start: dateRange?.start,
       end: dateRange?.end,
       preset: datePreset,
@@ -57,7 +57,7 @@ export function SymbolsTagsTab() {
       timezone,
     }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   if (symbolsQuery.isLoading || tagsQuery.isLoading) return <Skeleton />
@@ -75,11 +75,11 @@ export function SymbolsTagsTab() {
   return (
     <div className="space-y-4">
       <div className="rounded-md border p-4">
-        <div className="text-sm font-medium mb-2">Symbols Breakdown</div>
+        <div className="text-sm font-medium mb-2">Symbols</div>
         <pre className="text-xs overflow-auto">{JSON.stringify(symbolsQuery.data, null, 2)}</pre>
       </div>
       <div className="rounded-md border p-4">
-        <div className="text-sm font-medium mb-2">Tags Breakdown</div>
+        <div className="text-sm font-medium mb-2">Tags</div>
         <pre className="text-xs overflow-auto">{JSON.stringify(tagsQuery.data, null, 2)}</pre>
       </div>
     </div>

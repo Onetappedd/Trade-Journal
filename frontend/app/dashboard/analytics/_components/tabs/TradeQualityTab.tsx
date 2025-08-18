@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { shallow } from "zustand/shallow"
@@ -41,7 +41,7 @@ export function TradeQualityTab() {
       timezone,
     }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   const profitFactor = useQuery({
@@ -58,7 +58,7 @@ export function TradeQualityTab() {
       timezone,
     }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   const holdingTime = useQuery({
@@ -75,7 +75,7 @@ export function TradeQualityTab() {
       timezone,
     }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   if (expectancy.isLoading || profitFactor.isLoading || holdingTime.isLoading) return <Skeleton />

@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { shallow } from "zustand/shallow"
@@ -40,7 +40,7 @@ export function TimeHabitsTab() {
       timezone,
     }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   const hourly = useQuery({
@@ -57,7 +57,7 @@ export function TimeHabitsTab() {
       timezone,
     }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 
   if (heatmap.isLoading || hourly.isLoading) return <Skeleton />

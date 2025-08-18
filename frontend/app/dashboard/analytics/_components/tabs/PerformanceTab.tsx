@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { EquityCurveResponseSchema, CardsSummarySchema, MonthlyPnlResponseSchema } from "@/lib/analytics/types"
@@ -41,7 +41,7 @@ export function PerformanceTab() {
     queryKey: keyCurve,
     queryFn: async () => fetchJson('equity-curve', { ...filters }),
     staleTime: 10_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
   const cards = useQuery({
     queryKey: keyCards,
