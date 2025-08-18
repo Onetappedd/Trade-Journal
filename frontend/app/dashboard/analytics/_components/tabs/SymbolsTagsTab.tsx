@@ -6,6 +6,19 @@ import { useAnalyticsFiltersStore, selectFilters } from "@/lib/analytics/filters
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { useShallow } from "zustand/react/shallow"
 
+// Local type for analytics filters
+ type AnalyticsFiltersState = {
+  dateRange: { from: Date | null; to: Date | null } | null
+  datePreset: string | null
+  accountIds: string[]
+  assetClasses: string[]
+  tags: string[]
+  strategies: string[]
+  symbols: string[]
+  timezone: string
+  filtersHash: () => string
+}
+
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
 }
@@ -13,7 +26,17 @@ function Skeleton() {
 export function SymbolsTagsTab() {
   const {
     dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore(useShallow(selectFilters))
+  } = useAnalyticsFiltersStore((s: AnalyticsFiltersState) => ({
+    dateRange: s.dateRange,
+    datePreset: s.datePreset,
+    accountIds: s.accountIds,
+    assetClasses: s.assetClasses,
+    tags: s.tags,
+    strategies: s.strategies,
+    symbols: s.symbols,
+    timezone: s.timezone,
+    filtersHash: s.filtersHash,
+  }))
 
   const keySymbol = ['analytics', filtersHash(), 'symbols'] as const
   const keyTags = ['analytics', filtersHash(), 'tags'] as const
