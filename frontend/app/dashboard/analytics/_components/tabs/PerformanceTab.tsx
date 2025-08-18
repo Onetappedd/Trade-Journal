@@ -8,13 +8,13 @@ import { EquityCurveResponseSchema, CardsSummarySchema, MonthlyPnlResponseSchema
 import { PortfolioPerformance } from "@/components/dashboard/PortfolioPerformance"
 import { Info } from "lucide-react"
 
-// Minimal types for query responses
-// Only the accessed properties (no more, no less) are modeled for TS safety
+// Strict types for query responses, only the accessed properties
 
-type EquityCurveRes = { data: Array<Record<string, unknown>> }
+type EquityPoint = { date: string; value: number }
+type EquityCurveRes = { data: EquityPoint[] }
 type CardsRes = { data: Record<string, unknown> }
-type BenchRes = { series: Array<Record<string, unknown>> }
-// Must include sample_size so comparisons are type-safe
+type BenchPoint = { day: string; close: number }
+type BenchRes = { series: BenchPoint[] }
 type RiskRes = { sample_size: number } & Record<string, unknown>
 
 const defaultBenchmark = "SPY"
@@ -87,22 +87,24 @@ export function PerformanceTab() {
   }
 
   // Compare previous period
-  const series = curve.data?.data || []
-  const cardsData = cards.data?.data || {}
-  const benchSeries = bench.data?.series || []
+  const series: EquityPoint[] = curve.data?.data ?? []
+  const cardsData = cards.data?.data ?? {}
+  const benchSeries: BenchPoint[] = bench.data?.series ?? []
   const riskData = risk.data ?? { sample_size: 0 }
   const sampleSize = riskData.sample_size
   const insufficient = sampleSize < 15
 
   // Overlay: normalize benchmark to portfolio[0]
-  let overlay: { date: string; value: number }[] = []
+  let overlay: EquityPoint[] = []
   if (series.length && benchSeries.length) {
     const p0 = series[0].value
     const b0 = benchSeries[0].close
-    overlay = benchSeries.map((d, i) => ({
-      date: d.day,
-      value: b0 > 0 ? p0 * (d.close / b0) : 0
-    })).filter((d, i) => series[i] && d.date === series[i].date)
+    overlay = benchSeries
+      .map((d, i): EquityPoint => ({
+        date: d.day,
+        value: b0 > 0 ? p0 * (d.close / b0) : 0,
+      }))
+      .filter((d, i) => !!series[i] && d.date === series[i]!.date)
   }
 
   // Compare previous period deltas
