@@ -2,8 +2,7 @@
 
 import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
-import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
-import type { FiltersState as AnalyticsFiltersState } from "@/lib/analytics/filtersStore"
+import { useAnalyticsFiltersStore, selectFilters } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { useShallow } from "zustand/react/shallow"
 
@@ -12,17 +11,6 @@ function Skeleton() {
 }
 
 export function TradeQualityTab() {
-  const selectFilters = (s: AnalyticsFiltersState) => ({
-    dateRange: s.dateRange,
-    datePreset: s.datePreset,
-    accountIds: s.accountIds,
-    assetClasses: s.assetClasses,
-    tags: s.tags,
-    strategies: s.strategies,
-    symbols: s.symbols,
-    timezone: s.timezone,
-    filtersHash: s.filtersHash,
-  })
   const {
     dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
   } = useAnalyticsFiltersStore(useShallow(selectFilters))

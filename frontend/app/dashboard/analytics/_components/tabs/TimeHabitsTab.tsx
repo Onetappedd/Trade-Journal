@@ -4,7 +4,7 @@ import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore, selectFilters } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
-import { shallow } from "zustand/shallow"
+import { useShallow } from "zustand/react/shallow"
 
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
@@ -13,7 +13,7 @@ function Skeleton() {
 export function TimeHabitsTab() {
   const {
     dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore(selectFilters, shallow)
+  } = useAnalyticsFiltersStore(useShallow(selectFilters))
 
   const keyHeatmap = ['analytics', filtersHash(), 'time-heatmap'] as const
   const keyHourly = ['analytics', filtersHash(), 'hourly-winrate'] as const
