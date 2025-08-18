@@ -7,6 +7,7 @@ export type AssetClass = 'stocks'|'options'|'futures'|'crypto'
 
 export interface DateRange { start?: string; end?: string }
 
+// export the state type so callers can reference it
 export type FiltersState = {
   datePreset: DatePreset
   dateRange?: DateRange
@@ -16,7 +17,6 @@ export type FiltersState = {
   strategies: string[]
   symbols: string[]
   timezone: string
-  // setters
   setDatePreset: (v: DatePreset) => void
   setDateRange: (v?: DateRange) => void
   setAccountIds: (v: string[]) => void
@@ -41,7 +41,8 @@ function stableStringify(obj: any): string {
   return String(obj)
 }
 
-export const useAnalyticsFiltersStore = create<FiltersState>((set, get) => ({
+// create the store with a generic so selectors are typed
+export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
   datePreset: 'ALL',
   dateRange: undefined,
   accountIds: [],
@@ -83,6 +84,3 @@ export const useAnalyticsFiltersStore = create<FiltersState>((set, get) => ({
     ].join('|')
   }
 }))
-
-// Export the state type so consumers (e.g., RiskCostsTab) can import it
-export type { FiltersState };
