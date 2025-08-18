@@ -3,15 +3,16 @@
 import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
+import type { FiltersState as AnalyticsFiltersState } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
-import { shallow } from "zustand/shallow"
+import { useShallow } from "zustand/react/shallow"
 
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
 }
 
 export function TradeQualityTab() {
-  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash } = useAnalyticsFiltersStore(s => ({
+  const selectFilters = (s: AnalyticsFiltersState) => ({
     dateRange: s.dateRange,
     datePreset: s.datePreset,
     accountIds: s.accountIds,
@@ -21,7 +22,10 @@ export function TradeQualityTab() {
     symbols: s.symbols,
     timezone: s.timezone,
     filtersHash: s.filtersHash,
-  }), shallow)
+  })
+  const {
+    dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
+  } = useAnalyticsFiltersStore(useShallow(selectFilters))
 
   const keyExpectancy = ['analytics', filtersHash(), 'expectancy'] as const
   const keyProfitFactor = ['analytics', filtersHash(), 'profit-factor'] as const

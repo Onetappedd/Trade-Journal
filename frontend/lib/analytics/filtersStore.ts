@@ -1,6 +1,6 @@
 "use client"
 
-import { create } from 'zustand'
+import { create, type StoreApi, type UseBoundStore } from 'zustand'
 
 export type DatePreset = '1W'|'1M'|'3M'|'YTD'|'1Y'|'ALL'|'CUSTOM'
 export type AssetClass = 'stocks'|'options'|'futures'|'crypto'
@@ -41,8 +41,7 @@ function stableStringify(obj: any): string {
   return String(obj)
 }
 
-// create the store with a generic so selectors are typed
-export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
+const _store = create<FiltersState>()((set, get) => ({
   datePreset: 'ALL',
   dateRange: undefined,
   accountIds: [],
@@ -84,3 +83,5 @@ export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
     ].join('|')
   }
 }))
+
+export const useAnalyticsFiltersStore = _store as UseBoundStore<StoreApi<FiltersState>>
