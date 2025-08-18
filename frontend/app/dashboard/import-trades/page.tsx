@@ -178,10 +178,10 @@ export default function ImportTradesPage() {
       progressVal += 10
       setProgress(Math.min(progressVal, 90))
     }, 100)
-    Papa.parse<TradeCsvRow>(csvFile, {
+    Papa.parse(csvFile, {
       header: true,
       skipEmptyLines: true,
-      complete: (results: ParseResult<TradeCsvRow>) => {
+      complete: (results: Papa.ParseResult<TradeCsvRow>) => {
         clearInterval(progressInterval)
         setProgress(100)
         if (broker === "Webull" && assetType === "Options") {
