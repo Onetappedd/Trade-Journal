@@ -158,7 +158,7 @@ function MetricCard({ title, value, delta, positive = true, ariaLabel }: { title
 function CandlestickSeries({ data, colorUp, colorDown }: { data: Candle[]; colorUp: string; colorDown: string }) {
   return (
     <Customized
-      content={(props: any) => {
+      component={(props: any) => {
         const { xAxisMap, yAxisMap, offset } = props
         const xKey = Object.keys(xAxisMap)[0]
         const yKey = Object.keys(yAxisMap)[0]
