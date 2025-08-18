@@ -10,7 +10,9 @@ import { Info } from "lucide-react"
 
 // Strict types for query responses, only the accessed properties
 
-type EquityPoint = { date: string; value: number }
+type EquityPoint = { date: string; value: number; percentChange?: number; dollarChange?: number }
+const metricKeys = ['value','percentChange','dollarChange'] as const
+type MetricKey = typeof metricKeys[number]
 type EquityCurveRes = { data: EquityPoint[] }
 type CardsRes = { data: Record<string, unknown> }
 type BenchPoint = { day: string; close: number }
@@ -115,9 +117,10 @@ export function PerformanceTab() {
     const half = Math.floor(len/2)
     const now = series.slice(half)
     if (now.length && prev.length) {
-      for (const k of [ 'value', 'percentChange', 'dollarChange' ]) {
-        const d = now[now.length-1][k] - prev[half-1][k]
-        prevDeltas[k] = d > 0 ? "+"+d.toFixed(2) : d.toFixed(2)
+      for (const k of metricKeys) {
+        const a = (now[now.length - 1]?.[k] ?? 0) as number
+        const b = (prev[half - 1]?.[k] ?? 0) as number
+        ;(prevDeltas as Record<MetricKey, string>)[k] = (a - b) > 0 ? "+" + (a - b).toFixed(2) : (a - b).toFixed(2)
       }
     }
   }
