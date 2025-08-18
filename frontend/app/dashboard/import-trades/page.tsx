@@ -57,6 +57,8 @@ type TradePreview = {
   quantity: number
   entry_price: number
   entry_date: string
+  asset_type?: string
+  broker?: string
   status?: string
   validation_status?: string
   error?: string
