@@ -4,14 +4,13 @@ import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
-import { shallow } from "zustand/shallow"
 
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
 }
 
 export function SymbolsTagsTab() {
-  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash } = useAnalyticsFiltersStore(s => ({
+  const selectFilters = (s: any) => ({
     dateRange: s.dateRange,
     datePreset: s.datePreset,
     accountIds: s.accountIds,
@@ -21,7 +20,10 @@ export function SymbolsTagsTab() {
     symbols: s.symbols,
     timezone: s.timezone,
     filtersHash: s.filtersHash,
-  }), shallow)
+  })
+  const {
+    dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
+  } = useAnalyticsFiltersStore(selectFilters) as ReturnType<typeof selectFilters>
 
   const keySymbol = ['analytics', filtersHash(), 'symbols'] as const
   const keyTags = ['analytics', filtersHash(), 'tags'] as const
