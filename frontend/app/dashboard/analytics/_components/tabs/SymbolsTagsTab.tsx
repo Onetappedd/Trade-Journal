@@ -26,7 +26,7 @@ function Skeleton() {
 export function SymbolsTagsTab() {
   const {
     dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore((s: AnalyticsFiltersState) => ({
+  } = useAnalyticsFiltersStore((s) => ({
     dateRange: s.dateRange,
     datePreset: s.datePreset,
     accountIds: s.accountIds,
@@ -37,6 +37,11 @@ export function SymbolsTagsTab() {
     timezone: s.timezone,
     filtersHash: s.filtersHash,
   }))
+
+  const normalizedRange = {
+    from: dateRange?.from ?? null,
+    to: dateRange?.to ?? null,
+  }
 
   const keySymbol = ['analytics', filtersHash(), 'symbols'] as const
   const keyTags = ['analytics', filtersHash(), 'tags'] as const

@@ -26,7 +26,7 @@ function Skeleton() {
 export function TradeQualityTab() {
   const {
     dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore((s: AnalyticsFiltersState) => ({
+  } = useAnalyticsFiltersStore((s) => ({
     dateRange: s.dateRange,
     datePreset: s.datePreset,
     accountIds: s.accountIds,
@@ -37,6 +37,11 @@ export function TradeQualityTab() {
     timezone: s.timezone,
     filtersHash: s.filtersHash,
   }))
+
+  const normalizedRange = {
+    from: dateRange?.from ?? null,
+    to: dateRange?.to ?? null,
+  }
 
   const keyExpectancy = ['analytics', filtersHash(), 'expectancy'] as const
   const keyProfitFactor = ['analytics', filtersHash(), 'profit-factor'] as const

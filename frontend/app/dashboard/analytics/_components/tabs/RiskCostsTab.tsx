@@ -24,7 +24,7 @@ function Skeleton() {
 
 export function RiskCostsTab() {
   const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash } =
-    useAnalyticsFiltersStore((s: AnalyticsFiltersState) => ({
+    useAnalyticsFiltersStore((s) => ({
       dateRange: s.dateRange,
       datePreset: s.datePreset,
       accountIds: s.accountIds,
@@ -35,6 +35,11 @@ export function RiskCostsTab() {
       timezone: s.timezone,
       filtersHash: s.filtersHash,
     }))
+
+  const normalizedRange = {
+    from: dateRange?.from ?? null,
+    to: dateRange?.to ?? null,
+  }
 
   const keyCosts = ['analytics', filtersHash(), 'costs'] as const
   const keyDrawdown = ['analytics', filtersHash(), 'drawdown'] as const
