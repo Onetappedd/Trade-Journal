@@ -14,7 +14,8 @@ import { Info } from "lucide-react"
 type EquityCurveRes = { data: Array<Record<string, unknown>> }
 type CardsRes = { data: Record<string, unknown> }
 type BenchRes = { series: Array<Record<string, unknown>> }
-type RiskRes = Record<string, unknown>
+// Must include sample_size so comparisons are type-safe
+type RiskRes = { sample_size: number } & Record<string, unknown>
 
 const defaultBenchmark = "SPY"
 
@@ -89,8 +90,8 @@ export function PerformanceTab() {
   const series = curve.data?.data || []
   const cardsData = cards.data?.data || {}
   const benchSeries = bench.data?.series || []
-  const riskData = risk.data || {}
-  const sampleSize = riskData.sample_size || 0
+  const riskData = risk.data ?? { sample_size: 0 }
+  const sampleSize = riskData.sample_size
   const insufficient = sampleSize < 15
 
   // Overlay: normalize benchmark to portfolio[0]
