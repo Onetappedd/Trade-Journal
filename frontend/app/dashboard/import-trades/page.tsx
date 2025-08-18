@@ -255,7 +255,7 @@ export default function ImportTradesPage() {
         }
         setProcessing(false)
       },
-      error: (err) => {
+      error: (err: any) => {
         clearInterval(progressInterval)
         setParseError(err.message)
         setProcessing(false)
