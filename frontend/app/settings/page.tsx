@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const [localTheme, setLocalTheme] = useState<string>("system")
   const filtersHash = useAnalyticsFiltersStore(s => s.filtersHash())
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{ initial_capital?: number; theme?: string }>({
     queryKey: SETTINGS_QUERY_KEY,
     queryFn: async () => fetchJson("user-settings", {}),
     staleTime: 120_000
