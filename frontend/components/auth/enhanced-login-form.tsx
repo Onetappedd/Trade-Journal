@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { FinancialTicker } from "./financial-ticker"
-import { BackgroundChartAnimation } from "./background-chart-animation"
+import BackgroundChartAnimation from "./background-chart-animation"
 
 export function EnhancedLoginForm() {
   const { signIn, signUp, loading } = useAuth()
