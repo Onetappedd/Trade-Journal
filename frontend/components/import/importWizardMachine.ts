@@ -29,7 +29,7 @@ export interface ImportWizardContext {
   error?: string
 }
 
-export const importWizardMachine = createMachine<ImportWizardContext, any, any>(
+export const importWizardMachine = createMachine<any>(
   {
     id: "importWizard",
     initial: "chooseBroker",
