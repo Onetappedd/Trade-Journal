@@ -1,4 +1,4 @@
-import { createMachine, assign } from "xstate"
+import { createMachine, assign, fromPromise } from "xstate"
 
 export interface ImportWizardContext {
   brokerId?: string
@@ -63,11 +63,11 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       detecting: {
         invoke: {
-          src: async (ctx, evt) => {
+          src: fromPromise(async (ctx, evt) => {
             // Call backend /import/detect
             // Return {brokerGuess, assetGuess, schemaId, confidence, headerMap, warnings}
             return {}
-          },
+          }),
           onDone: {
             actions: "setDetectedSchema",
             target: "preview"
@@ -90,11 +90,11 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       importing: {
         invoke: {
-          src: async (ctx, evt) => {
+          src: fromPromise(async (ctx, evt) => {
             // Call backend /import/start
             // Return import summary
             return {}
-          },
+          }),
           onDone: {
             actions: "setImportResult",
             target: "done"
