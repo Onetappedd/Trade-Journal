@@ -6,14 +6,15 @@ import { useQuery } from "@tanstack/react-query"
 import { fetchJson } from "@/lib/analytics/client"
 import { format, parseISO } from 'date-fns'
 
-type PresetKey = NonNullable<FiltersState["datePreset"]>;
-const presets: { key: PresetKey; label: string }[] = [
-  { key: "1W", label: "1W" },
-  { key: "1M", label: "1M" },
-  { key: "3M", label: "3M" },
-  { key: "YTD", label: "YTD" },
-  { key: "1Y", label: "1Y" },
-  { key: "ALL", label: "ALL" },
+const presets: Array<{ key: DatePreset; label: string }> = [
+  { key: '1W', label: '1W' },
+  { key: '1M', label: '1M' },
+  { key: '3M', label: '3M' },
+  { key: '6M', label: '6M' },
+  { key: 'YTD', label: 'YTD' },
+  { key: '1Y', label: '1Y' },
+  { key: 'ALL', label: 'All' },
+  { key: 'CUSTOM', label: 'Custom' },
 ];
 
 export function FiltersBar() {
