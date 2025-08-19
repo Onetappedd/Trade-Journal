@@ -49,8 +49,8 @@ export function SymbolsTagsTab() {
   const symbolsQuery = useQuery({
     queryKey: keySymbol,
     queryFn: async () => fetchJson('symbols', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,
@@ -66,8 +66,8 @@ export function SymbolsTagsTab() {
   const tagsQuery = useQuery({
     queryKey: keyTags,
     queryFn: async () => fetchJson('tags', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,

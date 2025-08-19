@@ -21,8 +21,8 @@ export function TimeHabitsTab() {
   const heatmap = useQuery({
     queryKey: keyHeatmap,
     queryFn: async () => fetchJson('time-heatmap', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,
@@ -38,8 +38,8 @@ export function TimeHabitsTab() {
   const hourly = useQuery({
     queryKey: keyHourly,
     queryFn: async () => fetchJson('hourly-winrate', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,

@@ -47,8 +47,8 @@ export function RiskCostsTab() {
   const costs = useQuery({
     queryKey: keyCosts,
     queryFn: async () => fetchJson('costs', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,
@@ -64,8 +64,8 @@ export function RiskCostsTab() {
   const drawdown = useQuery({
     queryKey: keyDrawdown,
     queryFn: async () => fetchJson('drawdown', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,

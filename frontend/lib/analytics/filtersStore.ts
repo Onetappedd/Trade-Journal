@@ -25,9 +25,8 @@ export interface FiltersState {
   setTags: (tags: string[]) => void;
   setStrategies: (strategies: string[]) => void;
   setSymbols: (symbols: string[]) => void;
+  reset: () => void;
 }
-
-export type { FiltersState };
 
 function stableStringify(obj: any): string {
   if (obj == null) return ''
@@ -71,6 +70,16 @@ export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
   setTags: (tags) => set({ tags }),
   setStrategies: (strategies) => set({ strategies }),
   setSymbols: (symbols) => set({ symbols }),
+  reset: () => set((state) => ({
+    dateRange: undefined,
+    datePreset: null,
+    accountIds: [],
+    assetClasses: [],
+    tags: [],
+    strategies: [],
+    symbols: [],
+    timezone: state.timezone,
+  })),
 }))
 
 export const selectFilters = (s: FiltersState) => ({
