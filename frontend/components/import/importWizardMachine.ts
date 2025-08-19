@@ -63,7 +63,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       detecting: {
         invoke: {
-          src: fromPromise(async (ctx, evt) => {
+          src: fromPromise(async ({ input }) => {
             // Call backend /import/detect
             // Return {brokerGuess, assetGuess, schemaId, confidence, headerMap, warnings}
             return {}
@@ -90,7 +90,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       importing: {
         invoke: {
-          src: fromPromise(async (ctx, evt) => {
+          src: fromPromise(async ({ input }) => {
             // Call backend /import/start
             // Return import summary
             return {}
