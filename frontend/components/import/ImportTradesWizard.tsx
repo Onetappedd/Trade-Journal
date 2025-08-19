@@ -84,7 +84,7 @@ function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[];
       worker: true,
       skipEmptyLines: true,
       preview: maxRows,
-      complete: (res) => {
+      complete: (res: any) => {
         const headers = (res.meta?.fields || []) as string[]
         const rows = (res.data || []) as any[]
         resolve({ headers, rows })
