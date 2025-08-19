@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
+import type { FiltersState } from '@/lib/analytics/filtersStore';
 import { useQuery } from "@tanstack/react-query"
 import { fetchJson } from "@/lib/analytics/client"
 import { format, parseISO } from 'date-fns'
@@ -59,15 +60,16 @@ export function FiltersBar() {
     })
   }
 
-  const presets: Array<{ key: typeof store.datePreset; label: string }> = [
-    { key: '1W', label: '1W' },
-    { key: '1M', label: '1M' },
-    { key: '3M', label: '3M' },
+  // Keep this derived from the store type so it always stays in sync.
+  const presets: Array<{ key: FiltersState['datePreset']; label: string }> = [
+    { key: '1W',  label: '1W'  },
+    { key: '1M',  label: '1M'  },
+    { key: '3M',  label: '3M'  },
+    { key: '6M',  label: '6M'  },
     { key: 'YTD', label: 'YTD' },
-    { key: '1Y', label: '1Y' },
+    { key: '1Y',  label: '1Y'  },
     { key: 'ALL', label: 'All' },
-    { key: 'CUSTOM', label: 'Custom' },
-  ]
+  ];
 
   return (
     <div className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-md p-3">
