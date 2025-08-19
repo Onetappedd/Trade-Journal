@@ -50,8 +50,8 @@ export function TradeQualityTab() {
   const expectancy = useQuery({
     queryKey: keyExpectancy,
     queryFn: async () => fetchJson('expectancy', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,
@@ -67,8 +67,8 @@ export function TradeQualityTab() {
   const profitFactor = useQuery({
     queryKey: keyProfitFactor,
     queryFn: async () => fetchJson('profit-factor', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,
@@ -84,8 +84,8 @@ export function TradeQualityTab() {
   const holdingTime = useQuery({
     queryKey: keyHoldingTime,
     queryFn: async () => fetchJson('holding-time', {
-      start: dateRange?.start,
-      end: dateRange?.end,
+      start: dateRange?.from,
+      end: dateRange?.to,
       preset: datePreset,
       accountIds,
       assetClasses,

@@ -4,13 +4,28 @@ import React, { useEffect, useMemo, useState } from "react"
 import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
 import { useQuery } from "@tanstack/react-query"
 import { fetchJson } from "@/lib/analytics/client"
+import { format, parseISO } from 'date-fns'
 
 export function FiltersBar() {
-  const store = useAnalyticsFiltersStore()
+  const { dateRange, setDateRange, timezone, setTimezone, datePreset, setDatePreset, setAccountIds, assetClasses, setAssetClasses, setTags, setStrategies, setSymbols, reset } = useAnalyticsFiltersStore(s => ({
+    dateRange: s.dateRange,
+    setDateRange: s.setDateRange,
+    timezone: s.timezone,
+    setTimezone: s.setTimezone,
+    datePreset: s.datePreset,
+    setDatePreset: s.setDatePreset,
+    setAccountIds: s.setAccountIds,
+    assetClasses: s.assetClasses,
+    setAssetClasses: s.setAssetClasses,
+    setTags: s.setTags,
+    setStrategies: s.setStrategies,
+    setSymbols: s.setSymbols,
+    reset: s.reset,
+  }))
   // Ensure default timezone comes from browser (store already defaults to browser, this keeps UI in sync)
   useEffect(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    if (tz && tz !== store.timezone) store.setTimezone(tz)
+    if (tz && tz !== timezone) setTimezone(tz)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const { data } = useQuery({
@@ -19,14 +34,30 @@ export function FiltersBar() {
     staleTime: 60_000,
   }) as any
 
-  // Local controlled inputs for custom date
-  const [customStart, setCustomStart] = useState<string>(store.dateRange?.start || "")
-  const [customEnd, setCustomEnd] = useState<string>(store.dateRange?.end || "")
+  // Local controlled inputs for custom date, now use .from/.to and format
+  const [customStart, setCustomStart] = useState<string>(dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '')
+  const [customEnd, setCustomEnd] = useState<string>(dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '')
 
   useEffect(() => {
-    if (store.datePreset !== 'CUSTOM') return
-    store.setDateRange({ start: customStart, end: customEnd })
-  }, [customStart, customEnd, store])
+    setCustomStart(dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '')
+    setCustomEnd(dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : '')
+  }, [dateRange?.from?.getTime?.(), dateRange?.to?.getTime?.()])
+
+  const onStartChange = (value: string) => {
+    setCustomStart(value)
+    setDateRange({
+      from: value ? parseISO(value) : undefined,
+      to: dateRange?.to,
+    })
+  }
+
+  const onEndChange = (value: string) => {
+    setCustomEnd(value)
+    setDateRange({
+      from: dateRange?.from,
+      to: value ? parseISO(value) : undefined,
+    })
+  }
 
   const presets: Array<{ key: typeof store.datePreset; label: string }> = [
     { key: '1W', label: '1W' },
@@ -53,12 +84,12 @@ export function FiltersBar() {
         </div>
 
         {/* Custom date range */}
-        {store.datePreset === 'CUSTOM' && (
+        {datePreset === 'CUSTOM' && (
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">From</label>
-            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="text-sm border rounded px-2 py-1 bg-background" />
+            <input type="date" value={customStart} onChange={e => onStartChange(e.target.value)} className="text-sm border rounded px-2 py-1 bg-background" />
             <label className="text-sm text-muted-foreground">To</label>
-            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="text-sm border rounded px-2 py-1 bg-background" />
+            <input type="date" value={customEnd} onChange={e => onEndChange(e.target.value)} className="text-sm border rounded px-2 py-1 bg-background" />
           </div>
         )}
 
@@ -78,11 +109,11 @@ export function FiltersBar() {
         {/* Asset class chips */}
         <div className="flex items-center gap-1" aria-label="Assets">
           {(['stocks','options','futures','crypto'] as const).map(asset => {
-            const active = store.assetClasses.includes(asset)
+            const active = assetClasses.includes(asset)
             return (
               <button key={asset} className={`text-sm px-2 py-1 rounded-md border ${active ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`} onClick={() => {
-                if (active) store.setAssetClasses(store.assetClasses.filter(a => a !== asset))
-                else store.setAssetClasses([...store.assetClasses, asset])
+                if (active) setAssetClasses(assetClasses.filter(a => a !== asset))
+                else setAssetClasses([...assetClasses, asset])
               }}>{asset[0].toUpperCase()+asset.slice(1)}</button>
             )
           })}
@@ -125,7 +156,7 @@ export function FiltersBar() {
         {/* Timezone selector */}
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Timezone</label>
-          <select className="text-sm border rounded px-2 py-1 bg-background" value={store.timezone} onChange={e => store.setTimezone(e.target.value)}>
+          <select className="text-sm border rounded px-2 py-1 bg-background" value={timezone} onChange={e => setTimezone(e.target.value)}>
             {data?.data?.timezoneDefault && !store.timezone && (
               <option value={data.data.timezoneDefault}>{data.data.timezoneDefault}</option>
             )}
@@ -139,7 +170,7 @@ export function FiltersBar() {
 
         {/* Reset */}
         <div className="flex-1"></div>
-        <button className="text-sm px-3 py-1 rounded-md border bg-muted" onClick={() => store.reset()}>Reset filters</button>
+        <button className="text-sm px-3 py-1 rounded-md border bg-muted" onClick={() => reset()}>Reset filters</button>
       </div>
     </div>
   )

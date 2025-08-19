@@ -7,26 +7,20 @@ export type DatePreset = '1W'|'1M'|'3M'|'YTD'|'1Y'|'ALL'|'CUSTOM'
 export type AssetClass = 'stocks'|'options'|'futures'|'crypto'
 import type { DateRange } from 'react-day-picker';
 
-export type FiltersState = {
-  dateRange?: DateRange; // from react-day-picker
-  datePreset: DatePreset;
+export interface FiltersState {
+  dateRange?: DateRange;
+  datePreset: string | null;
   accountIds: string[];
-  assetClasses: AssetClass[];
+  assetClasses: string[];
   tags: string[];
   strategies: string[];
   symbols: string[];
   timezone: string;
   filtersHash: () => string;
-  setDatePreset: (v: DatePreset) => void;
-  setDateRange: (v?: DateRange) => void;
-  setAccountIds: (v: string[]) => void;
-  setAssetClasses: (v: AssetClass[]) => void;
-  setTags: (v: string[]) => void;
-  setStrategies: (v: string[]) => void;
-  setSymbols: (v: string[]) => void;
-  setTimezone: (v: string) => void;
-  reset: () => void;
+  setDateRange: (r?: DateRange) => void;
 }
+
+export type { FiltersState };
 
 export type { FiltersState };
 
@@ -51,24 +45,6 @@ export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
   strategies: [],
   symbols: [],
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  setDatePreset: (v) => set({ datePreset: v }),
-  setDateRange: (v) => set({ dateRange: v }),
-  setAccountIds: (v) => set({ accountIds: v }),
-  setAssetClasses: (v) => set({ assetClasses: v }),
-  setTags: (v) => set({ tags: v }),
-  setStrategies: (v) => set({ strategies: v }),
-  setSymbols: (v) => set({ symbols: v }),
-  setTimezone: (v) => set({ timezone: v }),
-  reset: () => set({
-    datePreset: 'ALL',
-    dateRange: undefined,
-    accountIds: [],
-    assetClasses: [],
-    tags: [],
-    strategies: [],
-    symbols: [],
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  }),
   filtersHash: () => {
     const s = get()
     return [
@@ -81,7 +57,8 @@ export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
       stableStringify(s.symbols),
       s.timezone,
     ].join('|')
-  }
+  },
+  setDateRange: (r) => set((s) => ({ ...s, dateRange: r })),
 }))
 
 export const selectFilters = (s: FiltersState) => ({
