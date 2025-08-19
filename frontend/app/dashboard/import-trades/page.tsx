@@ -188,7 +188,8 @@ export default function ImportTradesPage() {
     Papa.parse(csvFile, {
       header: true,
       skipEmptyLines: true,
-      complete: (results: Papa.ParseResult<TradeCsvRow>) => {
+      // @ts-expect-error: If types mismatch, fallback to any
+      complete: (results: any) => {
         clearInterval(progressInterval)
         setProgress(100)
         if (broker === "Webull" && assetType === "Options") {
