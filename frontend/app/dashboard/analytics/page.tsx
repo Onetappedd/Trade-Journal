@@ -10,7 +10,7 @@ import { TimeHabitsTab } from "./_components/tabs/TimeHabitsTab"
 import { RiskCostsTab } from "./_components/tabs/RiskCostsTab"
 import { TradeQualityTab } from "./_components/tabs/TradeQualityTab"
 import { ErrorBoundary } from "./_components/ErrorBoundary"
-import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
+import { useFiltersStore } from "@/lib/analytics/filtersStore"
 
 // Accessible Tabs implementation
 const TABS = [
