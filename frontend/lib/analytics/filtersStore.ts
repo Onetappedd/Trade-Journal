@@ -20,6 +20,11 @@ export interface FiltersState {
   setDateRange: (r?: DateRange) => void;
   setTimezone: (tz: string) => void;
   setDatePreset: (preset: string | null) => void;
+  setAccountIds: (ids: string[]) => void;
+  setAssetClasses: (classes: string[]) => void;
+  setTags: (tags: string[]) => void;
+  setStrategies: (strategies: string[]) => void;
+  setSymbols: (symbols: string[]) => void;
 }
 
 export type { FiltersState };
@@ -61,6 +66,11 @@ export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
   setDateRange: (r) => set((s) => ({ ...s, dateRange: r })),
   setTimezone: (tz) => set({ timezone: tz }),
   setDatePreset: (preset) => set({ datePreset: preset }),
+  setAccountIds: (ids) => set({ accountIds: ids }),
+  setAssetClasses: (classes) => set({ assetClasses: classes }),
+  setTags: (tags) => set({ tags }),
+  setStrategies: (strategies) => set({ strategies }),
+  setSymbols: (symbols) => set({ symbols }),
 }))
 
 export const selectFilters = (s: FiltersState) => ({
