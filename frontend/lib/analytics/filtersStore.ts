@@ -19,6 +19,7 @@ export interface FiltersState {
   filtersHash: () => string;
   setDateRange: (r?: DateRange) => void;
   setTimezone: (tz: string) => void;
+  setDatePreset: (preset: string | null) => void;
 }
 
 export type { FiltersState };
@@ -36,7 +37,7 @@ function stableStringify(obj: any): string {
 }
 
 export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
-  datePreset: 'ALL',
+  datePreset: null,
   dateRange: undefined,
   accountIds: [],
   assetClasses: [],
@@ -59,6 +60,7 @@ export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
   },
   setDateRange: (r) => set((s) => ({ ...s, dateRange: r })),
   setTimezone: (tz) => set({ timezone: tz }),
+  setDatePreset: (preset) => set({ datePreset: preset }),
 }))
 
 export const selectFilters = (s: FiltersState) => ({
