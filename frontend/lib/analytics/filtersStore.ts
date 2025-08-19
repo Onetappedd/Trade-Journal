@@ -18,6 +18,7 @@ export interface FiltersState {
   timezone: string;
   filtersHash: () => string;
   setDateRange: (r?: DateRange) => void;
+  setTimezone: (tz: string) => void;
 }
 
 export type { FiltersState };
@@ -57,6 +58,7 @@ export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
     ].join('|')
   },
   setDateRange: (r) => set((s) => ({ ...s, dateRange: r })),
+  setTimezone: (tz) => set({ timezone: tz }),
 }))
 
 export const selectFilters = (s: FiltersState) => ({
