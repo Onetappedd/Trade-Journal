@@ -81,13 +81,23 @@ export function PerformanceTab() {
   })
   const bench = useQuery<BenchRes>({
     queryKey: keyBench,
-    queryFn: () => fetchJson('benchmark', { ticker: benchmark, start: filters.dateRange?.from, end: filters.dateRange?.to, tz: filters.timezone }),
+    queryFn: () => fetchJson('benchmark', {
+      ticker: benchmark,
+      start: dateRange?.from,
+      end: dateRange?.to,
+      tz: timezone,
+    }),
     staleTime: 10_000,
     placeholderData: keepPreviousData,
   })
   const risk = useQuery<RiskRes>({
     queryKey: keyRisk,
-    queryFn: () => fetchJson('risk', { ticker: benchmark, start: filters.dateRange?.from, end: filters.dateRange?.to, tz: filters.timezone }),
+    queryFn: () => fetchJson('risk', {
+      ticker: benchmark,
+      start: dateRange?.from,
+      end: dateRange?.to,
+      tz: timezone,
+    }),
     staleTime: 10_000,
     placeholderData: keepPreviousData,
   })
