@@ -35,11 +35,10 @@ function RiskMetricCard({ label, value, tooltip }: { label: string, value: any, 
 export function PerformanceTab() {
   const [benchmark, setBenchmark] = useState(defaultBenchmark)
   const [comparePrev, setComparePrev] = useState(false)
-  const filters = useAnalyticsFiltersStore(s => ({
-    ...s,
-    filtersHash: s.filtersHash
-  }))
-  const filtersHash = filters.filtersHash()
+  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone } = useFiltersStore();
+  const filtersHash = () => (
+    [datePreset, accountIds.join(','), assetClasses.join(','), tags.join(','), strategies.join(','), symbols.join(','), timezone].join("|")
+  );
   const queryClient = useQueryClient()
 
   // API queries
@@ -50,13 +49,33 @@ export function PerformanceTab() {
 
   const curve = useQuery<EquityCurveRes>({
     queryKey: keyCurve,
-    queryFn: async () => fetchJson('equity-curve', { ...filters }),
+    queryFn: async () => fetchJson('equity-curve', {
+      from: dateRange?.from,
+      to: dateRange?.to,
+      preset: datePreset,
+      accountIds,
+      assetClasses,
+      tags,
+      strategies,
+      symbols,
+      timezone
+    }),
     staleTime: 10_000,
     placeholderData: keepPreviousData,
   })
   const cards = useQuery<CardsRes>({
     queryKey: keyCards,
-    queryFn: async () => fetchJson('cards', { ...filters }),
+    queryFn: async () => fetchJson('cards', {
+      from: dateRange?.from,
+      to: dateRange?.to,
+      preset: datePreset,
+      accountIds,
+      assetClasses,
+      tags,
+      strategies,
+      symbols,
+      timezone
+    }),
     staleTime: 10_000,
     placeholderData: keepPreviousData,
   })
