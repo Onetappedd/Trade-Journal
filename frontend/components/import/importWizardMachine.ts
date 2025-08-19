@@ -127,8 +127,8 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       resetContext: assign((ctx, evt) => ({})),
     },
     guards: {
-      hasBroker: ctx => !!ctx.brokerId,
-      hasAssetClass: ctx => !!ctx.assetClass,
+      hasBroker: (ctx: any) => !!ctx.brokerId,
+      hasAssetClass: (ctx: any) => !!ctx.assetClass,
     },
     services: {
       detectFormat: async (ctx, evt) => {
