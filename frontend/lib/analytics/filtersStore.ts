@@ -5,9 +5,10 @@ import { shallow } from "zustand/shallow"
 
 export type DatePreset = '1W'|'1M'|'3M'|'YTD'|'1Y'|'ALL'|'CUSTOM'
 export type AssetClass = 'stocks'|'options'|'futures'|'crypto'
-export interface DateRange { start?: string; end?: string }
+import type { DateRange } from 'react-day-picker';
+
 export type FiltersState = {
-  dateRange?: DateRange;
+  dateRange?: DateRange; // from react-day-picker
   datePreset: DatePreset;
   accountIds: string[];
   assetClasses: AssetClass[];
@@ -26,6 +27,8 @@ export type FiltersState = {
   setTimezone: (v: string) => void;
   reset: () => void;
 }
+
+export type { FiltersState };
 
 function stableStringify(obj: any): string {
   if (obj == null) return ''

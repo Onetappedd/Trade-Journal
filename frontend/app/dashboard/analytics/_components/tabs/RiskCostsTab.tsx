@@ -39,7 +39,7 @@ export function RiskCostsTab() {
   const normalizedRange = {
     from: dateRange?.from ?? null,
     to: dateRange?.to ?? null,
-  }
+  };
 
   const keyCosts = ['analytics', filtersHash(), 'costs'] as const
   const keyDrawdown = ['analytics', filtersHash(), 'drawdown'] as const
