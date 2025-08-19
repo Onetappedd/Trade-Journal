@@ -22,8 +22,6 @@ export interface FiltersState {
 
 export type { FiltersState };
 
-export type { FiltersState };
-
 function stableStringify(obj: any): string {
   if (obj == null) return ''
   if (Array.isArray(obj)) return JSON.stringify([...obj].sort())
