@@ -38,7 +38,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       chooseBroker: {
         on: {
           NEXT: {
-            cond: "hasBroker",
+            guard: "hasBroker",
             target: "chooseAssetType"
           }
         }
@@ -47,7 +47,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
         on: {
           PREV: "chooseBroker",
           NEXT: {
-            cond: "hasAssetClass",
+            guard: "hasAssetClass",
             target: "upload"
           }
         }
