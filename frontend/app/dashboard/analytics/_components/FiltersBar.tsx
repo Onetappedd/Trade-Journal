@@ -1,26 +1,57 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
-import type { FiltersState } from '@/lib/analytics/filtersStore';
+import { useAnalyticsFiltersStore, type FiltersState } from "@/lib/analytics/filtersStore"
 import { useQuery } from "@tanstack/react-query"
 import { fetchJson } from "@/lib/analytics/client"
 import { format, parseISO } from 'date-fns'
 
+type PresetKey = NonNullable<FiltersState["datePreset"]>;
+const presets: { key: PresetKey; label: string }[] = [
+  { key: "1W", label: "1W" },
+  { key: "1M", label: "1M" },
+  { key: "3M", label: "3M" },
+  { key: "YTD", label: "YTD" },
+  { key: "1Y", label: "1Y" },
+  { key: "ALL", label: "ALL" },
+];
+
 export function FiltersBar() {
-  const { dateRange, setDateRange, timezone, setTimezone, datePreset, setDatePreset, setAccountIds, assetClasses, setAssetClasses, setTags, setStrategies, setSymbols, reset } = useAnalyticsFiltersStore(s => ({
+  const {
+    dateRange,
+    datePreset,
+    accountIds,
+    assetClasses,
+    tags,
+    strategies,
+    symbols,
+    timezone,
+    setDateRange,
+    setDatePreset,
+    setAccountIds,
+    setAssetClasses,
+    setTags,
+    setStrategies,
+    setSymbols,
+    setTimezone,
+    reset,
+  } = useAnalyticsFiltersStore((s) => ({
     dateRange: s.dateRange,
-    setDateRange: s.setDateRange,
-    timezone: s.timezone,
-    setTimezone: s.setTimezone,
     datePreset: s.datePreset,
+    accountIds: s.accountIds,
+    assetClasses: s.assetClasses,
+    tags: s.tags,
+    strategies: s.strategies,
+    symbols: s.symbols,
+    timezone: s.timezone,
+    setDateRange: s.setDateRange,
     setDatePreset: s.setDatePreset,
     setAccountIds: s.setAccountIds,
-    assetClasses: s.assetClasses,
     setAssetClasses: s.setAssetClasses,
     setTags: s.setTags,
     setStrategies: s.setStrategies,
     setSymbols: s.setSymbols,
+    setTimezone: s.setTimezone,
     reset: s.reset,
   }))
   // Ensure default timezone comes from browser (store already defaults to browser, this keeps UI in sync)
@@ -61,16 +92,7 @@ export function FiltersBar() {
   }
 
   // Keep this derived from the store type so it always stays in sync.
-  const presets: Array<{ key: FiltersState['datePreset']; label: string }> = [
-    { key: '1W',  label: '1W'  },
-    { key: '1M',  label: '1M'  },
-    { key: '3M',  label: '3M'  },
-    { key: '6M',  label: '6M'  },
-    { key: 'YTD', label: 'YTD' },
-    { key: '1Y',  label: '1Y'  },
-    { key: 'ALL', label: 'All' },
-  ];
-
+  
   return (
     <div className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-md p-3">
       <div className="flex flex-wrap gap-3 items-center">
@@ -79,8 +101,8 @@ export function FiltersBar() {
           {presets.map(p => (
             <button
               key={p.key}
-              className={`text-sm px-2 py-1 rounded-md border ${store.datePreset === p.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}
-              onClick={() => store.setDatePreset(p.key)}
+              className={`text-sm px-2 py-1 rounded-md border ${datePreset === p.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}
+              onClick={() => setDatePreset(p.key)}
             >{p.label}</button>
           ))}
         </div>
@@ -126,7 +148,7 @@ export function FiltersBar() {
           <label className="text-sm text-muted-foreground">Tags</label>
           <input type="text" placeholder="comma,separated" className="text-sm border rounded px-2 py-1 bg-background" onBlur={e => {
             const vals = e.target.value.split(',').map(v => v.trim()).filter(Boolean)
-            store.setTags(vals)
+            setTags(vals)
           }} />
           <div className="text-xs text-muted-foreground">Suggestions: {data?.data?.tags?.join(', ')}</div>
         </div>
@@ -136,7 +158,7 @@ export function FiltersBar() {
           <label className="text-sm text-muted-foreground">Strategies</label>
           <input type="text" placeholder="comma,separated" className="text-sm border rounded px-2 py-1 bg-background" onBlur={e => {
             const vals = e.target.value.split(',').map(v => v.trim()).filter(Boolean)
-            store.setStrategies(vals)
+            setStrategies(vals)
           }} />
           <div className="text-xs text-muted-foreground">Suggestions: {data?.data?.strategies?.join(', ')}</div>
         </div>
@@ -146,7 +168,7 @@ export function FiltersBar() {
           <label className="text-sm text-muted-foreground">Symbols</label>
           <input list="symbols-list" type="text" placeholder="AAPL, MSFT" className="text-sm border rounded px-2 py-1 bg-background" onBlur={e => {
             const vals = e.target.value.split(',').map(v => v.trim().toUpperCase()).filter(Boolean)
-            store.setSymbols(vals)
+            setSymbols(vals)
           }} />
           <datalist id="symbols-list">
             {data?.data?.symbols?.map((s: string) => (
@@ -165,7 +187,7 @@ export function FiltersBar() {
             {Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone').map(tz => (
               <option key={tz} value={tz}>{tz}</option>
             )) : (
-              <option value={store.timezone}>{store.timezone}</option>
+              <option value={timezone}>{timezone}</option>
             )}
           </select>
         </div>
