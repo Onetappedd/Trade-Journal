@@ -275,10 +275,10 @@ export function PortfolioPerformance({ data, initialValue = 10000, overlay, over
               <AreaChart 
                 data={chartData}
                 margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-                onMouseMove={(e) => {
-                  if (e && e.activePayload && e.activePayload[0]) {
-                    setHoveredData(e.activePayload[0].payload)
-                  }
+                onMouseMove={(e: any) => {
+                if (e && e.activePayload && e.activePayload[0]) {
+                setHoveredData(e.activePayload[0].payload)
+                }
                 }}
                 onMouseLeave={() => setHoveredData(null)}
               >
