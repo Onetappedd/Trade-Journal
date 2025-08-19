@@ -1,95 +1,54 @@
-"use client"
+"use client";
 
-import { create } from 'zustand'
-import { shallow } from "zustand/shallow"
+import { create } from "zustand";
+import type { DateRange } from "react-day-picker";
 
-export type DatePreset = '1W'|'1M'|'3M'|'YTD'|'1Y'|'ALL'|'CUSTOM'
-export type AssetClass = 'stocks'|'options'|'futures'|'crypto'
-import type { DateRange } from 'react-day-picker';
+export type DatePreset = '1W' | '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL' | 'CUSTOM';
 
 export interface FiltersState {
-  dateRange?: DateRange;
-  datePreset: string | null;
+  // values
+  timezone: string;
+  datePreset: DatePreset;
+  dateRange?: DateRange | null;
   accountIds: string[];
   assetClasses: string[];
   tags: string[];
   strategies: string[];
   symbols: string[];
-  timezone: string;
-  filtersHash: () => string;
-  setDateRange: (r?: DateRange) => void;
+  // setters
   setTimezone: (tz: string) => void;
-  setDatePreset: (preset: string | null) => void;
+  setDatePreset: (p: DatePreset) => void;
+  setDateRange: (r?: DateRange | null) => void;
   setAccountIds: (ids: string[]) => void;
-  setAssetClasses: (classes: string[]) => void;
-  setTags: (tags: string[]) => void;
-  setStrategies: (strategies: string[]) => void;
-  setSymbols: (symbols: string[]) => void;
+  setAssetClasses: (values: string[]) => void;
+  setTags: (values: string[]) => void;
+  setStrategies: (values: string[]) => void;
+  setSymbols: (values: string[]) => void;
+  // utils
   reset: () => void;
 }
 
-function stableStringify(obj: any): string {
-  if (obj == null) return ''
-  if (Array.isArray(obj)) return JSON.stringify([...obj].sort())
-  if (typeof obj === 'object') {
-    const sortedKeys = Object.keys(obj).sort()
-    const sortedObj: any = {}
-    for (const k of sortedKeys) sortedObj[k] = obj[k]
-    return JSON.stringify(sortedObj)
-  }
-  return String(obj)
-}
-
-export const useAnalyticsFiltersStore = create<FiltersState>()((set, get) => ({
-  datePreset: null,
+const initialTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+const initialState = {
+  timezone: initialTimezone,
+  datePreset: "1M" as DatePreset,
   dateRange: undefined,
   accountIds: [],
   assetClasses: [],
   tags: [],
   strategies: [],
   symbols: [],
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  filtersHash: () => {
-    const s = get()
-    return [
-      s.datePreset,
-      stableStringify(s.dateRange || {}),
-      stableStringify(s.accountIds),
-      stableStringify(s.assetClasses),
-      stableStringify(s.tags),
-      stableStringify(s.strategies),
-      stableStringify(s.symbols),
-      s.timezone,
-    ].join('|')
-  },
-  setDateRange: (r) => set((s) => ({ ...s, dateRange: r })),
-  setTimezone: (tz) => set({ timezone: tz }),
-  setDatePreset: (preset) => set({ datePreset: preset }),
-  setAccountIds: (ids) => set({ accountIds: ids }),
-  setAssetClasses: (classes) => set({ assetClasses: classes }),
-  setTags: (tags) => set({ tags }),
-  setStrategies: (strategies) => set({ strategies }),
-  setSymbols: (symbols) => set({ symbols }),
-  reset: () => set((state) => ({
-    dateRange: undefined,
-    datePreset: null,
-    accountIds: [],
-    assetClasses: [],
-    tags: [],
-    strategies: [],
-    symbols: [],
-    timezone: state.timezone,
-  })),
-}))
+};
 
-export const selectFilters = (s: FiltersState) => ({
-  dateRange: s.dateRange,
-  datePreset: s.datePreset,
-  accountIds: s.accountIds,
-  assetClasses: s.assetClasses,
-  tags: s.tags,
-  strategies: s.strategies,
-  symbols: s.symbols,
-  timezone: s.timezone,
-  filtersHash: s.filtersHash,
-});
+export const useFiltersStore = create<FiltersState>()((set) => ({
+  ...initialState,
+  setTimezone: (tz) => set({ timezone: tz }),
+  setDatePreset: (p) => set({ datePreset: p }),
+  setDateRange: (r) => set({ dateRange: r }),
+  setAccountIds: (ids) => set({ accountIds: ids }),
+  setAssetClasses: (v) => set({ assetClasses: v }),
+  setTags: (v) => set({ tags: v }),
+  setStrategies: (v) => set({ strategies: v }),
+  setSymbols: (v) => set({ symbols: v }),
+  reset: () => set({ ...initialState }),
+}));

@@ -120,10 +120,15 @@ export function FiltersBar() {
         {/* Accounts multi-select (placeholder UI) */}
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Accounts</label>
-          <select multiple className="text-sm border rounded px-2 py-1 bg-background" onChange={(e) => {
-            const options = Array.from(e.target.selectedOptions).map(o => o.value)
-            store.setAccountIds(options)
-          }}>
+          <select
+            multiple
+            value={accountIds ?? []}
+            onChange={e => {
+              const values = Array.from(e.target.selectedOptions).map(o => o.value)
+              setAccountIds(values)
+            }}
+            className="text-sm border rounded px-2 py-1 bg-background"
+          >
             {data?.data?.accounts?.map((a: any) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
@@ -180,8 +185,12 @@ export function FiltersBar() {
         {/* Timezone selector */}
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Timezone</label>
-          <select className="text-sm border rounded px-2 py-1 bg-background" value={timezone} onChange={e => setTimezone(e.target.value)}>
-            {data?.data?.timezoneDefault && !store.timezone && (
+          <select
+            className="text-sm border rounded px-2 py-1 bg-background"
+            value={timezone}
+            onChange={e => setTimezone(e.target.value)}
+          >
+            {data?.data?.timezoneDefault && !timezone && (
               <option value={data.data.timezoneDefault}>{data.data.timezoneDefault}</option>
             )}
             {Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone').map(tz => (
