@@ -35,7 +35,7 @@ export default function AnalyticsPage() {
 
   // Init default timezone in store (browser timezone)
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
-  const setTimezone = useAnalyticsFiltersStore(s => s.setTimezone)
+  const setTimezone = useFiltersStore(s => s.setTimezone)
   useEffect(() => { setTimezone(timezone) }, [timezone, setTimezone])
 
   if (authed === null) return <div className="p-6">Loading…</div>
