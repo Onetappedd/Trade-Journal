@@ -89,7 +89,7 @@ function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[];
         const rows = (res.data || []) as any[]
         resolve({ headers, rows })
       },
-      error: (err) => reject(err),
+      error: (err: any) => reject(err),
     })
   })
 }
