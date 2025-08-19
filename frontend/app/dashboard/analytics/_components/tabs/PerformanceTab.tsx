@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react"
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query"
-import { useAnalyticsFiltersStore } from "@/lib/analytics/filtersStore"
+import { useFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { EquityCurveResponseSchema, CardsSummarySchema, MonthlyPnlResponseSchema } from "@/lib/analytics/types"
 import { PortfolioPerformance } from "@/components/dashboard/PortfolioPerformance"

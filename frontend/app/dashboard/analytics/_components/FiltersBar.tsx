@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import { useAnalyticsFiltersStore, type FiltersState } from "@/lib/analytics/filtersStore"
+import { useFiltersStore, type DatePreset } from "@/lib/analytics/filtersStore"
 import { useQuery } from "@tanstack/react-query"
 import { fetchJson } from "@/lib/analytics/client"
 import { format, parseISO } from 'date-fns'

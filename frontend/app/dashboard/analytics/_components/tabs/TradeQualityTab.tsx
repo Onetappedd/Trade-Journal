@@ -2,41 +2,18 @@
 
 import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
-import { useAnalyticsFiltersStore, selectFilters } from "@/lib/analytics/filtersStore"
+import { useFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
-import { useShallow } from "zustand/react/shallow"
-
-// Local type for analytics filters
- type AnalyticsFiltersState = {
-  dateRange: { from: Date | null; to: Date | null } | null
-  datePreset: string | null
-  accountIds: string[]
-  assetClasses: string[]
-  tags: string[]
-  strategies: string[]
-  symbols: string[]
-  timezone: string
-  filtersHash: () => string
-}
 
 function Skeleton() {
   return <div className="animate-pulse h-32 rounded-md bg-muted" />
 }
 
 export function TradeQualityTab() {
-  const {
-    dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore((s) => ({
-    dateRange: s.dateRange,
-    datePreset: s.datePreset,
-    accountIds: s.accountIds,
-    assetClasses: s.assetClasses,
-    tags: s.tags,
-    strategies: s.strategies,
-    symbols: s.symbols,
-    timezone: s.timezone,
-    filtersHash: s.filtersHash,
-  }))
+  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone } = useFiltersStore();
+  const filtersHash = () => (
+    [datePreset, accountIds.join(','), assetClasses.join(','), tags.join(','), strategies.join(','), symbols.join(','), timezone].join("|")
+  );
 
   const normalizedRange = {
     from: dateRange?.from ?? null,

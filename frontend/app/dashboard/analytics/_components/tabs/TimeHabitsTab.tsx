@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useQuery, keepPreviousData } from "@tanstack/react-query"
-import { useAnalyticsFiltersStore, selectFilters } from "@/lib/analytics/filtersStore"
+import { useFiltersStore } from "@/lib/analytics/filtersStore"
 import { fetchJson, AnalyticsError } from "@/lib/analytics/client"
 import { useShallow } from "zustand/react/shallow"
 
@@ -11,9 +11,10 @@ function Skeleton() {
 }
 
 export function TimeHabitsTab() {
-  const {
-    dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone, filtersHash,
-  } = useAnalyticsFiltersStore(useShallow(selectFilters))
+  const { dateRange, datePreset, accountIds, assetClasses, tags, strategies, symbols, timezone } = useFiltersStore();
+  const filtersHash = () => (
+    [datePreset, accountIds.join(','), assetClasses.join(','), tags.join(','), strategies.join(','), symbols.join(','), timezone].join("|")
+  );
 
   const keyHeatmap = ['analytics', filtersHash(), 'time-heatmap'] as const
   const keyHourly = ['analytics', filtersHash(), 'hourly-winrate'] as const
