@@ -188,7 +188,6 @@ export default function ImportTradesPage() {
     Papa.parse(csvFile, {
       header: true,
       skipEmptyLines: true,
-      // @ts-expect-error: If types mismatch, fallback to any
       complete: (results: any) => {
         clearInterval(progressInterval)
         setProgress(100)
