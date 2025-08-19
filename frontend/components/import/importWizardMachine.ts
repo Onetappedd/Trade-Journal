@@ -63,7 +63,11 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       detecting: {
         invoke: {
-          src: "detectFormat",
+          src: async (ctx, evt) => {
+            // Call backend /import/detect
+            // Return {brokerGuess, assetGuess, schemaId, confidence, headerMap, warnings}
+            return {}
+          },
           onDone: {
             actions: "setDetectedSchema",
             target: "preview"
@@ -86,7 +90,11 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       importing: {
         invoke: {
-          src: "importTrades",
+          src: async (ctx, evt) => {
+            // Call backend /import/start
+            // Return import summary
+            return {}
+          },
           onDone: {
             actions: "setImportResult",
             target: "done"
@@ -129,18 +137,6 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
     guards: {
       hasBroker: (ctx: any) => !!ctx.brokerId,
       hasAssetClass: (ctx: any) => !!ctx.assetClass,
-    },
-    services: {
-      detectFormat: async (ctx, evt) => {
-        // Call backend /import/detect
-        // Return {brokerGuess, assetGuess, schemaId, confidence, headerMap, warnings}
-        return {}
-      },
-      importTrades: async (ctx, evt) => {
-        // Call backend /import/start
-        // Return import summary
-        return {}
-      }
     }
   }
 )
