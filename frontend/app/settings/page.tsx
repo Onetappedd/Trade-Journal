@@ -11,7 +11,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient()
   const { setTheme, theme: activeTheme, resolvedTheme } = useTheme()
   const [localTheme, setLocalTheme] = useState<string>("system")
-  const filtersHash = useAnalyticsFiltersStore(s => s.filtersHash())
+  const filtersHash = useFiltersStore(s => s.filtersHash?.())
 
   const { data, isLoading } = useQuery<{ initial_capital?: number; theme?: string }>({
     queryKey: SETTINGS_QUERY_KEY,
