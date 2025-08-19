@@ -36,25 +36,7 @@ export function FiltersBar() {
     setSymbols,
     setTimezone,
     reset,
-  } = useAnalyticsFiltersStore((s) => ({
-    dateRange: s.dateRange,
-    datePreset: s.datePreset,
-    accountIds: s.accountIds,
-    assetClasses: s.assetClasses,
-    tags: s.tags,
-    strategies: s.strategies,
-    symbols: s.symbols,
-    timezone: s.timezone,
-    setDateRange: s.setDateRange,
-    setDatePreset: s.setDatePreset,
-    setAccountIds: s.setAccountIds,
-    setAssetClasses: s.setAssetClasses,
-    setTags: s.setTags,
-    setStrategies: s.setStrategies,
-    setSymbols: s.setSymbols,
-    setTimezone: s.setTimezone,
-    reset: s.reset,
-  }))
+  } = useFiltersStore();
   // Ensure default timezone comes from browser (store already defaults to browser, this keeps UI in sync)
   useEffect(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
