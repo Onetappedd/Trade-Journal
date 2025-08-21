@@ -80,7 +80,7 @@ export function IntegrationSettings() {
                   {broker.connected && (
                     <div className="flex items-center space-x-4 mt-2">
                       <div className="flex items-center space-x-2">
-                        <Switch checked={broker.autoSync} onCheckedChange={() => toggleAutoSync(broker.id)} />
+                        <Switch checked={broker.autoSync} onCheckedChange={() => toggleAutoSync(broker.id)} size="sm" />
                         <Label className="text-sm">Auto-sync trades</Label>
                       </div>
                     </div>

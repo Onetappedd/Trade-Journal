@@ -3,7 +3,7 @@ import React, { createContext, useContext } from 'react'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const STORAGE_KEY = 'tj-auth-v2'
+const STORAGE_KEY = 'zk-tradejournal-auth-v2'
 
 let _supabase: SupabaseClient | undefined = undefined
 

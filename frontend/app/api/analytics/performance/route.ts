@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// 1) Add a row type near the top of the file
-// Each PerfRow corresponds to a daily result returned by Supabase for performance analytics
-type PerfRow = {
-  day: string;
-  equity: number | string;
-  drawdown: number | string | null;
-  daily_return: number | string | null;
-};
-
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
@@ -44,16 +35,9 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // 2) Ensure we have a typed array instead of "any"
-  const rows: PerfRow[] = (data ?? []) as PerfRow[];
-
-  // 3) Use the typed array
-  const equityCurve = rows.map((row) => ({ t: row.day, equity: Number(row.equity) }));
-  const maxDrawdown = Math.min(...rows.map((row) => Number(row.drawdown) || 0));
-  const returns = rows
-    .map((row) => Number(row.daily_return))
-    .filter((r) => !Number.isNaN(r));
-
+  const equityCurve = data.map(row => ({ t: row.day, equity: Number(row.equity) }))
+  const maxDrawdown = Math.min(...data.map(row => Number(row.drawdown) || 0))
+  const returns = data.map(row => Number(row.daily_return)).filter(r => r !== null && !isNaN(r))
   const avgReturn = returns.reduce((a, b) => a + b, 0) / (returns.length || 1)
   const stddev = Math.sqrt(returns.reduce((a, b) => a + Math.pow(b - avgReturn, 2), 0) / (returns.length || 1))
   const downsideReturns = returns.filter(r => r < 0)

@@ -114,9 +114,10 @@ export function ImportProgressModal({
               <span>Progress</span>
               <span>{displayProgress}%</span>
             </div>
-            <Progress
-            value={displayProgress}
-            className={cn("h-2", getProgressBarColor())}
+            <Progress 
+              value={displayProgress} 
+              className="h-2"
+              indicatorClassName={cn("transition-all duration-300", getProgressBarColor())}
             />
           </div>
 

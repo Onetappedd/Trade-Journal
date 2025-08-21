@@ -1,6 +1,5 @@
-import { getSupabaseBrowserClient } from "./supabase-browser"
+import { createBrowserClient } from "@supabase/ssr"
 
-// Return the singleton browser client everywhere to avoid multiple GoTrue instances
 export function createClient() {
-  return getSupabaseBrowserClient()
+  return createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 }

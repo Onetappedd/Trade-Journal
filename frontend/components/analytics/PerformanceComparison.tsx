@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart, Cell 
+  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart 
 } from "recharts"
 import { 
   TrendingUp, TrendingDown, Calendar, BarChart3, 
@@ -373,13 +373,10 @@ export function PerformanceComparison() {
                       <RechartsTooltip />
                       <Legend />
                       <Bar 
-                      dataKey="return" 
-                      name="Return (%)"
-                      >
-                      {periodComparisons.map((p, idx) => (
-                      <Cell key={idx} fill={p.percentReturn >= 0 ? "#10b981" : "#ef4444"} />
-                      ))}
-                      </Bar>
+                        dataKey="return" 
+                        fill={(entry: any) => entry.return >= 0 ? "#10b981" : "#ef4444"}
+                        name="Return (%)"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
 

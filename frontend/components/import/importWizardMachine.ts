@@ -1,4 +1,4 @@
-import { createMachine, assign, fromPromise } from "xstate"
+import { createMachine, assign } from "xstate"
 
 export interface ImportWizardContext {
   brokerId?: string
@@ -29,7 +29,7 @@ export interface ImportWizardContext {
   error?: string
 }
 
-export const importWizardMachine = createMachine<any, any, any, any, any, any, any, any, any, any, any>(
+export const importWizardMachine = createMachine<ImportWizardContext>(
   {
     id: "importWizard",
     initial: "chooseBroker",
@@ -38,7 +38,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       chooseBroker: {
         on: {
           NEXT: {
-            guard: "hasBroker",
+            cond: "hasBroker",
             target: "chooseAssetType"
           }
         }
@@ -47,7 +47,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
         on: {
           PREV: "chooseBroker",
           NEXT: {
-            guard: "hasAssetClass",
+            cond: "hasAssetClass",
             target: "upload"
           }
         }
@@ -63,11 +63,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       detecting: {
         invoke: {
-          src: fromPromise(async ({ input }) => {
-            // Call backend /import/detect
-            // Return {brokerGuess, assetGuess, schemaId, confidence, headerMap, warnings}
-            return {}
-          }),
+          src: "detectFormat",
           onDone: {
             actions: "setDetectedSchema",
             target: "preview"
@@ -90,11 +86,7 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       },
       importing: {
         invoke: {
-          src: fromPromise(async ({ input }) => {
-            // Call backend /import/start
-            // Return import summary
-            return {}
-          }),
+          src: "importTrades",
           onDone: {
             actions: "setImportResult",
             target: "done"
@@ -135,8 +127,20 @@ export const importWizardMachine = createMachine<any, any, any, any, any, any, a
       resetContext: assign((ctx, evt) => ({})),
     },
     guards: {
-      hasBroker: (ctx: any) => !!ctx.brokerId,
-      hasAssetClass: (ctx: any) => !!ctx.assetClass,
+      hasBroker: ctx => !!ctx.brokerId,
+      hasAssetClass: ctx => !!ctx.assetClass,
+    },
+    services: {
+      detectFormat: async (ctx, evt) => {
+        // Call backend /import/detect
+        // Return {brokerGuess, assetGuess, schemaId, confidence, headerMap, warnings}
+        return {}
+      },
+      importTrades: async (ctx, evt) => {
+        // Call backend /import/start
+        // Return import summary
+        return {}
+      }
     }
   }
 )

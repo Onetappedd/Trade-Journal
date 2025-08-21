@@ -1,8 +1,12 @@
-export const runtime = 'nodejs';
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase-server"
-import type { Database } from '@/lib/database.types';
-type TradeInsert = Database['public']['Tables']['trades']['Insert'];
+import type { Database } from "@/lib/database.types"
+
+// Force this API route to use Node.js runtime
+export const runtime = 'nodejs'
+
+type Trade = Database['public']['Tables']['trades']['Row']
+type TradeInsert = Database['public']['Tables']['trades']['Insert']
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,54 +19,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const symbol = searchParams.get("symbol") || undefined
-    const status = searchParams.get("status") || undefined
-    const asset_class = searchParams.get("asset_class") || undefined
-    // Normalize accountIds: accept repeated (?accountIds[]=a&accountIds[]=b) and comma-separated (?accountIds=a,b)
-    const accountIdsParam = searchParams.getAll("accountIds[]")
-    const accountIdsCSV = searchParams.get("accountIds")
-    const accountIds = [
-      ...accountIdsParam,
-      ...(accountIdsCSV ? accountIdsCSV.split(',') : [])
-    ].map(s => s.trim()).filter(Boolean)
-    const start = searchParams.get("start") || undefined
-    const end = searchParams.get("end") || undefined
+    const symbol = searchParams.get("symbol")
+    const status = searchParams.get("status")
+    const asset_type = searchParams.get("asset_type")
     const limit = Number.parseInt(searchParams.get("limit") || "50")
     const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-    // Helper to apply filters consistently
-    const validAssetClasses = ["futures", "options", "stocks", "crypto"]
-    const validStatuses = ["open", "closed", "expired"]
-    const applyFilters = (qb: any) => {
-      let q = qb.eq('user_id', user.id)
-      if (symbol) q = q.ilike('symbol', `%${symbol}%`)
-      if (status && validStatuses.includes(status)) q = q.eq('status', status)
-      if (asset_class && validAssetClasses.includes(asset_class)) q = q.eq('asset_type', asset_class)
-      if (accountIds && accountIds.length > 0) q = q.in('account_id', accountIds)
-      if (start) q = q.gte('effective_date', start)
-      if (end) q = q.lte('effective_date', end)
-      return q
+    // Build query
+    let query = supabase
+      .from('trades')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    // Apply filters
+    if (symbol) {
+      query = query.ilike('symbol', `%${symbol}%`)
     }
 
-    // Count query with identical filters
-    const { count, error: countError } = await applyFilters(
-      supabase.from('trades_view').select('id', { count: 'exact', head: true })
-    )
-    if (countError) {
-      console.error('Error counting trades:', countError)
-      return NextResponse.json({ error: "Failed to count trades" }, { status: 500 })
+    if (status && (status === 'open' || status === 'closed')) {
+      query = query.eq('status', status)
     }
 
-    // Data query with identical filters + ordering + range
-    let dataQuery = applyFilters(
-      supabase.from('trades_view').select('*')
-    )
-    // Order by close time if available, otherwise exit_date then entry_date
-    dataQuery = dataQuery
-      .order('effective_date', { ascending: false })
-      .order('id', { ascending: false })
+    if (asset_type && ['stock', 'option', 'crypto', 'futures', 'forex'].includes(asset_type)) {
+      query = query.eq('asset_type', asset_type as Database['public']['Tables']['trades']['Row']['asset_type'])
+    }
 
-    const { data: trades, error } = await dataQuery
+    // Get total count for pagination
+    const { count } = await supabase
+      .from('trades')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    // Apply pagination
+    const { data: trades, error } = await query
       .range(offset, offset + limit - 1)
 
     if (error) {
@@ -71,10 +61,12 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      items: trades || [],
+      data: trades || [],
       meta: {
-        count: count || 0,
-        has_more: (count || 0) > (offset + (trades?.length || 0)),
+        total: count || 0,
+        limit,
+        offset,
+        has_more: (offset + limit) < (count || 0),
       },
     })
   } catch (error) {
@@ -105,18 +97,19 @@ export async function POST(request: NextRequest) {
     // Prepare trade data
     const tradeData: TradeInsert = {
       user_id: user.id,
-      symbol: String(body.symbol).trim().toUpperCase(),
+      symbol: body.symbol.toUpperCase(),
       asset_type: body.asset_type,
       side: body.side,
-      quantity: Number(body.quantity),
-      entry_price: Number(body.entry_price),
-      exit_price: body.exit_price !== undefined && body.exit_price !== null && body.exit_price !== '' ? Number(body.exit_price) : null,
-      entry_date: new Date(body.entry_date).toISOString(),
-      exit_date: body.exit_date ? new Date(body.exit_date).toISOString() : null,
-      notes: body.notes ?? null,
-      status: body.exit_date ? 'closed' : 'open',
-      // Optionally set updated_at if relevant, e.g.
-      // updated_at: new Date().toISOString(),
+      quantity: Number.parseFloat(body.quantity),
+      entry_price: Number.parseFloat(body.entry_price),
+      exit_price: body.exit_price ? Number.parseFloat(body.exit_price) : null,
+      entry_date: body.entry_date,
+      exit_date: body.exit_date || null,
+      notes: body.notes || null,
+      strike_price: body.strike_price ? Number.parseFloat(body.strike_price) : null,
+      expiry_date: body.expiry_date || null,
+      option_type: body.option_type || null,
+      status: body.exit_date ? "closed" : "open",
     }
 
     // Insert trade into database

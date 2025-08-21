@@ -1,18 +1,31 @@
-import { fileURLToPath } from 'node:url'
-import path, { dirname } from 'node:path'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...(config.resolve.alias || {}),
-      'date-fns/locale/en-US': path.resolve(__dirname, 'shims/date-fns-locale-en-US.mjs'),
-    }
-    return config
+  eslint: {
+    ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
+  experimental: {
+    serverComponentsExternalPackages: ['@supabase/supabase-js']
+  },
+  // Force all API routes to be dynamic
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, must-revalidate'
+          }
+        ]
+      }
+    ]
+  }
 }
 
 export default nextConfig

@@ -15,8 +15,7 @@
     "check-db": "node scripts/check-database.js",
     "check-tables": "node scripts/check-table-structure.js",
     "test-real-data": "node scripts/test-real-data.js",
-    "test-polygon": "node scripts/test-polygon.js",
-    "deps:cycles": "madge --circular --extensions ts,tsx --warning app"
+    "test-polygon": "node scripts/test-polygon.js"
   },
   "dependencies": {
     "@hookform/resolvers": "latest",
@@ -47,11 +46,8 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
-    "@react-pdf/renderer": "^4.3.0",
-    "@supabase/ssr": "^0.6.1",
+    "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
-    "@tanstack/react-query": "^5.85.3",
-    "@tanstack/react-query-devtools": "^5.85.3",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",
     "autoprefixer": "^10.4.20",
@@ -59,11 +55,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
-    "date-fns": "2.30.0",
-    "date-fns-tz": "2.0.1",
+    "date-fns": "latest",
     "embla-carousel-react": "latest",
     "geist": "^1.3.1",
-    "html2canvas": "^1.4.1",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "next": "14.2.16",
@@ -80,25 +74,16 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
-    "xstate": "^5.20.2",
     "zod": "^3.24.1",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
-    "@types/html2canvas": "^0.5.35",
-    "@types/node": "^22.17.2",
-    "@types/papaparse": "^5.3.16",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "dotenv": "^16.3.1",
-    "madge": "^6.1.0",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
-  },
-  "pnpm": {
-    "overrides": {
-      "date-fns": "2.30.0"
-    }
   }
 }

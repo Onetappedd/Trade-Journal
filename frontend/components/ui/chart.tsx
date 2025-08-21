@@ -106,8 +106,6 @@ const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
     React.ComponentProps<"div"> & {
-      payload?: object[]
-      label?: string | number | React.ReactNode
       hideLabel?: boolean
       hideIndicator?: boolean
       indicator?: "line" | "dot" | "dashed"
@@ -118,7 +116,7 @@ const ChartTooltipContent = React.forwardRef<
   (
     {
       active,
-      payload = [],
+      payload,
       className,
       indicator = "dot",
       hideLabel = false,
@@ -269,7 +267,7 @@ const ChartLegendContent = React.forwardRef<
     }
 >(
   (
-    { className, hideIcon = false, payload = [], verticalAlign = "bottom", nameKey },
+    { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },
     ref
   ) => {
     const { config } = useChart()

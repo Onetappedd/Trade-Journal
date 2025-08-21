@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import * as Papa from "papaparse"
+import Papa from "papaparse"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog"
@@ -84,12 +84,12 @@ function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[];
       worker: true,
       skipEmptyLines: true,
       preview: maxRows,
-      complete: (res: any) => {
+      complete: (res) => {
         const headers = (res.meta?.fields || []) as string[]
         const rows = (res.data || []) as any[]
         resolve({ headers, rows })
       },
-      error: (err: any) => reject(err),
+      error: (err) => reject(err),
     })
   })
 }

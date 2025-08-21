@@ -32,9 +32,7 @@ export function TradeDistributionChart({ data }: TradeDistributionChartProps) {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={(p: { name?: string; value?: number }) =>
-                (p.value && p.value > 0 ? `${p.name ?? ''}: ${p.value}` : '')
-              }
+              label={({ name, value }) => value > 0 ? `${name}: ${value}` : ''}
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"
