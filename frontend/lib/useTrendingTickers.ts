@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { TrendingPayloadSchema, TrendingRow } from './market-schemas';
+import { TrendingRow, parseTrendingPayload } from './market-schemas';
 
 async function fetchWithTimeout(url: string, ms = 8000): Promise<Response> {
   const ctrl = new AbortController();
@@ -14,23 +14,25 @@ async function fetchWithTimeout(url: string, ms = 8000): Promise<Response> {
 export async function getTrendingRows(): Promise<TrendingRow[]> {
   try {
     const res = await fetchWithTimeout('/api/market/trending');
-    const json = res.ok
-      ? await res.json()
-      : await (await fetchWithTimeout('/api/market/trending-hybrid')).json();
-    const parsed = TrendingPayloadSchema.safeParse(json);
-    if (!parsed.success) return [];
-    if (!parsed.data.ok) return [];
-    return Array.isArray(parsed.data.data) ? parsed.data.data : [];
+    if (!res.ok) {
+      // try backup route if present
+      const res2 = await fetchWithTimeout('/api/market/trending-hybrid');
+      const json2 = await res2.json().catch(() => ({}));
+      return parseTrendingPayload(json2);
+    }
+    const json = await res.json().catch(() => ({}));
+    return parseTrendingPayload(json);
   } catch {
     return [];
   }
 }
 
 export function useTrendingTickers() {
-  const { data, error, isLoading, mutate } = useSWR('trending-rows', getTrendingRows, {
-    fallbackData: [],
-    revalidateOnFocus: true,
-  });
-  const rows = Array.isArray(data) ? data : [];
+  const { data, error, isLoading, mutate } = useSWR<TrendingRow[]>(
+    'trending-rows',
+    getTrendingRows,
+    { fallbackData: [] }
+  );
+  const rows: TrendingRow[] = Array.isArray(data) ? data : [];
   return { rows, error, isLoading, refresh: mutate };
 }

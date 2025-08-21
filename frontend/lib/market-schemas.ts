@@ -13,3 +13,13 @@ export const TrendingPayloadSchema = z.object({
 });
 
 export type TrendingRow = z.infer<typeof TrendingRowSchema>;
+
+export function parseTrendingPayload(json: unknown): TrendingRow[] {
+  const p = TrendingPayloadSchema.safeParse(json);
+  if (!p.success || !p.data.ok) return [];
+  return p.data.data ?? [];
+}
+
+export function toArray<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : [];
+}
