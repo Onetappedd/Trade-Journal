@@ -17,18 +17,26 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const results = await marketDataService.searchStocks(query)
-    
-    return NextResponse.json(results, {
+    let results
+    let usingFallback = false
+    try {
+      results = await marketDataService.searchStocks(query)
+      if (!results || results.usingFallback) throw new Error("Provider or key error")
+      usingFallback = false
+    } catch (err) {
+      usingFallback = true
+      results = marketDataService.getFallbackSearchStocks
+        ? await marketDataService.getFallbackSearchStocks(query)
+        : [
+            { symbol: 'AAPL', name: 'Apple', type: 'stock' },
+            { symbol: 'MSFT', name: 'Microsoft', type: 'stock' },
+            { symbol: 'GOOG', name: 'Alphabet', type: 'stock' },
+          ]
+    }
+    return NextResponse.json({ results, usingFallback }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+        'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30'
       }
     })
-  } catch (error) {
-    console.error('Error searching stocks:', error)
-    return NextResponse.json(
-      { error: 'Failed to search stocks' },
-      { status: 500 }
-    )
   }
 }

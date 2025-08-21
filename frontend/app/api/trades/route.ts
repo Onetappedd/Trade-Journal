@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (asset_type && ['stock', 'option', 'crypto', 'futures', 'forex'].includes(asset_type)) {
-      query = query.eq('asset_type', asset_type as Database['public']['Tables']['trades']['Row']['asset_type'])
+      query = query.eq('asset_type', asset_type)
     }
 
     // Get total count for pagination
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Prepare trade data
+    // Prepare trade data (futures and options fully supported)
     const tradeData: TradeInsert = {
       user_id: user.id,
       symbol: body.symbol.toUpperCase(),
@@ -109,6 +109,10 @@ export async function POST(request: NextRequest) {
       strike_price: body.strike_price ? Number.parseFloat(body.strike_price) : null,
       expiry_date: body.expiry_date || null,
       option_type: body.option_type || null,
+      contract_code: body.contract_code || null,
+      point_multiplier: body.point_multiplier ? Number.parseFloat(body.point_multiplier) : null,
+      tick_size: body.tick_size ? Number.parseFloat(body.tick_size) : null,
+      tick_value: body.tick_value ? Number.parseFloat(body.tick_value) : null,
       status: body.exit_date ? "closed" : "open",
     }
 

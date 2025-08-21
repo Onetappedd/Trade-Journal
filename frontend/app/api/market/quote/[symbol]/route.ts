@@ -18,18 +18,35 @@ export async function GET(
       )
     }
 
-    const quote = await marketDataService.getStockQuote(symbol)
-    
-    return NextResponse.json(quote, {
+    let quote
+    let usingFallback = false
+    try {
+      quote = await marketDataService.getStockQuote(symbol)
+      if (!quote || quote.usingFallback) throw new Error("Provider or key error")
+      usingFallback = false
+    } catch (err) {
+      // fallback (static/mock data)
+      usingFallback = true
+      quote = marketDataService.getFallbackQuote
+        ? await marketDataService.getFallbackQuote(symbol)
+        : {
+            symbol,
+            price: 100 + Math.random() * 100,
+            change: 0,
+            changePercent: 0,
+            volume: 100000,
+            marketCap: "100B",
+            high: 0,
+            low: 0,
+            open: 0,
+            previousClose: 0,
+            timestamp: Date.now(),
+          }
+    }
+    return NextResponse.json({ ...quote, usingFallback }, {
       headers: {
         'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30'
       }
     })
-  } catch (error) {
-    console.error('Error fetching stock quote:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch stock quote' },
-      { status: 500 }
-    )
   }
 }

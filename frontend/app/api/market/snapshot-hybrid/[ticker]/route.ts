@@ -19,25 +19,33 @@ export async function GET(
       )
     }
 
-    const snapshot = await hybridMarketDataService.getTickerSnapshot(ticker)
-    
-    if (!snapshot) {
-      return NextResponse.json(
-        { error: 'Ticker not found' },
-        { status: 404 }
-      )
+    let snapshot
+    let usingFallback = false
+    try {
+      snapshot = await hybridMarketDataService.getTickerSnapshot(ticker)
+      if (!snapshot || snapshot.usingFallback) throw new Error("Provider or key error")
+      usingFallback = false
+    } catch (err) {
+      usingFallback = true
+      snapshot = hybridMarketDataService.getFallbackTickerSnapshot
+        ? await hybridMarketDataService.getFallbackTickerSnapshot(ticker)
+        : {
+            symbol: ticker,
+            last: 100 + Math.random() * 100,
+            change: 0,
+            percent: 0,
+            volume: 100000,
+            open: 100,
+            close: 100,
+            dayHigh: 110,
+            dayLow: 90,
+            updated: Date.now(),
+          }
     }
-
-    return NextResponse.json(snapshot, {
+    return NextResponse.json({ ...snapshot, usingFallback }, {
       headers: {
         'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30'
       }
     })
-  } catch (error) {
-    console.error('Error fetching hybrid ticker snapshot:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch ticker snapshot' },
-      { status: 500 }
-    )
   }
 }

@@ -23,18 +23,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const quotes = await marketDataService.getBatchQuotes(symbols)
-    
-    return NextResponse.json(quotes, {
+    let quotes
+    let usingFallback = false
+    try {
+      quotes = await marketDataService.getBatchQuotes(symbols)
+      if (!quotes || (Array.isArray(quotes) && quotes.length === 0) || quotes.usingFallback) throw new Error("Provider or key error")
+      usingFallback = false
+    } catch (err) {
+      usingFallback = true
+      quotes = marketDataService.getFallbackBatchQuotes
+        ? await marketDataService.getFallbackBatchQuotes(symbols)
+        : symbols.map(symbol => ({
+            symbol,
+            price: 100 + Math.random() * 100,
+            change: 0,
+            changePercent: 0,
+            volume: 50000,
+            marketCap: "50B",
+            high: 0,
+            low: 0,
+            open: 0,
+            previousClose: 0,
+            timestamp: Date.now(),
+          }))
+    }
+    return NextResponse.json({ quotes, usingFallback }, {
       headers: {
         'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30'
       }
     })
-  } catch (error) {
-    console.error('Error fetching batch quotes:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch batch quotes' },
-      { status: 500 }
-    )
   }
 }

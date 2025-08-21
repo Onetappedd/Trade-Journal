@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { path: strin
       sortino: 1.5
     })
   }
-  // Fallback: proxy to backend (Edge Function or FastAPI)
+  // Fallback: proxy to Edge Function or remote HTTP analytics endpoint
   const url = `${SUPABASE_URL}/functions/v1/${subpath}`
   const body = await req.text()
   const res = await fetch(url, {

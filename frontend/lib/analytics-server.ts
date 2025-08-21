@@ -25,7 +25,7 @@ async function getAuthToken() {
 
 function mapAssetTypeToClasses(assetType?: string): ("stocks"|"options"|"futures")[]|undefined {
   if (!assetType || assetType === "all") return undefined
-  // Accept singular or plural, normalize to backend contract plural
+  // Accept singular or plural, normalize to standard contract plural
   const v = assetType.toLowerCase()
   if (v === "stock" || v === "stocks") return ["stocks"]
   if (v === "option" || v === "options") return ["options"]

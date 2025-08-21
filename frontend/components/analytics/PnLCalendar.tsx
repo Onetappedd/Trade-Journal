@@ -150,8 +150,23 @@ export function PnLCalendar() {
             </Button>
           </div>
         </div>
+        <div className="mt-2 flex flex-row gap-2 items-center">
+          <Button size="sm" variant={debug ? "default" : "outline"} onClick={() => setDebug((d) => !d)}>
+            {debug ? "Hide Debug JSON" : "Show Debug JSON"}
+          </Button>
+          {debug && (
+            <span className="text-xs text-muted-foreground">Developer mode: shows API payload.</span>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
+      {debug && (
+        <div className="my-4 p-2 rounded bg-muted/30 text-xs max-h-56 overflow-auto border">
+          <pre className="break-all whitespace-pre-wrap text-[11px]">
+            {JSON.stringify({ dailyPnL, tradesByDay }, null, 2)}
+          </pre>
+        </div>
+      )}
         <div className="space-y-3 max-w-2xl mx-auto">
           {/* Summary card for visible range */}
           <div className="grid grid-cols-3 gap-2">

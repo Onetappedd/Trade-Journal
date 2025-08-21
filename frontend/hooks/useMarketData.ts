@@ -209,7 +209,7 @@ export function useRealTimePrices(symbols: string[]) {
   useEffect(() => {
     if (symbols.length === 0) return
 
-    // For now, fall back to polling since WebSocket setup requires backend
+    // For now, fall back to polling (WebSocket setup could be added here if needed)
     const interval = setInterval(async () => {
       try {
         const response = await fetch('/api/market/batch-quotes', {

@@ -132,12 +132,12 @@ export const importWizardMachine = createMachine<ImportWizardContext>(
     },
     services: {
       detectFormat: async (ctx, evt) => {
-        // Call backend /import/detect
+        // Call /api/import/detect if implemented, or implement detection client-side if possible
         // Return {brokerGuess, assetGuess, schemaId, confidence, headerMap, warnings}
         return {}
       },
       importTrades: async (ctx, evt) => {
-        // Call backend /import/start
+        // Call /api/import/start to kick off import or implement client-side logic
         // Return import summary
         return {}
       }
