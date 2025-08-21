@@ -6,14 +6,20 @@ import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import { useTrendingTickers } from "@/lib/useTrendingTickers";
 import { useMemo } from "react";
 
+function toArray<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : [];
+}
+
 export function TrendingTickersPage() {
   const { rows, error, isLoading, refresh } = useTrendingTickers();
+  // ALWAYS guarantee array
+  const rowsSafe = toArray(rows);
   const tableRows = useMemo(() => {
-    return (rows ?? []).map((r) => ({
+    return rowsSafe.map((r) => ({
       ...r,
       absChange: Number((r.price * r.changePct / 100).toFixed(2)),
     }));
-  }, [rows]);
+  }, [rowsSafe]);
 
   if (process.env.NODE_ENV !== "production" && !Array.isArray(rows)) {
     // Dev warning
@@ -26,7 +32,7 @@ export function TrendingTickersPage() {
       <div className="text-red-600 font-medium p-4">Error: Couldn’t load trending data.</div>
     );
   }
-  if (!rows.length) {
+  if (!rowsSafe.length) {
     return (
       <div className="text-center text-muted-foreground py-8">No trending data right now.</div>
     );
@@ -58,7 +64,7 @@ export function TrendingTickersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(tableRows ?? []).map((row) => (
+              {tableRows.map((row) => (
                 <TableRow key={row.symbol}>
                   <TableCell className="font-medium">{row.symbol}</TableCell>
                   <TableCell>${row.price.toFixed(2)}</TableCell>
