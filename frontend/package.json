@@ -4,7 +4,7 @@
   "private": true,
   "engines": {
     "node": "22.x"
-  }, // Node version set to match Vercel project setting (prevents Node version warnings)
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
