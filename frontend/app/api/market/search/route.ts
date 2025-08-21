@@ -1,42 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { marketDataService } from '@/lib/market-data'
+import { NextResponse } from 'next/server';
 
-// Force this API route to use Node.js runtime and disable static generation
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs';
+export const revalidate = 0;
 
-export async function GET(request: NextRequest) {
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30'
+};
+
+function ok<T>(payload: T, usingFallback = false, init: ResponseInit = {}) {
+  return NextResponse.json({ ok: true, usingFallback, ...payload }, {
+    headers: { ...CACHE_HEADERS, ...(init.headers || {}) },
+    status: init.status || 200,
+  });
+}
+
+function fail(message: string, status = 500) {
+  return NextResponse.json({ ok: false, error: message }, { status });
+}
+
+function has(key: string) {
+  return typeof process.env[key] === 'string' && process.env[key]!.length > 0;
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const q = (url.searchParams.get('q') || '').trim();
+  if (!q) return fail('Search query is required', 400);
+  let usingFallback = false;
+  // Try providers
   try {
-    const { searchParams } = request.nextUrl
-    const query = searchParams.get('q')
-    
-    if (!query || query.length < 1) {
-      return NextResponse.json(
-        { error: 'Search query is required' },
-        { status: 400 }
-      )
-    }
-
-    let results
-    let usingFallback = false
-    try {
-      results = await marketDataService.searchStocks(query)
-      if (!results || results.usingFallback) throw new Error("Provider or key error")
-      usingFallback = false
-    } catch (err) {
-      usingFallback = true
-      results = marketDataService.getFallbackSearchStocks
-        ? await marketDataService.getFallbackSearchStocks(query)
-        : [
-            { symbol: 'AAPL', name: 'Apple', type: 'stock' },
-            { symbol: 'MSFT', name: 'Microsoft', type: 'stock' },
-            { symbol: 'GOOG', name: 'Alphabet', type: 'stock' },
-          ]
-    }
-    return NextResponse.json({ results, usingFallback }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30'
+    if (has('FINNHUB_API_KEY')) {
+      const resp = await fetch(`https://finnhub.io/api/v1/search?q=${encodeURIComponent(q)}&token=${process.env.FINNHUB_API_KEY}`);
+      if (resp.ok) {
+        const { result } = await resp.json();
+        if (Array.isArray(result)) {
+          const data = result.map((r: any) => ({ symbol: r.symbol, name: r.description })).filter((r: any) => !!r.symbol);
+          return ok({ data }, false);
+        }
       }
-    })
+    } else if (has('POLYGON_API_KEY')) {
+      const resp = await fetch(`https://api.polygon.io/v3/reference/tickers?search=${encodeURIComponent(q)}&active=true&apiKey=${process.env.POLYGON_API_KEY}`);
+      if (resp.ok) {
+        const { results } = await resp.json();
+        if (Array.isArray(results)) {
+          const data = results.map((r: any) => ({ symbol: r.ticker, name: r.name })).filter((r: any) => !!r.symbol);
+          return ok({ data }, false);
+        }
+      }
+    }
+    usingFallback = true;
+  } catch {
+    usingFallback = true;
   }
+  // Fallback: static mock filter
+  const all = [
+    { symbol: 'AAPL', name: 'Apple' },
+    { symbol: 'MSFT', name: 'Microsoft' },
+    { symbol: 'TSLA', name: 'Tesla' },
+    { symbol: 'NVDA', name: 'Nvidia' },
+    { symbol: 'AMZN', name: 'Amazon' }
+  ];
+  const data = all.filter(({ symbol, name }) =>
+    symbol.includes(q.toUpperCase()) || name.toLowerCase().includes(q.toLowerCase())
+  );
+  return ok({ data }, usingFallback);
 }
