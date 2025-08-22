@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getTrades } from '@/lib/trades';
 import { getUserIdFromRequest } from '@/lib/auth'; // IMPLEMENT OR ADJUST based on your auth setup
