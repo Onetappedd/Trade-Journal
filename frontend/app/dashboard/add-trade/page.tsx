@@ -58,6 +58,8 @@ const FUTURE_MULTIPLIERS: Record<string, number> = {
   ZW: 50,     // Wheat
 };
 
+export const dynamic = "force-dynamic";
+
 export default function AddTradePage() {
   const router = useRouter();
   const [assetType, setAssetType] = useState<AssetType>('stock');

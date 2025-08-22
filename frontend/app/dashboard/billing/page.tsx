@@ -20,6 +20,8 @@ const invoices = [
   { id: 'INV-004', date: '2024-04-01', amount: 29.99, status: 'Pending' },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default function BillingPage() {
   return (
     <div className="space-y-6">
