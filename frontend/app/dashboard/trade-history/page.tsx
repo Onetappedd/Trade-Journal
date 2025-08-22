@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import { TradeTable } from '@/components/trades/TradeTable';
 import { TradeStats } from '@/components/trades/TradeStats';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
