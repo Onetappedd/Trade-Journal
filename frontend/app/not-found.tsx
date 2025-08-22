@@ -1,7 +1,7 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Home, ArrowLeft } from "lucide-react"
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Home, ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
   return (
@@ -10,7 +10,9 @@ export default function NotFound() {
         <CardHeader className="text-center">
           <CardTitle className="text-6xl font-bold text-muted-foreground mb-4">404</CardTitle>
           <CardTitle>Page Not Found</CardTitle>
-          <CardDescription>The page you're looking for doesn't exist or has been moved.</CardDescription>
+          <CardDescription>
+            The page you're looking for doesn't exist or has been moved.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button asChild className="w-full">
@@ -28,5 +30,5 @@ export default function NotFound() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

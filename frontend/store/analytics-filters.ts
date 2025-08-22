@@ -1,10 +1,10 @@
-import { create } from 'zustand'
-import { AnalyticsFilters } from '@/lib/analytics-contracts'
+import { create } from 'zustand';
+import { AnalyticsFilters } from '@/lib/analytics-contracts';
 
 export type AnalyticsFiltersState = AnalyticsFilters & {
-  setFilters: (filters: Partial<AnalyticsFilters>) => void
-  resetFilters: () => void
-}
+  setFilters: (filters: Partial<AnalyticsFilters>) => void;
+  resetFilters: () => void;
+};
 
 const defaultFilters: AnalyticsFilters = {
   userId: '',
@@ -15,10 +15,10 @@ const defaultFilters: AnalyticsFilters = {
   strategies: [],
   tickers: [],
   userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-}
+};
 
 export const useAnalyticsFiltersStore = create<AnalyticsFiltersState>((set) => ({
   ...defaultFilters,
   setFilters: (filters) => set((state) => ({ ...state, ...filters })),
   resetFilters: () => set(() => ({ ...defaultFilters })),
-}))
+}));

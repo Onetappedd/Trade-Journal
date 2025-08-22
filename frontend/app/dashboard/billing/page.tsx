@@ -1,17 +1,24 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CreditCard, Download, Calendar, DollarSign } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { CreditCard, Download, Calendar, DollarSign } from 'lucide-react';
 
 const invoices = [
-  { id: "INV-001", date: "2024-01-01", amount: 29.99, status: "Paid" },
-  { id: "INV-002", date: "2024-02-01", amount: 29.99, status: "Paid" },
-  { id: "INV-003", date: "2024-03-01", amount: 29.99, status: "Paid" },
-  { id: "INV-004", date: "2024-04-01", amount: 29.99, status: "Pending" },
-]
+  { id: 'INV-001', date: '2024-01-01', amount: 29.99, status: 'Paid' },
+  { id: 'INV-002', date: '2024-02-01', amount: 29.99, status: 'Paid' },
+  { id: 'INV-003', date: '2024-03-01', amount: 29.99, status: 'Paid' },
+  { id: 'INV-004', date: '2024-04-01', amount: 29.99, status: 'Pending' },
+];
 
 export default function BillingPage() {
   return (
@@ -34,7 +41,9 @@ export default function BillingPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">Pro Plan</h3>
-                <p className="text-sm text-muted-foreground">Advanced trading analytics and unlimited trades</p>
+                <p className="text-sm text-muted-foreground">
+                  Advanced trading analytics and unlimited trades
+                </p>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold">$29.99</div>
@@ -101,7 +110,9 @@ export default function BillingPage() {
                     <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
                     <TableCell>${invoice.amount}</TableCell>
                     <TableCell>
-                      <Badge variant={invoice.status === "Paid" ? "default" : "secondary"}>{invoice.status}</Badge>
+                      <Badge variant={invoice.status === 'Paid' ? 'default' : 'secondary'}>
+                        {invoice.status}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm">
@@ -116,5 +127,5 @@ export default function BillingPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

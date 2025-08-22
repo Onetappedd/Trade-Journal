@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react"
+import { Loader2 } from 'lucide-react';
 
 export default function ResetPasswordLoading() {
   return (
@@ -8,5 +8,5 @@ export default function ResetPasswordLoading() {
         <p className="text-muted-foreground">Loading reset password form...</p>
       </div>
     </div>
-  )
+  );
 }

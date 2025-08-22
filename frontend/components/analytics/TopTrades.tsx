@@ -1,47 +1,49 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface Trade {
-  id: string
-  symbol: string
-  entry_date: string
-  exit_date?: string | null
-  pnl: number
-  asset_type?: string
-  option_type?: string | null
-  strike?: number | null
-  expiration?: string | null
+  id: string;
+  symbol: string;
+  entry_date: string;
+  exit_date?: string | null;
+  pnl: number;
+  asset_type?: string;
+  option_type?: string | null;
+  strike?: number | null;
+  expiration?: string | null;
 }
 
 interface TopTradesProps {
-  bestTrades: Trade[]
-  worstTrades: Trade[]
+  bestTrades: Trade[];
+  worstTrades: Trade[];
 }
 
 export function TopTrades({ bestTrades, worstTrades }: TopTradesProps) {
   const formatCurrency = (value: number) => {
-    const prefix = value >= 0 ? "+" : ""
-    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
+    const prefix = value >= 0 ? '+' : '';
+    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   const calculateDuration = (entry: string, exit?: string | null) => {
-    if (!exit) return "Open"
-    const entryDate = new Date(entry)
-    const exitDate = new Date(exit)
-    const days = Math.round((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24))
-    return `${days} days`
-  }
+    if (!exit) return 'Open';
+    const entryDate = new Date(entry);
+    const exitDate = new Date(exit);
+    const days = Math.round((exitDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+    return `${days} days`;
+  };
 
   // Use placeholder if no trades
-  const displayBestTrades = bestTrades.length > 0 ? bestTrades : [
-    { id: "1", symbol: "No trades", entry_date: new Date().toISOString(), pnl: 0 }
-  ]
-  
-  const displayWorstTrades = worstTrades.length > 0 ? worstTrades : [
-    { id: "1", symbol: "No trades", entry_date: new Date().toISOString(), pnl: 0 }
-  ]
+  const displayBestTrades =
+    bestTrades.length > 0
+      ? bestTrades
+      : [{ id: '1', symbol: 'No trades', entry_date: new Date().toISOString(), pnl: 0 }];
+
+  const displayWorstTrades =
+    worstTrades.length > 0
+      ? worstTrades
+      : [{ id: '1', symbol: 'No trades', entry_date: new Date().toISOString(), pnl: 0 }];
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -60,12 +62,14 @@ export function TopTrades({ bestTrades, worstTrades }: TopTradesProps) {
                       {trade.symbol}
                       {trade.asset_type === 'option' && trade.strike && trade.expiration && (
                         <span className="ml-1 text-xs text-muted-foreground">
-                          {trade.option_type?.toUpperCase()} {trade.strike} @ {new Date(trade.expiration).toLocaleDateString()}
+                          {trade.option_type?.toUpperCase()} {trade.strike} @{' '}
+                          {new Date(trade.expiration).toLocaleDateString()}
                         </span>
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(trade.entry_date).toLocaleDateString()} • {calculateDuration(trade.entry_date, trade.exit_date)}
+                      {new Date(trade.entry_date).toLocaleDateString()} •{' '}
+                      {calculateDuration(trade.entry_date, trade.exit_date)}
                     </div>
                   </div>
                 </div>
@@ -93,23 +97,23 @@ export function TopTrades({ bestTrades, worstTrades }: TopTradesProps) {
                       {trade.symbol}
                       {trade.asset_type === 'option' && trade.strike && trade.expiration && (
                         <span className="ml-1 text-xs text-muted-foreground">
-                          {trade.option_type?.toUpperCase()} {trade.strike} @ {new Date(trade.expiration).toLocaleDateString()}
+                          {trade.option_type?.toUpperCase()} {trade.strike} @{' '}
+                          {new Date(trade.expiration).toLocaleDateString()}
                         </span>
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(trade.entry_date).toLocaleDateString()} • {calculateDuration(trade.entry_date, trade.exit_date)}
+                      {new Date(trade.entry_date).toLocaleDateString()} •{' '}
+                      {calculateDuration(trade.entry_date, trade.exit_date)}
                     </div>
                   </div>
                 </div>
-                <Badge variant="destructive">
-                  {formatCurrency(trade.pnl)}
-                </Badge>
+                <Badge variant="destructive">{formatCurrency(trade.pnl)}</Badge>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

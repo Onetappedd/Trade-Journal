@@ -1,73 +1,80 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Position {
-  symbol: string
-  quantity: number
-  entryPrice: number
-  currentPrice: number
-  marketValue: number
-  unrealizedPnL: number
-  unrealizedPnLPercent: number
-  assetType: string
+  symbol: string;
+  quantity: number;
+  entryPrice: number;
+  currentPrice: number;
+  marketValue: number;
+  unrealizedPnL: number;
+  unrealizedPnLPercent: number;
+  assetType: string;
 }
 
 interface PortfolioData {
-  totalMarketValue: number
-  totalUnrealizedPnL: number
-  totalUnrealizedPnLPercent: number
-  positions: Position[]
-  lastUpdated: string
-  usingFallbackPrices: boolean
+  totalMarketValue: number;
+  totalUnrealizedPnL: number;
+  totalUnrealizedPnLPercent: number;
+  positions: Position[];
+  lastUpdated: string;
+  usingFallbackPrices: boolean;
 }
 
 export function PositionsTable() {
-  const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchPortfolioData = async () => {
     try {
-      setIsRefreshing(true)
-      const response = await fetch('/api/portfolio-value')
+      setIsRefreshing(true);
+      const response = await fetch('/api/portfolio-value');
       if (response.ok) {
-        const data = await response.json()
-        setPortfolioData(data)
+        const data = await response.json();
+        setPortfolioData(data);
       }
     } catch (error) {
-      console.error('Failed to fetch portfolio data:', error)
+      console.error('Failed to fetch portfolio data:', error);
     } finally {
-      setIsLoading(false)
-      setIsRefreshing(false)
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchPortfolioData()
+    fetchPortfolioData();
     // Refresh every 30 seconds
-    const interval = setInterval(fetchPortfolioData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(fetchPortfolioData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const formatCurrency = (value: number) => {
-    const prefix = value >= 0 ? "" : "-"
-    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    })}`
-  }
+    const prefix = value >= 0 ? '' : '-';
+    return `${prefix}$${Math.abs(value).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   const formatPercent = (value: number) => {
-    const prefix = value >= 0 ? "+" : ""
-    return `${prefix}${value.toFixed(2)}%`
-  }
+    const prefix = value >= 0 ? '+' : '';
+    return `${prefix}${value.toFixed(2)}%`;
+  };
 
   if (isLoading) {
     return (
@@ -84,7 +91,7 @@ export function PositionsTable() {
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!portfolioData || portfolioData.positions.length === 0) {
@@ -100,7 +107,7 @@ export function PositionsTable() {
           </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -110,17 +117,12 @@ export function PositionsTable() {
           <div>
             <CardTitle>Open Positions</CardTitle>
             <CardDescription>
-              {portfolioData.usingFallbackPrices 
-                ? "Using entry prices (live prices unavailable)" 
-                : "Real-time market values"}
+              {portfolioData.usingFallbackPrices
+                ? 'Using entry prices (live prices unavailable)'
+                : 'Real-time market values'}
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchPortfolioData}
-            disabled={isRefreshing}
-          >
+          <Button variant="outline" size="sm" onClick={fetchPortfolioData} disabled={isRefreshing}>
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
         </div>
@@ -162,9 +164,11 @@ export function PositionsTable() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-col items-end gap-1">
-                      <div className={`flex items-center gap-1 ${
-                        position.unrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <div
+                        className={`flex items-center gap-1 ${
+                          position.unrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
                         {position.unrealizedPnL >= 0 ? (
                           <TrendingUp className="h-3 w-3" />
                         ) : (
@@ -174,9 +178,11 @@ export function PositionsTable() {
                           {formatCurrency(Math.abs(position.unrealizedPnL))}
                         </span>
                       </div>
-                      <span className={`text-xs tabular-nums ${
-                        position.unrealizedPnLPercent >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <span
+                        className={`text-xs tabular-nums ${
+                          position.unrealizedPnLPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
                         {formatPercent(position.unrealizedPnLPercent)}
                       </span>
                     </div>
@@ -186,7 +192,7 @@ export function PositionsTable() {
             </TableBody>
           </Table>
         </div>
-        
+
         {/* Summary Row */}
         <div className="mt-4 pt-4 border-t">
           <div className="flex items-center justify-between">
@@ -202,9 +208,11 @@ export function PositionsTable() {
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Unrealized P&L</p>
-                <div className={`font-semibold tabular-nums ${
-                  portfolioData.totalUnrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <div
+                  className={`font-semibold tabular-nums ${
+                    portfolioData.totalUnrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
                   {formatCurrency(Math.abs(portfolioData.totalUnrealizedPnL))}
                   <span className="text-xs ml-1">
                     ({formatPercent(portfolioData.totalUnrealizedPnLPercent)})
@@ -214,11 +222,11 @@ export function PositionsTable() {
             </div>
           </div>
         </div>
-        
+
         <div className="mt-2 text-xs text-muted-foreground text-right">
           Last updated: {new Date(portfolioData.lastUpdated).toLocaleTimeString()}
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

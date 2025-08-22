@@ -1,51 +1,51 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState } from "react"
-import { useAuth } from "./auth-provider"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FinancialTicker } from "./financial-ticker"
-import { BackgroundChartAnimation } from "./background-chart-animation"
+import { useState } from 'react';
+import { useAuth } from './auth-provider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FinancialTicker } from './financial-ticker';
+import { BackgroundChartAnimation } from './background-chart-animation';
 
 export function EnhancedLoginForm() {
-  const { signIn, signUp, loading } = useAuth()
-  const [error, setError] = useState("")
-  const [activeTab, setActiveTab] = useState("signin")
+  const { signIn, signUp, loading } = useAuth();
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('signin');
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError('');
 
-    const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
-    const result = await signIn(email, password)
+    const result = await signIn(email, password);
     if (!result.success) {
-      setError(result.error || "Sign in failed")
+      setError(result.error || 'Sign in failed');
     }
-  }
+  };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError('');
 
-    const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-    const name = formData.get("name") as string
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const name = formData.get('name') as string;
 
-    const result = await signUp(email, password, name)
+    const result = await signUp(email, password, name);
     if (!result.success) {
-      setError(result.error || "Sign up failed")
+      setError(result.error || 'Sign up failed');
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
@@ -63,7 +63,9 @@ export function EnhancedLoginForm() {
         <Card className="backdrop-blur-sm bg-white/10 border-white/20">
           <CardHeader>
             <CardTitle className="text-white">Welcome</CardTitle>
-            <CardDescription className="text-slate-300">Sign in to your account or create a new one</CardDescription>
+            <CardDescription className="text-slate-300">
+              Sign in to your account or create a new one
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -106,8 +108,12 @@ export function EnhancedLoginForm() {
                       className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                     />
                   </div>
-                  <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={loading}>
-                    {loading ? "Signing in..." : "Sign In"}
+                  <Button
+                    type="submit"
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    disabled={loading}
+                  >
+                    {loading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
               </TabsContent>
@@ -153,8 +159,12 @@ export function EnhancedLoginForm() {
                       className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                     />
                   </div>
-                  <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={loading}>
-                    {loading ? "Creating account..." : "Sign Up"}
+                  <Button
+                    type="submit"
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    disabled={loading}
+                  >
+                    {loading ? 'Creating account...' : 'Sign Up'}
                   </Button>
                 </form>
               </TabsContent>
@@ -167,5 +177,5 @@ export function EnhancedLoginForm() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

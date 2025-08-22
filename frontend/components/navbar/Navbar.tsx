@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Search, Bell, Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { useState } from 'react';
+import { Search, Bell, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/theme-toggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,16 +13,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu';
 
 interface NavbarProps {
-  title: string
-  breadcrumbs?: { label: string; href?: string }[]
-  onMenuClick?: () => void
+  title: string;
+  breadcrumbs?: { label: string; href?: string }[];
+  onMenuClick?: () => void;
 }
 
 export function Navbar({ title, breadcrumbs, onMenuClick }: NavbarProps) {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700">
@@ -103,5 +103,5 @@ export function Navbar({ title, breadcrumbs, onMenuClick }: NavbarProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

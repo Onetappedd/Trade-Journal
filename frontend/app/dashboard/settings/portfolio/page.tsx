@@ -1,130 +1,130 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
-import { createClient } from "@/lib/supabase"
-import { useAuth } from "@/components/auth/auth-provider"
-import { DollarSign, Save, AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
+import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/components/auth/auth-provider';
+import { DollarSign, Save, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function PortfolioSettingsPage() {
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const [initialCapital, setInitialCapital] = useState<string>("10000")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [initialCapital, setInitialCapital] = useState<string>('10000');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchSettings()
+      fetchSettings();
     }
-  }, [user])
+  }, [user]);
 
   const fetchSettings = async () => {
-    if (!user) return
-    
-    setIsLoading(true)
-    const supabase = createClient()
-    
+    if (!user) return;
+
+    setIsLoading(true);
+    const supabase = createClient();
+
     try {
       // First, try to get existing settings
       let { data: settings, error } = await supabase
-        .from("user_settings")
-        .select("initial_capital")
-        .eq("user_id", user.id)
-        .single()
-      
+        .from('user_settings')
+        .select('initial_capital')
+        .eq('user_id', user.id)
+        .single();
+
       // If no settings exist, create default settings
       if (error && error.code === 'PGRST116') {
         const { data: newSettings, error: insertError } = await supabase
-          .from("user_settings")
-          .insert({ 
+          .from('user_settings')
+          .insert({
             user_id: user.id,
-            initial_capital: 10000
+            initial_capital: 10000,
           })
           .select()
-          .single()
-        
+          .single();
+
         if (insertError) {
-          console.error("Error creating settings:", insertError)
+          console.error('Error creating settings:', insertError);
           toast({
-            title: "Error",
-            description: "Failed to create settings",
-            variant: "destructive"
-          })
+            title: 'Error',
+            description: 'Failed to create settings',
+            variant: 'destructive',
+          });
         } else {
-          settings = newSettings
+          settings = newSettings;
         }
       } else if (error) {
-        console.error("Error fetching settings:", error)
+        console.error('Error fetching settings:', error);
         toast({
-          title: "Error",
-          description: "Failed to load settings",
-          variant: "destructive"
-        })
+          title: 'Error',
+          description: 'Failed to load settings',
+          variant: 'destructive',
+        });
       }
-      
+
       if (settings) {
-        setInitialCapital(settings.initial_capital?.toString() || "10000")
+        setInitialCapital(settings.initial_capital?.toString() || '10000');
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleSave = async () => {
-    if (!user) return
-    
-    const value = parseFloat(initialCapital)
+    if (!user) return;
+
+    const value = parseFloat(initialCapital);
     if (isNaN(value) || value < 0) {
       toast({
-        title: "Invalid Value",
-        description: "Please enter a valid positive number",
-        variant: "destructive"
-      })
-      return
+        title: 'Invalid Value',
+        description: 'Please enter a valid positive number',
+        variant: 'destructive',
+      });
+      return;
     }
-    
-    setIsSaving(true)
-    const supabase = createClient()
-    
+
+    setIsSaving(true);
+    const supabase = createClient();
+
     try {
       const { error } = await supabase
-        .from("user_settings")
-        .upsert({ 
+        .from('user_settings')
+        .upsert({
           user_id: user.id,
           initial_capital: value,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq("user_id", user.id)
-      
+        .eq('user_id', user.id);
+
       if (error) {
-        console.error("Error saving settings:", error)
+        console.error('Error saving settings:', error);
         toast({
-          title: "Error",
-          description: "Failed to save settings",
-          variant: "destructive"
-        })
+          title: 'Error',
+          description: 'Failed to save settings',
+          variant: 'destructive',
+        });
       } else {
         toast({
-          title: "Settings Saved",
-          description: "Your portfolio settings have been updated",
-        })
+          title: 'Settings Saved',
+          description: 'Your portfolio settings have been updated',
+        });
       }
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const formatCurrency = (value: string) => {
-    const num = parseFloat(value)
-    if (isNaN(num)) return "$0.00"
-    return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
+    const num = parseFloat(value);
+    if (isNaN(num)) return '$0.00';
+    return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -142,7 +142,8 @@ export default function PortfolioSettingsPage() {
             Initial Capital
           </CardTitle>
           <CardDescription>
-            Set your starting portfolio value. This is used to calculate your overall returns and performance metrics.
+            Set your starting portfolio value. This is used to calculate your overall returns and
+            performance metrics.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -177,13 +178,9 @@ export default function PortfolioSettingsPage() {
                   min="0"
                 />
               </div>
-              <Button 
-                onClick={handleSave} 
-                disabled={isLoading || isSaving}
-                className="gap-2"
-              >
+              <Button onClick={handleSave} disabled={isLoading || isSaving} className="gap-2">
                 <Save className="h-4 w-4" />
-                {isSaving ? "Saving..." : "Save"}
+                {isSaving ? 'Saving...' : 'Save'}
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -211,9 +208,7 @@ export default function PortfolioSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Portfolio Metrics</CardTitle>
-          <CardDescription>
-            Based on your current settings
-          </CardDescription>
+          <CardDescription>Based on your current settings</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
@@ -229,5 +224,5 @@ export default function PortfolioSettingsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

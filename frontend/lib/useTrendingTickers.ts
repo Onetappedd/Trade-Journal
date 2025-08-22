@@ -31,7 +31,7 @@ export function useTrendingTickers() {
   const { data, error, isLoading, mutate } = useSWR<TrendingRow[]>(
     'trending-rows',
     getTrendingRows,
-    { fallbackData: [] }
+    { fallbackData: [] },
   );
   const rows: TrendingRow[] = Array.isArray(data) ? data : [];
   return { rows, error, isLoading, refresh: mutate };

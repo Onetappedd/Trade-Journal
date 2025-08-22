@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import React, { useEffect, useRef, memo } from 'react';
 
@@ -8,9 +8,9 @@ function TradingViewWidget() {
   useEffect(() => {
     if (!container.current) return;
 
-    const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
-    script.type = "text/javascript";
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+    script.type = 'text/javascript';
     script.async = true;
     script.innerHTML = `
       {
@@ -74,7 +74,7 @@ function TradingViewWidget() {
     return () => {
       if (container.current) {
         const scripts = container.current.querySelectorAll('script');
-        scripts.forEach(script => script.remove());
+        scripts.forEach((script) => script.remove());
       }
     };
   }, []);
@@ -84,9 +84,9 @@ function TradingViewWidget() {
       <div className="tradingview-widget-container" ref={container}>
         <div className="tradingview-widget-container__widget"></div>
         <div className="tradingview-widget-copyright">
-          <a 
-            href="https://www.tradingview.com/" 
-            rel="noopener nofollow" 
+          <a
+            href="https://www.tradingview.com/"
+            rel="noopener nofollow"
             target="_blank"
             className="text-xs text-blue-400 hover:text-blue-300"
           >

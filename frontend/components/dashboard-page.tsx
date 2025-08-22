@@ -1,9 +1,9 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   TrendingUp,
   TrendingDown,
@@ -16,31 +16,31 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-} from "lucide-react"
-import Link from "next/link"
+} from 'lucide-react';
+import Link from 'next/link';
 
 export function DashboardPage() {
   // Mock data for dashboard
-  const portfolioValue = 125750.5
-  const dailyPnL = 2450.75
-  const dailyPnLPercent = 1.98
-  const totalTrades = 247
-  const winRate = 68.4
-  const monthlyReturn = 12.3
+  const portfolioValue = 125750.5;
+  const dailyPnL = 2450.75;
+  const dailyPnLPercent = 1.98;
+  const totalTrades = 247;
+  const winRate = 68.4;
+  const monthlyReturn = 12.3;
 
   const recentTrades = [
-    { symbol: "AAPL", type: "BUY", quantity: 100, price: 175.5, pnl: 450.0, date: "2024-01-15" },
-    { symbol: "TSLA", type: "SELL", quantity: 50, price: 245.8, pnl: -125.5, date: "2024-01-15" },
-    { symbol: "MSFT", type: "BUY", quantity: 75, price: 380.25, pnl: 890.25, date: "2024-01-14" },
-    { symbol: "GOOGL", type: "SELL", quantity: 25, price: 142.75, pnl: 320.0, date: "2024-01-14" },
-  ]
+    { symbol: 'AAPL', type: 'BUY', quantity: 100, price: 175.5, pnl: 450.0, date: '2024-01-15' },
+    { symbol: 'TSLA', type: 'SELL', quantity: 50, price: 245.8, pnl: -125.5, date: '2024-01-15' },
+    { symbol: 'MSFT', type: 'BUY', quantity: 75, price: 380.25, pnl: 890.25, date: '2024-01-14' },
+    { symbol: 'GOOGL', type: 'SELL', quantity: 25, price: 142.75, pnl: 320.0, date: '2024-01-14' },
+  ];
 
   const topPositions = [
-    { symbol: "AAPL", shares: 500, value: 87750, pnl: 12450, pnlPercent: 16.5 },
-    { symbol: "MSFT", shares: 200, value: 76050, pnl: 8920, pnlPercent: 13.3 },
-    { symbol: "GOOGL", shares: 150, value: 21412, pnl: -1250, pnlPercent: -5.5 },
-    { symbol: "TSLA", shares: 100, value: 24580, pnl: 2100, pnlPercent: 9.3 },
-  ]
+    { symbol: 'AAPL', shares: 500, value: 87750, pnl: 12450, pnlPercent: 16.5 },
+    { symbol: 'MSFT', shares: 200, value: 76050, pnl: 8920, pnlPercent: 13.3 },
+    { symbol: 'GOOGL', shares: 150, value: 21412, pnl: -1250, pnlPercent: -5.5 },
+    { symbol: 'TSLA', shares: 100, value: 24580, pnl: 2100, pnlPercent: 9.3 },
+  ];
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -79,11 +79,13 @@ export function DashboardPage() {
             )}
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${dailyPnL >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {dailyPnL >= 0 ? "+" : ""}${dailyPnL.toLocaleString()}
+            <div
+              className={`text-2xl font-bold ${dailyPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {dailyPnL >= 0 ? '+' : ''}${dailyPnL.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              {dailyPnL >= 0 ? "+" : ""}
+              {dailyPnL >= 0 ? '+' : ''}
               {dailyPnLPercent}% today
             </p>
           </CardContent>
@@ -124,7 +126,9 @@ export function DashboardPage() {
               {recentTrades.map((trade, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <Badge variant={trade.type === "BUY" ? "default" : "secondary"}>{trade.type}</Badge>
+                    <Badge variant={trade.type === 'BUY' ? 'default' : 'secondary'}>
+                      {trade.type}
+                    </Badge>
                     <div>
                       <p className="text-sm font-medium">{trade.symbol}</p>
                       <p className="text-xs text-muted-foreground">
@@ -133,8 +137,10 @@ export function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {trade.pnl >= 0 ? "+" : ""}${Math.abs(trade.pnl).toFixed(2)}
+                    <p
+                      className={`text-sm font-medium ${trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                    >
+                      {trade.pnl >= 0 ? '+' : ''}${Math.abs(trade.pnl).toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground">{trade.date}</p>
                   </div>
@@ -171,8 +177,8 @@ export function DashboardPage() {
                       ) : (
                         <ArrowDownRight className="h-3 w-3 text-red-600 mr-1" />
                       )}
-                      <span className={position.pnl >= 0 ? "text-green-600" : "text-red-600"}>
-                        {position.pnlPercent >= 0 ? "+" : ""}
+                      <span className={position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {position.pnlPercent >= 0 ? '+' : ''}
                         {position.pnlPercent}%
                       </span>
                     </div>
@@ -238,7 +244,9 @@ export function DashboardPage() {
             <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <div>
                 <p className="text-sm font-medium">Risk Alert</p>
-                <p className="text-xs text-muted-foreground">Your TSLA position exceeds 20% of portfolio</p>
+                <p className="text-xs text-muted-foreground">
+                  Your TSLA position exceeds 20% of portfolio
+                </p>
               </div>
               <Button size="sm" variant="outline" asChild>
                 <Link href="/dashboard/risk-management">Review</Link>
@@ -247,7 +255,9 @@ export function DashboardPage() {
             <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div>
                 <p className="text-sm font-medium">Price Alert Triggered</p>
-                <p className="text-xs text-muted-foreground">AAPL reached your target price of $175</p>
+                <p className="text-xs text-muted-foreground">
+                  AAPL reached your target price of $175
+                </p>
               </div>
               <Button size="sm" variant="outline" asChild>
                 <Link href="/dashboard/price-alerts">View Alerts</Link>
@@ -257,5 +267,5 @@ export function DashboardPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

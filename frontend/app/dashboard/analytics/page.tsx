@@ -1,8 +1,8 @@
-"use client"
+'use client';
 
-import { Suspense } from "react"
-import { AnalyticsPage } from "@/components/analytics-page"
-import { Card } from "@/components/ui/card"
+import { Suspense } from 'react';
+import { AnalyticsPage } from '@/components/analytics-page';
+import { Card } from '@/components/ui/card';
 
 function AnalyticsLoading() {
   return (
@@ -25,7 +25,7 @@ function AnalyticsLoading() {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 export default function AnalyticsDashboard() {
@@ -33,5 +33,5 @@ export default function AnalyticsDashboard() {
     <Suspense fallback={<AnalyticsLoading />}>
       <AnalyticsPage />
     </Suspense>
-  )
+  );
 }

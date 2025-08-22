@@ -33,9 +33,7 @@ export async function GET() {
           fetch(
             `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/gainers?apiKey=${key}`,
           ),
-          fetch(
-            `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/losers?apiKey=${key}`,
-          ),
+          fetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/losers?apiKey=${key}`),
         ]);
         if (gRes.ok && lRes.ok) {
           const gData = await gRes.json();

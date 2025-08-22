@@ -1,26 +1,31 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 interface WinRateChartProps {
-  winRate: number
-  totalTrades: number
-  wins?: number
-  losses?: number
+  winRate: number;
+  totalTrades: number;
+  wins?: number;
+  losses?: number;
 }
 
-export function WinRateChart({ winRate, totalTrades, wins: propWins, losses: propLosses }: WinRateChartProps) {
+export function WinRateChart({
+  winRate,
+  totalTrades,
+  wins: propWins,
+  losses: propLosses,
+}: WinRateChartProps) {
   // Use provided wins/losses or calculate from win rate
-  const wins = propWins !== undefined ? propWins : Math.round((winRate / 100) * totalTrades)
-  const losses = propLosses !== undefined ? propLosses : totalTrades - wins
-  
-  const data = [
-    { name: "Wins", value: wins },
-    { name: "Losses", value: losses },
-  ]
+  const wins = propWins !== undefined ? propWins : Math.round((winRate / 100) * totalTrades);
+  const losses = propLosses !== undefined ? propLosses : totalTrades - wins;
 
-  const COLORS = ["#10b981", "#ef4444"]
+  const data = [
+    { name: 'Wins', value: wins },
+    { name: 'Losses', value: losses },
+  ];
+
+  const COLORS = ['#10b981', '#ef4444'];
 
   return (
     <Card>
@@ -53,5 +58,5 @@ export function WinRateChart({ winRate, totalTrades, wins: propWins, losses: pro
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 export function NotificationSettings() {
   const [emailNotifications, setEmailNotifications] = useState({
@@ -13,22 +13,22 @@ export function NotificationSettings() {
     marketNews: false,
     weeklyReports: true,
     accountUpdates: true,
-  })
+  });
 
   const [pushNotifications, setPushNotifications] = useState({
     tradeExecutions: true,
     priceAlerts: true,
     riskAlerts: true,
     marketOpen: false,
-  })
+  });
 
   const updateEmailNotification = (key: keyof typeof emailNotifications, value: boolean) => {
-    setEmailNotifications((prev) => ({ ...prev, [key]: value }))
-  }
+    setEmailNotifications((prev) => ({ ...prev, [key]: value }));
+  };
 
   const updatePushNotification = (key: keyof typeof pushNotifications, value: boolean) => {
-    setPushNotifications((prev) => ({ ...prev, [key]: value }))
-  }
+    setPushNotifications((prev) => ({ ...prev, [key]: value }));
+  };
 
   return (
     <div className="space-y-6">
@@ -41,22 +41,26 @@ export function NotificationSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Trade Executions</Label>
-              <p className="text-sm text-muted-foreground">Get notified when your trades are executed</p>
+              <p className="text-sm text-muted-foreground">
+                Get notified when your trades are executed
+              </p>
             </div>
             <Switch
               checked={emailNotifications.tradeExecutions}
-              onCheckedChange={(value) => updateEmailNotification("tradeExecutions", value)}
+              onCheckedChange={(value) => updateEmailNotification('tradeExecutions', value)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Price Alerts</Label>
-              <p className="text-sm text-muted-foreground">Receive alerts when price targets are hit</p>
+              <p className="text-sm text-muted-foreground">
+                Receive alerts when price targets are hit
+              </p>
             </div>
             <Switch
               checked={emailNotifications.priceAlerts}
-              onCheckedChange={(value) => updateEmailNotification("priceAlerts", value)}
+              onCheckedChange={(value) => updateEmailNotification('priceAlerts', value)}
             />
           </div>
 
@@ -67,29 +71,33 @@ export function NotificationSettings() {
             </div>
             <Switch
               checked={emailNotifications.marketNews}
-              onCheckedChange={(value) => updateEmailNotification("marketNews", value)}
+              onCheckedChange={(value) => updateEmailNotification('marketNews', value)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Weekly Reports</Label>
-              <p className="text-sm text-muted-foreground">Weekly performance and portfolio summaries</p>
+              <p className="text-sm text-muted-foreground">
+                Weekly performance and portfolio summaries
+              </p>
             </div>
             <Switch
               checked={emailNotifications.weeklyReports}
-              onCheckedChange={(value) => updateEmailNotification("weeklyReports", value)}
+              onCheckedChange={(value) => updateEmailNotification('weeklyReports', value)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Account Updates</Label>
-              <p className="text-sm text-muted-foreground">Important account and security updates</p>
+              <p className="text-sm text-muted-foreground">
+                Important account and security updates
+              </p>
             </div>
             <Switch
               checked={emailNotifications.accountUpdates}
-              onCheckedChange={(value) => updateEmailNotification("accountUpdates", value)}
+              onCheckedChange={(value) => updateEmailNotification('accountUpdates', value)}
             />
           </div>
         </CardContent>
@@ -104,11 +112,13 @@ export function NotificationSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Trade Executions</Label>
-              <p className="text-sm text-muted-foreground">Instant notifications for trade executions</p>
+              <p className="text-sm text-muted-foreground">
+                Instant notifications for trade executions
+              </p>
             </div>
             <Switch
               checked={pushNotifications.tradeExecutions}
-              onCheckedChange={(value) => updatePushNotification("tradeExecutions", value)}
+              onCheckedChange={(value) => updatePushNotification('tradeExecutions', value)}
             />
           </div>
 
@@ -119,18 +129,20 @@ export function NotificationSettings() {
             </div>
             <Switch
               checked={pushNotifications.priceAlerts}
-              onCheckedChange={(value) => updatePushNotification("priceAlerts", value)}
+              onCheckedChange={(value) => updatePushNotification('priceAlerts', value)}
             />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Risk Alerts</Label>
-              <p className="text-sm text-muted-foreground">Notifications for risk threshold breaches</p>
+              <p className="text-sm text-muted-foreground">
+                Notifications for risk threshold breaches
+              </p>
             </div>
             <Switch
               checked={pushNotifications.riskAlerts}
-              onCheckedChange={(value) => updatePushNotification("riskAlerts", value)}
+              onCheckedChange={(value) => updatePushNotification('riskAlerts', value)}
             />
           </div>
 
@@ -141,7 +153,7 @@ export function NotificationSettings() {
             </div>
             <Switch
               checked={pushNotifications.marketOpen}
-              onCheckedChange={(value) => updatePushNotification("marketOpen", value)}
+              onCheckedChange={(value) => updatePushNotification('marketOpen', value)}
             />
           </div>
         </CardContent>
@@ -151,5 +163,5 @@ export function NotificationSettings() {
         <Button>Save Notification Settings</Button>
       </div>
     </div>
-  )
+  );
 }

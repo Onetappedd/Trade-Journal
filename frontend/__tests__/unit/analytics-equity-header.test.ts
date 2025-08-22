@@ -1,4 +1,4 @@
-import { EquityCurveResponse } from '@/lib/analytics-contracts'
+import { EquityCurveResponse } from '@/lib/analytics-contracts';
 describe('Equity Header', () => {
   it('equals last equity point minus first', () => {
     const response: EquityCurveResponse = {
@@ -12,8 +12,9 @@ describe('Equity Header', () => {
       absoluteReturn: 500,
       pctReturn: 0.05,
       maxDrawdown: -100,
-    }
-    const headerValue = response.points[response.points.length - 1].equity - response.points[0].equity
-    expect(headerValue).toBe(500)
-  })
-})
+    };
+    const headerValue =
+      response.points[response.points.length - 1].equity - response.points[0].equity;
+    expect(headerValue).toBe(500);
+  });
+});

@@ -1,21 +1,29 @@
-"use client"
-import React, { useMemo, useState } from "react"
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
-import { chartTheme } from "@/lib/chart-theme"
-import { useAnalyticsFiltersStore } from '@/store/analytics-filters'
+'use client';
+import React, { useMemo, useState } from 'react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from 'recharts';
+import { chartTheme } from '@/lib/chart-theme';
+import { useAnalyticsFiltersStore } from '@/store/analytics-filters';
 
 // Example data shape: [{ t: '2024-01-01', equity: 10000 }, ...]
 export function EquityCurveChart({ data }: { data: { t: string; equity: number }[] }) {
-  const [percent, setPercent] = useState(false)
-  const theme = chartTheme()
-  const filters = useAnalyticsFiltersStore()
+  const [percent, setPercent] = useState(false);
+  const theme = chartTheme();
+  const filters = useAnalyticsFiltersStore();
 
   // Transform data for percent toggle
   const chartData = useMemo(() => {
-    if (!percent || !data.length) return data
-    const base = data[0]?.equity || 1
-    return data.map(d => ({ ...d, equity: ((d.equity - base) / base) * 100 }))
-  }, [percent, data])
+    if (!percent || !data.length) return data;
+    const base = data[0]?.equity || 1;
+    return data.map((d) => ({ ...d, equity: ((d.equity - base) / base) * 100 }));
+  }, [percent, data]);
 
   return (
     <div className="w-full">
@@ -23,9 +31,9 @@ export function EquityCurveChart({ data }: { data: { t: string; equity: number }
         <span className="tk-heading text-base mr-4">Equity Curve</span>
         <button
           className={`tk-chip ml-auto text-xs ${percent ? 'ring-1 ring-[hsl(var(--primary))] text-[hsl(var(--foreground))]' : ''}`}
-          onClick={() => setPercent(p => !p)}
+          onClick={() => setPercent((p) => !p)}
         >
-          {percent ? "%" : "$"}
+          {percent ? '%' : '$'}
         </button>
       </div>
       <ResponsiveContainer width="100%" height={240}>
@@ -48,22 +56,25 @@ export function EquityCurveChart({ data }: { data: { t: string; equity: number }
             axisLine={{ stroke: theme.axis, strokeWidth: 1 }}
             tickLine={false}
             width={60}
-            domain={["auto", "auto"]}
-            tickFormatter={v => percent ? `${v.toFixed(1)}%` : `$${v.toLocaleString()}`}
+            domain={['auto', 'auto']}
+            tickFormatter={(v) => (percent ? `${v.toFixed(1)}%` : `$${v.toLocaleString()}`)}
           />
           <CartesianGrid stroke={theme.grid} strokeOpacity={0.25} vertical={false} />
           <Tooltip
             content={({ active, payload, label }) => {
-              if (!active || !payload?.length) return null
-              const d = payload[0].payload
+              if (!active || !payload?.length) return null;
+              const d = payload[0].payload;
               return (
-                <div className="tk-card p-2 border border-[hsl(var(--border))] shadow-lg" style={{ background: theme.bg, color: theme.fg }}>
+                <div
+                  className="tk-card p-2 border border-[hsl(var(--border))] shadow-lg"
+                  style={{ background: theme.bg, color: theme.fg }}
+                >
                   <div className="text-xs mb-1">{label}</div>
                   <div className="font-bold text-sm">
                     {percent ? `${d.equity.toFixed(2)}%` : `$${d.equity.toLocaleString()}`}
                   </div>
                 </div>
-              )
+              );
             }}
           />
           <Area
@@ -78,5 +89,5 @@ export function EquityCurveChart({ data }: { data: { t: string; equity: number }
         </AreaChart>
       </ResponsiveContainer>
     </div>
-  )
+  );
 }

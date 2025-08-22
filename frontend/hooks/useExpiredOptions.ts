@@ -1,52 +1,52 @@
-import { useState, useEffect } from 'react'
-import { useToast } from '@/components/ui/use-toast'
-import { useAuth } from '@/components/auth/auth-provider'
+import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/components/auth/auth-provider';
 
 export function useExpiredOptions() {
-  const [isChecking, setIsChecking] = useState(false)
-  const [expiredCount, setExpiredCount] = useState(0)
-  const { toast } = useToast()
-  const { user } = useAuth()
+  const [isChecking, setIsChecking] = useState(false);
+  const [expiredCount, setExpiredCount] = useState(0);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   const checkAndUpdateExpiredOptions = async () => {
-    if (!user) return
-    
-    setIsChecking(true)
+    if (!user) return;
+
+    setIsChecking(true);
     try {
       const response = await fetch('/api/update-expired-options', {
         method: 'POST',
-      })
-      
+      });
+
       if (response.ok) {
-        const result = await response.json()
-        
+        const result = await response.json();
+
         if (result.tradesUpdated > 0) {
-          setExpiredCount(result.tradesUpdated)
+          setExpiredCount(result.tradesUpdated);
           toast({
-            title: "Expired Options Detected",
+            title: 'Expired Options Detected',
             description: `${result.tradesUpdated} option${result.tradesUpdated > 1 ? 's' : ''} have expired and need your attention.`,
-            variant: "destructive",
+            variant: 'destructive',
             duration: 10000, // Show for 10 seconds
-          })
+          });
         }
-        
-        return result
+
+        return result;
       }
     } catch (error) {
-      console.error('Failed to check expired options:', error)
+      console.error('Failed to check expired options:', error);
     } finally {
-      setIsChecking(false)
+      setIsChecking(false);
     }
-  }
+  };
 
   // Check on mount
   useEffect(() => {
-    checkAndUpdateExpiredOptions()
-  }, [user])
+    checkAndUpdateExpiredOptions();
+  }, [user]);
 
   return {
     isChecking,
     expiredCount,
-    checkAndUpdateExpiredOptions
-  }
+    checkAndUpdateExpiredOptions,
+  };
 }

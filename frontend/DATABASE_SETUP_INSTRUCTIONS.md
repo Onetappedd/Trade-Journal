@@ -11,6 +11,7 @@ npm run check-db
 ```
 
 This will:
+
 - ✅ Check what tables exist in your Supabase database
 - ✅ Show the structure of existing tables
 - ✅ Test your API keys (Finnhub & Alpha Vantage)
@@ -19,6 +20,7 @@ This will:
 ## 📋 Step 2: Based on the Results
 
 ### If you see "❌ Table 'trades' - MISSING":
+
 1. Go to your Supabase dashboard: https://supabase.com/dashboard
 2. Navigate to your project: `lobigrwmngwirucuklmc`
 3. Go to **SQL Editor**
@@ -26,9 +28,11 @@ This will:
 5. Click **Run** to create all required tables
 
 ### If tables exist but have different columns:
+
 I'll provide you with migration scripts based on what the checker finds.
 
 ### If everything looks good:
+
 You're ready to use the real data integration!
 
 ## 🎯 Required Tables
@@ -36,28 +40,34 @@ You're ready to use the real data integration!
 The trading journal needs these tables:
 
 ### **trades** (Essential)
+
 - Stores all user trading data
 - Columns: symbol, asset_type, side, quantity, entry_price, exit_price, dates, etc.
 
-### **profiles** (Essential) 
+### **profiles** (Essential)
+
 - User profile information
 - Extends the built-in auth.users table
 
 ### **watchlist** (Optional)
+
 - User's stock watchlist
 - Columns: user_id, symbol, added_at
 
 ### **tags** (Optional)
+
 - Custom tags for categorizing trades
 - Columns: user_id, name, color
 
 ### **price_alerts** (Optional)
+
 - Price alert notifications
 - Columns: user_id, symbol, target_price, alert_type
 
 ## 🔑 API Keys Status
 
 Your API keys are configured:
+
 - ✅ **Finnhub**: `d28n3t9r01qmp5u9eilgd28n3t9r01qmp5u9eim0`
 - ✅ **Alpha Vantage**: `Z1FW5Z59ZDFFKBVR`
 

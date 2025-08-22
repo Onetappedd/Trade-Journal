@@ -1,64 +1,79 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { TrendingUp, TrendingDown, DollarSign, Target, PieChart, RefreshCw, BarChart3 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Target,
+  PieChart,
+  RefreshCw,
+  BarChart3,
+} from 'lucide-react';
 
 const mockPositions = [
   {
-    symbol: "AAPL",
+    symbol: 'AAPL',
     shares: 100,
     avgPrice: 175.5,
     currentPrice: 178.25,
     marketValue: 17825,
     unrealizedPL: 275,
     unrealizedPLPercent: 1.57,
-    sector: "Technology",
+    sector: 'Technology',
   },
   {
-    symbol: "TSLA",
+    symbol: 'TSLA',
     shares: 50,
     avgPrice: 245.3,
     currentPrice: 238.9,
     marketValue: 11945,
     unrealizedPL: -320,
     unrealizedPLPercent: -2.61,
-    sector: "Consumer Discretionary",
+    sector: 'Consumer Discretionary',
   },
   {
-    symbol: "MSFT",
+    symbol: 'MSFT',
     shares: 75,
     avgPrice: 378.9,
     currentPrice: 385.2,
     marketValue: 28890,
     unrealizedPL: 472.5,
     unrealizedPLPercent: 1.66,
-    sector: "Technology",
+    sector: 'Technology',
   },
   {
-    symbol: "GOOGL",
+    symbol: 'GOOGL',
     shares: 25,
     avgPrice: 2750.0,
     currentPrice: 2789.45,
     marketValue: 69736.25,
     unrealizedPL: 986.25,
     unrealizedPLPercent: 1.43,
-    sector: "Communication Services",
+    sector: 'Communication Services',
   },
-]
+];
 
 const sectorAllocation = [
-  { sector: "Technology", value: 46715, percentage: 36.4 },
-  { sector: "Communication Services", value: 69736.25, percentage: 54.3 },
-  { sector: "Consumer Discretionary", value: 11945, percentage: 9.3 },
-]
+  { sector: 'Technology', value: 46715, percentage: 36.4 },
+  { sector: 'Communication Services', value: 69736.25, percentage: 54.3 },
+  { sector: 'Consumer Discretionary', value: 11945, percentage: 9.3 },
+];
 
 export function PortfolioPage() {
-  const totalValue = mockPositions.reduce((sum, pos) => sum + pos.marketValue, 0)
-  const totalUnrealizedPL = mockPositions.reduce((sum, pos) => sum + pos.unrealizedPL, 0)
-  const totalUnrealizedPLPercent = (totalUnrealizedPL / (totalValue - totalUnrealizedPL)) * 100
+  const totalValue = mockPositions.reduce((sum, pos) => sum + pos.marketValue, 0);
+  const totalUnrealizedPL = mockPositions.reduce((sum, pos) => sum + pos.unrealizedPL, 0);
+  const totalUnrealizedPLPercent = (totalUnrealizedPL / (totalValue - totalUnrealizedPL)) * 100;
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -95,11 +110,13 @@ export function PortfolioPage() {
             )}
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${totalUnrealizedPL >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {totalUnrealizedPL >= 0 ? "+" : ""}${totalUnrealizedPL.toFixed(2)}
+            <div
+              className={`text-2xl font-bold ${totalUnrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {totalUnrealizedPL >= 0 ? '+' : ''}${totalUnrealizedPL.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {totalUnrealizedPLPercent >= 0 ? "+" : ""}
+              {totalUnrealizedPLPercent >= 0 ? '+' : ''}
               {totalUnrealizedPLPercent.toFixed(2)}% today
             </p>
           </CardContent>
@@ -156,10 +173,12 @@ export function PortfolioPage() {
                     <TableCell>${position.currentPrice.toFixed(2)}</TableCell>
                     <TableCell>${position.marketValue.toLocaleString()}</TableCell>
                     <TableCell>
-                      <div className={position.unrealizedPL >= 0 ? "text-green-600" : "text-red-600"}>
-                        {position.unrealizedPL >= 0 ? "+" : ""}${position.unrealizedPL.toFixed(2)}
+                      <div
+                        className={position.unrealizedPL >= 0 ? 'text-green-600' : 'text-red-600'}
+                      >
+                        {position.unrealizedPL >= 0 ? '+' : ''}${position.unrealizedPL.toFixed(2)}
                         <div className="text-xs">
-                          ({position.unrealizedPLPercent >= 0 ? "+" : ""}
+                          ({position.unrealizedPLPercent >= 0 ? '+' : ''}
                           {position.unrealizedPLPercent.toFixed(2)}%)
                         </div>
                       </div>
@@ -185,7 +204,9 @@ export function PortfolioPage() {
                   <span className="text-sm text-muted-foreground">{sector.percentage}%</span>
                 </div>
                 <Progress value={sector.percentage} className="h-2" />
-                <div className="text-xs text-muted-foreground">${sector.value.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">
+                  ${sector.value.toLocaleString()}
+                </div>
               </div>
             ))}
           </CardContent>
@@ -208,5 +229,5 @@ export function PortfolioPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

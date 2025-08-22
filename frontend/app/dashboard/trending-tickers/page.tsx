@@ -1,68 +1,100 @@
-"use client"
+'use client';
 
 // Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useMemo } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { TrendingUp, TrendingDown, Search, Star, Plus, Eye, RefreshCw, ExternalLink } from "lucide-react"
-import { fallbackMarketDataService } from "@/lib/fallback-market-data"
+import { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  TrendingUp,
+  TrendingDown,
+  Search,
+  Star,
+  Plus,
+  Eye,
+  RefreshCw,
+  ExternalLink,
+} from 'lucide-react';
+import { fallbackMarketDataService } from '@/lib/fallback-market-data';
 
 interface ExtendedTicker {
-  symbol: string
-  name: string
-  price: number
-  change: number
-  changePercent: number
-  volume: number
-  marketCap: string
-  sector: string
-  yourTrades: number
-  yourPnL: number
-  watchlisted: boolean
-  high: number
-  low: number
-  open: number
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+  marketCap: string;
+  sector: string;
+  yourTrades: number;
+  yourPnL: number;
+  watchlisted: boolean;
+  high: number;
+  low: number;
+  open: number;
 }
 
 // Ticker Detail Modal Component
-function TickerDetailModal({ ticker, isOpen, onClose }: { 
-  ticker: string
-  isOpen: boolean
-  onClose: () => void 
+function TickerDetailModal({
+  ticker,
+  isOpen,
+  onClose,
+}: {
+  ticker: string;
+  isOpen: boolean;
+  onClose: () => void;
 }) {
-  const [snapshot, setSnapshot] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [snapshot, setSnapshot] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!ticker || !isOpen) return
+    if (!ticker || !isOpen) return;
 
     const fetchSnapshot = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        const response = await fetch(`/api/market/snapshot-hybrid/${ticker}`)
+        const response = await fetch(`/api/market/snapshot-hybrid/${ticker}`);
         if (response.ok) {
-          const data = await response.json()
-          setSnapshot(data)
+          const data = await response.json();
+          setSnapshot(data);
         }
       } catch (error) {
-        console.error('Error fetching snapshot:', error)
+        console.error('Error fetching snapshot:', error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchSnapshot()
-  }, [ticker, isOpen])
-  
-  if (!isOpen) return null
+    fetchSnapshot();
+  }, [ticker, isOpen]);
+
+  if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -72,11 +104,9 @@ function TickerDetailModal({ ticker, isOpen, onClose }: {
             {ticker}
             <Badge variant="outline">Live Data</Badge>
           </DialogTitle>
-          <DialogDescription>
-            Real-time market data
-          </DialogDescription>
+          <DialogDescription>Real-time market data</DialogDescription>
         </DialogHeader>
-        
+
         {isLoading ? (
           <div className="space-y-4">
             <div className="h-4 bg-gray-200 rounded animate-pulse" />
@@ -92,13 +122,18 @@ function TickerDetailModal({ ticker, isOpen, onClose }: {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Change</p>
-                <p className={`text-lg font-semibold ${snapshot.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {snapshot.changePercent >= 0 ? '+' : ''}{snapshot.change?.toFixed(2)} ({snapshot.changePercent?.toFixed(2)}%)
+                <p
+                  className={`text-lg font-semibold ${snapshot.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
+                  {snapshot.changePercent >= 0 ? '+' : ''}
+                  {snapshot.change?.toFixed(2)} ({snapshot.changePercent?.toFixed(2)}%)
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Volume</p>
-                <p className="text-lg font-semibold">{((snapshot.volume || 0) / 1000000).toFixed(1)}M</p>
+                <p className="text-lg font-semibold">
+                  {((snapshot.volume || 0) / 1000000).toFixed(1)}M
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Market Cap</p>
@@ -158,61 +193,61 @@ function TickerDetailModal({ ticker, isOpen, onClose }: {
         )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 export default function TrendingTickers() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("changePercent")
-  const [filterBy, setFilterBy] = useState("all")
-  const [selectedTicker, setSelectedTicker] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('changePercent');
+  const [filterBy, setFilterBy] = useState('all');
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [marketData, setMarketData] = useState<{
-    gainers: any[]
-    losers: any[]
-    mostActive: any[]
-  }>({ gainers: [], losers: [], mostActive: [] })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+    gainers: any[];
+    losers: any[];
+    mostActive: any[];
+  }>({ gainers: [], losers: [], mostActive: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch market data on client side only
   useEffect(() => {
     const fetchMarketData = async () => {
-      setIsLoading(true)
-      setError(null)
-      
+      setIsLoading(true);
+      setError(null);
+
       try {
-        const response = await fetch('/api/market/trending-hybrid')
+        const response = await fetch('/api/market/trending-hybrid');
         if (response.ok) {
-          const data = await response.json()
-          setMarketData(data)
+          const data = await response.json();
+          setMarketData(data);
         } else {
           // Use fallback data if API fails
-          const fallbackData = await fallbackMarketDataService.getMarketMovers()
-          setMarketData(fallbackData)
+          const fallbackData = await fallbackMarketDataService.getMarketMovers();
+          setMarketData(fallbackData);
         }
       } catch (err) {
-        console.error('Error fetching market data:', err)
+        console.error('Error fetching market data:', err);
         // Use fallback data
-        const fallbackData = await fallbackMarketDataService.getMarketMovers()
-        setMarketData(fallbackData)
+        const fallbackData = await fallbackMarketDataService.getMarketMovers();
+        setMarketData(fallbackData);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchMarketData()
+    fetchMarketData();
 
     // Set up auto-refresh
-    const interval = setInterval(fetchMarketData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(fetchMarketData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Convert market movers to extended tickers
   const allTickers: ExtendedTicker[] = useMemo(() => {
-    const tickers: ExtendedTicker[] = []
-    
+    const tickers: ExtendedTicker[] = [];
+
     // Add gainers
-    marketData.gainers.forEach(mover => {
+    marketData.gainers.forEach((mover) => {
       tickers.push({
         symbol: mover.symbol || mover.ticker,
         name: mover.name || mover.symbol || mover.ticker,
@@ -227,12 +262,12 @@ export default function TrendingTickers() {
         watchlisted: false,
         high: mover.high || 0,
         low: mover.low || 0,
-        open: mover.open || 0
-      })
-    })
+        open: mover.open || 0,
+      });
+    });
 
     // Add losers
-    marketData.losers.forEach(mover => {
+    marketData.losers.forEach((mover) => {
       tickers.push({
         symbol: mover.symbol || mover.ticker,
         name: mover.name || mover.symbol || mover.ticker,
@@ -247,12 +282,12 @@ export default function TrendingTickers() {
         watchlisted: false,
         high: mover.high || 0,
         low: mover.low || 0,
-        open: mover.open || 0
-      })
-    })
+        open: mover.open || 0,
+      });
+    });
 
     // Add most active
-    marketData.mostActive.forEach(mover => {
+    marketData.mostActive.forEach((mover) => {
       tickers.push({
         symbol: mover.symbol || mover.ticker,
         name: mover.name || mover.symbol || mover.ticker,
@@ -267,52 +302,53 @@ export default function TrendingTickers() {
         watchlisted: false,
         high: mover.high || 0,
         low: mover.low || 0,
-        open: mover.open || 0
-      })
-    })
+        open: mover.open || 0,
+      });
+    });
 
     // Remove duplicates and sort by absolute change percentage
     const uniqueTickers = Array.from(
-      new Map(tickers.map(ticker => [ticker.symbol, ticker])).values()
-    )
+      new Map(tickers.map((ticker) => [ticker.symbol, ticker])).values(),
+    );
 
-    return uniqueTickers.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
-  }, [marketData])
+    return uniqueTickers.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+  }, [marketData]);
 
   const filteredTickers = allTickers
     .filter((ticker) => {
       const matchesSearch =
         ticker.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticker.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ticker.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-      if (filterBy === "gainers") return matchesSearch && ticker.changePercent > 0
-      if (filterBy === "losers") return matchesSearch && ticker.changePercent < 0
+      if (filterBy === 'gainers') return matchesSearch && ticker.changePercent > 0;
+      if (filterBy === 'losers') return matchesSearch && ticker.changePercent < 0;
 
-      return matchesSearch
+      return matchesSearch;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case "changePercent":
-          return b.changePercent - a.changePercent
-        case "volume":
-          return b.volume - a.volume
-        case "price":
-          return b.price - a.price
-        case "symbol":
-          return a.symbol.localeCompare(b.symbol)
+        case 'changePercent':
+          return b.changePercent - a.changePercent;
+        case 'volume':
+          return b.volume - a.volume;
+        case 'price':
+          return b.price - a.price;
+        case 'symbol':
+          return a.symbol.localeCompare(b.symbol);
         default:
-          return 0
+          return 0;
       }
-    })
+    });
 
   const marketStats = {
     totalGainers: marketData.gainers.length,
     totalLosers: marketData.losers.length,
-    avgChange: allTickers.length > 0 
-      ? allTickers.reduce((sum, t) => sum + t.changePercent, 0) / allTickers.length 
-      : 0,
+    avgChange:
+      allTickers.length > 0
+        ? allTickers.reduce((sum, t) => sum + t.changePercent, 0) / allTickers.length
+        : 0,
     watchlistCount: 0,
-  }
+  };
 
   if (error) {
     return (
@@ -323,7 +359,7 @@ export default function TrendingTickers() {
           Retry
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -358,7 +394,9 @@ export default function TrendingTickers() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className={`text-2xl font-bold ${marketStats.avgChange >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <div
+                className={`text-2xl font-bold ${marketStats.avgChange >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
                 {marketStats.avgChange.toFixed(2)}%
               </div>
               <p className="text-xs text-muted-foreground">Avg Change</p>
@@ -458,23 +496,34 @@ export default function TrendingTickers() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="text-lg font-semibold">${ticker.price.toFixed(2)}</span>
+                              <span className="text-lg font-semibold">
+                                ${ticker.price.toFixed(2)}
+                              </span>
                             </TableCell>
                             <TableCell>
-                              <div className={`flex items-center gap-1 ${ticker.changePercent >= 0 ? "text-green-600" : "text-red-600"}`}>
+                              <div
+                                className={`flex items-center gap-1 ${ticker.changePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                              >
                                 {ticker.changePercent >= 0 ? (
                                   <TrendingUp className="h-4 w-4" />
                                 ) : (
                                   <TrendingDown className="h-4 w-4" />
                                 )}
                                 <div>
-                                  <div className="font-semibold">{ticker.changePercent.toFixed(2)}%</div>
-                                  <div className="text-sm">{ticker.change >= 0 ? '+' : ''}{ticker.change.toFixed(2)}</div>
+                                  <div className="font-semibold">
+                                    {ticker.changePercent.toFixed(2)}%
+                                  </div>
+                                  <div className="text-sm">
+                                    {ticker.change >= 0 ? '+' : ''}
+                                    {ticker.change.toFixed(2)}
+                                  </div>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="font-medium">{((ticker.volume || 0) / 1000000).toFixed(1)}M</span>
+                              <span className="font-medium">
+                                {((ticker.volume || 0) / 1000000).toFixed(1)}M
+                              </span>
                             </TableCell>
                             <TableCell>
                               <div className="text-sm">
@@ -484,9 +533,9 @@ export default function TrendingTickers() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   onClick={() => setSelectedTicker(ticker.symbol)}
                                 >
                                   <Eye className="h-4 w-4" />
@@ -511,12 +560,12 @@ export default function TrendingTickers() {
         </Tabs>
 
         {/* Ticker Detail Modal */}
-        <TickerDetailModal 
-          ticker={selectedTicker || ''} 
-          isOpen={!!selectedTicker} 
-          onClose={() => setSelectedTicker(null)} 
+        <TickerDetailModal
+          ticker={selectedTicker || ''}
+          isOpen={!!selectedTicker}
+          onClose={() => setSelectedTicker(null)}
         />
       </div>
     </div>
-  )
+  );
 }

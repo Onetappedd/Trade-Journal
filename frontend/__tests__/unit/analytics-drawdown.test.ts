@@ -1,4 +1,4 @@
-import { EquityCurveResponse } from '@/lib/analytics-contracts'
+import { EquityCurveResponse } from '@/lib/analytics-contracts';
 describe('Drawdown', () => {
   it('min drawdown in chart matches server', () => {
     const response: EquityCurveResponse = {
@@ -13,15 +13,15 @@ describe('Drawdown', () => {
       absoluteReturn: 500,
       pctReturn: 0.05,
       maxDrawdown: -300,
-    }
+    };
     // Simulate drawdown calculation
-    let runningMax = response.points[0].equity
-    let minDrawdown = 0
+    let runningMax = response.points[0].equity;
+    let minDrawdown = 0;
     for (const p of response.points) {
-      runningMax = Math.max(runningMax, p.equity)
-      const dd = p.equity - runningMax
-      minDrawdown = Math.min(minDrawdown, dd)
+      runningMax = Math.max(runningMax, p.equity);
+      const dd = p.equity - runningMax;
+      minDrawdown = Math.min(minDrawdown, dd);
     }
-    expect(minDrawdown).toBe(response.maxDrawdown)
-  })
-})
+    expect(minDrawdown).toBe(response.maxDrawdown);
+  });
+});

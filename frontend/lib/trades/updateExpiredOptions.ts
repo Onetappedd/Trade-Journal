@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase';
 
 export interface ExpiredOptionUpdate {
-  tradesUpdated: number
-  errors: number
-  expiredTrades: any[]
+  tradesUpdated: number;
+  errors: number;
+  expiredTrades: any[];
 }
 
 /**
@@ -12,9 +12,9 @@ export interface ExpiredOptionUpdate {
  * and sets them as editable for user review/correction.
  */
 export async function updateExpiredOptionsTrades(userId: string): Promise<ExpiredOptionUpdate> {
-  const supabase = createClient()
-  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
-  
+  const supabase = createClient();
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
   try {
     // Fetch all open option trades for the user
     const { data: openOptions, error: fetchError } = await supabase
@@ -22,42 +22,42 @@ export async function updateExpiredOptionsTrades(userId: string): Promise<Expire
       .select('*')
       .eq('user_id', userId)
       .eq('asset_type', 'option')
-      .eq('status', 'open')
-    
+      .eq('status', 'open');
+
     if (fetchError) {
-      console.error('Error fetching open options:', fetchError)
-      throw new Error(fetchError.message)
+      console.error('Error fetching open options:', fetchError);
+      throw new Error(fetchError.message);
     }
-    
+
     if (!openOptions || openOptions.length === 0) {
       return {
         tradesUpdated: 0,
         errors: 0,
-        expiredTrades: []
-      }
+        expiredTrades: [],
+      };
     }
-    
+
     // Filter for expired options (expiration_date < today)
-    const expiredOptions = openOptions.filter(trade => {
-      if (!trade.expiration_date) return false
-      
+    const expiredOptions = openOptions.filter((trade) => {
+      if (!trade.expiration_date) return false;
+
       // Compare dates (both in YYYY-MM-DD format)
-      return trade.expiration_date < today
-    })
-    
+      return trade.expiration_date < today;
+    });
+
     if (expiredOptions.length === 0) {
       return {
         tradesUpdated: 0,
         errors: 0,
-        expiredTrades: []
-      }
+        expiredTrades: [],
+      };
     }
-    
+
     // Update each expired option
-    let successCount = 0
-    let errorCount = 0
-    const updatedTrades: any[] = []
-    
+    let successCount = 0;
+    let errorCount = 0;
+    const updatedTrades: any[] = [];
+
     for (const trade of expiredOptions) {
       const { error: updateError } = await supabase
         .from('trades')
@@ -67,34 +67,34 @@ export async function updateExpiredOptionsTrades(userId: string): Promise<Expire
           exit_price: 0,
           exit_date: trade.expiration_date || today,
           // Add a note about automatic expiration
-          notes: trade.notes 
+          notes: trade.notes
             ? `${trade.notes}\n[Auto-marked as expired worthless on ${today} (exit_price set to 0.00)]`
-            : `[Auto-marked as expired worthless on ${today} (exit_price set to 0.00)]`
+            : `[Auto-marked as expired worthless on ${today} (exit_price set to 0.00)]`,
         })
         .eq('id', trade.id)
-        .eq('user_id', userId) // Extra safety check
-      
+        .eq('user_id', userId); // Extra safety check
+
       if (updateError) {
-        console.error(`Failed to update trade ${trade.id}:`, updateError)
-        errorCount++
+        console.error(`Failed to update trade ${trade.id}:`, updateError);
+        errorCount++;
       } else {
-        successCount++
+        successCount++;
         updatedTrades.push({
           ...trade,
           status: 'expired',
-          editable: true
-        })
+          editable: true,
+        });
       }
     }
-    
+
     return {
       tradesUpdated: successCount,
       errors: errorCount,
-      expiredTrades: updatedTrades
-    }
+      expiredTrades: updatedTrades,
+    };
   } catch (error) {
-    console.error('Error in updateExpiredOptionsTrades:', error)
-    throw error
+    console.error('Error in updateExpiredOptionsTrades:', error);
+    throw error;
   }
 }
 
@@ -102,8 +102,8 @@ export async function updateExpiredOptionsTrades(userId: string): Promise<Expire
  * Check if user has any expired options that need attention
  */
 export async function checkForExpiredOptions(userId: string): Promise<number> {
-  const supabase = createClient()
-  
+  const supabase = createClient();
+
   try {
     const { count, error } = await supabase
       .from('trades')
@@ -111,16 +111,16 @@ export async function checkForExpiredOptions(userId: string): Promise<number> {
       .eq('user_id', userId)
       .eq('asset_type', 'option')
       .eq('status', 'expired')
-      .eq('editable', true)
-    
+      .eq('editable', true);
+
     if (error) {
-      console.error('Error checking expired options:', error)
-      return 0
+      console.error('Error checking expired options:', error);
+      return 0;
     }
-    
-    return count || 0
+
+    return count || 0;
   } catch (error) {
-    console.error('Error in checkForExpiredOptions:', error)
-    return 0
+    console.error('Error in checkForExpiredOptions:', error);
+    return 0;
   }
 }

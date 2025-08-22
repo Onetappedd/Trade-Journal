@@ -1,17 +1,24 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CreditCard, Download, Calendar } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { CreditCard, Download, Calendar } from 'lucide-react';
 
 const billingHistory = [
-  { id: "INV-001", date: "2024-01-01", amount: "$29.99", status: "Paid", downloadUrl: "#" },
-  { id: "INV-002", date: "2023-12-01", amount: "$29.99", status: "Paid", downloadUrl: "#" },
-  { id: "INV-003", date: "2023-11-01", amount: "$29.99", status: "Paid", downloadUrl: "#" },
-  { id: "INV-004", date: "2023-10-01", amount: "$29.99", status: "Paid", downloadUrl: "#" },
-]
+  { id: 'INV-001', date: '2024-01-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
+  { id: 'INV-002', date: '2023-12-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
+  { id: 'INV-003', date: '2023-11-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
+  { id: 'INV-004', date: '2023-10-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
+];
 
 export function BillingSettings() {
   return (
@@ -28,7 +35,9 @@ export function BillingSettings() {
                 <span className="font-semibold text-lg">Pro Plan</span>
                 <Badge>Active</Badge>
               </div>
-              <p className="text-muted-foreground">Advanced trading analytics and unlimited trades</p>
+              <p className="text-muted-foreground">
+                Advanced trading analytics and unlimited trades
+              </p>
               <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
@@ -121,5 +130,5 @@ export function BillingSettings() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

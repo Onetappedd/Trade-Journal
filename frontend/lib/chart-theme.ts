@@ -1,6 +1,6 @@
 export function chartTheme() {
-  const cs = getComputedStyle(document.documentElement)
-  const v = (k: string) => cs.getPropertyValue(k).trim()
+  const cs = getComputedStyle(document.documentElement);
+  const v = (k: string) => cs.getPropertyValue(k).trim();
   return {
     axis: `hsl(${v('--chart-axis')})`,
     grid: `hsl(${v('--chart-grid')})`,
@@ -9,5 +9,5 @@ export function chartTheme() {
     primary: `hsl(${v('--primary')})`,
     pos: `hsl(${v('--success')})`,
     neg: `hsl(${v('--danger')})`,
-  }
+  };
 }

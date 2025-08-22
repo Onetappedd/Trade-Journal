@@ -1,36 +1,36 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Bell, Plus, TrendingUp, TrendingDown } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Bell, Plus, TrendingUp, TrendingDown } from 'lucide-react';
 
 const alerts = [
   {
-    id: "1",
-    symbol: "AAPL",
-    type: "above",
+    id: '1',
+    symbol: 'AAPL',
+    type: 'above',
     price: 160.0,
     currentPrice: 155.3,
-    status: "active",
+    status: 'active',
   },
   {
-    id: "2",
-    symbol: "TSLA",
-    type: "below",
+    id: '2',
+    symbol: 'TSLA',
+    type: 'below',
     price: 200.0,
     currentPrice: 215.75,
-    status: "active",
+    status: 'active',
   },
   {
-    id: "3",
-    symbol: "MSFT",
-    type: "above",
+    id: '3',
+    symbol: 'MSFT',
+    type: 'above',
     price: 320.0,
     currentPrice: 318.9,
-    status: "triggered",
+    status: 'triggered',
   },
-]
+];
 
 export function AlertsPage() {
   return (
@@ -50,7 +50,9 @@ export function AlertsPage() {
             <Bell className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{alerts.filter((alert) => alert.status === "active").length}</div>
+            <div className="text-2xl font-bold">
+              {alerts.filter((alert) => alert.status === 'active').length}
+            </div>
             <p className="text-xs text-muted-foreground">Currently monitoring</p>
           </CardContent>
         </Card>
@@ -60,7 +62,9 @@ export function AlertsPage() {
             <Bell className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{alerts.filter((alert) => alert.status === "triggered").length}</div>
+            <div className="text-2xl font-bold">
+              {alerts.filter((alert) => alert.status === 'triggered').length}
+            </div>
             <p className="text-xs text-muted-foreground">Alerts triggered</p>
           </CardContent>
         </Card>
@@ -84,10 +88,13 @@ export function AlertsPage() {
         <CardContent>
           <div className="space-y-4">
             {alerts.map((alert) => (
-              <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div
+                key={alert.id}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center gap-2">
-                    {alert.type === "above" ? (
+                    {alert.type === 'above' ? (
                       <TrendingUp className="h-4 w-4 text-green-500" />
                     ) : (
                       <TrendingDown className="h-4 w-4 text-red-500" />
@@ -105,7 +112,9 @@ export function AlertsPage() {
                   <p className="text-sm text-muted-foreground">Current price</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={alert.status === "active" ? "default" : "secondary"}>{alert.status}</Badge>
+                  <Badge variant={alert.status === 'active' ? 'default' : 'secondary'}>
+                    {alert.status}
+                  </Badge>
                   <Button variant="outline" size="sm">
                     Edit
                   </Button>
@@ -116,5 +125,5 @@ export function AlertsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

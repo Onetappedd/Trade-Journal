@@ -1,64 +1,77 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Switch } from "@/components/ui/switch"
-import { Bell, Plus, Edit, Trash2, TrendingUp, TrendingDown } from "lucide-react"
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Switch } from '@/components/ui/switch';
+import { Bell, Plus, Edit, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 
 const mockAlerts = [
   {
     id: 1,
-    symbol: "AAPL",
-    condition: "Above",
+    symbol: 'AAPL',
+    condition: 'Above',
     price: 180.0,
     currentPrice: 178.25,
-    status: "Active",
-    created: "2024-01-15",
+    status: 'Active',
+    created: '2024-01-15',
     triggered: false,
   },
   {
     id: 2,
-    symbol: "TSLA",
-    condition: "Below",
+    symbol: 'TSLA',
+    condition: 'Below',
     price: 230.0,
     currentPrice: 238.9,
-    status: "Active",
-    created: "2024-01-14",
+    status: 'Active',
+    created: '2024-01-14',
     triggered: false,
   },
   {
     id: 3,
-    symbol: "MSFT",
-    condition: "Above",
+    symbol: 'MSFT',
+    condition: 'Above',
     price: 390.0,
     currentPrice: 385.2,
-    status: "Active",
-    created: "2024-01-13",
+    status: 'Active',
+    created: '2024-01-13',
     triggered: false,
   },
   {
     id: 4,
-    symbol: "GOOGL",
-    condition: "Below",
+    symbol: 'GOOGL',
+    condition: 'Below',
     price: 2700.0,
     currentPrice: 2789.45,
-    status: "Triggered",
-    created: "2024-01-12",
+    status: 'Triggered',
+    created: '2024-01-12',
     triggered: true,
   },
-]
+];
 
 export function PriceAlertsPage() {
-  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const activeAlerts = mockAlerts.filter((alert) => alert.status === "Active").length
-  const triggeredAlerts = mockAlerts.filter((alert) => alert.triggered).length
+  const activeAlerts = mockAlerts.filter((alert) => alert.status === 'Active').length;
+  const triggeredAlerts = mockAlerts.filter((alert) => alert.triggered).length;
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -191,7 +204,7 @@ export function PriceAlertsPage() {
                   <TableCell className="font-medium">{alert.symbol}</TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      {alert.condition === "Above" ? (
+                      {alert.condition === 'Above' ? (
                         <TrendingUp className="mr-1 h-3 w-3 text-green-600" />
                       ) : (
                         <TrendingDown className="mr-1 h-3 w-3 text-red-600" />
@@ -203,8 +216,8 @@ export function PriceAlertsPage() {
                   <TableCell>${alert.currentPrice.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={alert.status === "Active" ? "default" : "secondary"}
-                      className={alert.triggered ? "text-green-600" : ""}
+                      variant={alert.status === 'Active' ? 'default' : 'secondary'}
+                      className={alert.triggered ? 'text-green-600' : ''}
                     >
                       {alert.status}
                     </Badge>
@@ -258,5 +271,5 @@ export function PriceAlertsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -1,11 +1,5 @@
-const criticalVars = [
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-];
-const warnVars = [
-  'POLYGON_API_KEY',
-  'FINNHUB_API_KEY',
-];
+const criticalVars = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+const warnVars = ['POLYGON_API_KEY', 'FINNHUB_API_KEY'];
 
 let failed = false;
 

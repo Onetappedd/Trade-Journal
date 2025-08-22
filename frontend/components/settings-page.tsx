@@ -1,14 +1,20 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { User, Bell, Shield, CreditCard, Database, Trash2 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { User, Bell, Shield, CreditCard, Database, Trash2 } from 'lucide-react';
 
 export function SettingsPage() {
   return (
@@ -127,7 +133,9 @@ export function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Auto-calculate P&L</Label>
-                  <p className="text-sm text-muted-foreground">Automatically calculate profit and loss for trades</p>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically calculate profit and loss for trades
+                  </p>
                 </div>
                 <Switch defaultChecked />
               </div>
@@ -135,7 +143,9 @@ export function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Include fees in calculations</Label>
-                  <p className="text-sm text-muted-foreground">Factor in trading fees when calculating returns</p>
+                  <p className="text-sm text-muted-foreground">
+                    Factor in trading fees when calculating returns
+                  </p>
                 </div>
                 <Switch defaultChecked />
               </div>
@@ -165,7 +175,9 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Price Alerts</Label>
-                    <p className="text-sm text-muted-foreground">Get notified when price targets are hit</p>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified when price targets are hit
+                    </p>
                   </div>
                   <Switch defaultChecked />
                 </div>
@@ -173,7 +185,9 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Trade Confirmations</Label>
-                    <p className="text-sm text-muted-foreground">Confirm when trades are recorded</p>
+                    <p className="text-sm text-muted-foreground">
+                      Confirm when trades are recorded
+                    </p>
                   </div>
                   <Switch />
                 </div>
@@ -181,7 +195,9 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Weekly Reports</Label>
-                    <p className="text-sm text-muted-foreground">Receive weekly performance summaries</p>
+                    <p className="text-sm text-muted-foreground">
+                      Receive weekly performance summaries
+                    </p>
                   </div>
                   <Switch defaultChecked />
                 </div>
@@ -189,7 +205,9 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Market News</Label>
-                    <p className="text-sm text-muted-foreground">Get updates on market news and events</p>
+                    <p className="text-sm text-muted-foreground">
+                      Get updates on market news and events
+                    </p>
                   </div>
                   <Switch />
                 </div>
@@ -238,7 +256,9 @@ export function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Enable 2FA</Label>
-                  <p className="text-sm text-muted-foreground">Use an authenticator app for additional security</p>
+                  <p className="text-sm text-muted-foreground">
+                    Use an authenticator app for additional security
+                  </p>
                 </div>
                 <Switch />
               </div>
@@ -331,5 +351,5 @@ export function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

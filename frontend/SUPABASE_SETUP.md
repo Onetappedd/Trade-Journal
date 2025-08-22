@@ -16,6 +16,7 @@ Your Supabase project is configured with the following credentials:
 3. **Run the Database Schema**: Copy and paste the contents of `scripts/001_simplified_schema.sql` into the SQL editor and execute it.
 
 This will create the following tables:
+
 - `profiles` - User profile information
 - `trades` - Trading records
 - `tags` - Custom tags for organizing trades
@@ -24,6 +25,7 @@ This will create the following tables:
 ## Authentication Setup
 
 The authentication is already configured to work with your Supabase project. Users can:
+
 - Sign up with email/password
 - Sign in with email/password
 - Automatic profile creation on first login
@@ -43,6 +45,7 @@ SUPABASE_JWT_SECRET=VVYQP8ca5BSNSbKi1LpVDsHlO1+0FwfwknwfHbjtSVG0W3RZPjJXYiJYfIaY
 The following API routes are now connected to Supabase:
 
 ### Trades API
+
 - `GET /api/trades` - Get user's trades with filtering and pagination
 - `POST /api/trades` - Create a new trade
 - `GET /api/trades/[id]` - Get specific trade
@@ -50,12 +53,14 @@ The following API routes are now connected to Supabase:
 - `DELETE /api/trades/[id]` - Delete specific trade
 
 ### Profiles API
+
 - `GET /api/profiles` - Get user's profile
 - `POST /api/profiles` - Create/update user profile
 
 ## Row Level Security (RLS)
 
 All tables have Row Level Security enabled, ensuring users can only access their own data:
+
 - Users can only view/modify their own trades
 - Users can only view/modify their own profile
 - Users can only view/modify their own tags
@@ -63,6 +68,7 @@ All tables have Row Level Security enabled, ensuring users can only access their
 ## Testing the Setup
 
 1. **Start the development server**:
+
    ```bash
    cd frontend
    npm run dev

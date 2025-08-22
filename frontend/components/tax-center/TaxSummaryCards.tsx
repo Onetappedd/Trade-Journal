@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Calendar, DollarSign, Clock, Target } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, TrendingDown, Calendar, DollarSign, Clock, Target } from 'lucide-react';
 
 const taxData = {
   ytdRealizedPnL: 45250.75,
@@ -12,7 +12,7 @@ const taxData = {
   realizedLosses: -16929.5,
   shortTermGains: 28450.75,
   longTermGains: 16799.5,
-}
+};
 
 export function TaxSummaryCards() {
   return (
@@ -23,8 +23,12 @@ export function TaxSummaryCards() {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">${taxData.ytdRealizedPnL.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground">From {taxData.totalTrades} closed positions</p>
+          <div className="text-2xl font-bold text-green-600">
+            ${taxData.ytdRealizedPnL.toLocaleString()}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            From {taxData.totalTrades} closed positions
+          </p>
         </CardContent>
       </Card>
 
@@ -34,7 +38,9 @@ export function TaxSummaryCards() {
           <TrendingDown className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">${taxData.ytdUnrealizedPnL.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-red-600">
+            ${taxData.ytdUnrealizedPnL.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground">From open positions</p>
         </CardContent>
       </Card>
@@ -45,7 +51,9 @@ export function TaxSummaryCards() {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">${taxData.netPnL.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-green-600">
+            ${taxData.netPnL.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground">Total realized gains/losses</p>
         </CardContent>
       </Card>
@@ -56,7 +64,9 @@ export function TaxSummaryCards() {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">${taxData.realizedGains.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-green-600">
+            ${taxData.realizedGains.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground">Total winning trades</p>
         </CardContent>
       </Card>
@@ -67,7 +77,9 @@ export function TaxSummaryCards() {
           <TrendingDown className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">${taxData.realizedLosses.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-red-600">
+            ${taxData.realizedLosses.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground">Total losing trades</p>
         </CardContent>
       </Card>
@@ -105,5 +117,5 @@ export function TaxSummaryCards() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

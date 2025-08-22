@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
 // Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export default function ReportsPage() {
   return (
@@ -20,5 +20,5 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

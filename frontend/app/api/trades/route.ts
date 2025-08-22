@@ -1,63 +1,65 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase-server"
-import type { Database } from "@/lib/database.types"
+import { type NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+import type { Database } from '@/lib/database.types';
 
 // Force this API route to use Node.js runtime
-export const runtime = 'nodejs'
+export const runtime = 'nodejs';
 
-type Trade = Database['public']['Tables']['trades']['Row']
-type TradeInsert = Database['public']['Tables']['trades']['Insert']
+type Trade = Database['public']['Tables']['trades']['Row'];
+type TradeInsert = Database['public']['Tables']['trades']['Insert'];
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { searchParams } = new URL(request.url)
-    
+    const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const symbol = searchParams.get("symbol")
-    const status = searchParams.get("status")
-    const asset_type = searchParams.get("asset_type")
-    const limit = Number.parseInt(searchParams.get("limit") || "50")
-    const offset = Number.parseInt(searchParams.get("offset") || "0")
+    const symbol = searchParams.get('symbol');
+    const status = searchParams.get('status');
+    const asset_type = searchParams.get('asset_type');
+    const limit = Number.parseInt(searchParams.get('limit') || '50');
+    const offset = Number.parseInt(searchParams.get('offset') || '0');
 
     // Build query
     let query = supabase
       .from('trades')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false });
 
     // Apply filters
     if (symbol) {
-      query = query.ilike('symbol', `%${symbol}%`)
+      query = query.ilike('symbol', `%${symbol}%`);
     }
 
     if (status && (status === 'open' || status === 'closed')) {
-      query = query.eq('status', status)
+      query = query.eq('status', status);
     }
 
     if (asset_type && ['stock', 'option', 'crypto', 'futures', 'forex'].includes(asset_type)) {
-      query = query.eq('asset_type', asset_type)
+      query = query.eq('asset_type', asset_type);
     }
 
     // Get total count for pagination
     const { count } = await supabase
       .from('trades')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      .eq('user_id', user.id);
 
     // Apply pagination
-    const { data: trades, error } = await query
-      .range(offset, offset + limit - 1)
+    const { data: trades, error } = await query.range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching trades:', error)
-      return NextResponse.json({ error: "Failed to fetch trades" }, { status: 500 })
+      console.error('Error fetching trades:', error);
+      return NextResponse.json({ error: 'Failed to fetch trades' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -66,31 +68,41 @@ export async function GET(request: NextRequest) {
         total: count || 0,
         limit,
         offset,
-        has_more: (offset + limit) < (count || 0),
+        has_more: offset + limit < (count || 0),
       },
-    })
+    });
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const body = await request.json()
+    const supabase = await createClient();
+    const body = await request.json();
 
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Validate required fields
-    const requiredFields = ["symbol", "asset_type", "side", "quantity", "entry_price", "entry_date"]
+    const requiredFields = [
+      'symbol',
+      'asset_type',
+      'side',
+      'quantity',
+      'entry_price',
+      'entry_date',
+    ];
     for (const field of requiredFields) {
       if (!body[field]) {
-        return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 })
+        return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
       }
     }
 
@@ -113,24 +125,24 @@ export async function POST(request: NextRequest) {
       point_multiplier: body.point_multiplier ? Number.parseFloat(body.point_multiplier) : null,
       tick_size: body.tick_size ? Number.parseFloat(body.tick_size) : null,
       tick_value: body.tick_value ? Number.parseFloat(body.tick_value) : null,
-      status: body.exit_date ? "closed" : "open",
-    }
+      status: body.exit_date ? 'closed' : 'open',
+    };
 
     // Insert trade into database
     const { data: newTrade, error } = await supabase
       .from('trades')
       .insert(tradeData)
       .select()
-      .single()
+      .single();
 
     if (error) {
-      console.error('Error creating trade:', error)
-      return NextResponse.json({ error: "Failed to create trade" }, { status: 500 })
+      console.error('Error creating trade:', error);
+      return NextResponse.json({ error: 'Failed to create trade' }, { status: 500 });
     }
 
-    return NextResponse.json(newTrade, { status: 201 })
+    return NextResponse.json(newTrade, { status: 201 });
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
   }
 }

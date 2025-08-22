@@ -10,7 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
   },
   // Force all API routes to be dynamic
   async headers() {
@@ -20,12 +20,12 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-store, must-revalidate'
-          }
-        ]
-      }
-    ]
-  }
-}
+            value: 'no-store, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
+};
 
-export default nextConfig
+export default nextConfig;

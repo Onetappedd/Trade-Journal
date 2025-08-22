@@ -1,66 +1,68 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Bell, Mail, Smartphone, TrendingUp, AlertTriangle, CheckCircle, Info } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Bell, Mail, Smartphone, TrendingUp, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 const notifications = [
   {
     id: 1,
-    type: "success",
-    title: "Trade Executed Successfully",
-    message: "Your buy order for 100 shares of AAPL has been filled at $185.50",
-    time: "2 minutes ago",
+    type: 'success',
+    title: 'Trade Executed Successfully',
+    message: 'Your buy order for 100 shares of AAPL has been filled at $185.50',
+    time: '2 minutes ago',
     read: false,
   },
   {
     id: 2,
-    type: "info",
-    title: "Market Alert",
-    message: "TSLA has moved 5% in the last hour",
-    time: "1 hour ago",
+    type: 'info',
+    title: 'Market Alert',
+    message: 'TSLA has moved 5% in the last hour',
+    time: '1 hour ago',
     read: false,
   },
   {
     id: 3,
-    type: "warning",
-    title: "Risk Management Alert",
-    message: "Your portfolio is approaching the daily loss limit",
-    time: "3 hours ago",
+    type: 'warning',
+    title: 'Risk Management Alert',
+    message: 'Your portfolio is approaching the daily loss limit',
+    time: '3 hours ago',
     read: true,
   },
   {
     id: 4,
-    type: "success",
-    title: "Monthly Report Ready",
-    message: "Your trading performance report for March is now available",
-    time: "1 day ago",
+    type: 'success',
+    title: 'Monthly Report Ready',
+    message: 'Your trading performance report for March is now available',
+    time: '1 day ago',
     read: true,
   },
-]
+];
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
-    case "success":
-      return <CheckCircle className="h-4 w-4 text-green-500" />
-    case "warning":
-      return <AlertTriangle className="h-4 w-4 text-yellow-500" />
-    case "info":
-      return <Info className="h-4 w-4 text-blue-500" />
+    case 'success':
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    case 'warning':
+      return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+    case 'info':
+      return <Info className="h-4 w-4 text-blue-500" />;
     default:
-      return <Bell className="h-4 w-4" />
+      return <Bell className="h-4 w-4" />;
   }
-}
+};
 
 export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Notifications</h2>
-        <p className="text-muted-foreground">Manage your notification preferences and view recent alerts</p>
+        <p className="text-muted-foreground">
+          Manage your notification preferences and view recent alerts
+        </p>
       </div>
 
       <div className="grid gap-6">
@@ -70,7 +72,9 @@ export default function NotificationsPage() {
               <Bell className="h-5 w-5" />
               Notification Preferences
             </CardTitle>
-            <CardDescription>Choose how you want to be notified about trading activities</CardDescription>
+            <CardDescription>
+              Choose how you want to be notified about trading activities
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
@@ -79,7 +83,9 @@ export default function NotificationsPage() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <Label htmlFor="trade-notifications">Trade Executions</Label>
-                    <p className="text-sm text-muted-foreground">Get notified when trades are executed</p>
+                    <p className="text-sm text-muted-foreground">
+                      Get notified when trades are executed
+                    </p>
                   </div>
                 </div>
                 <Switch id="trade-notifications" defaultChecked />
@@ -90,7 +96,9 @@ export default function NotificationsPage() {
                   <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <Label htmlFor="risk-alerts">Risk Management Alerts</Label>
-                    <p className="text-sm text-muted-foreground">Alerts for risk thresholds and limits</p>
+                    <p className="text-sm text-muted-foreground">
+                      Alerts for risk thresholds and limits
+                    </p>
                   </div>
                 </div>
                 <Switch id="risk-alerts" defaultChecked />
@@ -139,7 +147,7 @@ export default function NotificationsPage() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`flex items-start gap-3 p-4 border rounded-lg ${!notification.read ? "bg-muted/50" : ""}`}
+                  className={`flex items-start gap-3 p-4 border rounded-lg ${!notification.read ? 'bg-muted/50' : ''}`}
                 >
                   {getNotificationIcon(notification.type)}
                   <div className="flex-1 space-y-1">
@@ -157,5 +165,5 @@ export default function NotificationsPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react"
+import { Loader2 } from 'lucide-react';
 
 export default function LoginLoading() {
   return (
@@ -8,5 +8,5 @@ export default function LoginLoading() {
         <p className="text-white/70">Loading login...</p>
       </div>
     </div>
-  )
+  );
 }

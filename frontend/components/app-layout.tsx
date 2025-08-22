@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { usePathname } from "next/navigation"
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { Separator } from "@/components/ui/separator"
+import type React from 'react';
+import { usePathname } from 'next/navigation';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { Separator } from '@/components/ui/separator';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,16 +12,16 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { useAuth } from "@/components/auth/auth-provider"
+} from '@/components/ui/breadcrumb';
+import { useAuth } from '@/components/auth/auth-provider';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const { user, loading } = useAuth()
+  const pathname = usePathname();
+  const { user, loading } = useAuth();
 
   // Don't show sidebar on login page
-  if (pathname === "/login" || pathname.startsWith("/auth")) {
-    return <>{children}</>
+  if (pathname === '/login' || pathname.startsWith('/auth')) {
+    return <>{children}</>;
   }
 
   // Show loading state
@@ -30,11 +30,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
-    )
+    );
   }
 
   // Redirect to login if not authenticated
-  if (!user && pathname !== "/login") {
+  if (!user && pathname !== '/login') {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -44,7 +44,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </a>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -60,11 +60,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
                 </BreadcrumbItem>
-                {pathname !== "/dashboard" && (
+                {pathname !== '/dashboard' && (
                   <>
                     <BreadcrumbSeparator className="hidden md:block" />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>{pathname.split("/").pop()?.replace("-", " ") || "Page"}</BreadcrumbPage>
+                      <BreadcrumbPage>
+                        {pathname.split('/').pop()?.replace('-', ' ') || 'Page'}
+                      </BreadcrumbPage>
                     </BreadcrumbItem>
                   </>
                 )}
@@ -75,5 +77,5 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

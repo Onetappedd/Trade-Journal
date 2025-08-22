@@ -1,34 +1,43 @@
-"use client"
+'use client';
 
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Search } from "lucide-react"
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
 
 interface TrendingFiltersProps {
-  assetType: "stocks" | "etfs" | "crypto"
-  setAssetType: (type: "stocks" | "etfs" | "crypto") => void
-  searchQuery: string
-  setSearchQuery: (query: string) => void
+  assetType: 'stocks' | 'etfs' | 'crypto';
+  setAssetType: (type: 'stocks' | 'etfs' | 'crypto') => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
-export function TrendingFilters({ assetType, setAssetType, searchQuery, setSearchQuery }: TrendingFiltersProps) {
+export function TrendingFilters({
+  assetType,
+  setAssetType,
+  searchQuery,
+  setSearchQuery,
+}: TrendingFiltersProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
       <div className="flex gap-2">
         <Button
-          variant={assetType === "stocks" ? "default" : "outline"}
+          variant={assetType === 'stocks' ? 'default' : 'outline'}
           size="sm"
-          onClick={() => setAssetType("stocks")}
+          onClick={() => setAssetType('stocks')}
         >
           Stocks
         </Button>
-        <Button variant={assetType === "etfs" ? "default" : "outline"} size="sm" onClick={() => setAssetType("etfs")}>
+        <Button
+          variant={assetType === 'etfs' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setAssetType('etfs')}
+        >
           ETFs
         </Button>
         <Button
-          variant={assetType === "crypto" ? "default" : "outline"}
+          variant={assetType === 'crypto' ? 'default' : 'outline'}
           size="sm"
-          onClick={() => setAssetType("crypto")}
+          onClick={() => setAssetType('crypto')}
         >
           Crypto
         </Button>
@@ -44,5 +53,5 @@ export function TrendingFilters({ assetType, setAssetType, searchQuery, setSearc
         />
       </div>
     </div>
-  )
+  );
 }

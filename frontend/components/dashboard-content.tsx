@@ -1,6 +1,6 @@
-import { Overview } from "@/components/overview"
-import { RecentTrades } from "@/components/recent-trades"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Overview } from '@/components/overview';
+import { RecentTrades } from '@/components/recent-trades';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function DashboardContent() {
   return (
@@ -110,5 +110,5 @@ export function DashboardContent() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

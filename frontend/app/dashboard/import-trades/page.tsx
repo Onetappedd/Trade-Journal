@@ -1,461 +1,514 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import Papa from "papaparse"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useToast } from "@/components/ui/use-toast"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { ImportProgressModal } from "@/components/import/ImportProgressModal"
+import * as React from 'react';
+import Papa from 'papaparse';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useToast } from '@/components/ui/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectItem,
+  SelectContent,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ImportProgressModal } from '@/components/import/ImportProgressModal';
 
 const WEBULL_OPTIONS_COLUMNS = [
-  "Name", "Symbol", "Side", "Status", "Filled", "Total Qty", "Price", "Avg Price", "Time-in-Force", "Placed Time", "Filled Time"
-]
+  'Name',
+  'Symbol',
+  'Side',
+  'Status',
+  'Filled',
+  'Total Qty',
+  'Price',
+  'Avg Price',
+  'Time-in-Force',
+  'Placed Time',
+  'Filled Time',
+];
 
 const brokers = [
-  { name: "Interactive Brokers", status: "Available" },
-  { name: "TD Ameritrade", status: "Coming Soon" },
-  { name: "E*TRADE", status: "Coming Soon" },
-  { name: "Charles Schwab", status: "Coming Soon" },
-  { name: "Fidelity", status: "Coming Soon" },
-  { name: "Robinhood", status: "Coming Soon" },
-]
+  { name: 'Interactive Brokers', status: 'Available' },
+  { name: 'TD Ameritrade', status: 'Coming Soon' },
+  { name: 'E*TRADE', status: 'Coming Soon' },
+  { name: 'Charles Schwab', status: 'Coming Soon' },
+  { name: 'Fidelity', status: 'Coming Soon' },
+  { name: 'Robinhood', status: 'Coming Soon' },
+];
 
 const manualSchema = z.object({
-  symbol: z.string().min(1, "Symbol is required"),
-  side: z.enum(["buy", "sell"], { required_error: "Trade type is required" }),
-  quantity: z.coerce.number().positive("Quantity must be positive"),
-  price: z.coerce.number().positive("Price must be positive"),
-  date: z.string().min(1, "Date is required"),
+  symbol: z.string().min(1, 'Symbol is required'),
+  side: z.enum(['buy', 'sell'], { required_error: 'Trade type is required' }),
+  quantity: z.coerce.number().positive('Quantity must be positive'),
+  price: z.coerce.number().positive('Price must be positive'),
+  date: z.string().min(1, 'Date is required'),
   notes: z.string().optional(),
-})
-type ManualForm = z.infer<typeof manualSchema>
+});
+type ManualForm = z.infer<typeof manualSchema>;
 
 type TradePreview = {
-  symbol: string
-  side: string
-  quantity: number
-  entry_price: number
-  entry_date: string
-  status?: string
-  validation_status?: string
-  error?: string
-  underlying?: string
-  expiry?: string
-  option_type?: string
-  strike_price?: number
-  full_symbol?: string
-}
+  symbol: string;
+  side: string;
+  quantity: number;
+  entry_price: number;
+  entry_date: string;
+  status?: string;
+  validation_status?: string;
+  error?: string;
+  underlying?: string;
+  expiry?: string;
+  option_type?: string;
+  strike_price?: number;
+  full_symbol?: string;
+};
 
 function parseOptionSymbol(symbol: string) {
-  const match = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([PC])(\d{8})$/)
-  if (!match) return null
-  const [_, underlying, yy, mm, dd, type, strikeRaw] = match
-  const year = Number(yy) < 50 ? "20" + yy : "19" + yy
-  const expiry = `${year}-${mm}-${dd}`
-  const strike = parseInt(strikeRaw, 10) / 1000
+  const match = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([PC])(\d{8})$/);
+  if (!match) return null;
+  const [_, underlying, yy, mm, dd, type, strikeRaw] = match;
+  const year = Number(yy) < 50 ? '20' + yy : '19' + yy;
+  const expiry = `${year}-${mm}-${dd}`;
+  const strike = parseInt(strikeRaw, 10) / 1000;
   return {
     // Extract the actual underlying ticker (e.g., "ARM" from "ARM250703C00155000")
     underlying: underlying,
     expiry,
-    option_type: type === "P" ? "put" : "call",
+    option_type: type === 'P' ? 'put' : 'call',
     strike_price: strike,
-  }
+  };
 }
 
 function parseFilledTimeToISO(input: string): string | null {
   // Expected format: MM/DD/YYYY HH:mm:ss TZ (e.g., 07/02/2025 09:33:18 EDT)
-  const m = input.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+([A-Z]{3})$/)
-  if (!m) return null
-  const [, MM, DD, YYYY, hh, mm, ss, tz] = m
-  const month = Number(MM)
-  const day = Number(DD)
-  const year = Number(YYYY)
-  const hour = Number(hh)
-  const minute = Number(mm)
-  const second = Number(ss)
+  const m = input.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})\s+([A-Z]{3})$/);
+  if (!m) return null;
+  const [, MM, DD, YYYY, hh, mm, ss, tz] = m;
+  const month = Number(MM);
+  const day = Number(DD);
+  const year = Number(YYYY);
+  const hour = Number(hh);
+  const minute = Number(mm);
+  const second = Number(ss);
   // Map common US timezones to UTC offsets (hours)
   const offsets: Record<string, number> = {
-    EST: -5, EDT: -4,
-    CST: -6, CDT: -5,
-    MST: -7, MDT: -6,
-    PST: -8, PDT: -7,
-  }
-  const offset = offsets[tz]
-  if (offset === undefined) return null
+    EST: -5,
+    EDT: -4,
+    CST: -6,
+    CDT: -5,
+    MST: -7,
+    MDT: -6,
+    PST: -8,
+    PDT: -7,
+  };
+  const offset = offsets[tz];
+  if (offset === undefined) return null;
   // Convert local time to UTC by subtracting the timezone offset from local time: UTC = local - offset
-  const utcDate = new Date(Date.UTC(year, month - 1, day, hour - offset, minute, second))
-  return utcDate.toISOString()
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour - offset, minute, second));
+  return utcDate.toISOString();
 }
 
 export default function ImportTradesPage() {
-  const [csvFile, setCsvFile] = React.useState<File | null>(null)
-  const [previewRows, setPreviewRows] = React.useState<TradePreview[]>([])
-  const [parseError, setParseError] = React.useState<string | null>(null)
-  const [processing, setProcessing] = React.useState(false)
-  const [progress, setProgress] = React.useState(0)
-  const [importSummary, setImportSummary] = React.useState<{ total: number, valid: number, errors: number, duplicates: number } | null>(null)
-  const [broker, setBroker] = React.useState("Webull")
-  const [assetType, setAssetType] = React.useState("Options")
-  const { toast } = useToast()
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-  
+  const [csvFile, setCsvFile] = React.useState<File | null>(null);
+  const [previewRows, setPreviewRows] = React.useState<TradePreview[]>([]);
+  const [parseError, setParseError] = React.useState<string | null>(null);
+  const [processing, setProcessing] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [importSummary, setImportSummary] = React.useState<{
+    total: number;
+    valid: number;
+    errors: number;
+    duplicates: number;
+  } | null>(null);
+  const [broker, setBroker] = React.useState('Webull');
+  const [assetType, setAssetType] = React.useState('Options');
+  const { toast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   // Import progress modal state
-  const [importModalOpen, setImportModalOpen] = React.useState(false)
-  const [importProgress, setImportProgress] = React.useState(0)
-  const [importStatus, setImportStatus] = React.useState<"importing" | "success" | "error">("importing")
+  const [importModalOpen, setImportModalOpen] = React.useState(false);
+  const [importProgress, setImportProgress] = React.useState(0);
+  const [importStatus, setImportStatus] = React.useState<'importing' | 'success' | 'error'>(
+    'importing',
+  );
   const [importResults, setImportResults] = React.useState({
     successCount: 0,
     errorCount: 0,
     duplicateCount: 0,
-    errorMessage: ""
-  })
+    errorMessage: '',
+  });
 
   // Manual entry form
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const manualForm = useForm<ManualForm>({
     resolver: zodResolver(manualSchema),
     defaultValues: {
-      symbol: "",
-      side: "buy",
+      symbol: '',
+      side: 'buy',
       quantity: 1,
       price: 0,
       date: new Date().toISOString().split('T')[0], // Today's date
-      notes: "",
+      notes: '',
     },
-  })
+  });
 
   // CSV Dropzone
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setParseError(null)
-    setPreviewRows([])
-    setImportSummary(null)
-    setCsvFile(null)
+    setParseError(null);
+    setPreviewRows([]);
+    setImportSummary(null);
+    setCsvFile(null);
     if (e.target.files?.[0]) {
-      setCsvFile(e.target.files[0])
+      setCsvFile(e.target.files[0]);
     }
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault()
-    setParseError(null)
-    setPreviewRows([])
-    setImportSummary(null)
-    if (e.dataTransfer.files?.[0] && e.dataTransfer.files[0].name.endsWith(".csv")) {
-      setCsvFile(e.dataTransfer.files[0])
+    e.preventDefault();
+    setParseError(null);
+    setPreviewRows([]);
+    setImportSummary(null);
+    if (e.dataTransfer.files?.[0] && e.dataTransfer.files[0].name.endsWith('.csv')) {
+      setCsvFile(e.dataTransfer.files[0]);
     }
   }
 
   function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault()
+    e.preventDefault();
   }
 
   // CSV Parsing
   function processFile() {
-    if (!csvFile) return
-    setProcessing(true)
-    setProgress(0)
-    setParseError(null)
-    setPreviewRows([])
-    setImportSummary(null)
-    let progressVal = 0
+    if (!csvFile) return;
+    setProcessing(true);
+    setProgress(0);
+    setParseError(null);
+    setPreviewRows([]);
+    setImportSummary(null);
+    let progressVal = 0;
     const progressInterval = setInterval(() => {
-      progressVal += 10
-      setProgress(Math.min(progressVal, 90))
-    }, 100)
+      progressVal += 10;
+      setProgress(Math.min(progressVal, 90));
+    }, 100);
     Papa.parse(csvFile, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        clearInterval(progressInterval)
-        setProgress(100)
-        if (broker === "Webull" && assetType === "Options") {
-          const columns = Object.keys((results.data as any[])[0] || {})
-          const missing = WEBULL_OPTIONS_COLUMNS.filter((col) => !columns.includes(col))
+        clearInterval(progressInterval);
+        setProgress(100);
+        if (broker === 'Webull' && assetType === 'Options') {
+          const columns = Object.keys((results.data as any[])[0] || {});
+          const missing = WEBULL_OPTIONS_COLUMNS.filter((col) => !columns.includes(col));
           if (missing.length > 0) {
-            setParseError("Missing columns: " + missing.join(", "))
-            setProcessing(false)
-            return
+            setParseError('Missing columns: ' + missing.join(', '));
+            setProcessing(false);
+            return;
           }
-          const seen = new Set<string>()
-          const rows: TradePreview[] = []
-          let valid = 0, errors = 0, duplicates = 0
+          const seen = new Set<string>();
+          const rows: TradePreview[] = [];
+          let valid = 0,
+            errors = 0,
+            duplicates = 0;
           for (const row of results.data as any[]) {
-            if (row.Status !== "Filled") continue
-            const parsed = parseOptionSymbol(row.Symbol)
-            const key = `${row.Symbol}-${row["Filled Time"]}`
-            let status = "valid", error = undefined
-            if (!row.Symbol || !row.Side || !row["Total Qty"] || !row["Avg Price"] || !row["Filled Time"]) {
-              status = "error"
-              error = "Missing required fields"
-              errors++
+            if (row.Status !== 'Filled') continue;
+            const parsed = parseOptionSymbol(row.Symbol);
+            const key = `${row.Symbol}-${row['Filled Time']}`;
+            let status = 'valid',
+              error = undefined;
+            if (
+              !row.Symbol ||
+              !row.Side ||
+              !row['Total Qty'] ||
+              !row['Avg Price'] ||
+              !row['Filled Time']
+            ) {
+              status = 'error';
+              error = 'Missing required fields';
+              errors++;
             } else if (seen.has(key)) {
-              status = "duplicate"
-              duplicates++
+              status = 'duplicate';
+              duplicates++;
             } else {
-              valid++
-              seen.add(key)
+              valid++;
+              seen.add(key);
             }
             // For options, use the underlying as the symbol
-            const symbolToUse = parsed ? parsed.underlying : row.Symbol
-            
+            const symbolToUse = parsed ? parsed.underlying : row.Symbol;
+
             rows.push({
-              symbol: symbolToUse,  // Use underlying ticker as symbol
-              side: (row.Side || "").toLowerCase(),
-              quantity: Number(row["Total Qty"]),
-              entry_price: Number(row["Avg Price"]),
-              entry_date: parseFilledTimeToISO(row["Filled Time"]) || new Date(row["Filled Time"]).toISOString(),
-              asset_type: "option",
+              symbol: symbolToUse, // Use underlying ticker as symbol
+              side: (row.Side || '').toLowerCase(),
+              quantity: Number(row['Total Qty']),
+              entry_price: Number(row['Avg Price']),
+              entry_date:
+                parseFilledTimeToISO(row['Filled Time']) ||
+                new Date(row['Filled Time']).toISOString(),
+              asset_type: 'option',
               broker: broker,
               // Don't send status field - let database default handle it
-              validation_status: status,  // Rename to avoid sending 'status' to DB
+              validation_status: status, // Rename to avoid sending 'status' to DB
               error,
               ...parsed,
-              full_symbol: row.Symbol,  // Keep the full option symbol for reference
-            })
+              full_symbol: row.Symbol, // Keep the full option symbol for reference
+            });
           }
           // If more than 1000 trades, show a warning and limit to 1000 for a single import request
-          const MAX_UI_BATCH = 1000
+          const MAX_UI_BATCH = 1000;
           if (rows.length > MAX_UI_BATCH) {
-            setParseError(`File contains ${rows.length} trades. For reliability, importing the first ${MAX_UI_BATCH} now. After this completes, upload the remaining trades.`)
-            const limitedRows = rows.slice(0, MAX_UI_BATCH)
-            const limitedValid = limitedRows.filter(r => r.validation_status === "valid").length
-            const limitedErrors = limitedRows.filter(r => r.validation_status === "error").length
-            const limitedDuplicates = limitedRows.filter(r => r.validation_status === "duplicate").length
-            setPreviewRows(limitedRows)
-            setImportSummary({ total: limitedRows.length, valid: limitedValid, errors: limitedErrors, duplicates: limitedDuplicates })
+            setParseError(
+              `File contains ${rows.length} trades. For reliability, importing the first ${MAX_UI_BATCH} now. After this completes, upload the remaining trades.`,
+            );
+            const limitedRows = rows.slice(0, MAX_UI_BATCH);
+            const limitedValid = limitedRows.filter((r) => r.validation_status === 'valid').length;
+            const limitedErrors = limitedRows.filter((r) => r.validation_status === 'error').length;
+            const limitedDuplicates = limitedRows.filter(
+              (r) => r.validation_status === 'duplicate',
+            ).length;
+            setPreviewRows(limitedRows);
+            setImportSummary({
+              total: limitedRows.length,
+              valid: limitedValid,
+              errors: limitedErrors,
+              duplicates: limitedDuplicates,
+            });
           } else {
-            setPreviewRows(rows)
-            setImportSummary({ total: rows.length, valid, errors, duplicates })
+            setPreviewRows(rows);
+            setImportSummary({ total: rows.length, valid, errors, duplicates });
           }
         } else {
-          setParseError("Only Webull + Options is supported in this version.")
+          setParseError('Only Webull + Options is supported in this version.');
         }
-        setProcessing(false)
+        setProcessing(false);
       },
       error: (err) => {
-        clearInterval(progressInterval)
-        setParseError(err.message)
-        setProcessing(false)
+        clearInterval(progressInterval);
+        setParseError(err.message);
+        setProcessing(false);
       },
-    })
+    });
   }
 
   function clearData() {
-    setCsvFile(null)
-    setPreviewRows([])
-    setImportSummary(null)
-    setProgress(0)
-    setParseError(null)
-    if (fileInputRef.current) fileInputRef.current.value = ""
+    setCsvFile(null);
+    setPreviewRows([]);
+    setImportSummary(null);
+    setProgress(0);
+    setParseError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function downloadTemplate() {
     const csvContent =
-      "Name,Symbol,Side,Status,Filled,Total Qty,Price,Avg Price,Time-in-Force,Placed Time,Filled Time\n" +
-      "SPXW250702P06185000,SPXW250702P06185000,BUY,Filled,Yes,1,1.23,1.23,GTC,2025-07-01T13:00:00Z,2025-07-02T13:00:00Z"
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "webull_options_template.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
+      'Name,Symbol,Side,Status,Filled,Total Qty,Price,Avg Price,Time-in-Force,Placed Time,Filled Time\n' +
+      'SPXW250702P06185000,SPXW250702P06185000,BUY,Filled,Yes,1,1.23,1.23,GTC,2025-07-01T13:00:00Z,2025-07-02T13:00:00Z';
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'webull_options_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
 
   async function handleImport() {
-    const valid = previewRows.filter((t) => t.validation_status === "valid")
+    const valid = previewRows.filter((t) => t.validation_status === 'valid');
     if (!valid.length) {
-      toast({ title: "No valid trades to import", variant: "destructive" })
-      return
+      toast({ title: 'No valid trades to import', variant: 'destructive' });
+      return;
     }
-    
+
     // Open the progress modal
-    setImportModalOpen(true)
-    setImportStatus("importing")
-    setImportProgress(0)
+    setImportModalOpen(true);
+    setImportStatus('importing');
+    setImportProgress(0);
     setImportResults({
       successCount: 0,
       errorCount: 0,
       duplicateCount: 0,
-      errorMessage: ""
-    })
-    
+      errorMessage: '',
+    });
+
     // Simulate progress updates
     const progressInterval = setInterval(() => {
-      setImportProgress(prev => {
+      setImportProgress((prev) => {
         if (prev >= 90) {
-          clearInterval(progressInterval)
-          return 90
+          clearInterval(progressInterval);
+          return 90;
         }
-        return prev + 10
-      })
-    }, 200)
-    
+        return prev + 10;
+      });
+    }, 200);
+
     try {
-      const res = await fetch("/api/import-trades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/import-trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trades: valid }),
-      })
-      
+      });
+
       // Check if response is JSON
-      let result
-      const contentType = res.headers.get("content-type")
-      if (contentType && contentType.includes("application/json")) {
-        result = await res.json()
+      let result;
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        result = await res.json();
       } else {
         // If not JSON, try to get text and create error response
-        const text = await res.text()
-        console.error("Non-JSON response:", text)
+        const text = await res.text();
+        console.error('Non-JSON response:', text);
         result = {
-          error: text || "Server returned non-JSON response",
+          error: text || 'Server returned non-JSON response',
           success: 0,
           duplicates: 0,
-          errors: [text || "Invalid server response"]
-        }
+          errors: [text || 'Invalid server response'],
+        };
       }
-      console.log("Import result:", result)
-      
+      console.log('Import result:', result);
+
       // Clear the progress interval and set to 100%
-      clearInterval(progressInterval)
-      setImportProgress(100)
-      
+      clearInterval(progressInterval);
+      setImportProgress(100);
+
       if (res.ok && result.success > 0) {
         // Set success status
-        setImportStatus("success")
+        setImportStatus('success');
         setImportResults({
           successCount: result.success || 0,
           errorCount: result.error || 0,
           duplicateCount: result.duplicates || 0,
-          errorMessage: ""
-        })
-        
+          errorMessage: '',
+        });
+
         // Update trade statuses after successful import
         try {
-          await fetch("/api/update-trade-status", { method: "POST" })
+          await fetch('/api/update-trade-status', { method: 'POST' });
         } catch (e) {
-          console.error("Failed to update trade statuses:", e)
+          console.error('Failed to update trade statuses:', e);
         }
-        
+
         // Clear the data after successful import (but wait for user to close modal)
         setTimeout(() => {
-          if (importStatus === "success") {
-            clearData()
+          if (importStatus === 'success') {
+            clearData();
           }
-        }, 2000)
-        
+        }, 2000);
       } else if (res.ok && result.duplicates > 0) {
         // All duplicates case
-        setImportStatus("success")
+        setImportStatus('success');
         setImportResults({
           successCount: 0,
           errorCount: 0,
           duplicateCount: result.duplicates,
-          errorMessage: "All trades were duplicates"
-        })
+          errorMessage: 'All trades were duplicates',
+        });
       } else {
         // Error case
-        const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
-        setImportStatus("error")
+        const errorMsg = result.errors ? result.errors.join(', ') : result.error || 'Unknown error';
+        setImportStatus('error');
         setImportResults({
           successCount: result.success || 0,
           errorCount: result.error || valid.length,
           duplicateCount: result.duplicates || 0,
-          errorMessage: errorMsg
-        })
-        console.error("Import failed:", result)
+          errorMessage: errorMsg,
+        });
+        console.error('Import failed:', result);
       }
     } catch (e) {
       // Network or other error
-      clearInterval(progressInterval)
-      setImportProgress(100)
-      setImportStatus("error")
+      clearInterval(progressInterval);
+      setImportProgress(100);
+      setImportStatus('error');
       setImportResults({
         successCount: 0,
         errorCount: valid.length,
         duplicateCount: 0,
-        errorMessage: String(e)
-      })
-      console.error("Import error:", e)
-    }
-  }
-  
-  // Handle modal close
-  const handleModalClose = () => {
-    setImportModalOpen(false)
-    if (importStatus === "success") {
-      clearData()
+        errorMessage: String(e),
+      });
+      console.error('Import error:', e);
     }
   }
 
+  // Handle modal close
+  const handleModalClose = () => {
+    setImportModalOpen(false);
+    if (importStatus === 'success') {
+      clearData();
+    }
+  };
+
   // Manual Entry
   async function onManualSubmit(data: ManualForm) {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      const parsed = parseOptionSymbol(data.symbol)
+      const parsed = parseOptionSymbol(data.symbol);
       const trade = {
         symbol: data.symbol,
         side: data.side,
         quantity: Number(data.quantity),
         entry_price: Number(data.price),
         entry_date: new Date(data.date).toISOString(),
-        asset_type: parsed ? "option" : "stock",
-        broker: "Manual",
+        asset_type: parsed ? 'option' : 'stock',
+        broker: 'Manual',
         notes: data.notes || null,
         ...(parsed ? parsed : {}),
-      }
+      };
 
-      const res = await fetch("/api/import-trades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/import-trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trades: [trade] }),
-      })
+      });
 
-      const result = await res.json()
-      
+      const result = await res.json();
+
       if (res.ok && result.success > 0) {
-        toast({ title: "Trade saved successfully!", variant: "default" })
+        toast({ title: 'Trade saved successfully!', variant: 'default' });
         manualForm.reset({
-          symbol: "",
-          side: "buy",
+          symbol: '',
+          side: 'buy',
           quantity: 1,
           price: 0,
           date: new Date().toISOString().split('T')[0],
-          notes: "",
-        })
+          notes: '',
+        });
       } else {
         // Show detailed error message
-        const errorMsg = result.errors ? result.errors.join(", ") : result.error || "Unknown error"
-        toast({ 
-          title: "Failed to save trade", 
-          description: errorMsg, 
-          variant: "destructive" 
-        })
-        console.error("Trade save failed:", result)
+        const errorMsg = result.errors ? result.errors.join(', ') : result.error || 'Unknown error';
+        toast({
+          title: 'Failed to save trade',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+        console.error('Trade save failed:', result);
       }
     } catch (e) {
-      toast({ 
-        title: "Failed to save trade", 
-        description: String(e), 
-        variant: "destructive" 
-      })
+      toast({
+        title: 'Failed to save trade',
+        description: String(e),
+        variant: 'destructive',
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
@@ -465,11 +518,20 @@ export default function ImportTradesPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Import Trades</h1>
-          <p className="text-muted-foreground">Import your trading data from CSV files or connect brokers</p>
-          <nav className="mt-2 text-sm text-muted-foreground flex items-center gap-2" aria-label="Breadcrumb">
-            <a href="/dashboard" className="hover:underline">Dashboard</a>
+          <p className="text-muted-foreground">
+            Import your trading data from CSV files or connect brokers
+          </p>
+          <nav
+            className="mt-2 text-sm text-muted-foreground flex items-center gap-2"
+            aria-label="Breadcrumb"
+          >
+            <a href="/dashboard" className="hover:underline">
+              Dashboard
+            </a>
             <span>/</span>
-            <a href="/dashboard/trades" className="hover:underline">Trades</a>
+            <a href="/dashboard/trades" className="hover:underline">
+              Trades
+            </a>
             <span>/</span>
             <span className="text-foreground">Import</span>
           </nav>
@@ -492,14 +554,19 @@ export default function ImportTradesPage() {
           <Card>
             <CardHeader>
               <CardTitle>Upload CSV File</CardTitle>
-              <CardDescription>Upload a CSV file exported from Webull (Options). Only filled trades will be imported.</CardDescription>
+              <CardDescription>
+                Upload a CSV file exported from Webull (Options). Only filled trades will be
+                imported.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Dropzone */}
               <div
                 className={cn(
-                  "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-                  csvFile ? "border-green-300 bg-green-50" : "border-gray-300 hover:border-gray-400"
+                  'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
+                  csvFile
+                    ? 'border-green-300 bg-green-50'
+                    : 'border-gray-300 hover:border-gray-400',
                 )}
                 tabIndex={0}
                 role="button"
@@ -507,7 +574,9 @@ export default function ImportTradesPage() {
                 onClick={() => fileInputRef.current?.click()}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
-                onKeyDown={e => (e.key === "Enter" || e.key === " ") && fileInputRef.current?.click()}
+                onKeyDown={(e) =>
+                  (e.key === 'Enter' || e.key === ' ') && fileInputRef.current?.click()
+                }
               >
                 <input
                   ref={fileInputRef}
@@ -521,7 +590,9 @@ export default function ImportTradesPage() {
                   <div className="space-y-2">
                     <CheckCircle className="h-12 w-12 text-green-500 mx-auto" aria-hidden />
                     <p className="font-medium">{csvFile.name}</p>
-                    <p className="text-sm text-muted-foreground">{(csvFile.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(csvFile.size / 1024).toFixed(1)} KB
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -575,15 +646,21 @@ export default function ImportTradesPage() {
                         </div>
                         <div>
                           <p className="text-muted-foreground">Valid</p>
-                          <p className="font-medium text-green-600 tabular-nums">{importSummary.valid}</p>
+                          <p className="font-medium text-green-600 tabular-nums">
+                            {importSummary.valid}
+                          </p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Errors</p>
-                          <p className="font-medium text-red-600 tabular-nums">{importSummary.errors}</p>
+                          <p className="font-medium text-red-600 tabular-nums">
+                            {importSummary.errors}
+                          </p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Duplicates</p>
-                          <p className="font-medium text-yellow-600 tabular-nums">{importSummary.duplicates}</p>
+                          <p className="font-medium text-yellow-600 tabular-nums">
+                            {importSummary.duplicates}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -620,18 +697,47 @@ export default function ImportTradesPage() {
                           {previewRows.map((trade, i) => (
                             <TableRow key={i}>
                               <TableCell>{trade.symbol}</TableCell>
-                              <TableCell><Badge variant={trade.side === "buy" ? "default" : "secondary"}>{trade.side.toUpperCase()}</Badge></TableCell>
-                              <TableCell className="tabular-nums">{trade.quantity}</TableCell>
-                              <TableCell className="tabular-nums">${trade.entry_price.toFixed(2)}</TableCell>
-                              <TableCell>{new Date(trade.entry_date).toLocaleDateString()}</TableCell>
                               <TableCell>
-                                <Badge variant={trade.validation_status === "valid" ? "default" : trade.validation_status === "error" ? "destructive" : "secondary"}>{trade.validation_status}</Badge>
-                                {trade.error && <div className="text-xs text-red-600 mt-1">{trade.error}</div>}
+                                <Badge variant={trade.side === 'buy' ? 'default' : 'secondary'}>
+                                  {trade.side.toUpperCase()}
+                                </Badge>
                               </TableCell>
-                              <TableCell>{trade.underlying || "-"}</TableCell>
-                              <TableCell>{trade.expiry || "-"}</TableCell>
-                              <TableCell>{trade.option_type ? trade.option_type.charAt(0).toUpperCase() + trade.option_type.slice(1) : "-"}</TableCell>
-                              <TableCell>{trade.strike_price != null ? `${trade.strike_price.toFixed(2)}` : "-"}</TableCell>
+                              <TableCell className="tabular-nums">{trade.quantity}</TableCell>
+                              <TableCell className="tabular-nums">
+                                ${trade.entry_price.toFixed(2)}
+                              </TableCell>
+                              <TableCell>
+                                {new Date(trade.entry_date).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    trade.validation_status === 'valid'
+                                      ? 'default'
+                                      : trade.validation_status === 'error'
+                                        ? 'destructive'
+                                        : 'secondary'
+                                  }
+                                >
+                                  {trade.validation_status}
+                                </Badge>
+                                {trade.error && (
+                                  <div className="text-xs text-red-600 mt-1">{trade.error}</div>
+                                )}
+                              </TableCell>
+                              <TableCell>{trade.underlying || '-'}</TableCell>
+                              <TableCell>{trade.expiry || '-'}</TableCell>
+                              <TableCell>
+                                {trade.option_type
+                                  ? trade.option_type.charAt(0).toUpperCase() +
+                                    trade.option_type.slice(1)
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {trade.strike_price != null
+                                  ? `${trade.strike_price.toFixed(2)}`
+                                  : '-'}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -651,9 +757,16 @@ export default function ImportTradesPage() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc pl-6 text-sm space-y-1">
-                {WEBULL_OPTIONS_COLUMNS.map(col => <li key={col}><span className="font-mono">{col}</span></li>)}
+                {WEBULL_OPTIONS_COLUMNS.map((col) => (
+                  <li key={col}>
+                    <span className="font-mono">{col}</span>
+                  </li>
+                ))}
               </ul>
-              <p className="mt-2 text-xs text-muted-foreground">Only rows with <span className="font-mono">Status = "Filled"</span> will be imported. Option symbols will be parsed for underlying, expiry, type, and strike.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Only rows with <span className="font-mono">Status = "Filled"</span> will be
+                imported. Option symbols will be parsed for underlying, expiry, type, and strike.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -662,17 +775,26 @@ export default function ImportTradesPage() {
         <TabsContent value="broker" className="space-y-6">
           <Alert>
             <AlertCircle className="h-4 w-4" aria-hidden />
-            <AlertDescription>Most broker integrations are coming soon. Only Interactive Brokers is available for connection at this time.</AlertDescription>
+            <AlertDescription>
+              Most broker integrations are coming soon. Only Interactive Brokers is available for
+              connection at this time.
+            </AlertDescription>
           </Alert>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {brokers.map(broker => (
+            {brokers.map((broker) => (
               <Card key={broker.name} className="p-4 flex flex-col gap-2 items-start">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{broker.name}</span>
-                  <Badge variant={broker.status === "Available" ? "default" : "secondary"}>{broker.status}</Badge>
+                  <Badge variant={broker.status === 'Available' ? 'default' : 'secondary'}>
+                    {broker.status}
+                  </Badge>
                 </div>
-                <Button className="mt-2" disabled={broker.status !== "Available"} variant={broker.status === "Available" ? "default" : "outline"}>
-                  {broker.status === "Available" ? "Connect" : "Coming Soon"}
+                <Button
+                  className="mt-2"
+                  disabled={broker.status !== 'Available'}
+                  variant={broker.status === 'Available' ? 'default' : 'outline'}
+                >
+                  {broker.status === 'Available' ? 'Connect' : 'Coming Soon'}
                 </Button>
               </Card>
             ))}
@@ -691,10 +813,10 @@ export default function ImportTradesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="symbol">Symbol</Label>
-                    <Input 
-                      id="symbol" 
-                      placeholder="e.g., AAPL" 
-                      {...manualForm.register("symbol")}
+                    <Input
+                      id="symbol"
+                      placeholder="e.g., AAPL"
+                      {...manualForm.register('symbol')}
                     />
                     {manualForm.formState.errors.symbol && (
                       <span className="text-xs text-red-600">
@@ -704,9 +826,11 @@ export default function ImportTradesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="side">Trade Type</Label>
-                    <Select 
-                      value={manualForm.watch("side")} 
-                      onValueChange={(value) => manualForm.setValue("side", value as "buy" | "sell")}
+                    <Select
+                      value={manualForm.watch('side')}
+                      onValueChange={(value) =>
+                        manualForm.setValue('side', value as 'buy' | 'sell')
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -727,11 +851,11 @@ export default function ImportTradesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="quantity">Quantity</Label>
-                    <Input 
-                      id="quantity" 
-                      type="number" 
-                      placeholder="100" 
-                      {...manualForm.register("quantity", { valueAsNumber: true })}
+                    <Input
+                      id="quantity"
+                      type="number"
+                      placeholder="100"
+                      {...manualForm.register('quantity', { valueAsNumber: true })}
                     />
                     {manualForm.formState.errors.quantity && (
                       <span className="text-xs text-red-600">
@@ -741,12 +865,12 @@ export default function ImportTradesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="price">Price</Label>
-                    <Input 
-                      id="price" 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="150.00" 
-                      {...manualForm.register("price", { valueAsNumber: true })}
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      placeholder="150.00"
+                      {...manualForm.register('price', { valueAsNumber: true })}
                     />
                     {manualForm.formState.errors.price && (
                       <span className="text-xs text-red-600">
@@ -758,11 +882,7 @@ export default function ImportTradesPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="date">Date</Label>
-                  <Input 
-                    id="date" 
-                    type="date" 
-                    {...manualForm.register("date")}
-                  />
+                  <Input id="date" type="date" {...manualForm.register('date')} />
                   {manualForm.formState.errors.date && (
                     <span className="text-xs text-red-600">
                       {manualForm.formState.errors.date.message}
@@ -772,20 +892,20 @@ export default function ImportTradesPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes (Optional)</Label>
-                  <Textarea 
-                    id="notes" 
-                    placeholder="Add any notes about this trade..." 
-                    {...manualForm.register("notes")}
+                  <Textarea
+                    id="notes"
+                    placeholder="Add any notes about this trade..."
+                    {...manualForm.register('notes')}
                   />
                 </div>
 
                 <div className="flex space-x-4">
                   <Button type="submit" className="flex-1" disabled={isSubmitting}>
-                    {isSubmitting ? "Saving..." : "Save Trade"}
+                    {isSubmitting ? 'Saving...' : 'Save Trade'}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     className="flex-1 bg-transparent"
                     onClick={() => manualForm.reset()}
                   >
@@ -797,7 +917,7 @@ export default function ImportTradesPage() {
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Import Progress Modal */}
       <ImportProgressModal
         isOpen={importModalOpen}
@@ -811,5 +931,5 @@ export default function ImportTradesPage() {
         errorMessage={importResults.errorMessage}
       />
     </div>
-  )
+  );
 }

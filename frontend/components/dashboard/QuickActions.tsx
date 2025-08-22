@@ -1,54 +1,54 @@
-"use client"
+'use client';
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Plus, Upload, FileText, TrendingUp, BarChart3, Calculator } from "lucide-react"
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Plus, Upload, FileText, TrendingUp, BarChart3, Calculator } from 'lucide-react';
 
 export function QuickActions() {
   const actions = [
     {
-      title: "Add Trade",
-      description: "Record a new trade",
+      title: 'Add Trade',
+      description: 'Record a new trade',
       icon: Plus,
-      href: "/dashboard/add-trade",
-      color: "text-green-600",
+      href: '/dashboard/add-trade',
+      color: 'text-green-600',
     },
     {
-      title: "Import Trades",
-      description: "Upload CSV file",
+      title: 'Import Trades',
+      description: 'Upload CSV file',
       icon: Upload,
-      href: "/dashboard/import-trades",
-      color: "text-blue-600",
+      href: '/dashboard/import-trades',
+      color: 'text-blue-600',
     },
     {
-      title: "View Reports",
-      description: "Generate reports",
+      title: 'View Reports',
+      description: 'Generate reports',
       icon: FileText,
-      href: "/dashboard/reports",
-      color: "text-purple-600",
+      href: '/dashboard/reports',
+      color: 'text-purple-600',
     },
     {
-      title: "Analytics",
-      description: "View performance",
+      title: 'Analytics',
+      description: 'View performance',
       icon: BarChart3,
-      href: "/dashboard/analytics",
-      color: "text-orange-600",
+      href: '/dashboard/analytics',
+      color: 'text-orange-600',
     },
     {
-      title: "Tax Center",
-      description: "Tax documents",
+      title: 'Tax Center',
+      description: 'Tax documents',
       icon: Calculator,
-      href: "/dashboard/tax-center",
-      color: "text-red-600",
+      href: '/dashboard/tax-center',
+      color: 'text-red-600',
     },
     {
-      title: "Market Scanner",
-      description: "Find opportunities",
+      title: 'Market Scanner',
+      description: 'Find opportunities',
       icon: TrendingUp,
-      href: "/dashboard/scanner",
-      color: "text-indigo-600",
+      href: '/dashboard/scanner',
+      color: 'text-indigo-600',
     },
-  ]
+  ];
 
   return (
     <Card>
@@ -66,7 +66,9 @@ export function QuickActions() {
                 <action.icon className={`h-5 w-5 ${action.color}`} />
                 <div className="text-center">
                   <div className="font-medium text-sm">{action.title}</div>
-                  <div className="text-xs text-muted-foreground line-clamp-1">{action.description}</div>
+                  <div className="text-xs text-muted-foreground line-clamp-1">
+                    {action.description}
+                  </div>
                 </div>
               </a>
             </Button>
@@ -74,5 +76,5 @@ export function QuickActions() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

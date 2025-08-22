@@ -1,17 +1,17 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase-server"
-import BackgroundChartAnimation from "@/components/auth/background-chart-animation"
-import TickerTape from "@/components/auth/ticker-tape"
-import LoginForm from "@/components/auth/login-form"
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase-server';
+import BackgroundChartAnimation from '@/components/auth/background-chart-animation';
+import TickerTape from '@/components/auth/ticker-tape';
+import LoginForm from '@/components/auth/login-form';
 
 export default async function LoginPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (user) {
-    redirect("/dashboard")
+    redirect('/dashboard');
   }
 
   return (
@@ -27,5 +27,5 @@ export default async function LoginPage() {
       {/* Bottom ticker tape */}
       <TickerTape />
     </div>
-  )
+  );
 }

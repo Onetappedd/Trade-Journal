@@ -1,38 +1,38 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Activity, DollarSign } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, TrendingDown, Activity, DollarSign } from 'lucide-react';
 
 const stats = [
   {
-    title: "Total Trades",
-    value: "247",
-    change: "+12%",
-    changeType: "positive" as const,
+    title: 'Total Trades',
+    value: '247',
+    change: '+12%',
+    changeType: 'positive' as const,
     icon: Activity,
   },
   {
-    title: "Win Rate",
-    value: "68.4%",
-    change: "+2.1%",
-    changeType: "positive" as const,
+    title: 'Win Rate',
+    value: '68.4%',
+    change: '+2.1%',
+    changeType: 'positive' as const,
     icon: TrendingUp,
   },
   {
-    title: "Realized P&L",
-    value: "$12,847",
-    change: "+$1,234",
-    changeType: "positive" as const,
+    title: 'Realized P&L',
+    value: '$12,847',
+    change: '+$1,234',
+    changeType: 'positive' as const,
     icon: DollarSign,
   },
   {
-    title: "Avg Trade Size",
-    value: "$2,450",
-    change: "-$150",
-    changeType: "negative" as const,
+    title: 'Avg Trade Size',
+    value: '$2,450',
+    change: '-$150',
+    changeType: 'negative' as const,
     icon: TrendingDown,
   },
-]
+];
 
 export function TradesStats() {
   return (
@@ -45,12 +45,14 @@ export function TradesStats() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stat.value}</div>
-            <p className={`text-xs ${stat.changeType === "positive" ? "text-green-600" : "text-red-600"}`}>
+            <p
+              className={`text-xs ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}`}
+            >
               {stat.change} from last month
             </p>
           </CardContent>
         </Card>
       ))}
     </div>
-  )
+  );
 }

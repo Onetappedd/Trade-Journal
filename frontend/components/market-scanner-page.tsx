@@ -1,80 +1,93 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Filter, TrendingUp, TrendingDown, Volume, Star, Plus } from "lucide-react"
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Filter, TrendingUp, TrendingDown, Volume, Star, Plus } from 'lucide-react';
 
 const mockScanResults = [
   {
-    symbol: "AAPL",
-    name: "Apple Inc.",
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
     price: 178.25,
     change: 2.75,
     changePercent: 1.57,
     volume: 45678900,
-    marketCap: "2.8T",
-    signal: "Bullish Breakout",
+    marketCap: '2.8T',
+    signal: 'Bullish Breakout',
   },
   {
-    symbol: "TSLA",
-    name: "Tesla Inc.",
+    symbol: 'TSLA',
+    name: 'Tesla Inc.',
     price: 238.9,
     change: -6.4,
     changePercent: -2.61,
     volume: 78901234,
-    marketCap: "759B",
-    signal: "Support Test",
+    marketCap: '759B',
+    signal: 'Support Test',
   },
   {
-    symbol: "MSFT",
-    name: "Microsoft Corp.",
+    symbol: 'MSFT',
+    name: 'Microsoft Corp.',
     price: 385.2,
     change: 6.3,
     changePercent: 1.66,
     volume: 23456789,
-    marketCap: "2.9T",
-    signal: "Momentum",
+    marketCap: '2.9T',
+    signal: 'Momentum',
   },
   {
-    symbol: "GOOGL",
-    name: "Alphabet Inc.",
+    symbol: 'GOOGL',
+    name: 'Alphabet Inc.',
     price: 2789.45,
     change: 39.45,
     changePercent: 1.43,
     volume: 12345678,
-    marketCap: "1.7T",
-    signal: "Volume Spike",
+    marketCap: '1.7T',
+    signal: 'Volume Spike',
   },
   {
-    symbol: "NVDA",
-    name: "NVIDIA Corp.",
+    symbol: 'NVDA',
+    name: 'NVIDIA Corp.',
     price: 875.2,
     change: -12.8,
     changePercent: -1.44,
     volume: 56789012,
-    marketCap: "2.2T",
-    signal: "Oversold",
+    marketCap: '2.2T',
+    signal: 'Oversold',
   },
-]
+];
 
 const presetScans = [
-  { name: "Gap Up", count: 23 },
-  { name: "Gap Down", count: 18 },
-  { name: "High Volume", count: 45 },
-  { name: "Breakout", count: 12 },
-  { name: "Oversold", count: 34 },
-  { name: "Overbought", count: 28 },
-]
+  { name: 'Gap Up', count: 23 },
+  { name: 'Gap Down', count: 18 },
+  { name: 'High Volume', count: 45 },
+  { name: 'Breakout', count: 12 },
+  { name: 'Oversold', count: 34 },
+  { name: 'Overbought', count: 28 },
+];
 
 export function MarketScannerPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedScan, setSelectedScan] = useState("custom")
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedScan, setSelectedScan] = useState('custom');
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -193,13 +206,15 @@ export function MarketScannerPage() {
                       <TableCell>{stock.name}</TableCell>
                       <TableCell>${stock.price.toFixed(2)}</TableCell>
                       <TableCell>
-                        <div className={`flex items-center ${stock.change >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        <div
+                          className={`flex items-center ${stock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
                           {stock.change >= 0 ? (
                             <TrendingUp className="mr-1 h-3 w-3" />
                           ) : (
                             <TrendingDown className="mr-1 h-3 w-3" />
                           )}
-                          {stock.change >= 0 ? "+" : ""}
+                          {stock.change >= 0 ? '+' : ''}
                           {stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
                         </div>
                       </TableCell>
@@ -267,5 +282,5 @@ export function MarketScannerPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

@@ -1,39 +1,50 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Filter } from "lucide-react"
-import { format } from "date-fns"
+import { useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Filter } from 'lucide-react';
+import { format } from 'date-fns';
 
 export function AnalyticsFilters() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const search = useSearchParams()
+  const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams();
 
-  const [timeRange, setTimeRange] = useState(search.get('time') || "3m")
-  const [assetType, setAssetType] = useState(search.get('assetType') || "all")
-  const [strategy, setStrategy] = useState(search.get('strategy') || "all")
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(search.get('start') ? new Date(search.get('start')!) : undefined)
-  const [dateTo, setDateTo] = useState<Date | undefined>(search.get('end') ? new Date(search.get('end')!) : undefined)
+  const [timeRange, setTimeRange] = useState(search.get('time') || '3m');
+  const [assetType, setAssetType] = useState(search.get('assetType') || 'all');
+  const [strategy, setStrategy] = useState(search.get('strategy') || 'all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(
+    search.get('start') ? new Date(search.get('start')!) : undefined,
+  );
+  const [dateTo, setDateTo] = useState<Date | undefined>(
+    search.get('end') ? new Date(search.get('end')!) : undefined,
+  );
 
   const applyFilters = () => {
-    const params = new URLSearchParams(search.toString())
-    params.set('time', timeRange)
-    params.set('assetType', assetType)
-    params.set('strategy', strategy)
+    const params = new URLSearchParams(search.toString());
+    params.set('time', timeRange);
+    params.set('assetType', assetType);
+    params.set('strategy', strategy);
     if (timeRange === 'custom') {
-      if (dateFrom) params.set('start', dateFrom.toISOString())
-      if (dateTo) params.set('end', dateTo.toISOString())
+      if (dateFrom) params.set('start', dateFrom.toISOString());
+      if (dateTo) params.set('end', dateTo.toISOString());
     } else {
-      params.delete('start'); params.delete('end')
+      params.delete('start');
+      params.delete('end');
     }
-    router.push(`${pathname}?${params.toString()}`)
-  }
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <Card>
@@ -79,13 +90,16 @@ export function AnalyticsFilters() {
             </SelectContent>
           </Select>
 
-          {timeRange === "custom" && (
+          {timeRange === 'custom' && (
             <>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-40 justify-start text-left font-normal bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="w-40 justify-start text-left font-normal bg-transparent"
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "PPP") : "From Date"}
+                    {dateFrom ? format(dateFrom, 'PPP') : 'From Date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -95,9 +109,12 @@ export function AnalyticsFilters() {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-40 justify-start text-left font-normal bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="w-40 justify-start text-left font-normal bg-transparent"
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "PPP") : "To Date"}
+                    {dateTo ? format(dateTo, 'PPP') : 'To Date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -113,5 +130,5 @@ export function AnalyticsFilters() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

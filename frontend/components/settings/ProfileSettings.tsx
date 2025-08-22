@@ -1,12 +1,12 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,11 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Upload, Trash2 } from "lucide-react"
+} from '@/components/ui/alert-dialog';
+import { Upload, Trash2 } from 'lucide-react';
 
 export function ProfileSettings() {
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -90,7 +90,9 @@ export function ProfileSettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Two-Factor Authentication</Label>
-              <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+              <p className="text-sm text-muted-foreground">
+                Add an extra layer of security to your account
+              </p>
             </div>
             <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
           </div>
@@ -116,8 +118,8 @@ export function ProfileSettings() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete your account and remove all your data from
-                  our servers.
+                  This action cannot be undone. This will permanently delete your account and remove
+                  all your data from our servers.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -131,5 +133,5 @@ export function ProfileSettings() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

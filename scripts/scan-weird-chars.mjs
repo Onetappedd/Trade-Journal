@@ -2,10 +2,10 @@ import { createReadStream, readdirSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import readline from 'node:readline';
 
-// Suspicious unicode regex
-const WEIRD_REGEX = /[\u200B-\u200D\uFEFF\u00A0\u201C\u201D\u2018\u2019\u2026]/g;
+// Suspicious/unwanted unicode chars
+const WEIRD_REGEX = /[\u200B-\u200D\uFEFF\u00A0\u201C\u201D\u2018\u2019\u2026]/g; // zero-widths, nbsp, curly quotes, ellipsis
 const ROOT = process.cwd();
-const GLOB_DIR = 'frontend/app/api/';
+const SEARCH_DIR = 'frontend/app/api/';
 const EXT_WHITELIST = new Set(['.ts', '.tsx']);
 
 let found = false;
@@ -21,7 +21,8 @@ function checkFile(path) {
       const match = line.match(WEIRD_REGEX);
       if (match) {
         found = true;
-        console.error(`[FAIL] ${path}:${lineNum} contains weird/suspicious Unicode chars:`, match.join(' '));
+        const caret = ' '.repeat(line.search(WEIRD_REGEX)) + '^';
+        console.error(`[FAIL] ${path}:${lineNum}\n${line}\n${caret}`);
       }
       lineNum++;
     });
@@ -43,9 +44,8 @@ function* walk(dir) {
 }
 
 (async () => {
-  const rootDir = join(ROOT, GLOB_DIR);
-  for (const file of walk(rootDir)) {
-    // check utf-8 encoding is default/no BOM by streaming lines
+  const dir = join(ROOT, SEARCH_DIR);
+  for (const file of walk(dir)) {
     await checkFile(file);
   }
   if (found) {

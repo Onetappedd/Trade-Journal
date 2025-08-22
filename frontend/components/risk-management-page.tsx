@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, AlertTriangle, TrendingDown, Target, DollarSign } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, AlertTriangle, TrendingDown, Target, DollarSign } from 'lucide-react';
 
 export function RiskManagementPage() {
   return (
@@ -83,12 +83,15 @@ export function RiskManagementPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { symbol: "AAPL", allocation: 18.5, risk: "Low", beta: 1.2 },
-              { symbol: "TSLA", allocation: 15.8, risk: "High", beta: 2.1 },
-              { symbol: "MSFT", allocation: 22.3, risk: "Medium", beta: 0.9 },
-              { symbol: "GOOGL", allocation: 43.4, risk: "Medium", beta: 1.1 },
+              { symbol: 'AAPL', allocation: 18.5, risk: 'Low', beta: 1.2 },
+              { symbol: 'TSLA', allocation: 15.8, risk: 'High', beta: 2.1 },
+              { symbol: 'MSFT', allocation: 22.3, risk: 'Medium', beta: 0.9 },
+              { symbol: 'GOOGL', allocation: 43.4, risk: 'Medium', beta: 1.1 },
             ].map((position) => (
-              <div key={position.symbol} className="flex items-center justify-between p-3 border rounded-lg">
+              <div
+                key={position.symbol}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
                 <div className="flex items-center space-x-3">
                   <div>
                     <p className="font-medium">{position.symbol}</p>
@@ -100,7 +103,11 @@ export function RiskManagementPage() {
                 <div className="flex items-center space-x-2">
                   <Badge
                     variant={
-                      position.risk === "Low" ? "secondary" : position.risk === "Medium" ? "outline" : "destructive"
+                      position.risk === 'Low'
+                        ? 'secondary'
+                        : position.risk === 'Medium'
+                          ? 'outline'
+                          : 'destructive'
                     }
                   >
                     {position.risk}
@@ -182,5 +189,5 @@ export function RiskManagementPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

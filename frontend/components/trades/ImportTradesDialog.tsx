@@ -1,37 +1,43 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Upload, FileText, Link } from "lucide-react"
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Upload, FileText, Link } from 'lucide-react';
 
 interface ImportTradesDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function ImportTradesDialog({ open, onOpenChange }: ImportTradesDialogProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [broker, setBroker] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [broker, setBroker] = useState('');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file)
+      setSelectedFile(file);
     }
-  }
+  };
 
   const handleImport = () => {
     // Handle import logic
-    console.log("Importing trades...")
-    onOpenChange(false)
-  }
+    console.log('Importing trades...');
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -56,7 +62,13 @@ export function ImportTradesDialog({ open, onOpenChange }: ImportTradesDialogPro
                     <span className="text-blue-600 hover:text-blue-500">Upload a file</span>
                     <span className="text-gray-500"> or drag and drop</span>
                   </Label>
-                  <Input id="file-upload" type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">CSV up to 10MB</p>
               </div>
@@ -71,7 +83,8 @@ export function ImportTradesDialog({ open, onOpenChange }: ImportTradesDialogPro
             <div className="space-y-2">
               <Label>CSV Format</Label>
               <p className="text-sm text-gray-600">
-                Expected columns: Symbol, Side, Quantity, Entry Price, Entry Date, Exit Price, Exit Date, Notes
+                Expected columns: Symbol, Side, Quantity, Entry Price, Entry Date, Exit Price, Exit
+                Date, Notes
               </p>
             </div>
           </TabsContent>
@@ -96,11 +109,13 @@ export function ImportTradesDialog({ open, onOpenChange }: ImportTradesDialogPro
 
             <div className="text-center py-4">
               <Link className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="text-sm text-gray-600 mt-2">Connect your broker account to automatically import trades</p>
+              <p className="text-sm text-gray-600 mt-2">
+                Connect your broker account to automatically import trades
+              </p>
             </div>
 
             <Button className="w-full" disabled={!broker}>
-              Connect to {broker || "Broker"}
+              Connect to {broker || 'Broker'}
             </Button>
           </TabsContent>
         </Tabs>
@@ -115,5 +130,5 @@ export function ImportTradesDialog({ open, onOpenChange }: ImportTradesDialogPro
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

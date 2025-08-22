@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase"
+import { createClient } from '@/lib/supabase';
 
 export interface PortfolioDataPoint {
-  date: string
-  value: number
-  percentChange: number
-  dollarChange: number
+  date: string;
+  value: number;
+  percentChange: number;
+  dollarChange: number;
 }
 
 /**
@@ -14,161 +14,167 @@ export interface PortfolioDataPoint {
 export async function calculatePortfolioHistory(
   userId: string,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
 ): Promise<PortfolioDataPoint[]> {
-  const supabase = createClient()
-  
+  const supabase = createClient();
+
   // Fetch all user trades
   let query = supabase
-    .from("trades")
-    .select("*")
-    .eq("user_id", userId)
-    .order("entry_date", { ascending: true })
-  
+    .from('trades')
+    .select('*')
+    .eq('user_id', userId)
+    .order('entry_date', { ascending: true });
+
   if (startDate) {
-    query = query.gte("entry_date", startDate.toISOString())
+    query = query.gte('entry_date', startDate.toISOString());
   }
   if (endDate) {
-    query = query.lte("entry_date", endDate.toISOString())
+    query = query.lte('entry_date', endDate.toISOString());
   }
-  
-  const { data: trades, error } = await query
-  
+
+  const { data: trades, error } = await query;
+
   if (error || !trades || trades.length === 0) {
-    console.error("Error fetching trades:", error)
-    return generateDefaultData()
+    console.error('Error fetching trades:', error);
+    return generateDefaultData();
   }
-  
+
   // Initial portfolio value
-  const INITIAL_CAPITAL = 10000
-  
+  const INITIAL_CAPITAL = 10000;
+
   // Group trades by date and calculate cumulative P&L
-  const dailyPnL = new Map<string, number>()
-  
+  const dailyPnL = new Map<string, number>();
+
   // Process all trades to calculate daily P&L
   for (const trade of trades) {
     // Only count closed trades for realized P&L
     if (trade.exit_date && trade.exit_price) {
-      const exitDate = trade.exit_date.split('T')[0]
-      const multiplier = (trade as any).multiplier != null 
-        ? Number((trade as any).multiplier)
-        : (trade.asset_type === 'option' ? 100 : 1)
-      const side = String(trade.side || '').toLowerCase()
-      const pnl = side === 'buy' 
-        ? (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
-        : (trade.entry_price - trade.exit_price) * trade.quantity * multiplier
-      
-      const currentPnL = dailyPnL.get(exitDate) || 0
-      dailyPnL.set(exitDate, currentPnL + pnl)
+      const exitDate = trade.exit_date.split('T')[0];
+      const multiplier =
+        (trade as any).multiplier != null
+          ? Number((trade as any).multiplier)
+          : trade.asset_type === 'option'
+            ? 100
+            : 1;
+      const side = String(trade.side || '').toLowerCase();
+      const pnl =
+        side === 'buy'
+          ? (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
+          : (trade.entry_price - trade.exit_price) * trade.quantity * multiplier;
+
+      const currentPnL = dailyPnL.get(exitDate) || 0;
+      dailyPnL.set(exitDate, currentPnL + pnl);
     }
   }
-  
+
   // Generate continuous time series
-  const dataPoints: PortfolioDataPoint[] = []
-  const dates = Array.from(dailyPnL.keys()).sort()
-  
+  const dataPoints: PortfolioDataPoint[] = [];
+  const dates = Array.from(dailyPnL.keys()).sort();
+
   if (dates.length === 0) {
-    return generateDefaultData()
+    return generateDefaultData();
   }
-  
+
   // Determine date range
-  const firstDate = new Date(dates[0])
-  const lastDate = endDate || new Date()
-  const currentDate = new Date(firstDate)
-  
-  let cumulativeValue = INITIAL_CAPITAL
-  let previousValue = INITIAL_CAPITAL
-  
+  const firstDate = new Date(dates[0]);
+  const lastDate = endDate || new Date();
+  const currentDate = new Date(firstDate);
+
+  let cumulativeValue = INITIAL_CAPITAL;
+  let previousValue = INITIAL_CAPITAL;
+
   // Generate daily data points
   while (currentDate <= lastDate) {
-    const dateStr = currentDate.toISOString().split('T')[0]
-    const dayPnL = dailyPnL.get(dateStr) || 0
-    
-    cumulativeValue += dayPnL
-    
-    const dollarChange = cumulativeValue - previousValue
-    const percentChange = previousValue !== 0 
-      ? ((cumulativeValue - previousValue) / previousValue) * 100 
-      : 0
-    
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const dayPnL = dailyPnL.get(dateStr) || 0;
+
+    cumulativeValue += dayPnL;
+
+    const dollarChange = cumulativeValue - previousValue;
+    const percentChange =
+      previousValue !== 0 ? ((cumulativeValue - previousValue) / previousValue) * 100 : 0;
+
     dataPoints.push({
       date: dateStr,
       value: cumulativeValue,
       dollarChange: cumulativeValue - INITIAL_CAPITAL,
-      percentChange: ((cumulativeValue - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100
-    })
-    
+      percentChange: ((cumulativeValue - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100,
+    });
+
     // Move to next day
-    currentDate.setDate(currentDate.getDate() + 1)
+    currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   // If we have less than 30 data points, add some historical context
   if (dataPoints.length < 30) {
-    const historicalPoints = generateHistoricalData(INITIAL_CAPITAL, 30 - dataPoints.length)
-    return [...historicalPoints, ...dataPoints]
+    const historicalPoints = generateHistoricalData(INITIAL_CAPITAL, 30 - dataPoints.length);
+    return [...historicalPoints, ...dataPoints];
   }
-  
-  return dataPoints
+
+  return dataPoints;
 }
 
 /**
  * Generate default data when no trades exist
  */
 function generateDefaultData(): PortfolioDataPoint[] {
-  const INITIAL_CAPITAL = 10000
-  const dataPoints: PortfolioDataPoint[] = []
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setMonth(startDate.getMonth() - 1) // Last 30 days
-  
-  const currentDate = new Date(startDate)
-  let currentValue = INITIAL_CAPITAL
-  
+  const INITIAL_CAPITAL = 10000;
+  const dataPoints: PortfolioDataPoint[] = [];
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setMonth(startDate.getMonth() - 1); // Last 30 days
+
+  const currentDate = new Date(startDate);
+  let currentValue = INITIAL_CAPITAL;
+
   while (currentDate <= endDate) {
     // Add some realistic variation
-    const dailyChange = (Math.random() - 0.5) * 200 // +/- $100 average
-    currentValue = Math.max(INITIAL_CAPITAL * 0.9, Math.min(INITIAL_CAPITAL * 1.1, currentValue + dailyChange))
-    
+    const dailyChange = (Math.random() - 0.5) * 200; // +/- $100 average
+    currentValue = Math.max(
+      INITIAL_CAPITAL * 0.9,
+      Math.min(INITIAL_CAPITAL * 1.1, currentValue + dailyChange),
+    );
+
     dataPoints.push({
       date: currentDate.toISOString().split('T')[0],
       value: currentValue,
       dollarChange: currentValue - INITIAL_CAPITAL,
-      percentChange: ((currentValue - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100
-    })
-    
-    currentDate.setDate(currentDate.getDate() + 1)
+      percentChange: ((currentValue - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100,
+    });
+
+    currentDate.setDate(currentDate.getDate() + 1);
   }
-  
-  return dataPoints
+
+  return dataPoints;
 }
 
 /**
  * Generate historical data points for better visualization
  */
 function generateHistoricalData(startValue: number, days: number): PortfolioDataPoint[] {
-  const dataPoints: PortfolioDataPoint[] = []
-  const endDate = new Date()
-  endDate.setDate(endDate.getDate() - days)
-  
-  let currentValue = startValue
-  
+  const dataPoints: PortfolioDataPoint[] = [];
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - days);
+
+  let currentValue = startValue;
+
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+
     // Slight random walk
-    const change = (Math.random() - 0.5) * 50
-    currentValue = Math.max(startValue * 0.95, Math.min(startValue * 1.05, currentValue + change))
-    
+    const change = (Math.random() - 0.5) * 50;
+    currentValue = Math.max(startValue * 0.95, Math.min(startValue * 1.05, currentValue + change));
+
     dataPoints.push({
       date: date.toISOString().split('T')[0],
       value: currentValue,
       dollarChange: currentValue - startValue,
-      percentChange: ((currentValue - startValue) / startValue) * 100
-    })
+      percentChange: ((currentValue - startValue) / startValue) * 100,
+    });
   }
-  
-  return dataPoints
+
+  return dataPoints;
 }
 
 /**
@@ -184,27 +190,25 @@ export function getPortfolioStats(data: PortfolioDataPoint[]) {
       dayChangePercent: 0,
       highValue: 0,
       lowValue: 0,
-      volatility: 0
-    }
+      volatility: 0,
+    };
   }
-  
-  const latest = data[data.length - 1]
-  const previous = data.length > 1 ? data[data.length - 2] : data[0]
-  const first = data[0]
-  
+
+  const latest = data[data.length - 1];
+  const previous = data.length > 1 ? data[data.length - 2] : data[0];
+  const first = data[0];
+
   // Calculate statistics
-  const values = data.map(d => d.value)
-  const highValue = Math.max(...values)
-  const lowValue = Math.min(...values)
-  
+  const values = data.map((d) => d.value);
+  const highValue = Math.max(...values);
+  const lowValue = Math.min(...values);
+
   // Calculate volatility (standard deviation of daily returns)
-  const returns = data.slice(1).map((d, i) => 
-    (d.value - data[i].value) / data[i].value
-  )
-  const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length
-  const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
-  const volatility = Math.sqrt(variance) * Math.sqrt(252) * 100 // Annualized
-  
+  const returns = data.slice(1).map((d, i) => (d.value - data[i].value) / data[i].value);
+  const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
+  const volatility = Math.sqrt(variance) * Math.sqrt(252) * 100; // Annualized
+
   return {
     currentValue: latest.value,
     totalReturn: latest.value - first.value,
@@ -213,6 +217,6 @@ export function getPortfolioStats(data: PortfolioDataPoint[]) {
     dayChangePercent: ((latest.value - previous.value) / previous.value) * 100,
     highValue,
     lowValue,
-    volatility
-  }
+    volatility,
+  };
 }

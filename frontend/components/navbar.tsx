@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,33 +9,33 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { usePathname } from "next/navigation"
+} from '@/components/ui/breadcrumb';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { usePathname } from 'next/navigation';
 
 export function Navbar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   const getBreadcrumbs = () => {
-    const segments = pathname.split("/").filter(Boolean)
-    const breadcrumbs = []
+    const segments = pathname.split('/').filter(Boolean);
+    const breadcrumbs = [];
 
     for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i]
-      const href = "/" + segments.slice(0, i + 1).join("/")
-      const isLast = i === segments.length - 1
+      const segment = segments[i];
+      const href = '/' + segments.slice(0, i + 1).join('/');
+      const isLast = i === segments.length - 1;
 
       breadcrumbs.push({
-        label: segment.charAt(0).toUpperCase() + segment.slice(1).replace("-", " "),
+        label: segment.charAt(0).toUpperCase() + segment.slice(1).replace('-', ' '),
         href,
         isLast,
-      })
+      });
     }
 
-    return breadcrumbs
-  }
+    return breadcrumbs;
+  };
 
-  const breadcrumbs = getBreadcrumbs()
+  const breadcrumbs = getBreadcrumbs();
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -61,5 +61,5 @@ export function Navbar() {
         <ThemeToggle />
       </div>
     </header>
-  )
+  );
 }

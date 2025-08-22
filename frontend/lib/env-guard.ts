@@ -1,25 +1,25 @@
 // Env guard for sanity checks
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-let warned = false
+let warned = false;
 export function checkSupabaseEnv() {
-  if (warned) return
-  let bad = false
+  if (warned) return;
+  let bad = false;
   if (!url || !key) {
-    bad = true
+    bad = true;
     if (typeof window !== 'undefined') {
       // eslint-disable-next-line no-console
-      console.warn('[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY')
+      console.warn('[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
     }
   }
   if (url && url.endsWith('/')) {
-    bad = true
+    bad = true;
     if (typeof window !== 'undefined') {
       // eslint-disable-next-line no-console
-      console.warn('[Supabase] NEXT_PUBLIC_SUPABASE_URL should not have a trailing slash:', url)
+      console.warn('[Supabase] NEXT_PUBLIC_SUPABASE_URL should not have a trailing slash:', url);
     }
   }
-  warned = true
-  return !bad
+  warned = true;
+  return !bad;
 }

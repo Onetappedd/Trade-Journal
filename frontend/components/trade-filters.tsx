@@ -1,130 +1,136 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { X, Search, Filter } from "lucide-react"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { X, Search, Filter } from 'lucide-react';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface FilterState {
-  ticker: string
-  assetType: string
-  broker: string
-  dateFrom: string
-  dateTo: string
-  pnlMin: string
-  pnlMax: string
-  tags: string[]
-  status: string
+  ticker: string;
+  assetType: string;
+  broker: string;
+  dateFrom: string;
+  dateTo: string;
+  pnlMin: string;
+  pnlMax: string;
+  tags: string[];
+  status: string;
 }
 
 interface TradeFiltersProps {
-  onFiltersChange: (filters: FilterState) => void
+  onFiltersChange: (filters: FilterState) => void;
 }
 
 const PREDEFINED_TAGS = [
-  "Scalp",
-  "Swing",
-  "Day Trade",
-  "Breakout",
-  "Reversal",
-  "Momentum",
-  "Emotional",
-  "FOMO",
-  "Revenge Trade",
-  "Planned",
-]
+  'Scalp',
+  'Swing',
+  'Day Trade',
+  'Breakout',
+  'Reversal',
+  'Momentum',
+  'Emotional',
+  'FOMO',
+  'Revenge Trade',
+  'Planned',
+];
 
 export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [filters, setFilters] = useState<FilterState>({
-    ticker: searchParams.get("ticker") || "",
-    assetType: searchParams.get("assetType") || "all",
-    broker: searchParams.get("broker") || "all",
-    dateFrom: searchParams.get("dateFrom") || "",
-    dateTo: searchParams.get("dateTo") || "",
-    pnlMin: searchParams.get("pnlMin") || "",
-    pnlMax: searchParams.get("pnlMax") || "",
-    tags: searchParams.get("tags")?.split(",").filter(Boolean) || [],
-    status: searchParams.get("status") || "all",
-  })
+    ticker: searchParams.get('ticker') || '',
+    assetType: searchParams.get('assetType') || 'all',
+    broker: searchParams.get('broker') || 'all',
+    dateFrom: searchParams.get('dateFrom') || '',
+    dateTo: searchParams.get('dateTo') || '',
+    pnlMin: searchParams.get('pnlMin') || '',
+    pnlMax: searchParams.get('pnlMax') || '',
+    tags: searchParams.get('tags')?.split(',').filter(Boolean) || [],
+    status: searchParams.get('status') || 'all',
+  });
 
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const debouncedFilters = useDebounce(filters, 300)
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const debouncedFilters = useDebounce(filters, 300);
 
   useEffect(() => {
     // Only call onFiltersChange, don't update URL here to prevent loops
-    onFiltersChange(debouncedFilters)
-  }, [debouncedFilters, onFiltersChange])
+    onFiltersChange(debouncedFilters);
+  }, [debouncedFilters, onFiltersChange]);
 
   // Separate effect for URL updates to prevent infinite loops
   useEffect(() => {
-    const params = new URLSearchParams()
+    const params = new URLSearchParams();
     Object.entries(debouncedFilters).forEach(([key, value]) => {
-      if (value && value.length > 0 && value !== "all") {
+      if (value && value.length > 0 && value !== 'all') {
         if (Array.isArray(value)) {
           if (value.length > 0) {
-            params.set(key, value.join(","))
+            params.set(key, value.join(','));
           }
         } else {
-          params.set(key, value)
+          params.set(key, value);
         }
       }
-    })
+    });
 
-    const queryString = params.toString()
-    const newUrl = `/trade-history${queryString ? `?${queryString}` : ""}`
+    const queryString = params.toString();
+    const newUrl = `/trade-history${queryString ? `?${queryString}` : ''}`;
 
     // Only update URL if it's actually different
     if (window.location.pathname + window.location.search !== newUrl) {
-      router.replace(newUrl, { scroll: false })
+      router.replace(newUrl, { scroll: false });
     }
-  }, [debouncedFilters, router])
+  }, [debouncedFilters, router]);
 
   const updateFilter = (key: keyof FilterState, value: string | string[]) => {
-    setFilters((prev) => ({ ...prev, [key]: value }))
-  }
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
 
   const addTag = (tag: string) => {
     if (!filters.tags.includes(tag)) {
-      updateFilter("tags", [...filters.tags, tag])
+      updateFilter('tags', [...filters.tags, tag]);
     }
-  }
+  };
 
   const removeTag = (tag: string) => {
     updateFilter(
-      "tags",
+      'tags',
       filters.tags.filter((t) => t !== tag),
-    )
-  }
+    );
+  };
 
   const clearFilters = () => {
     setFilters({
-      ticker: "",
-      assetType: "all",
-      broker: "all",
-      dateFrom: "",
-      dateTo: "",
-      pnlMin: "",
-      pnlMax: "",
+      ticker: '',
+      assetType: 'all',
+      broker: 'all',
+      dateFrom: '',
+      dateTo: '',
+      pnlMin: '',
+      pnlMax: '',
       tags: [],
-      status: "all",
-    })
-  }
+      status: 'all',
+    });
+  };
 
   const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
     if (Array.isArray(value)) {
-      return value.length > 0
+      return value.length > 0;
     }
-    return value !== "" && value !== "all"
-  })
+    return value !== '' && value !== 'all';
+  });
 
   return (
     <Card>
@@ -139,7 +145,7 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
                 id="ticker"
                 placeholder="e.g., AAPL"
                 value={filters.ticker}
-                onChange={(e) => updateFilter("ticker", e.target.value.toUpperCase())}
+                onChange={(e) => updateFilter('ticker', e.target.value.toUpperCase())}
                 className="pl-8"
               />
             </div>
@@ -147,7 +153,10 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
 
           <div className="space-y-2">
             <Label>Asset Type</Label>
-            <Select value={filters.assetType} onValueChange={(value) => updateFilter("assetType", value)}>
+            <Select
+              value={filters.assetType}
+              onValueChange={(value) => updateFilter('assetType', value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
@@ -163,7 +172,7 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
 
           <div className="space-y-2">
             <Label>Broker</Label>
-            <Select value={filters.broker} onValueChange={(value) => updateFilter("broker", value)}>
+            <Select value={filters.broker} onValueChange={(value) => updateFilter('broker', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All brokers" />
               </SelectTrigger>
@@ -179,7 +188,7 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
 
           <div className="space-y-2">
             <Label>Status</Label>
-            <Select value={filters.status} onValueChange={(value) => updateFilter("status", value)}>
+            <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All trades" />
               </SelectTrigger>
@@ -221,7 +230,7 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
                   id="dateFrom"
                   type="date"
                   value={filters.dateFrom}
-                  onChange={(e) => updateFilter("dateFrom", e.target.value)}
+                  onChange={(e) => updateFilter('dateFrom', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -230,7 +239,7 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
                   id="dateTo"
                   type="date"
                   value={filters.dateTo}
-                  onChange={(e) => updateFilter("dateTo", e.target.value)}
+                  onChange={(e) => updateFilter('dateTo', e.target.value)}
                 />
               </div>
             </div>
@@ -243,7 +252,7 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
                   type="number"
                   placeholder="0.00"
                   value={filters.pnlMin}
-                  onChange={(e) => updateFilter("pnlMin", e.target.value)}
+                  onChange={(e) => updateFilter('pnlMin', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -253,7 +262,7 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
                   type="number"
                   placeholder="1000.00"
                   value={filters.pnlMax}
-                  onChange={(e) => updateFilter("pnlMax", e.target.value)}
+                  onChange={(e) => updateFilter('pnlMax', e.target.value)}
                 />
               </div>
             </div>
@@ -289,5 +298,5 @@ export function TradeFilters({ onFiltersChange }: TradeFiltersProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

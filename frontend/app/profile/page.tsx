@@ -1,111 +1,121 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
-import { User, Bell, Shield, CreditCard, Activity } from "lucide-react"
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { User, Bell, Shield, CreditCard, Activity } from 'lucide-react';
 
 interface Profile {
-  id: string
-  user_id: string
-  full_name: string | null
-  email: string
-  avatar_url: string | null
-  bio: string | null
-  timezone: string | null
-  notifications_enabled: boolean
-  email_notifications: boolean
-  push_notifications: boolean
-  created_at: string
-  updated_at: string
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string;
+  avatar_url: string | null;
+  bio: string | null;
+  timezone: string | null;
+  notifications_enabled: boolean;
+  email_notifications: boolean;
+  push_notifications: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const { toast } = useToast()
-  const supabase = createClient()
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+  const supabase = createClient();
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const { data, error } = await supabase.from("profiles").select("*").eq("user_id", user.id).single()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-      if (error) throw error
-      setProfile(data)
+      if (error) throw error;
+      setProfile(data);
     } catch (error) {
-      console.error("Error fetching profile:", error)
+      console.error('Error fetching profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to load profile data",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to load profile data',
+        variant: 'destructive',
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    if (!profile) return
+    if (!profile) return;
 
-    setSaving(true)
+    setSaving(true);
     try {
       const { error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", profile.id)
+        .eq('id', profile.id);
 
-      if (error) throw error
+      if (error) throw error;
 
-      setProfile({ ...profile, ...updates })
+      setProfile({ ...profile, ...updates });
       toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      })
+        title: 'Success',
+        description: 'Profile updated successfully',
+      });
     } catch (error) {
-      console.error("Error updating profile:", error)
+      console.error('Error updating profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      })
+        title: 'Error',
+        description: 'Failed to update profile',
+        variant: 'destructive',
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     const updates = {
-      full_name: formData.get("full_name") as string,
-      bio: formData.get("bio") as string,
-      timezone: formData.get("timezone") as string,
-    }
-    updateProfile(updates)
-  }
+      full_name: formData.get('full_name') as string,
+      bio: formData.get('bio') as string,
+      timezone: formData.get('timezone') as string,
+    };
+    updateProfile(updates);
+  };
 
   if (loading) {
     return (
@@ -118,7 +128,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!profile) {
@@ -129,7 +139,7 @@ export default function ProfilePage() {
           <p className="text-gray-600 mt-2">Unable to load your profile data.</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -172,7 +182,9 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>Update your personal information and profile settings</CardDescription>
+                <CardDescription>
+                  Update your personal information and profile settings
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-6">
@@ -199,7 +211,7 @@ export default function ProfilePage() {
                       <Input
                         id="full_name"
                         name="full_name"
-                        defaultValue={profile.full_name || ""}
+                        defaultValue={profile.full_name || ''}
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -221,7 +233,7 @@ export default function ProfilePage() {
                     <Textarea
                       id="bio"
                       name="bio"
-                      defaultValue={profile.bio || ""}
+                      defaultValue={profile.bio || ''}
                       placeholder="Tell us about yourself..."
                       rows={3}
                     />
@@ -229,7 +241,7 @@ export default function ProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="timezone">Timezone</Label>
-                    <Select name="timezone" defaultValue={profile.timezone || ""}>
+                    <Select name="timezone" defaultValue={profile.timezone || ''}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select your timezone" />
                       </SelectTrigger>
@@ -248,7 +260,7 @@ export default function ProfilePage() {
 
                   <div className="flex justify-end">
                     <Button type="submit" disabled={saving}>
-                      {saving ? "Saving..." : "Save Changes"}
+                      {saving ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>
                 </form>
@@ -261,14 +273,18 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Choose how you want to be notified about trading activities</CardDescription>
+                <CardDescription>
+                  Choose how you want to be notified about trading activities
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Email Notifications</Label>
-                      <p className="text-sm text-gray-600">Receive email updates about your trades and account</p>
+                      <p className="text-sm text-gray-600">
+                        Receive email updates about your trades and account
+                      </p>
                     </div>
                     <Switch
                       checked={profile.email_notifications}
@@ -281,7 +297,9 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Push Notifications</Label>
-                      <p className="text-sm text-gray-600">Get push notifications for important trading alerts</p>
+                      <p className="text-sm text-gray-600">
+                        Get push notifications for important trading alerts
+                      </p>
                     </div>
                     <Switch
                       checked={profile.push_notifications}
@@ -294,11 +312,15 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>All Notifications</Label>
-                      <p className="text-sm text-gray-600">Master toggle for all notification types</p>
+                      <p className="text-sm text-gray-600">
+                        Master toggle for all notification types
+                      </p>
                     </div>
                     <Switch
                       checked={profile.notifications_enabled}
-                      onCheckedChange={(checked) => updateProfile({ notifications_enabled: checked })}
+                      onCheckedChange={(checked) =>
+                        updateProfile({ notifications_enabled: checked })
+                      }
                     />
                   </div>
                 </div>
@@ -328,7 +350,9 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Two-Factor Authentication</Label>
-                      <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+                      <p className="text-sm text-gray-600">
+                        Add an extra layer of security to your account
+                      </p>
                     </div>
                     <Button variant="outline">Enable 2FA</Button>
                   </div>
@@ -390,5 +414,5 @@ export default function ProfilePage() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }

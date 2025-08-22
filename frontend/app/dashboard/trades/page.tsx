@@ -1,7 +1,7 @@
-"use client"
+'use client';
 
-import { TradeTable } from "@/components/trades/TradeTable"
-import { TradeStats } from "@/components/trades/TradeStats"
+import { TradeTable } from '@/components/trades/TradeTable';
+import { TradeStats } from '@/components/trades/TradeStats';
 
 export default function TradesPage() {
   return (
@@ -10,5 +10,5 @@ export default function TradesPage() {
       <TradeStats />
       <TradeTable />
     </div>
-  )
+  );
 }

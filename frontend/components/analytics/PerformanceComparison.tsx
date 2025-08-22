@@ -1,22 +1,44 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
-import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Area, AreaChart 
-} from "recharts"
-import { 
-  TrendingUp, TrendingDown, Calendar, BarChart3, 
-  Target, Activity, DollarSign, RefreshCw 
-} from "lucide-react"
-import { useAuth } from "@/components/auth/auth-provider"
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
+import {
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  BarChart3,
+  Target,
+  Activity,
+  DollarSign,
+  RefreshCw,
+} from 'lucide-react';
+import { useAuth } from '@/components/auth/auth-provider';
 import {
   calculatePeriodPerformance,
   compareToBenchmark,
@@ -24,112 +46,113 @@ import {
   calculateUserPerformance,
   type PeriodPerformance,
   type BenchmarkComparison,
-  type StrategyPerformance
-} from "@/lib/performance-comparison"
+  type StrategyPerformance,
+} from '@/lib/performance-comparison';
 
 export function PerformanceComparison() {
-  const { user } = useAuth()
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly')
-  const [selectedBenchmark, setSelectedBenchmark] = useState<'SPY' | 'QQQ'>('SPY')
-  
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'quarterly' | 'yearly'>(
+    'monthly',
+  );
+  const [selectedBenchmark, setSelectedBenchmark] = useState<'SPY' | 'QQQ'>('SPY');
+
   // State for different comparisons
-  const [periodComparisons, setPeriodComparisons] = useState<PeriodPerformance[]>([])
-  const [benchmarkData, setBenchmarkData] = useState<BenchmarkComparison | null>(null)
-  const [strategyData, setStrategyData] = useState<StrategyPerformance[]>([])
-  const [chartData, setChartData] = useState<any[]>([])
+  const [periodComparisons, setPeriodComparisons] = useState<PeriodPerformance[]>([]);
+  const [benchmarkData, setBenchmarkData] = useState<BenchmarkComparison | null>(null);
+  const [strategyData, setStrategyData] = useState<StrategyPerformance[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   const formatCurrency = (value: number) => {
-    const prefix = value >= 0 ? "+" : ""
-    return `${prefix}$${Math.abs(value).toLocaleString('en-US', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    })}`
-  }
+    const prefix = value >= 0 ? '+' : '';
+    return `${prefix}$${Math.abs(value).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   const formatPercent = (value: number) => {
-    const prefix = value >= 0 ? "+" : ""
-    return `${prefix}${value.toFixed(2)}%`
-  }
+    const prefix = value >= 0 ? '+' : '';
+    return `${prefix}${value.toFixed(2)}%`;
+  };
 
   // Fetch all comparison data
   const fetchComparisonData = async () => {
-    if (!user) return
-    
-    setIsLoading(true)
+    if (!user) return;
+
+    setIsLoading(true);
     try {
-      const endDate = new Date()
-      const startDate = new Date()
-      
+      const endDate = new Date();
+      const startDate = new Date();
+
       // Set date range based on selected period
       switch (selectedPeriod) {
         case 'monthly':
-          startDate.setMonth(startDate.getMonth() - 12) // Last 12 months
-          break
+          startDate.setMonth(startDate.getMonth() - 12); // Last 12 months
+          break;
         case 'quarterly':
-          startDate.setMonth(startDate.getMonth() - 12) // Last 4 quarters
-          break
+          startDate.setMonth(startDate.getMonth() - 12); // Last 4 quarters
+          break;
         case 'yearly':
-          startDate.setFullYear(startDate.getFullYear() - 3) // Last 3 years
-          break
+          startDate.setFullYear(startDate.getFullYear() - 3); // Last 3 years
+          break;
       }
-      
+
       // Fetch period comparisons
-      const periods: PeriodPerformance[] = []
-      const currentDate = new Date()
-      
+      const periods: PeriodPerformance[] = [];
+      const currentDate = new Date();
+
       if (selectedPeriod === 'monthly') {
         for (let i = 0; i < 12; i++) {
-          const date = new Date(currentDate)
-          date.setMonth(date.getMonth() - i)
-          const perf = await calculatePeriodPerformance(user.id, 'monthly', date)
-          periods.push(perf)
+          const date = new Date(currentDate);
+          date.setMonth(date.getMonth() - i);
+          const perf = await calculatePeriodPerformance(user.id, 'monthly', date);
+          periods.push(perf);
         }
       } else if (selectedPeriod === 'quarterly') {
         for (let i = 0; i < 4; i++) {
-          const date = new Date(currentDate)
-          date.setMonth(date.getMonth() - (i * 3))
-          const perf = await calculatePeriodPerformance(user.id, 'quarterly', date)
-          periods.push(perf)
+          const date = new Date(currentDate);
+          date.setMonth(date.getMonth() - i * 3);
+          const perf = await calculatePeriodPerformance(user.id, 'quarterly', date);
+          periods.push(perf);
         }
       } else {
         for (let i = 0; i < 3; i++) {
-          const date = new Date(currentDate)
-          date.setFullYear(date.getFullYear() - i)
-          const perf = await calculatePeriodPerformance(user.id, 'yearly', date)
-          periods.push(perf)
+          const date = new Date(currentDate);
+          date.setFullYear(date.getFullYear() - i);
+          const perf = await calculatePeriodPerformance(user.id, 'yearly', date);
+          periods.push(perf);
         }
       }
-      
-      setPeriodComparisons(periods.reverse())
-      
+
+      setPeriodComparisons(periods.reverse());
+
       // Fetch benchmark comparison
-      const benchmark = await compareToBenchmark(user.id, selectedBenchmark, startDate, endDate)
-      setBenchmarkData(benchmark)
-      
+      const benchmark = await compareToBenchmark(user.id, selectedBenchmark, startDate, endDate);
+      setBenchmarkData(benchmark);
+
       // Fetch strategy comparison
-      const strategies = await compareStrategies(user.id, startDate, endDate)
-      setStrategyData(strategies)
-      
+      const strategies = await compareStrategies(user.id, startDate, endDate);
+      setStrategyData(strategies);
+
       // Prepare chart data
-      const userPerf = await calculateUserPerformance(user.id, startDate, endDate)
-      const chartPoints = userPerf.map(point => ({
+      const userPerf = await calculateUserPerformance(user.id, startDate, endDate);
+      const chartPoints = userPerf.map((point) => ({
         date: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         portfolio: point.value,
-        change: point.percentChange
-      }))
-      setChartData(chartPoints)
-      
+        change: point.percentChange,
+      }));
+      setChartData(chartPoints);
     } catch (error) {
-      console.error("Error fetching comparison data:", error)
+      console.error('Error fetching comparison data:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchComparisonData()
-  }, [user, selectedPeriod, selectedBenchmark])
+    fetchComparisonData();
+  }, [user, selectedPeriod, selectedBenchmark]);
 
   if (!user) {
     return (
@@ -138,7 +161,7 @@ export function PerformanceComparison() {
           <p className="text-muted-foreground">Please log in to view performance comparisons</p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -164,7 +187,7 @@ export function PerformanceComparison() {
                   <SelectItem value="yearly">Yearly</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={selectedBenchmark} onValueChange={(v: any) => setSelectedBenchmark(v)}>
                 <SelectTrigger className="w-24">
                   <SelectValue />
@@ -174,9 +197,9 @@ export function PerformanceComparison() {
                   <SelectItem value="QQQ">QQQ</SelectItem>
                 </SelectContent>
               </Select>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={fetchComparisonData}
                 disabled={isLoading}
@@ -205,54 +228,54 @@ export function PerformanceComparison() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Your Performance</p>
-                    <p className={`text-2xl font-bold ${
-                      benchmarkData.userPerformance >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <p
+                      className={`text-2xl font-bold ${
+                        benchmarkData.userPerformance >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
                       {formatPercent(benchmarkData.userPerformance)}
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">{selectedBenchmark} Performance</p>
-                    <p className={`text-2xl font-bold ${
-                      benchmarkData.benchmarkPerformance >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <p
+                      className={`text-2xl font-bold ${
+                        benchmarkData.benchmarkPerformance >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
                       {formatPercent(benchmarkData.benchmarkPerformance)}
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Alpha (Excess Return)</p>
-                    <p className={`text-2xl font-bold ${
-                      benchmarkData.alpha >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <p
+                      className={`text-2xl font-bold ${
+                        benchmarkData.alpha >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
                       {formatPercent(benchmarkData.alpha)}
                     </p>
-                    <Badge variant={benchmarkData.alpha >= 0 ? "default" : "destructive"}>
-                      {benchmarkData.alpha >= 0 ? "Outperforming" : "Underperforming"}
+                    <Badge variant={benchmarkData.alpha >= 0 ? 'default' : 'destructive'}>
+                      {benchmarkData.alpha >= 0 ? 'Outperforming' : 'Underperforming'}
                     </Badge>
                   </div>
                 </div>
-                
+
                 {/* Visual comparison bar */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span>You</span>
                     <span>{formatPercent(benchmarkData.userPerformance)}</span>
                   </div>
-                  <Progress 
-                    value={Math.abs(benchmarkData.userPerformance)} 
-                    className="h-2"
-                  />
-                  
+                  <Progress value={Math.abs(benchmarkData.userPerformance)} className="h-2" />
+
                   <div className="flex items-center justify-between text-sm">
                     <span>{selectedBenchmark}</span>
                     <span>{formatPercent(benchmarkData.benchmarkPerformance)}</span>
                   </div>
-                  <Progress 
-                    value={Math.abs(benchmarkData.benchmarkPerformance)} 
-                    className="h-2"
-                  />
+                  <Progress value={Math.abs(benchmarkData.benchmarkPerformance)} className="h-2" />
                 </div>
               </div>
             )}
@@ -282,23 +305,23 @@ export function PerformanceComparison() {
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
-                    <RechartsTooltip 
+                    <RechartsTooltip
                       formatter={(value: any) => [`${value.toFixed(2)}`, 'Portfolio Value']}
                     />
                     <Legend />
-                    <Area 
-                      type="monotone" 
-                      dataKey="portfolio" 
-                      stroke="#10b981" 
-                      fillOpacity={1} 
-                      fill="url(#colorPortfolio)" 
+                    <Area
+                      type="monotone"
+                      dataKey="portfolio"
+                      stroke="#10b981"
+                      fillOpacity={1}
+                      fill="url(#colorPortfolio)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -315,7 +338,10 @@ export function PerformanceComparison() {
         <TabsContent value="periods">
           <Card>
             <CardHeader>
-              <CardTitle>{selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} Performance Breakdown</CardTitle>
+              <CardTitle>
+                {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} Performance
+                Breakdown
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -328,8 +354,8 @@ export function PerformanceComparison() {
                       <p className="text-sm text-muted-foreground">Average Return</p>
                       <p className="text-xl font-bold">
                         {formatPercent(
-                          periodComparisons.reduce((sum, p) => sum + p.percentReturn, 0) / 
-                          (periodComparisons.length || 1)
+                          periodComparisons.reduce((sum, p) => sum + p.percentReturn, 0) /
+                            (periodComparisons.length || 1),
                         )}
                       </p>
                     </div>
@@ -337,7 +363,7 @@ export function PerformanceComparison() {
                       <p className="text-sm text-muted-foreground">Best Period</p>
                       <p className="text-xl font-bold text-green-600">
                         {formatPercent(
-                          Math.max(...periodComparisons.map(p => p.percentReturn), 0)
+                          Math.max(...periodComparisons.map((p) => p.percentReturn), 0),
                         )}
                       </p>
                     </div>
@@ -345,7 +371,7 @@ export function PerformanceComparison() {
                       <p className="text-sm text-muted-foreground">Worst Period</p>
                       <p className="text-xl font-bold text-red-600">
                         {formatPercent(
-                          Math.min(...periodComparisons.map(p => p.percentReturn), 0)
+                          Math.min(...periodComparisons.map((p) => p.percentReturn), 0),
                         )}
                       </p>
                     </div>
@@ -353,8 +379,9 @@ export function PerformanceComparison() {
                       <p className="text-sm text-muted-foreground">Win Rate</p>
                       <p className="text-xl font-bold">
                         {formatPercent(
-                          (periodComparisons.filter(p => p.percentReturn > 0).length / 
-                          (periodComparisons.length || 1)) * 100
+                          (periodComparisons.filter((p) => p.percentReturn > 0).length /
+                            (periodComparisons.length || 1)) *
+                            100,
                         )}
                       </p>
                     </div>
@@ -362,19 +389,21 @@ export function PerformanceComparison() {
 
                   {/* Period Chart */}
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={periodComparisons.map((p, i) => ({
-                      period: `Period ${i + 1}`,
-                      return: p.percentReturn,
-                      trades: p.totalTrades
-                    }))}>
+                    <BarChart
+                      data={periodComparisons.map((p, i) => ({
+                        period: `Period ${i + 1}`,
+                        return: p.percentReturn,
+                        trades: p.totalTrades,
+                      }))}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="period" />
                       <YAxis />
                       <RechartsTooltip />
                       <Legend />
-                      <Bar 
-                        dataKey="return" 
-                        fill={(entry: any) => entry.return >= 0 ? "#10b981" : "#ef4444"}
+                      <Bar
+                        dataKey="return"
+                        fill={(entry: any) => (entry.return >= 0 ? '#10b981' : '#ef4444')}
                         name="Return (%)"
                       />
                     </BarChart>
@@ -398,24 +427,30 @@ export function PerformanceComparison() {
                         {periodComparisons.map((period, i) => (
                           <tr key={i} className="border-b">
                             <td className="p-2">
-                              {new Date(period.startDate).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                year: 'numeric' 
+                              {new Date(period.startDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                year: 'numeric',
                               })}
                             </td>
-                            <td className={`text-right p-2 font-medium ${
-                              period.percentReturn >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
+                            <td
+                              className={`text-right p-2 font-medium ${
+                                period.percentReturn >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
                               {formatPercent(period.percentReturn)}
                             </td>
-                            <td className={`text-right p-2 ${
-                              period.absoluteReturn >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
+                            <td
+                              className={`text-right p-2 ${
+                                period.absoluteReturn >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
                               {formatCurrency(period.absoluteReturn)}
                             </td>
                             <td className="text-right p-2">{period.totalTrades}</td>
                             <td className="text-right p-2">{formatPercent(period.winRate)}</td>
-                            <td className="text-right p-2">{formatCurrency(period.averageTrade)}</td>
+                            <td className="text-right p-2">
+                              {formatCurrency(period.averageTrade)}
+                            </td>
                             <td className="text-right p-2 text-red-600">
                               {formatCurrency(-period.maxDrawdown)}
                             </td>
@@ -456,9 +491,11 @@ export function PerformanceComparison() {
                         <CardContent className="space-y-2">
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Total P&L</span>
-                            <span className={`font-bold ${
-                              strategy.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
+                            <span
+                              className={`font-bold ${
+                                strategy.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
                               {formatCurrency(strategy.totalPnL)}
                             </span>
                           </div>
@@ -472,7 +509,9 @@ export function PerformanceComparison() {
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Avg Trade</span>
-                            <span className="font-medium">{formatCurrency(strategy.averagePnL)}</span>
+                            <span className="font-medium">
+                              {formatCurrency(strategy.averagePnL)}
+                            </span>
                           </div>
                           <div className="pt-2 border-t">
                             <div className="flex justify-between text-xs">
@@ -503,14 +542,12 @@ export function PerformanceComparison() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  No strategy data available
-                </p>
+                <p className="text-center text-muted-foreground py-8">No strategy data available</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

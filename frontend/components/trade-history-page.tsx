@@ -1,86 +1,99 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Filter, Download, Eye, Edit, Trash2 } from "lucide-react"
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Search, Filter, Download, Eye, Edit, Trash2 } from 'lucide-react';
 
 const mockTrades = [
   {
     id: 1,
-    date: "2024-01-15",
-    symbol: "AAPL",
-    action: "BUY",
+    date: '2024-01-15',
+    symbol: 'AAPL',
+    action: 'BUY',
     quantity: 100,
     price: 175.5,
     fees: 9.95,
     pnl: 234.5,
-    status: "Closed",
-    strategy: "Swing Trading",
+    status: 'Closed',
+    strategy: 'Swing Trading',
   },
   {
     id: 2,
-    date: "2024-01-14",
-    symbol: "TSLA",
-    action: "SELL",
+    date: '2024-01-14',
+    symbol: 'TSLA',
+    action: 'SELL',
     quantity: 50,
     price: 245.3,
     fees: 9.95,
     pnl: -123.45,
-    status: "Closed",
-    strategy: "Day Trading",
+    status: 'Closed',
+    strategy: 'Day Trading',
   },
   {
     id: 3,
-    date: "2024-01-13",
-    symbol: "MSFT",
-    action: "BUY",
+    date: '2024-01-13',
+    symbol: 'MSFT',
+    action: 'BUY',
     quantity: 75,
     price: 378.9,
     fees: 9.95,
     pnl: 456.78,
-    status: "Open",
-    strategy: "Position Trading",
+    status: 'Open',
+    strategy: 'Position Trading',
   },
   {
     id: 4,
-    date: "2024-01-12",
-    symbol: "GOOGL",
-    action: "SELL",
+    date: '2024-01-12',
+    symbol: 'GOOGL',
+    action: 'SELL',
     quantity: 25,
     price: 2750.0,
     fees: 9.95,
     pnl: 789.12,
-    status: "Closed",
-    strategy: "Swing Trading",
+    status: 'Closed',
+    strategy: 'Swing Trading',
   },
   {
     id: 5,
-    date: "2024-01-11",
-    symbol: "NVDA",
-    action: "BUY",
+    date: '2024-01-11',
+    symbol: 'NVDA',
+    action: 'BUY',
     quantity: 30,
     price: 875.2,
     fees: 9.95,
     pnl: -345.67,
-    status: "Closed",
-    strategy: "Scalping",
+    status: 'Closed',
+    strategy: 'Scalping',
   },
-]
+];
 
 export function TradeHistoryPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   const filteredTrades = mockTrades.filter((trade) => {
-    const matchesSearch = trade.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = filterStatus === "all" || trade.status.toLowerCase() === filterStatus
-    return matchesSearch && matchesStatus
-  })
+    const matchesSearch = trade.symbol.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || trade.status.toLowerCase() === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -158,15 +171,19 @@ export function TradeHistoryPage() {
                   <TableCell>{trade.date}</TableCell>
                   <TableCell className="font-medium">{trade.symbol}</TableCell>
                   <TableCell>
-                    <Badge variant={trade.action === "BUY" ? "default" : "secondary"}>{trade.action}</Badge>
+                    <Badge variant={trade.action === 'BUY' ? 'default' : 'secondary'}>
+                      {trade.action}
+                    </Badge>
                   </TableCell>
                   <TableCell>{trade.quantity}</TableCell>
                   <TableCell>${trade.price.toFixed(2)}</TableCell>
-                  <TableCell className={trade.pnl >= 0 ? "text-green-600" : "text-red-600"}>
-                    {trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)}
+                  <TableCell className={trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={trade.status === "Open" ? "outline" : "secondary"}>{trade.status}</Badge>
+                    <Badge variant={trade.status === 'Open' ? 'outline' : 'secondary'}>
+                      {trade.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{trade.strategy}</TableCell>
                   <TableCell>
@@ -189,5 +206,5 @@ export function TradeHistoryPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

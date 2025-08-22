@@ -1,104 +1,110 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDays, TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react"
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns"
+import { useState } from 'react';
+import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { CalendarDays, TrendingUp, TrendingDown, DollarSign, BarChart3 } from 'lucide-react';
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
 interface Trade {
-  id: string
-  date: Date
-  symbol: string
-  type: "buy" | "sell"
-  quantity: number
-  price: number
-  pnl?: number
-  status: "profit" | "loss" | "neutral"
+  id: string;
+  date: Date;
+  symbol: string;
+  type: 'buy' | 'sell';
+  quantity: number;
+  price: number;
+  pnl?: number;
+  status: 'profit' | 'loss' | 'neutral';
 }
 
 const mockTrades: Trade[] = [
   {
-    id: "1",
+    id: '1',
     date: new Date(2024, 0, 15),
-    symbol: "AAPL",
-    type: "buy",
+    symbol: 'AAPL',
+    type: 'buy',
     quantity: 100,
     price: 185.25,
     pnl: 1250.0,
-    status: "profit",
+    status: 'profit',
   },
   {
-    id: "2",
+    id: '2',
     date: new Date(2024, 0, 15),
-    symbol: "AAPL",
-    type: "sell",
+    symbol: 'AAPL',
+    type: 'sell',
     quantity: 100,
     price: 197.75,
     pnl: 1250.0,
-    status: "profit",
+    status: 'profit',
   },
   {
-    id: "3",
+    id: '3',
     date: new Date(2024, 0, 22),
-    symbol: "TSLA",
-    type: "buy",
+    symbol: 'TSLA',
+    type: 'buy',
     quantity: 50,
     price: 248.5,
     pnl: -450.0,
-    status: "loss",
+    status: 'loss',
   },
   {
-    id: "4",
+    id: '4',
     date: new Date(2024, 0, 22),
-    symbol: "TSLA",
-    type: "sell",
+    symbol: 'TSLA',
+    type: 'sell',
     quantity: 50,
     price: 239.5,
     pnl: -450.0,
-    status: "loss",
+    status: 'loss',
   },
   {
-    id: "5",
+    id: '5',
     date: new Date(2024, 0, 28),
-    symbol: "NVDA",
-    type: "buy",
+    symbol: 'NVDA',
+    type: 'buy',
     quantity: 25,
     price: 520.0,
-    status: "neutral",
+    status: 'neutral',
   },
-]
+];
 
 export function CalendarPage() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date())
-  const [viewMode, setViewMode] = useState<"month" | "week">("month")
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   const getTradesForDate = (date: Date) => {
-    return mockTrades.filter((trade) => isSameDay(trade.date, date))
-  }
+    return mockTrades.filter((trade) => isSameDay(trade.date, date));
+  };
 
   const getTradesForMonth = (date: Date) => {
-    const start = startOfMonth(date)
-    const end = endOfMonth(date)
-    return mockTrades.filter((trade) => trade.date >= start && trade.date <= end)
-  }
+    const start = startOfMonth(date);
+    const end = endOfMonth(date);
+    return mockTrades.filter((trade) => trade.date >= start && trade.date <= end);
+  };
 
   const getDayPnL = (date: Date) => {
-    const dayTrades = getTradesForDate(date)
-    return dayTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-  }
+    const dayTrades = getTradesForDate(date);
+    return dayTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+  };
 
   const getMonthlyStats = () => {
-    const monthTrades = getTradesForMonth(selectedMonth)
-    const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0)
-    const winningTrades = monthTrades.filter((trade) => (trade.pnl || 0) > 0).length
-    const losingTrades = monthTrades.filter((trade) => (trade.pnl || 0) < 0).length
-    const totalTrades = monthTrades.length
+    const monthTrades = getTradesForMonth(selectedMonth);
+    const totalPnL = monthTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
+    const winningTrades = monthTrades.filter((trade) => (trade.pnl || 0) > 0).length;
+    const losingTrades = monthTrades.filter((trade) => (trade.pnl || 0) < 0).length;
+    const totalTrades = monthTrades.length;
 
     return {
       totalPnL,
@@ -106,35 +112,35 @@ export function CalendarPage() {
       losingTrades,
       totalTrades,
       winRate: totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0,
-    }
-  }
+    };
+  };
 
-  const monthlyStats = getMonthlyStats()
-  const selectedDateTrades = selectedDate ? getTradesForDate(selectedDate) : []
+  const monthlyStats = getMonthlyStats();
+  const selectedDateTrades = selectedDate ? getTradesForDate(selectedDate) : [];
 
   const modifiers = {
     profitable: (date: Date) => getDayPnL(date) > 0,
     loss: (date: Date) => getDayPnL(date) < 0,
     neutral: (date: Date) => {
-      const trades = getTradesForDate(date)
-      return trades.length > 0 && getDayPnL(date) === 0
+      const trades = getTradesForDate(date);
+      return trades.length > 0 && getDayPnL(date) === 0;
     },
-  }
+  };
 
   const modifiersStyles = {
     profitable: {
-      backgroundColor: "rgb(34 197 94)",
-      color: "white",
+      backgroundColor: 'rgb(34 197 94)',
+      color: 'white',
     },
     loss: {
-      backgroundColor: "rgb(239 68 68)",
-      color: "white",
+      backgroundColor: 'rgb(239 68 68)',
+      color: 'white',
     },
     neutral: {
-      backgroundColor: "rgb(156 163 175)",
-      color: "white",
+      backgroundColor: 'rgb(156 163 175)',
+      color: 'white',
     },
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -142,10 +148,12 @@ export function CalendarPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Trading Calendar</h2>
-          <p className="text-muted-foreground">Track your trading activity and performance over time</p>
+          <p className="text-muted-foreground">
+            Track your trading activity and performance over time
+          </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Select value={viewMode} onValueChange={(value: "month" | "week") => setViewMode(value)}>
+          <Select value={viewMode} onValueChange={(value: 'month' | 'week') => setViewMode(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -165,10 +173,12 @@ export function CalendarPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${monthlyStats.totalPnL >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {monthlyStats.totalPnL >= 0 ? "+" : ""}${monthlyStats.totalPnL.toFixed(2)}
+            <div
+              className={`text-2xl font-bold ${monthlyStats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {monthlyStats.totalPnL >= 0 ? '+' : ''}${monthlyStats.totalPnL.toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground">{format(selectedMonth, "MMMM yyyy")}</p>
+            <p className="text-xs text-muted-foreground">{format(selectedMonth, 'MMMM yyyy')}</p>
           </CardContent>
         </Card>
 
@@ -192,7 +202,9 @@ export function CalendarPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{monthlyStats.winRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">{monthlyStats.winningTrades} winning trades</p>
+            <p className="text-xs text-muted-foreground">
+              {monthlyStats.winningTrades} winning trades
+            </p>
           </CardContent>
         </Card>
 
@@ -241,11 +253,13 @@ export function CalendarPage() {
         {/* Selected Date Details */}
         <Card>
           <CardHeader>
-            <CardTitle>{selectedDate ? format(selectedDate, "MMMM d, yyyy") : "Select a Date"}</CardTitle>
+            <CardTitle>
+              {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Select a Date'}
+            </CardTitle>
             <CardDescription>
               {selectedDateTrades.length > 0
-                ? `${selectedDateTrades.length} trade${selectedDateTrades.length > 1 ? "s" : ""}`
-                : "No trades on this date"}
+                ? `${selectedDateTrades.length} trade${selectedDateTrades.length > 1 ? 's' : ''}`
+                : 'No trades on this date'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -254,17 +268,22 @@ export function CalendarPage() {
                 {/* Daily P&L */}
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <span className="font-medium">Daily P&L</span>
-                  <span className={`font-bold ${getDayPnL(selectedDate) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {getDayPnL(selectedDate) >= 0 ? "+" : ""}${getDayPnL(selectedDate).toFixed(2)}
+                  <span
+                    className={`font-bold ${getDayPnL(selectedDate) >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {getDayPnL(selectedDate) >= 0 ? '+' : ''}${getDayPnL(selectedDate).toFixed(2)}
                   </span>
                 </div>
 
                 {/* Trades List */}
                 <div className="space-y-2">
                   {selectedDateTrades.map((trade) => (
-                    <div key={trade.id} className="flex items-center justify-between p-2 border rounded">
+                    <div
+                      key={trade.id}
+                      className="flex items-center justify-between p-2 border rounded"
+                    >
                       <div className="flex items-center space-x-2">
-                        <Badge variant={trade.type === "buy" ? "default" : "secondary"}>
+                        <Badge variant={trade.type === 'buy' ? 'default' : 'secondary'}>
                           {trade.type.toUpperCase()}
                         </Badge>
                         <span className="font-medium">{trade.symbol}</span>
@@ -273,8 +292,10 @@ export function CalendarPage() {
                         </span>
                       </div>
                       {trade.pnl !== undefined && (
-                        <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)}
+                        <span
+                          className={`text-sm font-medium ${trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        >
+                          {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
                         </span>
                       )}
                     </div>
@@ -369,5 +390,5 @@ export function CalendarPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

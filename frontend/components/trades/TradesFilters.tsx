@@ -1,22 +1,28 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Search, Filter } from "lucide-react"
-import { format } from "date-fns"
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Search, Filter } from 'lucide-react';
+import { format } from 'date-fns';
 
 export function TradesFilters() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [assetType, setAssetType] = useState("")
-  const [side, setSide] = useState("")
-  const [status, setStatus] = useState("")
-  const [dateFrom, setDateFrom] = useState<Date>()
-  const [dateTo, setDateTo] = useState<Date>()
+  const [searchTerm, setSearchTerm] = useState('');
+  const [assetType, setAssetType] = useState('');
+  const [side, setSide] = useState('');
+  const [status, setStatus] = useState('');
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
 
   return (
     <Card>
@@ -72,9 +78,12 @@ export function TradesFilters() {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-left font-normal bg-transparent">
+                <Button
+                  variant="outline"
+                  className="justify-start text-left font-normal bg-transparent"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFrom ? format(dateFrom, "PPP") : "From Date"}
+                  {dateFrom ? format(dateFrom, 'PPP') : 'From Date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -84,9 +93,12 @@ export function TradesFilters() {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-left font-normal bg-transparent">
+                <Button
+                  variant="outline"
+                  className="justify-start text-left font-normal bg-transparent"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateTo ? format(dateTo, "PPP") : "To Date"}
+                  {dateTo ? format(dateTo, 'PPP') : 'To Date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -97,5 +109,5 @@ export function TradesFilters() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

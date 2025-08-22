@@ -1,98 +1,98 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState, useRef } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState, useRef } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Trade {
-  id: string
-  symbol: string
-  side: "buy" | "sell"
-  quantity: number
-  price: number
-  date: string
-  fees?: number
-  status: "valid" | "error" | "duplicate"
-  error?: string
+  id: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  price: number;
+  date: string;
+  fees?: number;
+  status: 'valid' | 'error' | 'duplicate';
+  error?: string;
 }
 
 export default function ImportTradesPage() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [importResults, setImportResults] = useState<{
-    total: number
-    successful: number
-    errors: number
-    duplicates: number
-  } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+    total: number;
+    successful: number;
+    errors: number;
+    duplicates: number;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      setSelectedFile(file)
-      setTrades([])
-      setImportResults(null)
+      setSelectedFile(file);
+      setTrades([]);
+      setImportResults(null);
     }
-  }
+  };
 
   const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault()
-  }
+    event.preventDefault();
+  };
 
   const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault()
-    const file = event.dataTransfer.files[0]
-    if (file && (file.type === "text/csv" || file.name.endsWith(".csv"))) {
-      setSelectedFile(file)
-      setTrades([])
-      setImportResults(null)
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file && (file.type === 'text/csv' || file.name.endsWith('.csv'))) {
+      setSelectedFile(file);
+      setTrades([]);
+      setImportResults(null);
     }
-  }
+  };
 
   const parseCSV = async (file: File): Promise<Trade[]> => {
     return new Promise((resolve) => {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const text = e.target?.result as string
-        const lines = text.split("\n")
-        const headers = lines[0].split(",").map((h) => h.trim().toLowerCase())
+        const text = e.target?.result as string;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
 
-        const parsedTrades: Trade[] = []
+        const parsedTrades: Trade[] = [];
 
         for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim()
-          if (!line) continue
+          const line = lines[i].trim();
+          if (!line) continue;
 
-          const values = line.split(",")
+          const values = line.split(',');
           const trade: Trade = {
             id: `import-${i}`,
-            symbol: values[headers.indexOf("symbol")] || "",
-            side: (values[headers.indexOf("side")] || "buy").toLowerCase() as "buy" | "sell",
-            quantity: Number.parseFloat(values[headers.indexOf("quantity")] || "0"),
-            price: Number.parseFloat(values[headers.indexOf("price")] || "0"),
-            date: values[headers.indexOf("date")] || new Date().toISOString(),
-            fees: Number.parseFloat(values[headers.indexOf("fees")] || "0") || undefined,
-            status: "valid",
-          }
+            symbol: values[headers.indexOf('symbol')] || '',
+            side: (values[headers.indexOf('side')] || 'buy').toLowerCase() as 'buy' | 'sell',
+            quantity: Number.parseFloat(values[headers.indexOf('quantity')] || '0'),
+            price: Number.parseFloat(values[headers.indexOf('price')] || '0'),
+            date: values[headers.indexOf('date')] || new Date().toISOString(),
+            fees: Number.parseFloat(values[headers.indexOf('fees')] || '0') || undefined,
+            status: 'valid',
+          };
 
           // Validate trade data
           if (!trade.symbol || trade.quantity <= 0 || trade.price <= 0) {
-            trade.status = "error"
-            trade.error = "Invalid trade data"
+            trade.status = 'error';
+            trade.error = 'Invalid trade data';
           }
 
           // Check for duplicates (simplified)
@@ -102,102 +102,104 @@ export default function ImportTradesPage() {
               t.quantity === trade.quantity &&
               t.price === trade.price &&
               t.date === trade.date,
-          )
+          );
 
           if (isDuplicate) {
-            trade.status = "duplicate"
+            trade.status = 'duplicate';
           }
 
-          parsedTrades.push(trade)
+          parsedTrades.push(trade);
         }
 
-        resolve(parsedTrades)
-      }
-      reader.readAsText(file)
-    })
-  }
+        resolve(parsedTrades);
+      };
+      reader.readAsText(file);
+    });
+  };
 
   const processFile = async () => {
-    if (!selectedFile) return
+    if (!selectedFile) return;
 
-    setIsProcessing(true)
-    setUploadProgress(0)
+    setIsProcessing(true);
+    setUploadProgress(0);
 
     try {
       // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
-            clearInterval(progressInterval)
-            return prev
+            clearInterval(progressInterval);
+            return prev;
           }
-          return prev + 10
-        })
-      }, 200)
+          return prev + 10;
+        });
+      }, 200);
 
-      const parsedTrades = await parseCSV(selectedFile)
-      setTrades(parsedTrades)
+      const parsedTrades = await parseCSV(selectedFile);
+      setTrades(parsedTrades);
 
-      clearInterval(progressInterval)
-      setUploadProgress(100)
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
       // Calculate results
       const results = {
         total: parsedTrades.length,
-        successful: parsedTrades.filter((t) => t.status === "valid").length,
-        errors: parsedTrades.filter((t) => t.status === "error").length,
-        duplicates: parsedTrades.filter((t) => t.status === "duplicate").length,
-      }
+        successful: parsedTrades.filter((t) => t.status === 'valid').length,
+        errors: parsedTrades.filter((t) => t.status === 'error').length,
+        duplicates: parsedTrades.filter((t) => t.status === 'duplicate').length,
+      };
 
-      setImportResults(results)
+      setImportResults(results);
     } catch (error) {
-      console.error("Error processing file:", error)
+      console.error('Error processing file:', error);
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
 
   const importTrades = async () => {
-    const validTrades = trades.filter((t) => t.status === "valid")
+    const validTrades = trades.filter((t) => t.status === 'valid');
 
     // Here you would typically send the trades to your API
-    console.log("Importing trades:", validTrades)
+    console.log('Importing trades:', validTrades);
 
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Show success message or handle errors
-    alert(`Successfully imported ${validTrades.length} trades!`)
-  }
+    alert(`Successfully imported ${validTrades.length} trades!`);
+  };
 
   const clearData = () => {
-    setSelectedFile(null)
-    setTrades([])
-    setImportResults(null)
-    setUploadProgress(0)
+    setSelectedFile(null);
+    setTrades([]);
+    setImportResults(null);
+    setUploadProgress(0);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = '';
     }
-  }
+  };
 
   const downloadTemplate = () => {
     const csvContent =
-      "symbol,side,quantity,price,date,fees\nAAPL,buy,100,150.00,2024-01-15,1.00\nTSLA,sell,50,200.00,2024-01-16,1.50"
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "trade_import_template.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
+      'symbol,side,quantity,price,date,fees\nAAPL,buy,100,150.00,2024-01-15,1.00\nTSLA,sell,50,200.00,2024-01-16,1.50';
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trade_import_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Import Trades</h1>
-          <p className="text-muted-foreground">Import your trading data from CSV files or connect to brokers</p>
+          <p className="text-muted-foreground">
+            Import your trading data from CSV files or connect to brokers
+          </p>
         </div>
         <Button onClick={downloadTemplate} variant="outline">
           <Download className="h-4 w-4 mr-2" />
@@ -217,26 +219,36 @@ export default function ImportTradesPage() {
             <CardHeader>
               <CardTitle>Upload CSV File</CardTitle>
               <CardDescription>
-                Upload a CSV file containing your trade data. Make sure it includes columns for symbol, side, quantity,
-                price, and date.
+                Upload a CSV file containing your trade data. Make sure it includes columns for
+                symbol, side, quantity, price, and date.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div
                 className={cn(
-                  "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-                  selectedFile ? "border-green-300 bg-green-50" : "border-gray-300 hover:border-gray-400",
+                  'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
+                  selectedFile
+                    ? 'border-green-300 bg-green-50'
+                    : 'border-gray-300 hover:border-gray-400',
                 )}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
               >
-                <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileSelect} className="hidden" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
 
                 {selectedFile ? (
                   <div className="space-y-2">
                     <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
                     <p className="font-medium">{selectedFile.name}</p>
-                    <p className="text-sm text-muted-foreground">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedFile.size / 1024).toFixed(1)} KB
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -248,10 +260,10 @@ export default function ImportTradesPage() {
 
                 <Button
                   onClick={() => fileInputRef.current?.click()}
-                  variant={selectedFile ? "secondary" : "default"}
+                  variant={selectedFile ? 'secondary' : 'default'}
                   className="mt-4"
                 >
-                  {selectedFile ? "Change File" : "Select File"}
+                  {selectedFile ? 'Change File' : 'Select File'}
                 </Button>
               </div>
 
@@ -334,7 +346,7 @@ export default function ImportTradesPage() {
                             <tr key={index} className="border-t">
                               <td className="p-3 font-medium">{trade.symbol}</td>
                               <td className="p-3">
-                                <Badge variant={trade.side === "buy" ? "default" : "secondary"}>
+                                <Badge variant={trade.side === 'buy' ? 'default' : 'secondary'}>
                                   {trade.side.toUpperCase()}
                                 </Badge>
                               </td>
@@ -344,16 +356,18 @@ export default function ImportTradesPage() {
                               <td className="p-3">
                                 <Badge
                                   variant={
-                                    trade.status === "valid"
-                                      ? "default"
-                                      : trade.status === "error"
-                                        ? "destructive"
-                                        : "secondary"
+                                    trade.status === 'valid'
+                                      ? 'default'
+                                      : trade.status === 'error'
+                                        ? 'destructive'
+                                        : 'secondary'
                                   }
                                 >
                                   {trade.status}
                                 </Badge>
-                                {trade.error && <p className="text-xs text-red-600 mt-1">{trade.error}</p>}
+                                {trade.error && (
+                                  <p className="text-xs text-red-600 mt-1">{trade.error}</p>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -371,29 +385,33 @@ export default function ImportTradesPage() {
           <Card>
             <CardHeader>
               <CardTitle>Connect to Broker</CardTitle>
-              <CardDescription>Connect your brokerage account to automatically import trades</CardDescription>
+              <CardDescription>
+                Connect your brokerage account to automatically import trades
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
-                  { name: "Interactive Brokers", status: "Available" },
-                  { name: "TD Ameritrade", status: "Coming Soon" },
-                  { name: "E*TRADE", status: "Coming Soon" },
-                  { name: "Charles Schwab", status: "Coming Soon" },
-                  { name: "Fidelity", status: "Coming Soon" },
-                  { name: "Robinhood", status: "Coming Soon" },
+                  { name: 'Interactive Brokers', status: 'Available' },
+                  { name: 'TD Ameritrade', status: 'Coming Soon' },
+                  { name: 'E*TRADE', status: 'Coming Soon' },
+                  { name: 'Charles Schwab', status: 'Coming Soon' },
+                  { name: 'Fidelity', status: 'Coming Soon' },
+                  { name: 'Robinhood', status: 'Coming Soon' },
                 ].map((broker) => (
                   <Card key={broker.name} className="p-4">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{broker.name}</h4>
-                      <Badge variant={broker.status === "Available" ? "default" : "secondary"}>{broker.status}</Badge>
+                      <Badge variant={broker.status === 'Available' ? 'default' : 'secondary'}>
+                        {broker.status}
+                      </Badge>
                     </div>
                     <Button
                       className="w-full mt-3"
-                      disabled={broker.status !== "Available"}
-                      variant={broker.status === "Available" ? "default" : "outline"}
+                      disabled={broker.status !== 'Available'}
+                      variant={broker.status === 'Available' ? 'default' : 'outline'}
                     >
-                      {broker.status === "Available" ? "Connect" : "Coming Soon"}
+                      {broker.status === 'Available' ? 'Connect' : 'Coming Soon'}
                     </Button>
                   </Card>
                 ))}
@@ -445,5 +463,5 @@ export default function ImportTradesPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

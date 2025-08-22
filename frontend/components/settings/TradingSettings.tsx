@@ -1,67 +1,80 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { createClient } from "@/lib/supabase"
-import { useAuth } from "@/components/auth/auth-provider"
-import { Trash2, AlertTriangle } from "lucide-react"
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/components/ui/use-toast';
+import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/components/auth/auth-provider';
+import { Trash2, AlertTriangle } from 'lucide-react';
 
 export function TradingSettings() {
-  const [autoStopLoss, setAutoStopLoss] = useState(false)
-  const [confirmTrades, setConfirmTrades] = useState(true)
-  const [riskTolerance, setRiskTolerance] = useState([5])
-  const [isDeleting, setIsDeleting] = useState(false)
-  const { toast } = useToast()
-  const { user } = useAuth()
+  const [autoStopLoss, setAutoStopLoss] = useState(false);
+  const [confirmTrades, setConfirmTrades] = useState(true);
+  const [riskTolerance, setRiskTolerance] = useState([5]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   async function handleResetAllTrades() {
     if (!user) {
-      toast({ 
-        title: "Error", 
-        description: "You must be logged in to reset trades", 
-        variant: "destructive" 
-      })
-      return
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to reset trades',
+        variant: 'destructive',
+      });
+      return;
     }
 
-    setIsDeleting(true)
+    setIsDeleting(true);
     try {
-      const supabase = createClient()
-      
+      const supabase = createClient();
+
       // Delete all trades for the current user
-      const { error, count } = await supabase
-        .from("trades")
-        .delete()
-        .eq("user_id", user.id)
-      
+      const { error, count } = await supabase.from('trades').delete().eq('user_id', user.id);
+
       if (error) {
-        throw error
+        throw error;
       }
-      
-      toast({ 
-        title: "All trades deleted", 
+
+      toast({
+        title: 'All trades deleted',
         description: `Successfully deleted ${count || 'all'} trades from your account.`,
-        variant: "default" 
-      })
-      
+        variant: 'default',
+      });
+
       // Refresh the page to update all components
-      window.location.reload()
+      window.location.reload();
     } catch (error: any) {
-      toast({ 
-        title: "Failed to delete trades", 
-        description: error.message || "An error occurred while deleting trades", 
-        variant: "destructive" 
-      })
+      toast({
+        title: 'Failed to delete trades',
+        description: error.message || 'An error occurred while deleting trades',
+        variant: 'destructive',
+      });
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
   }
 
@@ -107,7 +120,9 @@ export function TradingSettings() {
           <div className="space-y-2">
             <Label>Default Position Size (%)</Label>
             <Input type="number" defaultValue="2" min="0.1" max="100" step="0.1" />
-            <p className="text-sm text-muted-foreground">Percentage of portfolio to allocate per trade</p>
+            <p className="text-sm text-muted-foreground">
+              Percentage of portfolio to allocate per trade
+            </p>
           </div>
 
           <Button>Save Preferences</Button>
@@ -157,7 +172,9 @@ export function TradingSettings() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Trade Confirmations</Label>
-                <p className="text-sm text-muted-foreground">Require confirmation before executing trades</p>
+                <p className="text-sm text-muted-foreground">
+                  Require confirmation before executing trades
+                </p>
               </div>
               <Switch checked={confirmTrades} onCheckedChange={setConfirmTrades} />
             </div>
@@ -180,19 +197,15 @@ export function TradingSettings() {
             <div className="p-4 bg-red-50 rounded-lg border border-red-200">
               <h4 className="font-semibold text-red-900 mb-2">Danger Zone</h4>
               <p className="text-sm text-red-700 mb-4">
-                This action cannot be undone. This will permanently delete all your trades, 
+                This action cannot be undone. This will permanently delete all your trades,
                 including all associated data, P&L calculations, and trading history.
               </p>
-              
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
-                    className="gap-2"
-                    disabled={isDeleting}
-                  >
+                  <Button variant="destructive" className="gap-2" disabled={isDeleting}>
                     <Trash2 className="h-4 w-4" />
-                    {isDeleting ? "Deleting..." : "Reset All Trades"}
+                    {isDeleting ? 'Deleting...' : 'Reset All Trades'}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -216,8 +229,8 @@ export function TradingSettings() {
                       </p>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <Input 
-                    id="confirm-delete" 
+                  <Input
+                    id="confirm-delete"
                     placeholder="Type DELETE ALL TRADES to confirm"
                     className="mt-2"
                   />
@@ -225,16 +238,16 @@ export function TradingSettings() {
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={(e) => {
-                        const input = document.getElementById('confirm-delete') as HTMLInputElement
+                        const input = document.getElementById('confirm-delete') as HTMLInputElement;
                         if (input?.value === 'DELETE ALL TRADES') {
-                          handleResetAllTrades()
+                          handleResetAllTrades();
                         } else {
-                          e.preventDefault()
-                          toast({ 
-                            title: "Confirmation required", 
-                            description: "Please type 'DELETE ALL TRADES' to confirm", 
-                            variant: "destructive" 
-                          })
+                          e.preventDefault();
+                          toast({
+                            title: 'Confirmation required',
+                            description: "Please type 'DELETE ALL TRADES' to confirm",
+                            variant: 'destructive',
+                          });
                         }
                       }}
                       className="bg-red-600 hover:bg-red-700"
@@ -249,5 +262,5 @@ export function TradingSettings() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

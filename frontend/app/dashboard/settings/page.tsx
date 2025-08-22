@@ -1,16 +1,16 @@
-"use client"
+'use client';
 
 // Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-import { SettingsSidebar } from "@/components/settings/SettingsSidebar"
-import { SettingsContent } from "@/components/settings/SettingsContent"
-import { useState } from "react"
+import { SettingsSidebar } from '@/components/settings/SettingsSidebar';
+import { SettingsContent } from '@/components/settings/SettingsContent';
+import { useState } from 'react';
 
-export type SettingsSection = "profile" | "trading" | "notifications" | "integrations" | "billing"
+export type SettingsSection = 'profile' | 'trading' | 'notifications' | 'integrations' | 'billing';
 
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>("profile")
+  const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
 
   return (
     <div className="space-y-6">
@@ -28,5 +28,5 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

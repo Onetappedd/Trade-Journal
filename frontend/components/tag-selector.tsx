@@ -1,57 +1,67 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { X, Plus } from "lucide-react"
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { X, Plus } from 'lucide-react';
 
 interface TagSelectorProps {
-  selectedTags: string[]
-  onTagsChange: (tags: string[]) => void
-  predefinedTags?: string[]
+  selectedTags: string[];
+  onTagsChange: (tags: string[]) => void;
+  predefinedTags?: string[];
 }
 
 const DEFAULT_TAGS = [
-  "Scalp",
-  "Swing",
-  "Day Trade",
-  "Breakout",
-  "Reversal",
-  "Momentum",
-  "Emotional",
-  "FOMO",
-  "Revenge Trade",
-  "Planned",
-  "Earnings Play",
-  "Technical Analysis",
-  "News Based",
-  "Gap Fill",
-]
+  'Scalp',
+  'Swing',
+  'Day Trade',
+  'Breakout',
+  'Reversal',
+  'Momentum',
+  'Emotional',
+  'FOMO',
+  'Revenge Trade',
+  'Planned',
+  'Earnings Play',
+  'Technical Analysis',
+  'News Based',
+  'Gap Fill',
+];
 
-export function TagSelector({ selectedTags, onTagsChange, predefinedTags = DEFAULT_TAGS }: TagSelectorProps) {
-  const [customTag, setCustomTag] = useState("")
+export function TagSelector({
+  selectedTags,
+  onTagsChange,
+  predefinedTags = DEFAULT_TAGS,
+}: TagSelectorProps) {
+  const [customTag, setCustomTag] = useState('');
 
   const addTag = (tag: string) => {
     if (tag && !selectedTags.includes(tag)) {
-      onTagsChange([...selectedTags, tag])
+      onTagsChange([...selectedTags, tag]);
     }
-  }
+  };
 
   const removeTag = (tag: string) => {
-    onTagsChange(selectedTags.filter((t) => t !== tag))
-  }
+    onTagsChange(selectedTags.filter((t) => t !== tag));
+  };
 
   const addCustomTag = () => {
     if (customTag.trim()) {
-      addTag(customTag.trim())
-      setCustomTag("")
+      addTag(customTag.trim());
+      setCustomTag('');
     }
-  }
+  };
 
-  const availableTags = predefinedTags.filter((tag) => !selectedTags.includes(tag))
+  const availableTags = predefinedTags.filter((tag) => !selectedTags.includes(tag));
 
   return (
     <div className="space-y-3">
@@ -77,7 +87,7 @@ export function TagSelector({ selectedTags, onTagsChange, predefinedTags = DEFAU
           placeholder="Add custom tag"
           value={customTag}
           onChange={(e) => setCustomTag(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && addCustomTag()}
+          onKeyPress={(e) => e.key === 'Enter' && addCustomTag()}
         />
         <Button type="button" variant="outline" size="icon" onClick={addCustomTag}>
           <Plus className="h-4 w-4" />
@@ -96,5 +106,5 @@ export function TagSelector({ selectedTags, onTagsChange, predefinedTags = DEFAU
         </div>
       )}
     </div>
-  )
+  );
 }

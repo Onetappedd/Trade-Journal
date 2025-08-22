@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from 'next/server';
 
 // Mock analytics data
 const mockAnalytics = {
@@ -14,41 +14,41 @@ const mockAnalytics = {
     sharpe_ratio: 1.23,
     max_drawdown: -2340.5,
     total_volume: 1250000,
-    avg_hold_time: "2.3 days",
+    avg_hold_time: '2.3 days',
   },
   monthly_pnl: [
-    { month: "2024-01", pnl: 2340.5, trades: 23 },
-    { month: "2024-02", pnl: 1890.25, trades: 19 },
-    { month: "2024-03", pnl: 3120.75, trades: 28 },
-    { month: "2024-04", pnl: -890.3, trades: 15 },
-    { month: "2024-05", pnl: 2450.8, trades: 22 },
-    { month: "2024-06", pnl: 3538.75, trades: 31 },
+    { month: '2024-01', pnl: 2340.5, trades: 23 },
+    { month: '2024-02', pnl: 1890.25, trades: 19 },
+    { month: '2024-03', pnl: 3120.75, trades: 28 },
+    { month: '2024-04', pnl: -890.3, trades: 15 },
+    { month: '2024-05', pnl: 2450.8, trades: 22 },
+    { month: '2024-06', pnl: 3538.75, trades: 31 },
   ],
   top_symbols: [
-    { symbol: "AAPL", trades: 23, pnl: 3450.75, win_rate: 65.2 },
-    { symbol: "TSLA", trades: 18, pnl: 2890.5, win_rate: 61.1 },
-    { symbol: "NVDA", trades: 15, pnl: 2340.25, win_rate: 60.0 },
-    { symbol: "MSFT", trades: 12, pnl: 1890.75, win_rate: 58.3 },
-    { symbol: "GOOGL", trades: 10, pnl: 1560.5, win_rate: 70.0 },
+    { symbol: 'AAPL', trades: 23, pnl: 3450.75, win_rate: 65.2 },
+    { symbol: 'TSLA', trades: 18, pnl: 2890.5, win_rate: 61.1 },
+    { symbol: 'NVDA', trades: 15, pnl: 2340.25, win_rate: 60.0 },
+    { symbol: 'MSFT', trades: 12, pnl: 1890.75, win_rate: 58.3 },
+    { symbol: 'GOOGL', trades: 10, pnl: 1560.5, win_rate: 70.0 },
   ],
   asset_allocation: [
-    { asset_type: "stocks", percentage: 75.5, pnl: 9340.5 },
-    { asset_type: "options", percentage: 20.2, pnl: 2890.25 },
-    { asset_type: "crypto", percentage: 4.3, pnl: 220.0 },
+    { asset_type: 'stocks', percentage: 75.5, pnl: 9340.5 },
+    { asset_type: 'options', percentage: 20.2, pnl: 2890.25 },
+    { asset_type: 'crypto', percentage: 4.3, pnl: 220.0 },
   ],
   recent_performance: [
-    { date: "2024-06-01", pnl: 234.5, cumulative_pnl: 12450.75 },
-    { date: "2024-05-31", pnl: -89.25, cumulative_pnl: 12216.25 },
-    { date: "2024-05-30", pnl: 456.8, cumulative_pnl: 12305.5 },
-    { date: "2024-05-29", pnl: 123.45, cumulative_pnl: 11848.7 },
-    { date: "2024-05-28", pnl: -67.3, cumulative_pnl: 11725.25 },
+    { date: '2024-06-01', pnl: 234.5, cumulative_pnl: 12450.75 },
+    { date: '2024-05-31', pnl: -89.25, cumulative_pnl: 12216.25 },
+    { date: '2024-05-30', pnl: 456.8, cumulative_pnl: 12305.5 },
+    { date: '2024-05-29', pnl: 123.45, cumulative_pnl: 11848.7 },
+    { date: '2024-05-28', pnl: -67.3, cumulative_pnl: 11725.25 },
   ],
-}
+};
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const period = searchParams.get("period") || "all"
-  const userId = searchParams.get("user_id")
+  const { searchParams } = new URL(request.url);
+  const period = searchParams.get('period') || 'all';
+  const userId = searchParams.get('user_id');
 
   // In a real app, you would filter by user_id and period
   // For now, return mock data
@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
     data: mockAnalytics,
     meta: {
       period,
-      user_id: userId || "user-1",
+      user_id: userId || 'user-1',
       generated_at: new Date().toISOString(),
     },
-  })
+  });
 }

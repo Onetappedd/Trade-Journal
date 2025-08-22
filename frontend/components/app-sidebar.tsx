@@ -1,110 +1,127 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { GalleryVerticalEnd, BarChart3, TrendingUp, Home, Calculator, Target, Settings, Calendar } from "lucide-react"
+import * as React from 'react';
+import {
+  GalleryVerticalEnd,
+  BarChart3,
+  TrendingUp,
+  Home,
+  Calculator,
+  Target,
+  Settings,
+  Calendar,
+} from 'lucide-react';
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase"
-import { useAuth } from "@/components/auth/auth-provider"
+import { NavMain } from '@/components/nav-main';
+import { NavUser } from '@/components/nav-user';
+import { TeamSwitcher } from '@/components/team-switcher';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+} from '@/components/ui/sidebar';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/components/auth/auth-provider';
 
 const data = {
   teams: [
     {
-      name: "Trading Journal",
+      name: 'Trading Journal',
       logo: GalleryVerticalEnd,
-      plan: "Pro",
+      plan: 'Pro',
     },
   ],
   navMain: [
     {
-      title: "Dashboard",
-      url: "/dashboard",
+      title: 'Dashboard',
+      url: '/dashboard',
       icon: Home,
       isActive: true,
     },
     {
-      title: "Trades",
-      url: "/dashboard/trades",
+      title: 'Trades',
+      url: '/dashboard/trades',
       icon: TrendingUp,
       items: [
         {
-          title: "View Trades",
-          url: "/dashboard/trades",
+          title: 'View Trades',
+          url: '/dashboard/trades',
         },
         {
-          title: "Add Trade",
-          url: "/dashboard/add-trade",
+          title: 'Add Trade',
+          url: '/dashboard/add-trade',
         },
         {
-          title: "Import Trades",
-          url: "/dashboard/import-trades",
+          title: 'Import Trades',
+          url: '/dashboard/import-trades',
         },
       ],
     },
     {
-      title: "Analytics",
-      url: "/dashboard/analytics",
+      title: 'Analytics',
+      url: '/dashboard/analytics',
       icon: BarChart3,
       items: [
         {
-          title: "Performance",
-          url: "/dashboard/analytics",
+          title: 'Performance',
+          url: '/dashboard/analytics',
         },
         {
-          title: "P&L Calendar",
-          url: "/dashboard/analytics/calendar",
+          title: 'P&L Calendar',
+          url: '/dashboard/analytics/calendar',
         },
         {
-          title: "Reports",
-          url: "/dashboard/reports",
+          title: 'Reports',
+          url: '/dashboard/reports',
         },
       ],
     },
     {
-      title: "Market Scanner",
-      url: "/dashboard/scanner",
+      title: 'Market Scanner',
+      url: '/dashboard/scanner',
       icon: Target,
     },
     {
-      title: "Trending Tickers",
-      url: "/dashboard/trending-tickers",
+      title: 'Trending Tickers',
+      url: '/dashboard/trending-tickers',
       icon: TrendingUp,
     },
     {
-      title: "Tax Center",
-      url: "/dashboard/tax-center",
+      title: 'Tax Center',
+      url: '/dashboard/tax-center',
       icon: Calculator,
     },
     {
-      title: "Settings",
-      url: "/dashboard/settings",
+      title: 'Settings',
+      url: '/dashboard/settings',
       icon: Settings,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth()
-  const [dbUser, setDbUser] = useState<{ username: string; email: string; avatar?: string } | null>(null)
-  const supabase = createClient()
+  const { user } = useAuth();
+  const [dbUser, setDbUser] = useState<{ username: string; email: string; avatar?: string } | null>(
+    null,
+  );
+  const supabase = createClient();
 
   React.useEffect(() => {
     async function fetchDbUser() {
       if (user) {
         const { data, error } = await supabase
-          .from("users")
-          .select("username")
-          .eq("id", user.id)
-          .single()
-        if (data) setDbUser({ ...data, email: user.email || "" })
+          .from('users')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+        if (data) setDbUser({ ...data, email: user.email || '' });
       }
     }
-    fetchDbUser()
-  }, [user])
+    fetchDbUser();
+  }, [user]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -115,13 +132,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{
-          name: dbUser?.username || user?.user_metadata?.username || "-",
-          email: dbUser?.email || user?.email || "-",
-          avatar: "/placeholder-user.jpg"
-        }} />
+        <NavUser
+          user={{
+            name: dbUser?.username || user?.user_metadata?.username || '-',
+            email: dbUser?.email || user?.email || '-',
+            avatar: '/placeholder-user.jpg',
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

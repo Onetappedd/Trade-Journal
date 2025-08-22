@@ -1,84 +1,84 @@
-"use client"
+'use client';
 
-import { useState, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
-import { Search, Plus, Edit, Trash2 } from "lucide-react"
-import Link from "next/link"
+import { useState, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 
 interface Trade {
-  id: string
-  symbol: string
-  side: "buy" | "sell"
-  quantity: number
-  entry_price: number
-  exit_price?: number
-  pnl: number
-  date: string
-  status: "open" | "closed"
-  notes?: string
+  id: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  entry_price: number;
+  exit_price?: number;
+  pnl: number;
+  date: string;
+  status: 'open' | 'closed';
+  notes?: string;
 }
 
 export default function TradeHistoryPage() {
   const [trades, setTrades] = useState<Trade[]>([
     {
-      id: "1",
-      symbol: "AAPL",
-      side: "buy",
+      id: '1',
+      symbol: 'AAPL',
+      side: 'buy',
       quantity: 100,
       entry_price: 175.5,
       exit_price: 184.0,
       pnl: 850.0,
-      date: "2024-01-15",
-      status: "closed",
-      notes: "Strong earnings momentum",
+      date: '2024-01-15',
+      status: 'closed',
+      notes: 'Strong earnings momentum',
     },
     {
-      id: "2",
-      symbol: "TSLA",
-      side: "sell",
+      id: '2',
+      symbol: 'TSLA',
+      side: 'sell',
       quantity: 50,
       entry_price: 245.3,
       exit_price: 238.9,
       pnl: -320.0,
-      date: "2024-01-14",
-      status: "closed",
-      notes: "Cut losses early",
+      date: '2024-01-14',
+      status: 'closed',
+      notes: 'Cut losses early',
     },
     {
-      id: "3",
-      symbol: "NVDA",
-      side: "buy",
+      id: '3',
+      symbol: 'NVDA',
+      side: 'buy',
       quantity: 25,
       entry_price: 520.75,
       pnl: 0,
-      date: "2024-01-13",
-      status: "open",
-      notes: "AI sector play",
+      date: '2024-01-13',
+      status: 'open',
+      notes: 'AI sector play',
     },
-  ])
-  const [searchQuery, setSearchQuery] = useState("")
-  const { toast } = useToast()
+  ]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { toast } = useToast();
 
   const filteredTrades = trades.filter(
     (trade) =>
       trade.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
       trade.notes?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  );
 
   const handleDeleteTrade = useCallback(
     (tradeId: string) => {
-      setTrades((prev) => prev.filter((trade) => trade.id !== tradeId))
+      setTrades((prev) => prev.filter((trade) => trade.id !== tradeId));
       toast({
-        title: "Trade deleted",
-        description: "The trade has been successfully removed.",
-      })
+        title: 'Trade deleted',
+        description: 'The trade has been successfully removed.',
+      });
     },
     [toast],
-  )
+  );
 
   return (
     <div className="space-y-6">
@@ -129,8 +129,12 @@ export default function TradeHistoryPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <CardTitle className="text-xl">{trade.symbol}</CardTitle>
-                    <Badge variant={trade.side === "buy" ? "default" : "secondary"}>{trade.side.toUpperCase()}</Badge>
-                    <Badge variant={trade.status === "open" ? "outline" : "secondary"}>{trade.status}</Badge>
+                    <Badge variant={trade.side === 'buy' ? 'default' : 'secondary'}>
+                      {trade.side.toUpperCase()}
+                    </Badge>
+                    <Badge variant={trade.status === 'open' ? 'outline' : 'secondary'}>
+                      {trade.status}
+                    </Badge>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button variant="outline" size="sm">
@@ -161,10 +165,14 @@ export default function TradeHistoryPage() {
                     <p className="text-sm font-medium text-muted-foreground">P&L</p>
                     <p
                       className={`text-lg font-semibold ${
-                        trade.pnl > 0 ? "text-green-600" : trade.pnl < 0 ? "text-red-600" : "text-muted-foreground"
+                        trade.pnl > 0
+                          ? 'text-green-600'
+                          : trade.pnl < 0
+                            ? 'text-red-600'
+                            : 'text-muted-foreground'
                       }`}
                     >
-                      {trade.pnl === 0 ? "—" : `$${trade.pnl.toLocaleString()}`}
+                      {trade.pnl === 0 ? '—' : `$${trade.pnl.toLocaleString()}`}
                     </p>
                   </div>
                   <div>
@@ -184,5 +192,5 @@ export default function TradeHistoryPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
