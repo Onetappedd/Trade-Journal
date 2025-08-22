@@ -34,8 +34,7 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function AccountPage() {
   const { user, loading } = useAuth();
-  const { toast } = useToast();
-  const supabase = createClient();
+    const supabase = createClient();
 
   // Username
   const usernameForm = useForm<UsernameForm>({

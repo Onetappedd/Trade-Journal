@@ -67,8 +67,7 @@ function useUserTrades() {
 
 export function TradeTable() {
   const { trades, isLoading, mutate } = useUserTrades();
-  const { toast } = useToast();
-  const [editingId, setEditingId] = React.useState<string | null>(null);
+    const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState<Partial<Trade>>({});
   const { checkAndUpdateExpiredOptions } = useExpiredOptions();
 
