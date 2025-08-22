@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
 
 export function useExpiredOptions() {
