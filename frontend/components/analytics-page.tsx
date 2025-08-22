@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+'use client';
+
 import {
   BarChart,
   Bar,
@@ -9,11 +11,14 @@ import {
   CartesianGrid,
   Tooltip as RTooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
+  ReferenceLine,
+  Cell,
   PieChart,
   Pie,
-  Cell,
+  LineChart,
+  Line,
   ComposedChart,
   Customized,
 } from 'recharts';
@@ -691,31 +696,36 @@ export function AnalyticsPage() {
           <CardContent className="h-[300px] md:h-[340px] xl:h-[370px] overflow-hidden p-0">
             <div className="relative h-full min-h-0">
               {/* CHART FIX: match dashboard with visible y-axis, auto domain (supports negatives) */}
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={equityHistory.map(d => ({...d, pos: Math.max(d.value, 0), neg: Math.min(d.value, 0)}))}
-                  margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
-                >
-                  <CartesianGrid strokeOpacity={0.15} vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: '#888' }}
-                  />
-                  <YAxis
-                    hide={false}
-                    domain={['auto', 'auto']}
-                    width={62}
-                    tickFormatter={v => Math.round(Number(v))}
-                    tick={{ fontSize: 11, fill: '#888' }}
-                  />
-                  <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
-                  <Tooltip/>
-                  <Area type="monotone" dataKey="pos" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} dot={false} isAnimationActive={false} />
-                  <Area type="monotone" dataKey="neg" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} dot={false} isAnimationActive={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {/* This must be client-only: move this part to a separate 'EquityAnalyticsChart.tsx' client component, import it below, and wrap with 'use client' at the top of that file. */}
+              <div suppressHydrationWarning>
+                {typeof window === 'undefined' ? null : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={equityHistory.map(d => ({...d, pos: Math.max(d.value, 0), neg: Math.min(d.value, 0)}))}
+                      margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
+                    >
+                      <CartesianGrid strokeOpacity={0.15} vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: '#888' }}
+                      />
+                      <YAxis
+                        hide={false}
+                        domain={['auto', 'auto']}
+                        width={62}
+                        tickFormatter={v => Math.round(Number(v))}
+                        tick={{ fontSize: 11, fill: '#888' }}
+                      />
+                      <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
+                      <Tooltip/>
+                      <Area type="monotone" dataKey="pos" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} dot={false} isAnimationActive={false} />
+                      <Area type="monotone" dataKey="neg" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} dot={false} isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
