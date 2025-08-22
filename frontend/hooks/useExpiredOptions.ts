@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -5,7 +7,6 @@ import { useAuth } from '@/components/auth/auth-provider';
 export function useExpiredOptions() {
   const [isChecking, setIsChecking] = useState(false);
   const [expiredCount, setExpiredCount] = useState(0);
-  const { toast } = useToast();
   const { user } = useAuth();
 
   const checkAndUpdateExpiredOptions = async () => {
@@ -22,10 +23,8 @@ export function useExpiredOptions() {
 
         if (result.tradesUpdated > 0) {
           setExpiredCount(result.tradesUpdated);
-          toast({
-            title: 'Expired Options Detected',
+          toast.error('Expired Options Detected', {
             description: `${result.tradesUpdated} option${result.tradesUpdated > 1 ? 's' : ''} have expired and need your attention.`,
-            variant: 'destructive',
             duration: 10000, // Show for 10 seconds
           });
         }

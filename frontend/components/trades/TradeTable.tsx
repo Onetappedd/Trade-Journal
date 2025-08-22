@@ -82,10 +82,10 @@ export function TradeTable() {
     if (!confirm('Delete this trade?')) return;
     const supabase = createClient();
     const { error } = await supabase.from('trades').delete().eq('id', id);
-    if (error)
-      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
-    else {
-      toast({ title: 'Trade deleted' });
+    if (error) {
+      toast.error('Delete failed', { description: error.message });
+    } else {
+      toast.success('Trade deleted');
       mutate();
     }
   }
@@ -99,9 +99,10 @@ export function TradeTable() {
     if (!editingId) return;
     const supabase = createClient();
     const { error } = await supabase.from('trades').update(editValue).eq('id', editingId);
-    if (error) toast({ title: 'Edit failed', description: error.message, variant: 'destructive' });
-    else {
-      toast({ title: 'Trade updated' });
+    if (error) {
+      toast.error('Edit failed', { description: error.message });
+    } else {
+      toast.success('Trade updated');
       setEditingId(null);
       mutate();
     }
