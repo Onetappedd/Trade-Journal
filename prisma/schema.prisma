@@ -1,0 +1,50 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    String  @id @default(uuid())
+  email String  @unique
+  // Add more auth/profile fields as needed
+  trades Trade[]
+}
+
+model Trade {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  symbol     String
+  side       String   // 'BUY' | 'SELL'
+  qty        Float
+  price      Float
+  assetClass String   // 'STOCK' | 'OPTIONS' | 'FUTURES' | 'CRYPTO'
+  executedAt DateTime
+  pnl        Float?
+  fees       Float?
+  legs       Leg[]
+  fills      Fill[]
+}
+
+model Leg {
+  id       String  @id @default(uuid())
+  tradeId  String
+  trade    Trade   @relation(fields: [tradeId], references: [id])
+  // Add more leg-specific fields here, e.g., strike, expiry
+}
+
+model Fill {
+  id       String  @id @default(uuid())
+  tradeId  String
+  trade    Trade   @relation(fields: [tradeId], references: [id])
+  filledAt DateTime
+  price    Float
+  qty      Float
+  // Add more fill fields as needed
+}
