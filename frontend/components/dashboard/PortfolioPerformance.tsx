@@ -9,11 +9,12 @@ import {
   Area,
   XAxis,
   YAxis,
-  ResponsiveContainer,
   Tooltip,
   TooltipProps,
   ReferenceLine,
+  CartesianGrid,
 } from 'recharts';
+import ChartFrame from '@/components/charts/ChartFrame';
 import { DollarSign, Percent, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -278,75 +279,66 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
         </div>
 
         {/* Chart */}
-        <div className="relative flex flex-col">
-          <div className="flex-1 min-h-[18rem] md:min-h-[24rem]">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData.map(d => ({
-                    ...d,
-                    pos: Math.max(d.displayValue, 0),
-                    neg: Math.min(d.displayValue, 0),
-                  }))}
-                  margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
-                  onMouseMove={(e) => {
-                    if (e && e.activePayload && e.activePayload[0]) {
-                      setHoveredData(e.activePayload[0].payload);
-                    }
-                  }}
-                  onMouseLeave={() => setHoveredData(null)}
-                >
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: '#888' }}
-                    tickFormatter={formatXAxisTick}
-                    interval="preserveStartEnd"
-                  />
-
-                  <YAxis hide={true} domain={['dataMin', 'dataMax']} />
-
-                  {/* Always render breakeven/zero line */}
-                  <ReferenceLine
-                    y={viewMode === 'dollar' ? initialValue : 0}
-                    stroke="#888"
-                    strokeDasharray="3 3"
-                    strokeWidth={1.5}
-                    strokeOpacity={0.6}
-                  />
-
-                  <Tooltip content={<CustomTooltip viewMode={viewMode} />} cursor={false} />
-
-                  {/* Positive series (green) */}
-                  <Area
-                    type="monotone"
-                    dataKey="pos"
-                    stroke="#22c55e"
-                    fill="#22c55e"
-                    fillOpacity={0.15}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                  {/* Negative series (red) */}
-                  <Area
-                    type="monotone"
-                    dataKey="neg"
-                    stroke="#ef4444"
-                    fill="#ef4444"
-                    fillOpacity={0.15}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                No data available for the selected period
-              </div>
-            )}
-          </div>
-        </div>
+        <ChartFrame height={380}>
+          {chartData.length > 0 ? (
+            <AreaChart
+              data={chartData.map(d => ({
+                ...d,
+                pos: Math.max(d.displayValue, 0),
+                neg: Math.min(d.displayValue, 0),
+              }))}
+              margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
+              onMouseMove={(e) => {
+                if (e && e.activePayload && e.activePayload[0]) {
+                  setHoveredData(e.activePayload[0].payload);
+                }
+              }}
+              onMouseLeave={() => setHoveredData(null)}
+            >
+              <CartesianGrid strokeOpacity={0.15} vertical={false} />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: '#888' }}
+                tickFormatter={formatXAxisTick}
+                interval="preserveStartEnd"
+              />
+              <YAxis hide={true} domain={['dataMin', 'dataMax']} />
+              {/* Always render breakeven/zero line */}
+              <ReferenceLine
+                y={viewMode === 'dollar' ? initialValue : 0}
+                stroke="currentColor"
+                strokeOpacity={0.35}
+              />
+              <Tooltip content={<CustomTooltip viewMode={viewMode} />} cursor={false} />
+              {/* Positive series (green) */}
+              <Area
+                type="monotone"
+                dataKey="pos"
+                stroke="#22c55e"
+                fill="#22c55e"
+                fillOpacity={0.15}
+                dot={false}
+                isAnimationActive={false}
+              />
+              {/* Negative series (red) */}
+              <Area
+                type="monotone"
+                dataKey="neg"
+                stroke="#ef4444"
+                fill="#ef4444"
+                fillOpacity={0.15}
+                dot={false}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              No data available for the selected period
+            </div>
+          )}
+        </ChartFrame>
       </CardContent>
     </Card>
   );

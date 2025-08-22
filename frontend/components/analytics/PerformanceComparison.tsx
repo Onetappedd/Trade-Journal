@@ -24,10 +24,11 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
   Legend,
-  ResponsiveContainer,
+  // ResponsiveContainer,
   Area,
   AreaChart,
 } from 'recharts';
+import ChartFrame from '@/components/charts/ChartFrame';
 import {
   TrendingUp,
   TrendingDown,
@@ -301,8 +302,8 @@ export function PerformanceComparison() {
               {isLoading ? (
                 <Skeleton className="h-96 w-full" />
               ) : chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={chartData}>
+                <ChartFrame height={400}>
+                  <AreaChart data={chartData} margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
                     <defs>
                       <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
@@ -324,7 +325,7 @@ export function PerformanceComparison() {
                       fill="url(#colorPortfolio)"
                     />
                   </AreaChart>
-                </ResponsiveContainer>
+                </ChartFrame>
               ) : (
                 <p className="text-center text-muted-foreground py-8">
                   No data available for the selected period
@@ -388,13 +389,14 @@ export function PerformanceComparison() {
                   </div>
 
                   {/* Period Chart */}
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ChartFrame height={300}>
                     <BarChart
                       data={periodComparisons.map((p, i) => ({
                         period: `Period ${i + 1}`,
                         return: p.percentReturn,
                         trades: p.totalTrades,
                       }))}
+                      margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="period" />
@@ -407,7 +409,7 @@ export function PerformanceComparison() {
                         name="Return (%)"
                       />
                     </BarChart>
-                  </ResponsiveContainer>
+                  </ChartFrame>
 
                   {/* Detailed Table */}
                   <div className="overflow-x-auto">
@@ -529,8 +531,8 @@ export function PerformanceComparison() {
                   </div>
 
                   {/* Strategy Comparison Chart */}
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={strategyData}>
+                  <ChartFrame height={300}>
+                    <BarChart data={strategyData} margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="strategy" />
                       <YAxis />
@@ -539,7 +541,7 @@ export function PerformanceComparison() {
                       <Bar dataKey="totalPnL" fill="#10b981" name="Total P&L" />
                       <Bar dataKey="averagePnL" fill="#3b82f6" name="Avg P&L" />
                     </BarChart>
-                  </ResponsiveContainer>
+                  </ChartFrame>
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-8">No strategy data available</p>
