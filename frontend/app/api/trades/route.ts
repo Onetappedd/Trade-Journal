@@ -1,58 +1,40 @@
-// TODO: Integrate with database persistence layer
-// This is a stub API that validates the trade schema and echoes back the data
-// Replace the echo logic with actual database writes when ready
-
 import { NextRequest, NextResponse } from 'next/server';
-import { TradeSchema } from '@/types/trade';
-import { z } from 'zod';
+import { getTrades } from '@/lib/trades';
+import { getUserIdFromRequest } from '@/lib/auth'; // IMPLEMENT OR ADJUST based on your auth setup
 
-export async function POST(request: NextRequest) {
+export async function GET(req: NextRequest) {
+  // Require auth
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Paging, sorting, filtering from query params
+  const url = req.nextUrl;
+  const page = url.searchParams.get('page');
+  const pageSize = url.searchParams.get('pageSize');
+  const sortField = url.searchParams.get('sortField');
+  const sortDir = url.searchParams.get('sortDir') as 'asc' | 'desc' | undefined;
+  const dateFrom = url.searchParams.get('dateFrom');
+  const dateTo = url.searchParams.get('dateTo');
+  const assetTypes = url.searchParams.get('assetTypes')?.split(',').filter(Boolean) || undefined;
+  const status = url.searchParams.get('status')?.split(',').filter(Boolean) as any;
+  const symbol = url.searchParams.get('symbol') || undefined;
+  const text = url.searchParams.get('q') || undefined;
+
   try {
-    const body = await request.json();
-    
-    // Validate the trade data against the schema
-    const validatedTrade = TradeSchema.parse(body);
-    
-    // Generate server-side metadata
-    const tradeWithMetadata = {
-      ...validatedTrade,
-      id: crypto.randomUUID(),
-      receivedAt: new Date().toISOString(),
-    };
-    
-    // TODO: Save to database here
-    // const savedTrade = await db.trades.create({ data: tradeWithMetadata });
-    
-    // For now, just echo back the validated trade with metadata
-    return NextResponse.json(tradeWithMetadata, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      // Return validation errors
-      return NextResponse.json(
-        {
-          error: 'Validation failed',
-          issues: error.issues.map(issue => ({
-            path: issue.path.join('.'),
-            message: issue.message,
-          })),
-        },
-        { status: 400 }
-      );
-    }
-    
-    // Generic error response
-    console.error('Trade API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process trade' },
-      { status: 500 }
-    );
+    const result = await getTrades({
+      userId,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      sort: sortField ? { field: sortField, dir: sortDir || 'desc' } : undefined,
+      dateFrom,
+      dateTo,
+      assetTypes,
+      status,
+      symbol,
+      text,
+    });
+    return NextResponse.json(result);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to fetch trades' }, { status: 500 });
   }
-}
-
-export async function GET() {
-  // TODO: Implement trade fetching when database is connected
-  return NextResponse.json(
-    { message: 'GET /api/trades not yet implemented' },
-    { status: 501 }
-  );
 }
