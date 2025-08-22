@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  trades    Trade[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AssetType {
+  STOCK
+  OPTION
+  FUTURE
+  CRYPTO
+}
+
+enum Side {
+  BUY
+  SELL
+  LONG
+  SHORT
+}
+
+model Trade {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  symbol        String
+  assetType     AssetType
+  side          Side
+  quantity      Decimal   @db.Decimal(38, 10)
+  price         Decimal   @db.Decimal(38, 10)
+  fees          Decimal   @db.Decimal(38, 10) @default(0)
+  realizedPnl   Decimal?  @db.Decimal(38, 10)
+
+  openedAt      DateTime?
+  closedAt      DateTime?
+  broker        String?
+  platform      String?
+  strategy      String?
+  tags          String[]  @db.Text
+  notes         String?
+
+  // Options (optional, nullable for non-options)
+  optionType    String?   // "CALL" | "PUT"
+  strike        Decimal?  @db.Decimal(38, 10)
+  expiration    DateTime?
+
+  // Futures (optional)
+  contract      String?   // e.g., "ESZ4"
+  multiplier    Decimal?  @db.Decimal(38, 10)
+
+  // Crypto (optional)
+  exchange      String?   // e.g., "CoinbasePro"
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, assetType, symbol])
+  @@index([openedAt])
+  @@index([closedAt])
+}

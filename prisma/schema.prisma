@@ -1,50 +1,39 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model User {
-  id    String  @id @default(uuid())
-  email String  @unique
-  // Add more auth/profile fields as needed
-  trades Trade[]
+  url = env("DATABASE_URL")
 }
 
 model Trade {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  symbol     String
-  side       String   // 'BUY' | 'SELL'
-  qty        Float
-  price      Float
-  assetClass String   // 'STOCK' | 'OPTIONS' | 'FUTURES' | 'CRYPTO'
-  executedAt DateTime
-  pnl        Float?
-  fees       Float?
-  legs       Leg[]
-  fills      Fill[]
+  id        String    @id @default(cuid())
+  userId    String
+  symbol    String
+  assetType AssetType
+  side      TradeSide
+  quantity  Decimal
+  price     Decimal
+  fees      Decimal?  @default(0)
+  pnl       Decimal?  @default(0)
+  openedAt  DateTime
+  closedAt  DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
-model Leg {
-  id       String  @id @default(uuid())
-  tradeId  String
-  trade    Trade   @relation(fields: [tradeId], references: [id])
-  // Add more leg-specific fields here, e.g., strike, expiry
+enum AssetType {
+  STOCK
+  OPTION
+  FUTURE
+  CRYPTO
 }
 
-model Fill {
-  id       String  @id @default(uuid())
-  tradeId  String
-  trade    Trade   @relation(fields: [tradeId], references: [id])
-  filledAt DateTime
-  price    Float
-  qty      Float
-  // Add more fill fields as needed
+enum TradeSide {
+  BUY
+  SELL
+  LONG
+  SHORT
 }

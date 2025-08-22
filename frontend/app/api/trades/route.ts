@@ -36,35 +36,24 @@ export async function GET(req: Request) {
     }
 
     const where: any = { userId };
-
-    if (asset && asset !== 'all') {
-      where.assetClass = asset.toUpperCase();
-    }
+    if (asset && asset !== 'all') where.assetType = asset.toUpperCase();
     if (dateFrom || dateTo) {
-      where.executedAt = {};
-      if (dateFrom) where.executedAt.gte = new Date(dateFrom);
-      if (dateTo) where.executedAt.lte = new Date(dateTo);
+      where.openedAt = {};
+      if (dateFrom) where.openedAt.gte = new Date(dateFrom);
+      if (dateTo) where.openedAt.lte = new Date(dateTo);
     }
 
     const trades = await prisma.trade.findMany({
       where,
       take: limit,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      orderBy: { executedAt: 'desc' },
-      include: {
-        legs: true,
-        fills: true,
-      },
+      orderBy: { openedAt: 'desc' },
     });
-
     const nextCursor = trades.length === limit ? trades[trades.length - 1].id : null;
     const items = toPlain(trades);
     return NextResponse.json({ items, nextCursor }, { status: 200 });
   } catch (err: any) {
-    console.error('GET /api/trades failed:', err);
-    return NextResponse.json(
-      { error: err?.message || 'Internal Server Error' },
-      { status: 500 }
-    );
+    console.error('[/api/trades] error', err);
+    return NextResponse.json({ error: 'Failed to load trades' }, { status: 500 });
   }
 }
