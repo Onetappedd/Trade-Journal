@@ -1,50 +1,47 @@
-"use client";
-import { useEffect } from "react";
-import useSWRInfinite from "swr/infinite";
-import { toast } from "@/components/ui/sonner";
-import { DataTable } from "@/components/trades/DataTable";
-import type { Trade } from "@/lib/server/trades";
+'use client'
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url, { cache: "no-store" });
+import useSWRInfinite from 'swr/infinite'
+import { useEffect } from 'react'
+import { toast } from '@/components/ui/sonner'
+import { DataTable } from '@/components/trades/DataTable'
+import type { Trade } from '@/lib/server/trades'
+// If your table expects a different prop, adjust accordingly (e.g., TradesTable, rows, etc)
+
+const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then(async (res) => {
   if (!res.ok) {
-    const msg = await res.text().catch(() => res.statusText);
-    throw new Error(msg || `Request failed: ${res.status}`);
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body?.error || `Request failed: ${res.status}`)
   }
-  return res.json();
-};
+  return res.json()
+})
 
 export default function TradesPage() {
-  const getKey = (pageIndex: number, prev: any) => {
-    if (prev && prev.nextCursor === null) return null; // reached end
-    const cursor = pageIndex === 0 ? "" : (prev?.nextCursor ?? "");
-    const limit = 100;
-    const qs = new URLSearchParams();
-    qs.set("limit", String(limit));
-    if (cursor) qs.set("cursor", cursor);
-    return `/api/trades?${qs.toString()}`;
-  };
+  const getKey = (pageIndex: number, previousPageData: any) => {
+    if (previousPageData && !previousPageData.nextCursor) return null
+    const cursor = pageIndex === 0 ? '' : `&cursor=${previousPageData.nextCursor}`
+    // Add active filters from UI state if you have them (assetType, symbol, dates, etc.)
+    return `/api/trades?limit=100${cursor}`
+  }
 
-  const { data, error, size, setSize, isLoading } = useSWRInfinite(getKey, fetcher, {
-    revalidateOnFocus: false,
-  });
-
-  const items: Trade[] =
-    data?.flatMap((d: any) => Array.isArray(d?.items) ? d.items : []) ?? [];
+  const { data, error, size, setSize, isLoading } = useSWRInfinite(getKey, fetcher)
 
   useEffect(() => {
-    if (error) toast.error("Failed to load trades");
-  }, [error]);
+    if (error) {
+      console.error('[trades page] load error', error)
+      toast.error('Failed to load trades')
+    }
+  }, [error])
+
+  const items = data?.flatMap((p: any) => p.items) ?? []
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-semibold mb-4">Trades</h1>
+    <div className="space-y-4">
       <DataTable
         data={items}
-        onLoadMore={() => setSize(size + 1)}
         isLoading={isLoading}
-        hasMore={data?.[data.length - 1]?.nextCursor ?? null}
+        onLoadMore={() => setSize(size + 1)}
+        hasMore={Boolean(data?.[data.length - 1]?.nextCursor)}
       />
     </div>
-  );
+  )
 }

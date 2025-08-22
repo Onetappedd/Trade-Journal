@@ -700,7 +700,28 @@ export function AnalyticsPage() {
                 {typeof window === 'undefined' ? null : (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={equityHistory.map(d => ({...d, pos: Math.max(d.value, 0), neg: Math.min(d.value, 0)}))}
+                      data={(() => {
+                        // Prepare a list of {date, value, percentChange, dollarChange} objects for the chart
+                        if (!equityHistory || equityHistory.length === 0) return [];
+                        let prev = null;
+                        return equityHistory.map((d, i) => {
+                          // Make robust for different shapes
+                          const date = d.date || d.t || d.time || '';
+                          const value = typeof d.value === 'number' ? d.value : d.balance ?? d.close ?? d.value ?? 0;
+                          const prevValue = prev !== null ? prev : value;
+                          const dollarChange = i === 0 ? 0 : value - prevValue;
+                          const percentChange = i === 0 ? 0 : ((value - prevValue) / prevValue) * 100;
+                          prev = value;
+                          return {
+                            date,
+                            value,
+                            dollarChange,
+                            percentChange,
+                            pos: Math.max(value, 0),
+                            neg: Math.min(value, 0),
+                          };
+                        });
+                      })()}
                       margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
                     >
                       <CartesianGrid strokeOpacity={0.15} vertical={false} />
@@ -718,7 +739,6 @@ export function AnalyticsPage() {
                         tick={{ fontSize: 11, fill: '#888' }}
                       />
                       <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
-                      {/* Fix: Fully qualify Tooltip from recharts */}
                       <RTooltip/>
                       <Area type="monotone" dataKey="pos" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} dot={false} isAnimationActive={false} />
                       <Area type="monotone" dataKey="neg" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} dot={false} isAnimationActive={false} />
