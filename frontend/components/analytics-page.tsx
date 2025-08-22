@@ -690,7 +690,32 @@ export function AnalyticsPage() {
           </CardHeader>
           <CardContent className="h-[300px] md:h-[340px] xl:h-[370px] overflow-hidden p-0">
             <div className="relative h-full min-h-0">
-              <PortfolioPerformance data={equityHistory} initialValue={INITIAL_CAPITAL} />
+              {/* CHART FIX: match dashboard with visible y-axis, auto domain (supports negatives) */}
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={equityHistory.map(d => ({...d, pos: Math.max(d.value, 0), neg: Math.min(d.value, 0)}))}
+                  margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
+                >
+                  <CartesianGrid strokeOpacity={0.15} vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: '#888' }}
+                  />
+                  <YAxis
+                    hide={false}
+                    domain={['auto', 'auto']}
+                    width={62}
+                    tickFormatter={v => Math.round(Number(v))}
+                    tick={{ fontSize: 11, fill: '#888' }}
+                  />
+                  <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
+                  <Tooltip/>
+                  <Area type="monotone" dataKey="pos" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} dot={false} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="neg" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} dot={false} isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>

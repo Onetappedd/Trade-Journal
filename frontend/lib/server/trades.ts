@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase-server";
 import { z } from "zod";
 
 export const TradeSchema = z.object({
