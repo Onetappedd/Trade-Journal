@@ -25,7 +25,7 @@ export interface ImportProgressModalProps {
   className?: string;
 }
 
-export default function ImportProgressModal({
+export function ImportProgressModal({
   isOpen,
   onClose,
   status,
@@ -95,3 +95,4 @@ export default function ImportProgressModal({
     </AlertDialog>
   );
 }
+export default ImportProgressModal;

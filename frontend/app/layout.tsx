@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 
 import { Toaster } from '@/components/ui/sonner';
 
+import { Toaster } from "@/components/ui/sonner";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -26,10 +27,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             enableSystem={false}
             disableTransitionOnChange
           >
-            <Toaster />
             {children}
           </ThemeProvider>
         </AuthProvider>
+        <Toaster />
       </body>
     </html>
   );
