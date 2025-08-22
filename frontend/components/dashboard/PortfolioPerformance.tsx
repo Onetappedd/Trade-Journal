@@ -304,7 +304,15 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                 tickFormatter={formatXAxisTick}
                 interval="preserveStartEnd"
               />
-              <YAxis hide={true} domain={['dataMin', 'dataMax']} />
+              <YAxis 
+                hide={false}
+                domain={['auto', 'auto']} 
+                width={62}
+                tickFormatter={value =>
+                  viewMode === 'percent' ? `${value.toFixed(1)}%` : `${Math.round(value)}`
+                }
+                tick={{ fontSize: 11, fill: '#888' }}
+              />
               {/* Always render breakeven/zero line */}
               <ReferenceLine
                 y={viewMode === 'dollar' ? initialValue : 0}
