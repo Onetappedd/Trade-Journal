@@ -675,7 +675,7 @@ export function AnalyticsPage() {
       {/* Charts and Allocation */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
         <Card
-          className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2"
+          className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2 h-full"
           aria-label="Equity performance chart"
         >
           <CardHeader className="pb-2">
@@ -683,13 +683,13 @@ export function AnalyticsPage() {
               <div>
                 <CardTitle className="text-white">Equity Performance</CardTitle>
                 <CardDescription className="text-[#9CA3AF]">
-                  Robinhood-style P&L with timeframe filters
+                  Equity/timeframe filters
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-2">
-            <div className="h-[360px] w-full">
+          <CardContent className="h-[300px] md:h-[340px] xl:h-[370px] overflow-hidden p-0">
+            <div className="relative h-full min-h-0">
               <PortfolioPerformance data={equityHistory} initialValue={INITIAL_CAPITAL} />
             </div>
           </CardContent>
