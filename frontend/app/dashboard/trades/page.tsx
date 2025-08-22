@@ -1,54 +1,69 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "@/components/ui/sonner";
-import { DataTable } from "@/components/trades/DataTable";
-// Adjust or change the Trade type if your table expects something else
 
 type Trade = {
   id: string;
   symbol: string;
-  side: "BUY" | "SELL";
-  qty: number;
+  assetType: "stock" | "option" | "future" | "crypto";
+  side: "buy" | "sell";
+  quantity: number;
   price: number;
-  pnl?: number;
-  fees?: number;
-  assetClass?: "STOCK" | "OPTIONS" | "FUTURES" | "CRYPTO";
   executedAt: string;
-  // ...other fields used by the table/UI
 };
 
 export default function TradesPage() {
-  const [items, setItems] = useState<Trade[] | null>(null);
+  const [rows, setRows] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const params = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("limit", "100");
+    if (cursor) p.set("cursor", cursor);
+    return p;
+  }, [cursor]);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/trades?${params.toString()}`, { cache: "no-store" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error || body?.message || `HTTP ${res.status}`);
+      }
+      setRows((prev) => (cursor ? [...prev, ...body.items] : body.items));
+      setCursor(body.nextCursor ?? null);
+    } catch (e: any) {
+      console.error("[trades page] load error", e);
+      setError(e?.message || "Failed to load trades");
+      toast.error(e?.message || "Failed to load trades");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/trades?limit=100`, { cache: "no-store" });
-        if (!res.ok) {
-          const msg = await res.json().catch(() => ({}));
-          throw new Error(msg?.error || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        setItems(data.items ?? []);
-      } catch (e: any) {
-        console.error("[trades page] load error", e);
-        toast.error(`Failed to load trades: ${e.message ?? "Unknown error"}`);
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.toString()]);
 
   return (
-    <div className="p-4">
-      {loading
-        ? "Loading\u2026"
-        : items && items.length
-        ? <DataTable data={items} isLoading={false} />
-        : "No trades found"}
+    <div className="space-y-4">
+      {/* header + filters */}
+      {error ? (
+        <div className="text-sm text-red-500">Failed to load trades.</div>
+      ) : null}
+      {/* your table using rows */}
+      {!loading && !rows.length && !error ? (
+        <div className="text-sm text-muted-foreground">No trades yet.</div>
+      ) : null}
+      {/* load more button if cursor */}
+      {cursor && (
+        <button onClick={() => load()} className="btn">Load More</button>
+      )}
     </div>
   );
 }

@@ -1,59 +1,83 @@
 // app/api/trades/route.ts
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getUserIdFromRequest } from '@/lib/auth';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function toPlain(value: any): any {
-  if (typeof value === 'bigint') return Number(value);
-  if (value && typeof value === 'object' && typeof value.toNumber === 'function') {
-    try { return value.toNumber(); } catch { return Number(value as unknown as string); }
-  }
-  if (Array.isArray(value)) return value.map(toPlain);
-  if (value && typeof value === 'object') {
-    const out: Record<string, any> = {};
-    for (const k of Object.keys(value)) out[k] = toPlain(value[k]);
-    return out;
-  }
-  return value;
-}
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { z } from "zod";
+
+const Q = z.object({
+  limit: z.string().transform((v) => Number(v)).pipe(z.number().int().positive().max(500)).optional(),
+  cursor: z.string().optional(),
+  symbol: z.string().trim().optional(),
+  assetType: z.enum(["stock","option","future","crypto"]).optional(),
+  side: z.enum(["buy","sell"]).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  sort: z.enum(["executedAt.desc","executedAt.asc"]).default("executedAt.desc").optional(),
+});
 
 export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const params = Object.fromEntries(url.searchParams.entries());
+
   try {
-    const { searchParams } = new URL(req.url);
-    const limit = Math.min(Number(searchParams.get('limit') ?? '100'), 500);
-    const cursor = searchParams.get('cursor') || undefined;
-    const asset = searchParams.get('asset');
-    const dateFrom = searchParams.get('from');
-    const dateTo = searchParams.get('to');
-
-    const userId = await getUserIdFromRequest(req);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const where: any = { userId };
-    if (asset && asset !== 'all') where.assetType = asset.toUpperCase();
-    if (dateFrom || dateTo) {
-      where.openedAt = {};
-      if (dateFrom) where.openedAt.gte = new Date(dateFrom);
-      if (dateTo) where.openedAt.lte = new Date(dateTo);
+    // Validate/parse query
+    const parsed = Q.safeParse(params);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid query", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const q = parsed.data;
+
+    const take = q.limit ?? 100;
+    const orderBy =
+      q.sort === "executedAt.asc" ? { executedAt: "asc" as const } : { executedAt: "desc" as const };
+
+    const where: any = { userId: session.user.id };
+    if (q.symbol) where.symbol = q.symbol.toUpperCase();
+    if (q.assetType) where.assetType = q.assetType;
+    if (q.side) where.side = q.side;
+    if (q.dateFrom || q.dateTo) {
+      where.executedAt = {};
+      if (q.dateFrom) where.executedAt.gte = new Date(q.dateFrom);
+      if (q.dateTo) where.executedAt.lte = new Date(q.dateTo);
     }
 
-    const trades = await prisma.trade.findMany({
+    // cursor-based pagination (by id)
+    const items = await prisma.trade.findMany({
       where,
-      take: limit,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      orderBy: { openedAt: 'desc' },
+      take: take + 1,
+      ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
+      orderBy,
     });
-    const nextCursor = trades.length === limit ? trades[trades.length - 1].id : null;
-    const items = toPlain(trades);
-    return NextResponse.json({ items, nextCursor }, { status: 200 });
+
+    const hasMore = items.length > take;
+    const data = hasMore ? items.slice(0, take) : items;
+    const nextCursor = hasMore ? data[data.length - 1]?.id ?? null : null;
+
+    return NextResponse.json({ items: data, nextCursor }, { status: 200 });
   } catch (err: any) {
-    console.error('[/api/trades] error', err);
-    return NextResponse.json({ error: 'Failed to load trades' }, { status: 500 });
+    // Server-side logging with useful context; won’t leak to client.
+    console.error("[GET /api/trades] failed", {
+      msg: err?.message,
+      stack: err?.stack,
+      url: req.url,
+      envHasDb: Boolean(process.env.DATABASE_URL),
+    });
+    return NextResponse.json(
+      { error: "E_TRADES_FETCH", message: "Failed to load trades" },
+      { status: 500 },
+    );
   }
 }
