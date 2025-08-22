@@ -39,11 +39,7 @@ export function TradingSettings() {
 
   async function handleResetAllTrades() {
     if (!user) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to reset trades',
-        variant: 'destructive',
-      });
+      toast('Error: You must be logged in to reset trades');
       return;
     }
 
@@ -58,20 +54,12 @@ export function TradingSettings() {
         throw error;
       }
 
-      toast({
-        title: 'All trades deleted',
-        description: `Successfully deleted ${count || 'all'} trades from your account.`,
-        variant: 'default',
-      });
+      toast(`All trades deleted. Successfully deleted ${count || 'all'} trades from your account.`);
 
       // Refresh the page to update all components
       window.location.reload();
     } catch (error: any) {
-      toast({
-        title: 'Failed to delete trades',
-        description: error.message || 'An error occurred while deleting trades',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete trades', { description: error.message || 'An error occurred while deleting trades' });
     } finally {
       setIsDeleting(false);
     }
@@ -242,10 +230,8 @@ export function TradingSettings() {
                           handleResetAllTrades();
                         } else {
                           e.preventDefault();
-                          toast({
-                            title: 'Confirmation required',
+                          toast.error('Confirmation required', {
                             description: "Please type 'DELETE ALL TRADES' to confirm",
-                            variant: 'destructive',
                           });
                         }
                       }}
