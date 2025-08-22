@@ -17,18 +17,10 @@ type ValidAsset =
 function coerceAssetType(a?: string | null) {
   if (!a) return undefined;
   const x = a.toLowerCase();
-  if ([
-    'stock', 'equity', 'shares']
-  ].includes(x)) return 'stock';
-  if ([
-    'option', 'options', 'opt']
-  ].includes(x)) return 'option';
-  if ([
-    'future', 'futures', 'fut']
-  ].includes(x)) return 'future';
-  if ([
-    'crypto', 'coin']
-  ].includes(x)) return 'crypto';
+  if (['stock', 'equity', 'shares'].includes(x)) return 'stock';
+  if (['option', 'options', 'opt'].includes(x)) return 'option';
+  if (['future', 'futures', 'fut'].includes(x)) return 'future';
+  if (['crypto', 'coin'].includes(x)) return 'crypto';
   return undefined;
 }
 
