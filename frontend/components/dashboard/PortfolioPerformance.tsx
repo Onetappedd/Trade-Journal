@@ -278,68 +278,74 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
         </div>
 
         {/* Chart */}
-        <div className="h-[300px] w-full">
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={chartData}
-                margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-                onMouseMove={(e) => {
-                  if (e && e.activePayload && e.activePayload[0]) {
-                    setHoveredData(e.activePayload[0].payload);
-                  }
-                }}
-                onMouseLeave={() => setHoveredData(null)}
-              >
-                <defs>
-                  <linearGradient id="gainGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="lossGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+        <div className="relative flex flex-col">
+          <div className="flex-1 min-h-[18rem] md:min-h-[24rem]">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={chartData.map(d => ({
+                    ...d,
+                    pos: Math.max(d.displayValue, 0),
+                    neg: Math.min(d.displayValue, 0),
+                  }))}
+                  margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
+                  onMouseMove={(e) => {
+                    if (e && e.activePayload && e.activePayload[0]) {
+                      setHoveredData(e.activePayload[0].payload);
+                    }
+                  }}
+                  onMouseLeave={() => setHoveredData(null)}
+                >
+                  <XAxis
+                    dataKey="date"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: '#888' }}
+                    tickFormatter={formatXAxisTick}
+                    interval="preserveStartEnd"
+                  />
 
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: '#888' }}
-                  tickFormatter={formatXAxisTick}
-                  interval="preserveStartEnd"
-                />
+                  <YAxis hide={true} domain={['dataMin', 'dataMax']} />
 
-                <YAxis hide={true} domain={['dataMin', 'dataMax']} />
-
-                {viewMode === 'dollar' && (
+                  {/* Always render breakeven/zero line */}
                   <ReferenceLine
-                    y={initialValue}
+                    y={viewMode === 'dollar' ? initialValue : 0}
                     stroke="#888"
                     strokeDasharray="3 3"
-                    strokeOpacity={0.3}
+                    strokeWidth={1.5}
+                    strokeOpacity={0.6}
                   />
-                )}
 
-                <Tooltip content={<CustomTooltip viewMode={viewMode} />} cursor={false} />
+                  <Tooltip content={<CustomTooltip viewMode={viewMode} />} cursor={false} />
 
-                <Area
-                  type="monotone"
-                  dataKey="displayValue"
-                  stroke={chartColor}
-                  strokeWidth={2}
-                  fill={`url(#${gradientId})`}
-                  animationDuration={500}
-                  animationEasing="ease-in-out"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              No data available for the selected period
-            </div>
-          )}
+                  {/* Positive series (green) */}
+                  <Area
+                    type="monotone"
+                    dataKey="pos"
+                    stroke="#22c55e"
+                    fill="#22c55e"
+                    fillOpacity={0.15}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  {/* Negative series (red) */}
+                  <Area
+                    type="monotone"
+                    dataKey="neg"
+                    stroke="#ef4444"
+                    fill="#ef4444"
+                    fillOpacity={0.15}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No data available for the selected period
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -53,3 +53,8 @@
 
 /* Ensure Radix wrapper never sits under page content */
 [data-radix-popper-content-wrapper] { z-index: 50 !important; }
+
+/* App-wide fix for menus above complex layouts */
+.ui-overlay { z-index: 50 !important; }
+.ui-popover { z-index: 50 !important; }
+.ui-dropdown { z-index: 50 !important; }
