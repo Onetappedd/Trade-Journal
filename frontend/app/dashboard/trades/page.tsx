@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import TradeStats from "@/components/trades/TradeStats";
 import TradeTable from "@/components/trades/TradeTable";
 
