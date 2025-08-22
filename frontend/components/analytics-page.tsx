@@ -604,6 +604,29 @@ export function AnalyticsPage() {
   const renderPieLabel = ({ name, percent }: any) =>
     `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`;
 
+  // Compute chart data for the equity curve with useMemo to avoid IIFE-in-JSX errors
+  const chartData = useMemo(() => {
+    if (!equityHistory || equityHistory.length === 0) return [];
+    let prev = null;
+    return equityHistory.map((d, i) => {
+      // Make robust for different shapes
+      const date = d.date || d.t || d.time || '';
+      const value = typeof d.value === 'number' ? d.value : d.balance ?? d.close ?? d.value ?? 0;
+      const prevValue = prev !== null ? prev : value;
+      const dollarChange = i === 0 ? 0 : value - prevValue;
+      const percentChange = i === 0 ? 0 : ((value - prevValue) / prevValue) * 100;
+      prev = value;
+      return {
+        date,
+        value,
+        dollarChange,
+        percentChange,
+        pos: Math.max(value, 0),
+        neg: Math.min(value, 0),
+      };
+    });
+  }, [equityHistory]);
+
   return (
     <div
       className="mx-auto w-full max-w=[1400px] px-4 lg:px-6 py-6 lg:py-8"
@@ -700,28 +723,7 @@ export function AnalyticsPage() {
                 {typeof window === 'undefined' ? null : (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={(() => {
-                        // Prepare a list of {date, value, percentChange, dollarChange} objects for the chart
-                        if (!equityHistory || equityHistory.length === 0) return [];
-                        let prev = null;
-                        return equityHistory.map((d, i) => {
-                          // Make robust for different shapes
-                          const date = d.date || d.t || d.time || '';
-                          const value = typeof d.value === 'number' ? d.value : d.balance ?? d.close ?? d.value ?? 0;
-                          const prevValue = prev !== null ? prev : value;
-                          const dollarChange = i === 0 ? 0 : value - prevValue;
-                          const percentChange = i === 0 ? 0 : ((value - prevValue) / prevValue) * 100;
-                          prev = value;
-                          return {
-                            date,
-                            value,
-                            dollarChange,
-                            percentChange,
-                            pos: Math.max(value, 0),
-                            neg: Math.min(value, 0),
-                          };
-                        });
-                      })()}
+                      data={chartData}
                       margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
                     >
                       <CartesianGrid strokeOpacity={0.15} vertical={false} />

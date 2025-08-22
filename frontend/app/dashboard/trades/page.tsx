@@ -1,47 +1,54 @@
-'use client'
+"use client";
 
-import useSWRInfinite from 'swr/infinite'
-import { useEffect } from 'react'
-import { toast } from '@/components/ui/sonner'
-import { DataTable } from '@/components/trades/DataTable'
-import type { Trade } from '@/lib/server/trades'
-// If your table expects a different prop, adjust accordingly (e.g., TradesTable, rows, etc)
+import { useState, useEffect } from "react";
+import { toast } from "@/components/ui/sonner";
+import { DataTable } from "@/components/trades/DataTable";
+// Adjust or change the Trade type if your table expects something else
 
-const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then(async (res) => {
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body?.error || `Request failed: ${res.status}`)
-  }
-  return res.json()
-})
+type Trade = {
+  id: string;
+  symbol: string;
+  side: "BUY" | "SELL";
+  qty: number;
+  price: number;
+  pnl?: number;
+  fees?: number;
+  assetClass?: "STOCK" | "OPTIONS" | "FUTURES" | "CRYPTO";
+  executedAt: string;
+  // ...other fields used by the table/UI
+};
 
 export default function TradesPage() {
-  const getKey = (pageIndex: number, previousPageData: any) => {
-    if (previousPageData && !previousPageData.nextCursor) return null
-    const cursor = pageIndex === 0 ? '' : `&cursor=${previousPageData.nextCursor}`
-    // Add active filters from UI state if you have them (assetType, symbol, dates, etc.)
-    return `/api/trades?limit=100${cursor}`
-  }
-
-  const { data, error, size, setSize, isLoading } = useSWRInfinite(getKey, fetcher)
+  const [items, setItems] = useState<Trade[] | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (error) {
-      console.error('[trades page] load error', error)
-      toast.error('Failed to load trades')
-    }
-  }, [error])
-
-  const items = data?.flatMap((p: any) => p.items) ?? []
+    (async () => {
+      try {
+        const res = await fetch(`/api/trades?limit=100`, { cache: "no-store" });
+        if (!res.ok) {
+          const msg = await res.json().catch(() => ({}));
+          throw new Error(msg?.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        setItems(data.items ?? []);
+      } catch (e: any) {
+        console.error("[trades page] load error", e);
+        toast.error(`Failed to load trades: ${e.message ?? "Unknown error"}`);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   return (
-    <div className="space-y-4">
-      <DataTable
-        data={items}
-        isLoading={isLoading}
-        onLoadMore={() => setSize(size + 1)}
-        hasMore={Boolean(data?.[data.length - 1]?.nextCursor)}
-      />
+    <div className="p-4">
+      {loading
+        ? "Loading\u2026"
+        : items && items.length
+        ? <DataTable data={items} isLoading={false} />
+        : "No trades found"}
     </div>
-  )
+  );
 }

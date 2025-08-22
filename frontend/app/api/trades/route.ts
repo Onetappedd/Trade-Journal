@@ -1,86 +1,80 @@
+// app/api/trades/route.ts
 import { NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth';
-import { fetchTradesForUser } from '@/lib/server/trades';
+import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-type ValidAsset =
-  | 'stock'
-  | 'option'
-  | 'options'
-  | 'future'
-  | 'futures'
-  | 'crypto';
+type Decimalish = { toNumber?: () => number } | number | string | bigint | null;
 
-function coerceAssetType(a?: string | null) {
-  if (!a) return undefined;
-  const x = a.toLowerCase();
-  if (['stock', 'equity', 'shares'].includes(x)) return 'stock';
-  if (['option', 'options', 'opt'].includes(x)) return 'option';
-  if (['future', 'futures', 'fut'].includes(x)) return 'future';
-  if (['crypto', 'coin'].includes(x)) return 'crypto';
-  return undefined;
+function toPlain(value: any): any {
+  // Convert Prisma Decimal/BigInt to JSON-safe numbers
+  if (typeof value === 'bigint') return Number(value);
+  if (value && typeof value === 'object' && typeof value.toNumber === 'function') {
+    try { return value.toNumber(); } catch { return Number(value as unknown as string); }
+  }
+  if (Array.isArray(value)) return value.map(toPlain);
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {};
+    for (const k of Object.keys(value)) out[k] = toPlain(value[k]);
+    return out;
+  }
+  return value;
+}
+
+// —— AUTH: wire up real implementation here ——
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+async function getUserId(): Promise<string | null> {
+  const s = await getServerSession(authOptions);
+  return s?.user?.id ?? null;
 }
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 50, 1), 500);
-  const cursor = url.searchParams.get('cursor') ?? undefined;
-  const symbol = url.searchParams.get('symbol') ?? undefined;
-  const accountId = url.searchParams.get('accountId') ?? undefined;
-  const side = url.searchParams.get('side') ?? undefined;
-  const assetType = coerceAssetType(url.searchParams.get('assetType'));
-  const from = url.searchParams.get('from');
-  const to = url.searchParams.get('to');
-
   try {
-    const userId = await getUserIdFromRequest(req);
+    const { searchParams } = new URL(req.url);
+    const limit = Math.min(Number(searchParams.get('limit') ?? '100'), 500);
+    const cursor = searchParams.get('cursor') || undefined;
+    const asset = searchParams.get('asset'); // 'stock' | 'options' | 'futures' | 'crypto' | 'all'
+    const dateFrom = searchParams.get('from'); // ISO optional
+    const dateTo = searchParams.get('to');     // ISO optional
+
+    const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Support for filters in fetchTradesForUser
-    const filters: Record<string, any> = {};
-    if (symbol) filters.symbol = symbol;
-    if (accountId) filters.accountId = accountId;
-    if (assetType) filters.assetType = assetType === 'options' ? 'option' : assetType;
-    if (side) filters.side = side;
-    if (from || to) {
-      filters.close_date = {};
-      if (from) filters.close_date.gte = from;
-      if (to) filters.close_date.lte = to;
+    const where: any = { userId };
+
+    if (asset && asset !== 'all') {
+      // Adjust field if your prisma model differs (e.g. assetType)
+      where.assetClass = asset.toUpperCase();
+    }
+    if (dateFrom || dateTo) {
+      where.executedAt = {};
+      if (dateFrom) where.executedAt.gte = new Date(dateFrom);
+      if (dateTo) where.executedAt.lte = new Date(dateTo);
     }
 
-    const { items, nextCursor } = await fetchTradesForUser(userId, {
-      limit,
-      cursor,
-      filters,
+    const trades = await prisma.trade.findMany({
+      where,
+      take: limit,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      orderBy: { executedAt: 'desc' },
+      include: {
+        legs: true,
+        fills: true,
+      },
     });
 
-    // Normalize/serialize possibly problematic types
-    const serialize = (t: any) => ({
-      ...t,
-      qty: t.qty != null ? Number(t.qty) : null,
-      avg_entry: t.avg_entry != null ? Number(t.avg_entry) : null,
-      avg_exit: t.avg_exit != null ? Number(t.avg_exit) : null,
-      fees: t.fees != null ? Number(t.fees) : 0,
-      realized_pnl: t.realized_pnl != null ? Number(t.realized_pnl) : null,
-      asset_type: coerceAssetType(t.asset_type) ?? t.asset_type,
-    });
-
-    return NextResponse.json({
-      items: items.map(serialize),
-      nextCursor,
-    });
+    const nextCursor = trades.length === limit ? trades[trades.length - 1].id : null;
+    const items = toPlain(trades);
+    return NextResponse.json({ items, nextCursor }, { status: 200 });
   } catch (err: any) {
-    console.error('[api/trades] error', {
-      message: err?.message,
-      stack: err?.stack,
-    });
+    console.error('GET /api/trades failed:', err);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: err?.message || 'Internal Server Error' },
       { status: 500 }
     );
   }
