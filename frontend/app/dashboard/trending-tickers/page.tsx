@@ -25,11 +25,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
   TrendingUp,
@@ -97,15 +97,15 @@ function TickerDetailModal({
   if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent className="max-w-2xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
             {ticker}
             <Badge variant="outline">Live Data</Badge>
-          </DialogTitle>
-          <DialogDescription>Real-time market data</DialogDescription>
-        </DialogHeader>
+          </AlertDialogTitle>
+          <AlertDialogDescription>Real-time market data</AlertDialogDescription>
+        </AlertDialogHeader>
 
         {isLoading ? (
           <div className="space-y-4">

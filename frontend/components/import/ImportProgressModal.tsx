@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Loader2, AlertCircle, FileText } from 'lucide-react';
@@ -90,24 +90,24 @@ export function ImportProgressModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={status !== 'importing' ? onClose : undefined}>
-      <DialogContent
+    <AlertDialog open={isOpen} onOpenChange={status !== 'importing' ? onClose : undefined}>
+      <AlertDialogContent
         className="sm:max-w-md"
         onPointerDownOutside={(e) => status === 'importing' && e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             {status === 'importing'
               ? 'Importing Trades'
               : status === 'success'
                 ? 'Import Complete'
                 : 'Import Failed'}
-          </DialogTitle>
-          <DialogDescription>
+          </AlertDialogTitle>
+          <AlertDialogDescription>
             {status === 'importing' && 'Please wait while we process your trades...'}
-          </DialogDescription>
-        </DialogHeader>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Status Icon */}
