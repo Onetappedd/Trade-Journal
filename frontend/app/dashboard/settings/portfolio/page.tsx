@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
 import { DollarSign, Save, AlertCircle } from 'lucide-react';
@@ -13,8 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function PortfolioSettingsPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [initialCapital, setInitialCapital] = useState<string>('10000');
+    const [initialCapital, setInitialCapital] = useState<string>('10000');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -51,21 +50,13 @@ export default function PortfolioSettingsPage() {
 
         if (insertError) {
           console.error('Error creating settings:', insertError);
-          toast({
-            title: 'Error',
-            description: 'Failed to create settings',
-            variant: 'destructive',
-          });
+          toast.error('Failed to create settings', { description: 'Error: Failed to create settings' });
         } else {
           settings = newSettings;
         }
       } else if (error) {
         console.error('Error fetching settings:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load settings',
-          variant: 'destructive',
-        });
+        toast.error('Failed to load settings', { description: 'Error: Failed to load settings' });
       }
 
       if (settings) {
@@ -81,11 +72,7 @@ export default function PortfolioSettingsPage() {
 
     const value = parseFloat(initialCapital);
     if (isNaN(value) || value < 0) {
-      toast({
-        title: 'Invalid Value',
-        description: 'Please enter a valid positive number',
-        variant: 'destructive',
-      });
+      toast.error('Invalid Value', { description: 'Please enter a valid positive number' });
       return;
     }
 
@@ -104,16 +91,9 @@ export default function PortfolioSettingsPage() {
 
       if (error) {
         console.error('Error saving settings:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to save settings',
-          variant: 'destructive',
-        });
+        toast.error('Failed to save settings', { description: 'Error: Failed to save settings' });
       } else {
-        toast({
-          title: 'Settings Saved',
-          description: 'Your portfolio settings have been updated',
-        });
+        toast.success('Settings Saved – Your portfolio settings have been updated');
       }
     } finally {
       setIsSaving(false);

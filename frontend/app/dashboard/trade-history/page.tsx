@@ -6,13 +6,12 @@ export const dynamic = 'force-dynamic';
 import { TradeTable } from '@/components/trades/TradeTable';
 import { TradeStats } from '@/components/trades/TradeStats';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
 export default function TradeHistoryPage() {
-  const { toast } = useToast();
-  const [isUpdating, setIsUpdating] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
   async function updateTradeStatuses() {
     setIsUpdating(true);
@@ -24,26 +23,14 @@ export default function TradeHistoryPage() {
       const result = await res.json();
 
       if (res.ok) {
-        toast({
-          title: 'Trade statuses updated',
-          description: `Updated ${result.updated} trades`,
-          variant: 'default',
-        });
+        toast(`Trade statuses updated – Updated ${result.updated} trades`);
         // Refresh the page to show updated statuses
         window.location.reload();
       } else {
-        toast({
-          title: 'Failed to update statuses',
-          description: result.error || 'Unknown error',
-          variant: 'destructive',
-        });
+        toast.error(`Failed to update statuses – ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      toast({
-        title: 'Failed to update statuses',
-        description: String(error),
-        variant: 'destructive',
-      });
+      toast.error(`Failed to update statuses – ${String(error)}`);
     } finally {
       setIsUpdating(false);
     }
