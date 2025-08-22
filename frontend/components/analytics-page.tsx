@@ -718,7 +718,8 @@ export function AnalyticsPage() {
                         tick={{ fontSize: 11, fill: '#888' }}
                       />
                       <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
-                      <Tooltip/>
+                      {/* Fix: Fully qualify Tooltip from recharts */}
+                      <RTooltip/>
                       <Area type="monotone" dataKey="pos" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} dot={false} isAnimationActive={false} />
                       <Area type="monotone" dataKey="neg" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} dot={false} isAnimationActive={false} />
                     </AreaChart>
