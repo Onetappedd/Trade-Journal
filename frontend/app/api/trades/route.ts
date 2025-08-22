@@ -1,42 +1,24 @@
 export const dynamic = "force-dynamic";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getTrades } from '@/lib/trades';
-import { getUserIdFromRequest } from '@/lib/auth'; // IMPLEMENT OR ADJUST based on your auth setup
+import { NextResponse } from "next/server";
+import { fetchTradesForUser } from "@/lib/server/trades";
+import { getUserIdFromRequest } from "@/lib/auth";
 
-export async function GET(req: NextRequest) {
-  // Require auth
-  const userId = await getUserIdFromRequest(req);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  // Paging, sorting, filtering from query params
-  const url = req.nextUrl;
-  const page = url.searchParams.get('page');
-  const pageSize = url.searchParams.get('pageSize');
-  const sortField = url.searchParams.get('sortField');
-  const sortDir = url.searchParams.get('sortDir') as 'asc' | 'desc' | undefined;
-  const dateFrom = url.searchParams.get('dateFrom');
-  const dateTo = url.searchParams.get('dateTo');
-  const assetTypes = url.searchParams.get('assetTypes')?.split(',').filter(Boolean) || undefined;
-  const status = url.searchParams.get('status')?.split(',').filter(Boolean) as any;
-  const symbol = url.searchParams.get('symbol') || undefined;
-  const text = url.searchParams.get('q') || undefined;
-
+export async function GET(req: Request) {
   try {
-    const result = await getTrades({
-      userId,
-      page: page ? Number(page) : undefined,
-      pageSize: pageSize ? Number(pageSize) : undefined,
-      sort: sortField ? { field: sortField, dir: sortDir || 'desc' } : undefined,
-      dateFrom,
-      dateTo,
-      assetTypes,
-      status,
-      symbol,
-      text,
-    });
-    return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to fetch trades' }, { status: 500 });
+    const url = new URL(req.url);
+    const limit = Number(url.searchParams.get("limit") ?? "100");
+    const cursor = url.searchParams.get("cursor");
+    const userId = await getUserIdFromRequest(req);
+
+    if (!userId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const { items, nextCursor } = await fetchTradesForUser(userId, { limit, cursor });
+    return NextResponse.json({ items, nextCursor });
+  } catch (e: any) {
+    console.error("GET /api/trades failed:", e);
+    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
   }
 }
