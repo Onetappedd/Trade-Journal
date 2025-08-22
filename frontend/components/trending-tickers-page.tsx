@@ -35,7 +35,7 @@ export function TrendingTickersPage() {
 
   if (isLoading) return <div>Loading…</div>;
   if (error) {
-    return <div className="text-red-600 font-medium p-4">Error: Couldn’t load trending data.</div>;
+    return <div className="text-red-600 font-medium p-4">Error: Couldn't load trending data.</div>;
   }
   if (!rowsSafe.length) {
     return (

@@ -369,13 +369,11 @@ export function AnalyticsPage() {
         '#10B981',
         '#0891B2',
       ];
-      return positions
-        .slice(0, 8)
-        .map((p, i) => ({
-          name: p.symbol,
-          value: +((p.marketValue / total) * 100).toFixed(2),
-          color: colors[i % colors.length],
-        }));
+      return positions.slice(0, 8).map((p, i) => ({
+        name: p.symbol,
+        value: +((p.marketValue / total) * 100).toFixed(2),
+        color: colors[i % colors.length],
+      }));
     } else if (analytics?.performanceBySymbol && analytics.performanceBySymbol.length > 0) {
       // Show top traded symbols by trade count
       const colors = [

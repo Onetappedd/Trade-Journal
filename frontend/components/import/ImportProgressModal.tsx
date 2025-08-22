@@ -7,6 +7,7 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Loader2, AlertCircle, FileText } from 'lucide-react';
@@ -108,6 +109,9 @@ export function ImportProgressModal({
             {status === 'importing' && 'Please wait while we process your trades...'}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {/* ImportProgressModal may add a Footer or Cancel/Action below here in the future */}
+      </AlertDialogContent>
+    </AlertDialog>
 
         <div className="space-y-6 py-4">
           {/* Status Icon */}
