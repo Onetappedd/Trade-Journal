@@ -993,7 +993,7 @@ export function AnalyticsPage() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {recentTrades.map((t) => {
+                  {recentTrades.slice(0, 20).map((t) => {
                     const isClosed = !!(t.exit_price && t.exit_date);
                     const assetType = String(t.asset_type || 'stock').toLowerCase();
                     const mult =
@@ -1036,6 +1036,18 @@ export function AnalyticsPage() {
                       </TableRow>
                     );
                   })}
+                  {recentTrades.length > 20 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center p-4">
+                        <a
+                          href="/dashboard/trade-history"
+                          className="inline-block px-4 py-2 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
+                        >
+                          View all trade history ({recentTrades.length} total)
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
