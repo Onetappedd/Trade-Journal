@@ -1,182 +1,97 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import * as React from "react";
+
 import {
   AlertDialog,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
   AlertDialogFooter,
-} from '@/components/ui/alert-dialog';
-import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Loader2, AlertCircle, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
-interface ImportProgressModalProps {
+type ImportStatus = "idle" | "validating" | "importing" | "done" | "error";
+
+export interface ImportProgressModalProps {
   isOpen: boolean;
   onClose: () => void;
-  totalTrades: number;
-  currentProgress: number;
-  status: 'importing' | 'success' | 'error';
-  successCount?: number;
-  errorCount?: number;
-  duplicateCount?: number;
-  errorMessage?: string;
+  status: ImportStatus;
+  progress?: number; // 0..100
+  summary?: { imported: number; skipped: number; failed: number };
+  className?: string;
 }
 
-export function ImportProgressModal({
+export default function ImportProgressModal({
   isOpen,
   onClose,
-  totalTrades,
-  currentProgress,
   status,
-  successCount = 0,
-  errorCount = 0,
-  duplicateCount = 0,
-  errorMessage,
+  progress = 0,
+  summary,
+  className,
 }: ImportProgressModalProps) {
-  const [displayProgress, setDisplayProgress] = useState(0);
-
-  // Smooth progress animation
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (displayProgress < currentProgress) {
-        setDisplayProgress((prev) => Math.min(prev + 1, currentProgress));
-      }
-    }, 10);
-    return () => clearTimeout(timer);
-  }, [displayProgress, currentProgress]);
-
-  // Reset display progress when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setDisplayProgress(0);
-    }
-  }, [isOpen]);
-
+  // Close only when not actively importing
+  const handleOpenChange = (open: boolean) => {
+    if (!open && status !== "importing") onClose();
+  };
   const getStatusIcon = () => {
-    switch (status) {
-      case 'importing':
-        return <Loader2 className="h-8 w-8 animate-spin text-blue-500" />;
-      case 'success':
-        return <CheckCircle2 className="h-8 w-8 text-green-500" />;
-      case 'error':
-        return <AlertCircle className="h-8 w-8 text-red-500" />;
-    }
+    // simple icons for illustration; swap for Lucide or other as needed
+    if (status === "importing" || status === "validating") return <span aria-hidden>⏳</span>;
+    if (status === "done") return <span aria-hidden>✅</span>;
+    if (status === "error") return <span aria-hidden>⚠️</span>;
+    return <span aria-hidden>ℹ️</span>;
   };
-
-  const getStatusMessage = () => {
-    switch (status) {
-      case 'importing':
-        return `Importing ${Math.floor((currentProgress / 100) * totalTrades)} of ${totalTrades} trades...`;
-      case 'success':
-        return 'Import completed successfully!';
-      case 'error':
-        return errorMessage || 'Import failed. Please try again.';
-    }
-  };
-
-  const getProgressBarColor = () => {
-    switch (status) {
-      case 'importing':
-        return 'bg-blue-500';
-      case 'success':
-        return 'bg-green-500';
-      case 'error':
-        return 'bg-red-500';
-      default:
-        return 'bg-blue-500';
-    }
-  };
-
   return (
-    <AlertDialog open={isOpen} onOpenChange={status !== 'importing' ? onClose : undefined}>
-      <AlertDialogContent
-        className="sm:max-w-md"
-        onPointerDownOutside={(e) => status === 'importing' && e.preventDefault()}
-      >
+    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
+      <AlertDialogContent className={cn("sm:max-w-md", className)}>
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            {status === 'importing'
-              ? 'Importing Trades'
-              : status === 'success'
-                ? 'Import Complete'
-                : 'Import Failed'}
-          </AlertDialogTitle>
+          <AlertDialogTitle>Import Trades</AlertDialogTitle>
           <AlertDialogDescription>
-            {status === 'importing' && 'Please wait while we process your trades...'}
+            {status === "validating" && "Validating your file..."}
+            {status === "importing" && "Import in progress..."}
+            {status === "done" && "Import complete."}
+            {status === "error" && "Import failed. See details below."}
+            {status === "idle" && "Ready to start the import."}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {/* ImportProgressModal may add a Footer or Cancel/Action below here in the future */}
-      </AlertDialogContent>
-    </AlertDialog>
-
         <div className="space-y-6 py-4">
-          {/* Status Icon */}
           <div className="flex justify-center">{getStatusIcon()}</div>
-
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Progress</span>
-              <span>{displayProgress}%</span>
-            </div>
-            <Progress
-              value={displayProgress}
-              className="h-2"
-              indicatorClassName={cn('transition-all duration-300', getProgressBarColor())}
-            />
-          </div>
-
-          {/* Status Message */}
-          <div className="text-center">
-            <p className="text-sm font-medium">{getStatusMessage()}</p>
-            {status === 'importing' && (
-              <p className="text-xs text-muted-foreground mt-1">This may take a few moments...</p>
-            )}
-          </div>
-
-          {/* Import Summary */}
-          {status !== 'importing' && (
-            <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
-              <h4 className="text-sm font-semibold">Import Summary</h4>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Successful</p>
-                  <p className="font-semibold text-green-600">{successCount}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Duplicates</p>
-                  <p className="font-semibold text-yellow-600">{duplicateCount}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Failed</p>
-                  <p className="font-semibold text-red-600">{errorCount}</p>
-                </div>
+          {(status === "importing" || status === "validating") && (
+            <div className="w-full">
+              <div className="h-2 w-full rounded bg-muted">
+                <div
+                  className="h-2 rounded bg-primary transition-[width]"
+                  style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+                />
               </div>
+              <p className="mt-2 text-center text-sm text-muted-foreground">{progress}%</p>
             </div>
           )}
-
-          {/* Action Buttons */}
-          {status !== 'importing' && (
-            <div className="flex justify-end">
-              <button
-                onClick={onClose}
-                className={cn(
-                  'px-4 py-2 rounded-md text-sm font-medium transition-colors',
-                  status === 'success'
-                    ? 'bg-green-500 text-white hover:bg-green-600'
-                    : 'bg-primary text-primary-foreground hover:bg-primary/90',
-                )}
-              >
-                {status === 'success' ? 'Done' : 'Close'}
-              </button>
-            </div>
+          {status === "done" && summary && (
+            <ul className="grid grid-cols-3 gap-4 text-center">
+              <li>
+                <div className="text-sm text-muted-foreground">Imported</div>
+                <div className="text-lg font-semibold">{summary.imported}</div>
+              </li>
+              <li>
+                <div className="text-sm text-muted-foreground">Skipped</div>
+                <div className="text-lg font-semibold">{summary.skipped}</div>
+              </li>
+              <li>
+                <div className="text-sm text-muted-foreground">Failed</div>
+                <div className="text-lg font-semibold">{summary.failed}</div>
+              </li>
+            </ul>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={status === "importing"}>Close</AlertDialogCancel>
+          {status === "error" && <AlertDialogAction onClick={onClose}>Try again</AlertDialogAction>}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
