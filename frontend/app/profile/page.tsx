@@ -24,6 +24,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { User, Bell, Shield, CreditCard, Activity } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 interface Profile {
   id: string;
   user_id: string;

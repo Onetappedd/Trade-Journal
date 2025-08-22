@@ -34,6 +34,8 @@ import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from 'lu
 import { cn } from '@/lib/utils';
 import { ImportProgressModal } from '@/components/import/ImportProgressModal';
 
+export const dynamic = 'force-dynamic';
+
 const WEBULL_OPTIONS_COLUMNS = [
   'Name',
   'Symbol',
@@ -142,8 +144,7 @@ export default function ImportTradesPage() {
   } | null>(null);
   const [broker, setBroker] = React.useState('Webull');
   const [assetType, setAssetType] = React.useState('Options');
-  const { toast } = useToast();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Import progress modal state
   const [importModalOpen, setImportModalOpen] = React.useState(false);

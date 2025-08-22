@@ -3,6 +3,8 @@
 import { TradeTable } from '@/components/trades/TradeTable';
 import { TradeStats } from '@/components/trades/TradeStats';
 
+export const dynamic = 'force-dynamic';
+
 export default function TradesPage() {
   return (
     <div className="max-w-7xl mx-auto flex-1 space-y-6 p-4 md:p-8 pt-6">

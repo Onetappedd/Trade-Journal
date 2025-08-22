@@ -13,6 +13,8 @@ import { updatePasswordSchema, type UpdatePasswordFormData } from '@/lib/validat
 import { createClient } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
+export const dynamic = 'force-dynamic';
+
 export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

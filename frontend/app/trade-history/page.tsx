@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 interface Trade {
   id: string;
   symbol: string;
