@@ -6,7 +6,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "build": "prisma generate && next build",
+    "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
@@ -25,8 +25,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "latest",
-    "@prisma/client": "6.14.0",
-    "@radix-ui/react-accordion": "latest",
+        "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
     "@radix-ui/react-avatar": "latest",
@@ -94,18 +93,7 @@
     "@types/react-dom": "^18",
     "dotenv": "^16.3.1",
     "postcss": "^8.5",
-    "prisma": "6.14.0",
-    "tailwindcss": "^3.4.17",
+        "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2"
   },
-  "pnpm": {
-    "allowScripts": {
-      "@prisma/client": true,
-      "@prisma/engines": true,
-      "prisma": true
-    }
-  },
-  "prisma": {
-    "schema": "prisma/schema.prisma"
   }
-}
