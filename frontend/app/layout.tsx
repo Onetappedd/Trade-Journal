@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   generator: 'v0.dev',
 };
 
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from "@/components/ui/sonner";
 
 import { Toaster } from "@/components/ui/sonner";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </ThemeProvider>
         </AuthProvider>
-        <Toaster />
+        <Toaster richColors closeButton />
       </body>
     </html>
   );
