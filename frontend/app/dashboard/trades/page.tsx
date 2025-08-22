@@ -1,5 +1,3 @@
-'use client';
-
 import { TradeTable } from '@/components/trades/TradeTable';
 import { TradeStats } from '@/components/trades/TradeStats';
 
