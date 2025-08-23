@@ -7,12 +7,13 @@ import { CalendarHeatmap } from "@/components/history/CalendarHeatmap";
 import { Breakdowns } from "@/components/history/Breakdowns";
 import { usePersistedState } from "@/lib/ui/persist";
 import { toast } from "@/components/ui/sonner";
+import { TradeFilters } from "@/types/trade";
 
 // Persist filter state by default
 const PERSIST_KEY = "tradingjournal:history:filters:v1";
 
 export default function TradeHistoryPage() {
-  const [filters, setFilters, resetFilters] = usePersistedState(PERSIST_KEY, {});
+  const [filters, setFilters, resetFilters] = usePersistedState<TradeFilters>(PERSIST_KEY, {});
   const [visibleWidgets] = useState<string[]>(["SummaryHeader","EquityCurve","CalendarHeatmap","Breakdowns"]);
 
   const saveReport = () => {

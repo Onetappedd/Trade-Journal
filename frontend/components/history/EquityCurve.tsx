@@ -1,6 +1,12 @@
 "use client";
 import React from "react";
-export function EquityCurve({ filters }: { filters: any }) {
+import { TradeFilters } from '@/types/trade';
+
+interface Props { 
+  filters: TradeFilters; 
+}
+
+export function EquityCurve({ filters }: Props) {
   // Plug recharts LineChart and toggles here
   return (
     <div className="rounded border bg-background p-4 min-h-[200px] flex flex-col items-center">
