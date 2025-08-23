@@ -578,7 +578,10 @@ export default function AddTradePage() {
                               step="1"
                               placeholder="1"
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
