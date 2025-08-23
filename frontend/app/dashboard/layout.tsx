@@ -1,6 +1,6 @@
+'use client';
 // Force dynamic rendering for all dashboard pages
 export const dynamic = 'force-dynamic';
-'use client';
 
 import type React from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';

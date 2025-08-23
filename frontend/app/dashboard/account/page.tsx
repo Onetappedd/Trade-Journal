@@ -1,5 +1,5 @@
-export const dynamic = "force-dynamic";
 'use client';
+export const dynamic = "force-dynamic";
 
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
