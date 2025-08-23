@@ -1,5 +1,6 @@
 'use client';
 export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';

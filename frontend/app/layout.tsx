@@ -1,6 +1,6 @@
 import "./globals.css";
 
-import { AuthProvider } from "@/providers/auth-provider";
+import Providers from './providers';
 
 export const metadata = {
 
@@ -18,7 +18,7 @@ return (
 
 <body>
 
-<AuthProvider>{children}</AuthProvider>
+<Providers>{children}</Providers>
 
 </body>
 

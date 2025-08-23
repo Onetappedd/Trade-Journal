@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { usePortfolioAnalytics, usePortfolioPositions } from '@/hooks/usePortfolio';
-import { useAuth } from '@/components/auth/auth-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
 import { calculatePortfolioHistory, type PortfolioDataPoint } from '@/lib/portfolio-history';
