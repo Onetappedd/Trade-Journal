@@ -150,7 +150,7 @@ export default function ImportTradesPage() {
   // Import progress modal state
   const [importModalOpen, setImportModalOpen] = React.useState(false);
   const [importProgress, setImportProgress] = React.useState(0);
-  const [importStatus, setImportStatus] = React.useState<'importing' | 'success' | 'error'>(
+  const [importStatus, setImportStatus] = React.useState<'importing' | 'done' | 'error'>(
     'importing',
   );
   const [importResults, setImportResults] = React.useState({
@@ -398,7 +398,7 @@ export default function ImportTradesPage() {
 
       if (res.ok && result.success > 0) {
         // Set success status
-        setImportStatus('success');
+        setImportStatus('done');
         setImportResults({
           successCount: result.success || 0,
           errorCount: result.error || 0,
@@ -415,13 +415,13 @@ export default function ImportTradesPage() {
 
         // Clear the data after successful import (but wait for user to close modal)
         setTimeout(() => {
-          if (importStatus === 'success') {
+          if (importStatus === 'done') {
             clearData();
           }
         }, 2000);
       } else if (res.ok && result.duplicates > 0) {
         // All duplicates case
-        setImportStatus('success');
+        setImportStatus('done');
         setImportResults({
           successCount: 0,
           errorCount: 0,
@@ -458,7 +458,7 @@ export default function ImportTradesPage() {
   // Handle modal close
   const handleModalClose = () => {
     setImportModalOpen(false);
-    if (importStatus === 'success') {
+    if (importStatus === 'done') {
       clearData();
     }
   };
