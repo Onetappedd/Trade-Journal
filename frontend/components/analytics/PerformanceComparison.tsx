@@ -29,6 +29,7 @@ import {
   AreaChart,
 } from 'recharts';
 import ChartFrame from '@/components/charts/ChartFrame';
+import { ProfessionalEquityChart } from '@/components/charts/ProfessionalEquityChart';
 import {
   TrendingUp,
   TrendingDown,
@@ -294,45 +295,28 @@ export function PerformanceComparison() {
 
         {/* Performance Chart */}
         <TabsContent value="chart">
-          <Card>
-            <CardHeader>
-              <CardTitle>Portfolio Performance Over Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-96 w-full" />
-              ) : chartData.length > 0 ? (
-                <ChartFrame height={400}>
-                  <AreaChart data={chartData} margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
-                    <defs>
-                      <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <RechartsTooltip
-                      formatter={(value: any) => [`${value.toFixed(2)}`, 'Portfolio Value']}
-                    />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="portfolio"
-                      stroke="#10b981"
-                      fillOpacity={1}
-                      fill="url(#colorPortfolio)"
-                    />
-                  </AreaChart>
-                </ChartFrame>
-              ) : (
+          {isLoading ? (
+            <Skeleton className="h-96 w-full" />
+          ) : chartData.length > 0 ? (
+            <ProfessionalEquityChart
+              data={chartData.map(d => ({
+                date: d.date,
+                value: d.portfolio,
+                pnl: d.change
+              }))}
+              title="Portfolio Performance Over Time"
+              subtitle="Your trading performance with professional styling"
+              height={400}
+            />
+          ) : (
+            <Card>
+              <CardContent>
                 <p className="text-center text-muted-foreground py-8">
                   No data available for the selected period
                 </p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Period Analysis */}

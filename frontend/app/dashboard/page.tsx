@@ -1,5 +1,5 @@
 import { DashboardStatsSimple } from '@/components/dashboard/DashboardStatsSimple';
-import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
+import { ProfessionalEquityChart } from '@/components/charts/ProfessionalEquityChart';
 import { RecentTrades } from '@/components/dashboard/RecentTrades';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
@@ -90,8 +90,14 @@ export default async function DashboardPage() {
 
       <DashboardStatsSimple stats={dashboardStats} />
 
-      {/* Robinhood-style Portfolio Performance Chart */}
-      <PortfolioPerformance data={portfolioHistory} initialValue={initialCapital} />
+      {/* Professional Portfolio Performance Chart */}
+      <ProfessionalEquityChart 
+        data={portfolioHistory} 
+        initialValue={initialCapital}
+        title="Portfolio Performance"
+        subtitle="Your trading performance over time"
+        height={400}
+      />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4">

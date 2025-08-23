@@ -31,7 +31,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { usePortfolioAnalytics, usePortfolioPositions } from '@/hooks/usePortfolio';
 import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
+import { ProfessionalEquityChart } from '@/components/charts/ProfessionalEquityChart';
 import { calculatePortfolioHistory, type PortfolioDataPoint } from '@/lib/portfolio-history';
 
 // --- THEME ---
@@ -689,9 +689,14 @@ export function AnalyticsPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="h-[360px] w-full">
-              <PortfolioPerformance data={equityHistory} initialValue={INITIAL_CAPITAL} />
-            </div>
+            <ProfessionalEquityChart 
+              data={equityHistory} 
+              initialValue={INITIAL_CAPITAL}
+              title="Equity Performance"
+              subtitle="Robinhood-style P&L with timeframe filters"
+              height={360}
+              className="bg-transparent border-0 shadow-none"
+            />
           </CardContent>
         </Card>
 
