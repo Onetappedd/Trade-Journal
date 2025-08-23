@@ -921,13 +921,13 @@ export default function ImportTradesPage() {
       <ImportProgressModal
         isOpen={importModalOpen}
         onClose={handleModalClose}
-        totalTrades={importSummary?.valid || 0}
-        currentProgress={importProgress}
         status={importStatus}
-        successCount={importResults.successCount}
-        errorCount={importResults.errorCount}
-        duplicateCount={importResults.duplicateCount}
-        errorMessage={importResults.errorMessage}
+        progress={importProgress}
+        summary={{
+          imported: importResults.successCount,
+          skipped: importResults.duplicateCount,
+          failed: importResults.errorCount,
+        }}
       />
     </div>
   );
