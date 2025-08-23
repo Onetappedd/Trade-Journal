@@ -1,5 +1,4 @@
 "use client";
-export const revalidate = 0;
 import * as React from "react";
 import Papa from "papaparse";
 import { useForm } from "react-hook-form";
@@ -150,7 +149,7 @@ export default function ImportTradesPage() {
   // Import progress modal state
   const [importModalOpen, setImportModalOpen] = React.useState(false);
   const [importProgress, setImportProgress] = React.useState(0);
-  const [importStatus, setImportStatus] = React.useState<'importing' | 'done' | 'error'>(
+  const [importStatus, setImportStatus] = React.useState<'importing' | 'success' | 'error'>(
     'importing',
   );
   const [importResults, setImportResults] = React.useState({
@@ -257,14 +256,6 @@ export default function ImportTradesPage() {
             // For options, use the underlying as the symbol
             const symbolToUse = parsed ? parsed.underlying : row.Symbol;
 
-            // Accept either expiration_date or legacy expiry_date, store as expiration_date
-            const expiration_date = row.expiration_date ?? row.expiry_date ?? null;
-
-            // Skip forex trades
-            if (row.asset_type === 'forex') {
-              continue;
-            }
-
             rows.push({
               symbol: symbolToUse, // Use underlying ticker as symbol
               side: (row.Side || '').toLowerCase(),
@@ -273,6 +264,8 @@ export default function ImportTradesPage() {
               entry_date:
                 parseFilledTimeToISO(row['Filled Time']) ||
                 new Date(row['Filled Time']).toISOString(),
+              asset_type: 'option',
+              broker: broker,
               // Don't send status field - let database default handle it
               validation_status: status, // Rename to avoid sending 'status' to DB
               error,
@@ -341,7 +334,7 @@ export default function ImportTradesPage() {
   async function handleImport() {
     const valid = previewRows.filter((t) => t.validation_status === 'valid');
     if (!valid.length) {
-      toast.error('No valid trades to import');
+      toast({ title: 'No valid trades to import', variant: 'destructive' });
       return;
     }
 
@@ -398,7 +391,7 @@ export default function ImportTradesPage() {
 
       if (res.ok && result.success > 0) {
         // Set success status
-        setImportStatus('done');
+        setImportStatus('success');
         setImportResults({
           successCount: result.success || 0,
           errorCount: result.error || 0,
@@ -415,13 +408,13 @@ export default function ImportTradesPage() {
 
         // Clear the data after successful import (but wait for user to close modal)
         setTimeout(() => {
-          if (importStatus === 'done') {
+          if (importStatus === 'success') {
             clearData();
           }
         }, 2000);
       } else if (res.ok && result.duplicates > 0) {
         // All duplicates case
-        setImportStatus('done');
+        setImportStatus('success');
         setImportResults({
           successCount: 0,
           errorCount: 0,
@@ -458,7 +451,7 @@ export default function ImportTradesPage() {
   // Handle modal close
   const handleModalClose = () => {
     setImportModalOpen(false);
-    if (importStatus === 'done') {
+    if (importStatus === 'success') {
       clearData();
     }
   };
@@ -489,7 +482,7 @@ export default function ImportTradesPage() {
       const result = await res.json();
 
       if (res.ok && result.success > 0) {
-        toast.success('Trade saved successfully!');
+        toast({ title: 'Trade saved successfully!', variant: 'default' });
         manualForm.reset({
           symbol: '',
           side: 'buy',
@@ -501,11 +494,19 @@ export default function ImportTradesPage() {
       } else {
         // Show detailed error message
         const errorMsg = result.errors ? result.errors.join(', ') : result.error || 'Unknown error';
-        toast.error(`Failed to save trade: ${errorMsg}`);
+        toast({
+          title: 'Failed to save trade',
+          description: errorMsg,
+          variant: 'destructive',
+        });
         console.error('Trade save failed:', result);
       }
     } catch (e) {
-      toast.error(`Failed to save trade: ${String(e)}`);
+      toast({
+        title: 'Failed to save trade',
+        description: String(e),
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -921,13 +922,13 @@ export default function ImportTradesPage() {
       <ImportProgressModal
         isOpen={importModalOpen}
         onClose={handleModalClose}
+        totalTrades={importSummary?.valid || 0}
+        currentProgress={importProgress}
         status={importStatus}
-        progress={importProgress}
-        summary={{
-          imported: importResults.successCount,
-          skipped: importResults.duplicateCount,
-          failed: importResults.errorCount,
-        }}
+        successCount={importResults.successCount}
+        errorCount={importResults.errorCount}
+        duplicateCount={importResults.duplicateCount}
+        errorMessage={importResults.errorMessage}
       />
     </div>
   );

@@ -62,7 +62,7 @@ export function PerformanceComparison() {
   const [periodComparisons, setPeriodComparisons] = useState<PeriodPerformance[]>([]);
   const [benchmarkData, setBenchmarkData] = useState<BenchmarkComparison | null>(null);
   const [strategyData, setStrategyData] = useState<StrategyPerformance[]>([]);
-  const [chartData, setChartData] = useState<Array<{ date: string; portfolio: number; change: number }>>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   const formatCurrency = (value: number) => {
     const prefix = value >= 0 ? '+' : '';
@@ -405,7 +405,7 @@ export function PerformanceComparison() {
                       <Legend />
                       <Bar
                         dataKey="return"
-                        fill="#10b981"
+                        fill={(entry: any) => (entry.return >= 0 ? '#10b981' : '#ef4444')}
                         name="Return (%)"
                       />
                     </BarChart>

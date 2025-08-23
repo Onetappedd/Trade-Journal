@@ -1,11 +1,10 @@
+'use client';
+
 import { TaxSummaryCards } from '@/components/tax-center/TaxSummaryCards';
 import { TaxCharts } from '@/components/tax-center/TaxCharts';
 import { RealizedTradesTable } from '@/components/tax-center/RealizedTradesTable';
 import { TaxExportSection } from '@/components/tax-center/TaxExportSection';
 import { TaxResources } from '@/components/tax-center/TaxResources';
-
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
 
 export default function TaxCenterPage() {
   return (

@@ -2,7 +2,7 @@
 
 import { Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from '@/components/auth/auth-provider';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {

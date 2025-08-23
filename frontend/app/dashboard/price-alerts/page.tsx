@@ -1,8 +1,11 @@
-import PriceAlertsClient from './PriceAlertsClient';
+import type { Metadata } from 'next';
+import { PriceAlertsPage } from '@/components/price-alerts-page';
 
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'Price Alerts | Trading Journal',
+  description: 'Set and manage price alerts for your watchlist',
+};
 
-export default function Page() {
-  return <PriceAlertsClient />;
+export default function PriceAlerts() {
+  return <PriceAlertsPage />;
 }

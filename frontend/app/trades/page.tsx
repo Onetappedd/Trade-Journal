@@ -20,183 +20,123 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, AlertCircle } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { ASSET_TYPES } from '@/lib/enums';
-import { TradeRow, TradesResponse } from '@/types/trade';
-import { toast } from 'sonner';
 
-// Helper to format duration
-function formatDuration(ms: number) {
-  if (ms < 0) ms = 0;
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d ${hours % 24}h`;
-  if (hours > 0) return `${hours}h ${minutes % 60}m`;
-  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-  return `${seconds}s`;
+interface Trade {
+  id: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  quantity: number;
+  entry_price: number;
+  exit_price: number | null;
+  entry_date: string;
+  exit_date: string | null;
+  asset_type: 'stock' | 'option' | 'crypto' | 'forex';
+  strategy: string | null;
+  notes: string | null;
+  fees: number | null;
+  pnl: number | null;
+  created_at: string;
 }
 
-// Helper to normalize asset type
-const normalizeAsset = (asset: string) => {
-  const lower = asset.toLowerCase().trim();
-  if (lower === 'options') return 'option';
-  return lower;
-};
-
 export default function TradesPage() {
-  const [rows, setRows] = useState<TradeRow[]>([]);
-  const [total, setTotal] = useState(0);
+  const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [q, setQ] = useState({
-    symbol: '',
-    asset: 'all',
-    from: null as string | null,
-    to: null as string | null,
-    page: 1,
-    limit: 100,
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'closed'>('all');
+  const [filterAssetType, setFilterAssetType] = useState<
+    'all' | 'stock' | 'option' | 'crypto' | 'forex'
+  >('all');
 
   useEffect(() => {
     fetchTrades();
-  }, [q.symbol, q.asset, q.from, q.to, q.page]);
+  }, []);
 
-  async function fetchTrades() {
-    setLoading(true);
-    setError(null);
+  const fetchTrades = async () => {
     try {
-      const ps = new URLSearchParams({
-        limit: String(q.limit),
-        offset: String((q.page - 1) * q.limit),
-      });
-      if (q.symbol) ps.set('symbol', q.symbol);
-      if (q.asset && q.asset !== 'all') ps.set('asset', normalizeAsset(q.asset));
-      if (q.from) ps.set('from', q.from);
-      if (q.to) ps.set('to', q.to);
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      const res = await fetch(`/api/trades?${ps.toString()}`, { cache: 'no-store' });
+      if (!user) return;
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.message || 'Failed to load trades');
-      }
+      const { data, error } = await supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      const data: TradesResponse = await res.json();
-      setRows(data.items);
-      setTotal(data.total ?? data.items.length);
-    } catch (err: any) {
-      setError(err.message);
-      toast.error('Failed to load trades', { description: err.message });
+      if (error) throw error;
+      setTrades(data || []);
+    } catch (error) {
+      console.error('Error fetching trades:', error);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null || amount === undefined) return '-';
+  const filteredTrades = trades.filter((trade) => {
+    const matchesSearch =
+      trade.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (trade.strategy && trade.strategy.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesStatus =
+      filterStatus === 'all' ||
+      (filterStatus === 'open' && !trade.exit_price) ||
+      (filterStatus === 'closed' && trade.exit_price);
+
+    const matchesAssetType = filterAssetType === 'all' || trade.asset_type === filterAssetType;
+
+    return matchesSearch && matchesStatus && matchesAssetType;
+  });
+
+  const calculatePnL = (trade: Trade) => {
+    if (!trade.exit_price) return null;
+    const pnl =
+      trade.side === 'buy'
+        ? (trade.exit_price - trade.entry_price) * trade.quantity
+        : (trade.entry_price - trade.exit_price) * trade.quantity;
+    return pnl - (trade.fees || 0);
+  };
+
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
   };
 
-  const pnlColor = (pnl: number | null) => {
-    if (pnl === null || pnl === 0) return '';
-    return pnl > 0 ? 'text-green-600' : 'text-red-600';
-  };
+  const totalPnL = filteredTrades.reduce((sum, trade) => {
+    const pnl = calculatePnL(trade);
+    return sum + (pnl || 0);
+  }, 0);
 
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Loading trades...</p>
-        </div>
-      );
-    }
+  const openTrades = filteredTrades.filter((trade) => !trade.exit_price).length;
+  const closedTrades = filteredTrades.filter((trade) => trade.exit_price).length;
+  const winningTrades = filteredTrades.filter((trade) => {
+    const pnl = calculatePnL(trade);
+    return pnl && pnl > 0;
+  }).length;
 
-    if (error) {
-      return (
-        <div className="text-center py-8 text-red-600">
-          <AlertCircle className="mx-auto h-8 w-8 mb-2" />
-          <p className="font-semibold">Error loading trades</p>
-          <p className="text-sm mb-4">{error}</p>
-          <Button onClick={fetchTrades}>Retry</Button>
-        </div>
-      );
-    }
-
-    if (total === 0) {
-      return (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground mb-4">No trades yet</p>
-          <Link href="/trades/add">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Your First Trade
-            </Button>
-          </Link>
-        </div>
-      );
-    }
-
+  if (loading) {
     return (
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Symbol</TableHead>
-              <TableHead>Asset</TableHead>
-              <TableHead>Side</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Entry Price</TableHead>
-              <TableHead>Exit Price</TableHead>
-              <TableHead>Entry Date</TableHead>
-              <TableHead>Exit Date</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Fees</TableHead>
-              <TableHead>P&L</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => {
-              const duration = formatDuration(
-                new Date(row.exit_date ?? Date.now()).getTime() - new Date(row.entry_date).getTime()
-              );
-              return (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.symbol}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {row.asset_type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={row.side === 'buy' ? 'default' : 'secondary'}>
-                      {row.side.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{row.quantity.toLocaleString()}</TableCell>
-                  <TableCell>{formatCurrency(row.entry_price)}</TableCell>
-                  <TableCell>{formatCurrency(row.exit_price)}</TableCell>
-                  <TableCell>{format(new Date(row.entry_date), 'MMM dd, yyyy')}</TableCell>
-                  <TableCell>{row.exit_date ? format(new Date(row.exit_date), 'MMM dd, yyyy') : '-'}</TableCell>
-                  <TableCell>{duration}</TableCell>
-                  <TableCell>{formatCurrency(row.fees)}</TableCell>
-                  <TableCell className={pnlColor(row.pnl)}>
-                    {formatCurrency(row.pnl ?? 0)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <div className="container mx-auto p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+          <div className="h-96 bg-gray-200 rounded"></div>
+        </div>
       </div>
     );
-  };
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -213,6 +153,65 @@ export default function TradesPage() {
         </Link>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {formatCurrency(totalPnL)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {totalPnL >= 0 ? '+' : ''}
+              {((totalPnL / Math.max(1, filteredTrades.length * 1000)) * 100).toFixed(2)}% avg
+              return
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Positions</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{openTrades}</div>
+            <p className="text-xs text-muted-foreground">Active trades</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Closed Trades</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{closedTrades}</div>
+            <p className="text-xs text-muted-foreground">Completed positions</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {closedTrades > 0 ? ((winningTrades / closedTrades) * 100).toFixed(1) : 0}%
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {winningTrades} of {closedTrades} profitable
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
       <Card className="mb-6">
         <CardHeader>
@@ -224,30 +223,38 @@ export default function TradesPage() {
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by symbol..."
-                  value={q.symbol}
-                  onChange={(e) => setQ(prev => ({ ...prev, symbol: e.target.value, page: 1 }))}
+                  placeholder="Search by symbol or strategy..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-8"
                 />
               </div>
             </div>
+            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Trades</SelectItem>
+                <SelectItem value="open">Open Positions</SelectItem>
+                <SelectItem value="closed">Closed Trades</SelectItem>
+              </SelectContent>
+            </Select>
             <Select
-              value={q.asset}
-              onValueChange={(value) => setQ(prev => ({ ...prev, asset: value, page: 1 }))}
+              value={filterAssetType}
+              onValueChange={(value: any) => setFilterAssetType(value)}
             >
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Asset Type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Assets</SelectItem>
-                {ASSET_TYPES.map((asset) => (
-                  <SelectItem key={asset} value={asset} className="capitalize">
-                    {asset}
-                  </SelectItem>
-                ))}
+                <SelectItem value="stock">Stocks</SelectItem>
+                <SelectItem value="option">Options</SelectItem>
+                <SelectItem value="crypto">Crypto</SelectItem>
+                <SelectItem value="forex">Forex</SelectItem>
               </SelectContent>
             </Select>
-            {/* TODO: Add date filters */}
           </div>
         </CardContent>
       </Card>
@@ -256,10 +263,78 @@ export default function TradesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Trade History</CardTitle>
-          <CardDescription>{total} trades found</CardDescription>
+          <CardDescription>{filteredTrades.length} trades found</CardDescription>
         </CardHeader>
         <CardContent>
-          {renderContent()}
+          {filteredTrades.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No trades found</p>
+              <Link href="/trades/add">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Trade
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Side</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Entry Price</TableHead>
+                    <TableHead>Exit Price</TableHead>
+                    <TableHead>Entry Date</TableHead>
+                    <TableHead>P&L</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTrades.map((trade) => {
+                    const pnl = calculatePnL(trade);
+                    return (
+                      <TableRow key={trade.id}>
+                        <TableCell className="font-medium">{trade.symbol}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {trade.asset_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={trade.side === 'buy' ? 'default' : 'secondary'}>
+                            {trade.side.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{trade.quantity.toLocaleString()}</TableCell>
+                        <TableCell>{formatCurrency(trade.entry_price)}</TableCell>
+                        <TableCell>
+                          {trade.exit_price ? formatCurrency(trade.exit_price) : '-'}
+                        </TableCell>
+                        <TableCell>{format(new Date(trade.entry_date), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>
+                          {pnl !== null ? (
+                            <span className={pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
+                              {formatCurrency(pnl)}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={trade.exit_price ? 'default' : 'secondary'}>
+                            {trade.exit_price ? 'Closed' : 'Open'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

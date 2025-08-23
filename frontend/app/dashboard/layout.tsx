@@ -1,4 +1,5 @@
 'use client';
+
 // Force dynamic rendering for all dashboard pages
 export const dynamic = 'force-dynamic';
 

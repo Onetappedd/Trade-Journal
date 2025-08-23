@@ -1,12 +1,6 @@
 "use client";
 import React from "react";
-import { TradeFilters } from '@/types/trade';
-
-interface Props { 
-  filters: TradeFilters; 
-}
-
-export function SummaryHeader({ filters }: Props) {
+export function SummaryHeader({ filters }: { filters: any }) {
   // KPIs will be displayed here (WinRate, ProfitFactor, AvgWin, AvgLoss, Expectancy, Sharpe)
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 py-4">

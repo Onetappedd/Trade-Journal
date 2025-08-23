@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/components/providers/auth-provider';
+import { useAuth } from '@/components/auth/auth-provider';
 
 export function useExpiredOptions() {
   const [isChecking, setIsChecking] = useState(false);

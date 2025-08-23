@@ -1,3 +1,5 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +12,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { CreditCard, Download, Calendar, DollarSign } from 'lucide-react';
-
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
 
 const invoices = [
   { id: 'INV-001', date: '2024-01-01', amount: 29.99, status: 'Paid' },

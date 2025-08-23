@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useState } from "react";
 import { FiltersBar } from "@/components/trades/FiltersBar";
 import { SummaryHeader } from "@/components/history/SummaryHeader";
@@ -6,16 +6,18 @@ import { EquityCurve } from "@/components/history/EquityCurve";
 import { CalendarHeatmap } from "@/components/history/CalendarHeatmap";
 import { Breakdowns } from "@/components/history/Breakdowns";
 import { usePersistedState } from "@/lib/ui/persist";
-import { toast } from "@/components/ui/sonner";
-import { TradeFilters } from "@/types/trade";
 
 // Persist filter state by default
 const PERSIST_KEY = "tradingjournal:history:filters:v1";
 
+import { toast } from "@/components/ui/sonner";
+
 export default function TradeHistoryPage() {
-  const [filters, setFilters, resetFilters] = usePersistedState<TradeFilters>(PERSIST_KEY, {});
+  const [filters, setFilters, resetFilters] = usePersistedState(PERSIST_KEY, {});
+  // Which widgets are collapsed/visible -- placeholder; in a real UI, derive from user's interactive layout, here stub to 'all' visible
   const [visibleWidgets] = useState<string[]>(["SummaryHeader","EquityCurve","CalendarHeatmap","Breakdowns"]);
 
+  // Save Report
   const saveReport = () => {
     try {
       const prev: any[] = JSON.parse(localStorage.getItem("tradingjournal:history:reports:v1") || "[]");
@@ -26,6 +28,7 @@ export default function TradeHistoryPage() {
       toast.error("Could not save report");
     }
   };
+  // Copy share link
   const copyLink = () => {
     try {
       const url = new URL(window.location.href);
@@ -39,6 +42,7 @@ export default function TradeHistoryPage() {
       toast.error("Could not copy link");
     }
   };
+  // Reset
   const resetReport = () => {
     resetFilters();
     toast.success("Report reset");

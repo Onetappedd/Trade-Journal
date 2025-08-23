@@ -1,6 +1,5 @@
 'use client';
 
-"use client";
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/components/ui/sonner';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from '@/components/auth/auth-provider';
 import { Trash2, AlertTriangle } from 'lucide-react';
 
 export function TradingSettings() {

@@ -43,7 +43,7 @@ export function AddTradeFormClient() {
         if (!entryOk || !exitOk) {
           const which = !entryOk ? 'Entry' : 'Exit';
           const suggested = roundToTick(!entryOk ? payload.entry_price : payload.exit_price, payload.tickSize);
-          toast.error(`${which} price off tick`, { description: `Align to tick ${payload.tickSize}. Try ${suggested.toFixed(8)}` });
+          toast({ title: `${which} price off tick`, description: `Align to tick ${payload.tickSize}. Try ${suggested.toFixed(8)}`, variant: 'destructive' });
           setIsSubmitting(false); return;
         }
       }
@@ -51,13 +51,13 @@ export function AddTradeFormClient() {
       if (!res.ok) {
         const err = res.errors as any;
         const msg = err?.formErrors?.join('; ') || 'Failed to add trade';
-        toast.error('Failed', { description: msg });
+        toast({ title: 'Failed', description: msg, variant: 'destructive' });
         setIsSubmitting(false); return;
       }
-      toast.success('Trade saved');
+      toast({ title: 'Trade saved', variant: 'default' });
       router.push('/trades');
     } catch (e) {
-      toast.error('Unexpected error', { description: String(e) });
+      toast({ title: 'Unexpected error', description: String(e), variant: 'destructive' });
     } finally { setIsSubmitting(false); }
   };
   const realizedPreview = (() => {

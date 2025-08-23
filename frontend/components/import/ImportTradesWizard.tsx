@@ -91,7 +91,7 @@ function normalizeHeaders(headers: string[]): string[] {
   return headers.map((h) => h.trim());
 }
 
-function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[]; rows: Record<string, any>[] }> {
+function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[]; rows: any[] }> {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
@@ -100,7 +100,7 @@ function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[];
       preview: maxRows,
       complete: (res) => {
         const headers = (res.meta?.fields || []) as string[];
-        const rows = (res.data || []) as Record<string, any>[];
+        const rows = (res.data || []) as any[];
         resolve({ headers, rows });
       },
       error: (err) => reject(err),
@@ -109,7 +109,7 @@ function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[];
 }
 
 function validateRows(
-  rows: Record<string, any>[],
+  rows: any[],
   mapping: Record<string, string>,
   assetClass: string,
 ): {
@@ -257,7 +257,7 @@ export function ImportTradesWizard() {
     { name: string; size: number; type: string } | undefined
   >(undefined);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [rows, setRows] = useState<Record<string, any>[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [detect, setDetect] = useState<DetectResult | undefined>(undefined);
   const [headerMap, setHeaderMap] = useState<Record<string, string>>({});
   const [helpOpen, setHelpOpen] = useState(false);
