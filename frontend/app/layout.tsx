@@ -1,21 +1,17 @@
 // no "use client" here
-import type { Metadata } from "next";
-import Providers from "./providers";
+import "./globals.css";
+import { AuthProvider } from "@/providers/auth-provider";
 
-export const metadata: Metadata = { title: "Trade Journal" };
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
+export const metadata = {
+  title: "Trade Journal",
+  description: "Modern trading dashboard",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <Providers>
-          <div className="app-wrapper">
-            {children}
-          </div>
-        </Providers>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
