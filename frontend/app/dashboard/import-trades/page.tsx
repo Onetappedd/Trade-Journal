@@ -273,9 +273,6 @@ export default function ImportTradesPage() {
               entry_date:
                 parseFilledTimeToISO(row['Filled Time']) ||
                 new Date(row['Filled Time']).toISOString(),
-              asset_type: 'option',
-              broker: broker,
-              expiration_date,
               // Don't send status field - let database default handle it
               validation_status: status, // Rename to avoid sending 'status' to DB
               error,
