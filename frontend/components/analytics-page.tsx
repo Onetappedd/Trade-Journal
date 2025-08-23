@@ -610,8 +610,8 @@ export function AnalyticsPage() {
     let prev: number | null = null;
     return equityHistory.map((d, i) => {
       // Make robust for different shapes
-      const date = d.date || d.t || d.time || '';
-      const value = typeof d.value === 'number' ? d.value : d.balance ?? d.close ?? d.value ?? 0;
+      const date = d.date || (d as any).t || (d as any).time || '';
+      const value = typeof d.value === 'number' ? d.value : (d as any).balance ?? (d as any).close ?? d.value ?? 0;
       const prevValue = prev !== null ? prev : value;
       const dollarChange = i === 0 ? 0 : value - prevValue;
       const percentChange = i === 0 ? 0 : ((value - prevValue) / prevValue) * 100;
