@@ -37,6 +37,11 @@ import { fetchJson } from '@/lib/fetchJson';
 import { AssetType, TradeRow } from '@/types/trade';
 import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
+import { addTradeAction } from '@/app/actions/add-trade';
+
+// ... existing code ...
+
+type TradeFormValues = z.infer<typeof tradeSchema>;
 
 const tradeSchema = z.discriminatedUnion('asset_type', [
   z.object({
@@ -114,7 +119,7 @@ export default function AddTradePage() {
 
   // Get the appropriate schema based on asset type
   // Initialize form with dynamic schema
-  const form = useForm<TradeRow>({
+  const form = useForm<TradeFormValues>({
     resolver: zodResolver(tradeSchema),
     defaultValues: {
       asset_type: assetType,
@@ -126,7 +131,7 @@ export default function AddTradePage() {
       // Type-specific defaults
       ...(assetType === 'option' && { multiplier: 100 }),
       ...(assetType === 'futures' && { currency: 'USD' }),
-    },
+    } as Partial<TradeFormValues>,
   });
 
   // Handle asset type change
@@ -174,14 +179,46 @@ export default function AddTradePage() {
   };
 
   // Handle form submission
-  const onSubmit = async (data: TradeRow) => {
+  const onSubmit = async (data: TradeFormValues) => {
     setIsSubmitting(true);
     try {
-      const response = await fetchJson('/api/trades', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      // Map form data to server action input format
+      const serverData = {
+        ...data,
+        // Map option-specific fields
+        ...(data.asset_type === 'option' && {
+          optionType: data.optionType,
+          strike: data.strike || 0,
+          expiration: data.expiration_date || '',
+          multiplier: data.multiplier || 100,
+        }),
+        // Map futures-specific fields  
+        ...(data.asset_type === 'futures' && {
+          contractCode: data.symbol,
+          tickSize: 0.01, // Default values - could be made configurable
+          tickValue: 0.01,
+          pointMultiplier: data.multiplier || 1,
+        }),
+        // Ensure required fields are present
+        quantity: data.quantity || (data.asset_type === 'option' ? (data.contracts || 0) : 0),
+        entry_price: data.entry_price || 0,
+        isClosed: false,
+      };
+
+      const result = await addTradeAction(serverData);
+
+      if (!result.ok) {
+        // Handle validation errors
+        if (result.errors.fieldErrors) {
+          Object.entries(result.errors.fieldErrors).forEach(([field, messages]) => {
+            form.setError(field as any, { message: messages?.[0] || 'Invalid field' });
+          });
+        }
+        if (result.errors.formErrors) {
+          toast.error(result.errors.formErrors[0] || 'Failed to add trade');
+        }
+        return;
+      }
 
       toast.success('Trade added successfully!');
       
@@ -198,16 +235,7 @@ export default function AddTradePage() {
       });
     } catch (error: any) {
       console.error('Trade submission error:', error);
-      
-      if (error.issues) {
-        // Show field-specific errors
-        error.issues.forEach((issue: any) => {
-          form.setError(issue.path as any, { message: issue.message });
-        });
-        toast.error('Please check the form for errors');
-      } else {
-        toast.error('Could not add trade. Please try again.');
-      }
+      toast.error('Could not add trade. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
