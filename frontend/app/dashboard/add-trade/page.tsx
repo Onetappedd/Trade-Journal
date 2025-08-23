@@ -137,16 +137,55 @@ export default function AddTradePage() {
   // Handle asset type change
   const handleAssetTypeChange = (newType: AssetType) => {
     setAssetType(newType);
-    form.reset({
+    
+    // Create type-safe reset object based on asset type
+    const resetData = {
       asset_type: newType,
       side: form.getValues('side'),
       entry_date: form.getValues('entry_date'),
       fees: 0,
       account: '',
       notes: '',
-      ...(newType === 'option' && { multiplier: 100 }),
-      ...(newType === 'futures' && { currency: 'USD' }),
-    });
+    } as Partial<TradeFormValues>;
+
+    // Add type-specific fields
+    if (newType === 'stock') {
+      form.reset({
+        ...resetData,
+        symbol: '',
+        quantity: 0,
+        entry_price: null,
+      } as Partial<TradeFormValues>);
+    } else if (newType === 'option') {
+      form.reset({
+        ...resetData,
+        underlying: '',
+        optionType: 'call',
+        action: 'buy_to_open',
+        contracts: 1,
+        strike: null,
+        expiration_date: '',
+        entry_price: null,
+        multiplier: 100,
+      } as Partial<TradeFormValues>);
+    } else if (newType === 'futures') {
+      form.reset({
+        ...resetData,
+        symbol: '',
+        contracts: 1,
+        expiration_date: '',
+        entry_price: null,
+        multiplier: 1,
+        currency: 'USD',
+      } as Partial<TradeFormValues>);
+    } else if (newType === 'crypto') {
+      form.reset({
+        ...resetData,
+        symbol: '',
+        quantity: 0,
+        entry_price: null,
+      } as Partial<TradeFormValues>);
+    }
   };
 
   // Calculate totals for display
@@ -157,19 +196,19 @@ export default function AddTradePage() {
     switch (assetType) {
       case 'stock':
       case 'crypto': {
-        const quantity = values.quantity || 0;
+        const quantity = (values as any).quantity || 0;
         const price = values.entry_price || 0;
         return quantity * price + fees;
       }
       case 'option': {
-        const contracts = values.contracts || 0;
-        const multiplier = values.multiplier || 100;
+        const contracts = (values as any).contracts || 0;
+        const multiplier = (values as any).multiplier || 100;
         const price = values.entry_price || 0;
         return contracts * multiplier * price + fees;
       }
       case 'futures': {
-        const contracts = values.contracts || 0;
-        const multiplier = values.multiplier || 1;
+        const contracts = (values as any).contracts || 0;
+        const multiplier = (values as any).multiplier || 1;
         const price = values.entry_price || 0;
         return contracts * multiplier * price;
       }
@@ -200,7 +239,7 @@ export default function AddTradePage() {
           pointMultiplier: data.multiplier || 1,
         }),
         // Ensure required fields are present
-        quantity: data.quantity || (data.asset_type === 'option' ? (data.contracts || 0) : 0),
+        quantity: (data as any).quantity || (data.asset_type === 'option' ? ((data as any).contracts || 0) : 0),
         entry_price: data.entry_price || 0,
         isClosed: false,
       };
@@ -222,17 +261,54 @@ export default function AddTradePage() {
 
       toast.success('Trade added successfully!');
       
-      // Reset form but keep common fields
-      form.reset({
+      // Reset form with type-safe data
+      const resetData = {
         asset_type: assetType,
-        side: data.side,
+        side: (data as any).side,
         entry_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
         fees: 0,
         account: data.account,
         notes: '',
-        ...(assetType === 'option' && { multiplier: 100 }),
-        ...(assetType === 'futures' && { currency: 'USD' }),
-      });
+      } as Partial<TradeFormValues>;
+
+      // Add type-specific fields
+      if (assetType === 'stock') {
+        form.reset({
+          ...resetData,
+          symbol: '',
+          quantity: 0,
+          entry_price: null,
+        } as Partial<TradeFormValues>);
+      } else if (assetType === 'option') {
+        form.reset({
+          ...resetData,
+          underlying: '',
+          optionType: 'call',
+          action: 'buy_to_open',
+          contracts: 1,
+          strike: null,
+          expiration_date: '',
+          entry_price: null,
+          multiplier: 100,
+        } as Partial<TradeFormValues>);
+      } else if (assetType === 'futures') {
+        form.reset({
+          ...resetData,
+          symbol: '',
+          contracts: 1,
+          expiration_date: '',
+          entry_price: null,
+          multiplier: 1,
+          currency: 'USD',
+        } as Partial<TradeFormValues>);
+      } else if (assetType === 'crypto') {
+        form.reset({
+          ...resetData,
+          symbol: '',
+          quantity: 0,
+          entry_price: null,
+        } as Partial<TradeFormValues>);
+      }
     } catch (error: any) {
       console.error('Trade submission error:', error);
       toast.error('Could not add trade. Please try again.');
