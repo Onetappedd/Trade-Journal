@@ -39,53 +39,53 @@ import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
 
 const stockTradeSchema = z.object({
-  assetType: z.literal('stock'),
+  asset_type: z.literal('stock'),
   symbol: z.string().min(1, 'Symbol is required'),
   side: z.enum(['buy', 'sell']),
   quantity: z.number().positive('Quantity must be a positive number'),
-  price: z.number().positive('Price must be a positive number'),
-  datetime: z.string().min(1, 'Date and time are required'),
+  entry_price: z.number().positive('Price must be a positive number'),
+  entry_date: z.string().min(1, 'Date and time are required'),
   account: z.string().optional(),
   fees: z.number().min(0).optional(),
   notes: z.string().optional(),
 });
 
 const optionTradeSchema = z.object({
-  assetType: z.literal('option'),
+  asset_type: z.literal('option'),
   underlying: z.string().min(1, 'Underlying symbol is required'),
   optionType: z.enum(['call', 'put']),
   action: z.enum(['buy_to_open', 'sell_to_open', 'buy_to_close', 'sell_to_close']),
   contracts: z.number().int().positive('Contracts must be a positive integer'),
   strike: z.number().positive('Strike price must be a positive number'),
-  expiration: z.string().min(1, 'Expiration date is required'),
-  price: z.number().positive('Price must be a positive number'),
+  expiration_date: z.string().min(1, 'Expiration date is required'),
+  entry_price: z.number().positive('Price must be a positive number'),
   multiplier: z.number().int().positive('Multiplier must be a positive integer'),
-  datetime: z.string().min(1, 'Date and time are required'),
+  entry_date: z.string().min(1, 'Date and time are required'),
   account: z.string().optional(),
   fees: z.number().min(0).optional(),
   notes: z.string().optional(),
 });
 
 const futureTradeSchema = z.object({
-  assetType: z.literal('futures'),
+  asset_type: z.literal('futures'),
   symbol: z.string().min(1, 'Symbol is required'),
   contracts: z.number().int().positive('Contracts must be a positive integer'),
-  expiration: z.string().min(1, 'Expiration is required'),
-  price: z.number().positive('Price must be a positive number'),
+  expiration_date: z.string().min(1, 'Expiration is required'),
+  entry_price: z.number().positive('Price must be a positive number'),
   multiplier: z.number().positive('Multiplier must be a positive number'),
   currency: z.string().optional(),
-  datetime: z.string().min(1, 'Date and time are required'),
+  entry_date: z.string().min(1, 'Date and time are required'),
   account: z.string().optional(),
   fees: z.number().min(0).optional(),
   notes: z.string().optional(),
 });
 
 const cryptoTradeSchema = z.object({
-  assetType: z.literal('crypto'),
+  asset_type: z.literal('crypto'),
   symbol: z.string().min(1, 'Symbol is required'),
   quantity: z.number().positive('Quantity must be a positive number'),
-  price: z.number().positive('Price must be a positive number'),
-  datetime: z.string().min(1, 'Date and time are required'),
+  entry_price: z.number().positive('Price must be a positive number'),
+  entry_date: z.string().min(1, 'Date and time are required'),
   account: z.string().optional(),
   fees: z.number().min(0).optional(),
   notes: z.string().optional(),
@@ -131,9 +131,9 @@ export default function AddTradePage() {
   const form = useForm<TradeRow>({
     resolver: zodResolver(getSchema()),
     defaultValues: {
-      assetType,
+      asset_type: assetType,
       side: 'buy',
-      datetime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      entry_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       fees: 0,
       account: '',
       notes: '',
@@ -147,9 +147,9 @@ export default function AddTradePage() {
   const handleAssetTypeChange = (newType: AssetType) => {
     setAssetType(newType);
     form.reset({
-      assetType: newType,
+      asset_type: newType,
       side: form.getValues('side'),
-      datetime: form.getValues('datetime'),
+      entry_date: form.getValues('entry_date'),
       fees: 0,
       account: '',
       notes: '',
@@ -167,19 +167,19 @@ export default function AddTradePage() {
       case 'stock':
       case 'crypto': {
         const quantity = values.quantity || 0;
-        const price = values.price || 0;
+        const price = values.entry_price || 0;
         return quantity * price + fees;
       }
       case 'option': {
         const contracts = values.contracts || 0;
         const multiplier = values.multiplier || 100;
-        const price = values.price || 0;
+        const price = values.entry_price || 0;
         return contracts * multiplier * price + fees;
       }
       case 'futures': {
         const contracts = values.contracts || 0;
         const multiplier = values.multiplier || 1;
-        const price = values.price || 0;
+        const price = values.entry_price || 0;
         return contracts * multiplier * price;
       }
       default:
@@ -201,9 +201,9 @@ export default function AddTradePage() {
       
       // Reset form but keep common fields
       form.reset({
-        assetType,
+        asset_type: assetType,
         side: data.side,
-        datetime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        entry_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
         fees: 0,
         account: data.account,
         notes: '',
@@ -298,7 +298,7 @@ export default function AddTradePage() {
 
                   <FormField
                     control={form.control}
-                    name="datetime"
+                    name="entry_date"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Date & Time *</FormLabel>
@@ -373,7 +373,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="price"
+                      name="entry_price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price per Share *</FormLabel>
@@ -512,7 +512,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="expiration"
+                      name="expiration_date"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Expiration Date *</FormLabel>
@@ -526,7 +526,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="price"
+                      name="entry_price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price per Contract *</FormLabel>
@@ -549,7 +549,7 @@ export default function AddTradePage() {
                     control={form.control}
                     name="multiplier"
                     render={({ field }) => (
-                      <FormItem>
+                        <FormItem>
                         <FormLabel>Multiplier</FormLabel>
                         <FormControl>
                           <Input
@@ -618,7 +618,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="expiration"
+                      name="expiration_date"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Expiration (YYYY-MM) *</FormLabel>
@@ -638,7 +638,7 @@ export default function AddTradePage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
-                      name="price"
+                      name="entry_price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price *</FormLabel>
@@ -740,7 +740,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="price"
+                      name="entry_price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price *</FormLabel>
