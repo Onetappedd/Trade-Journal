@@ -38,58 +38,57 @@ import { AssetType, TradeRow } from '@/types/trade';
 import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
 
-const stockTradeSchema = z.object({
-  asset_type: z.literal('stock'),
-  symbol: z.string().min(1, 'Symbol is required'),
-  side: z.enum(['buy', 'sell']),
-  quantity: z.coerce.number().positive('Quantity must be a positive number'),
-  entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-  entry_date: z.string().min(1, 'Date and time are required'),
-  account: z.string().optional(),
-  fees: z.coerce.number().min(0).optional().nullable(),
-  notes: z.string().optional(),
-});
-
-const optionTradeSchema = z.object({
-  asset_type: z.literal('option'),
-  underlying: z.string().min(1, 'Underlying symbol is required'),
-  optionType: z.enum(['call', 'put']),
-  action: z.enum(['buy_to_open', 'sell_to_open', 'buy_to_close', 'sell_to_close']),
-  contracts: z.coerce.number().int().positive('Contracts must be a positive integer').nullable(),
-  strike: z.coerce.number().positive('Strike price must be a positive number').nullable(),
-  expiration_date: z.string().min(1, 'Expiration date is required').nullable(),
-  entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-  multiplier: z.coerce.number().int().positive('Multiplier must be a positive integer').nullable(),
-  entry_date: z.string().min(1, 'Date and time are required'),
-  account: z.string().optional(),
-  fees: z.coerce.number().min(0).optional().nullable(),
-  notes: z.string().optional(),
-});
-
-const futureTradeSchema = z.object({
-  asset_type: z.literal('futures'),
-  symbol: z.string().min(1, 'Symbol is required'),
-  contracts: z.coerce.number().int().positive('Contracts must be a positive integer').nullable(),
-  expiration_date: z.string().min(1, 'Expiration is required').nullable(),
-  entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-  multiplier: z.coerce.number().positive('Multiplier must be a positive number').nullable(),
-  currency: z.string().optional(),
-  entry_date: z.string().min(1, 'Date and time are required'),
-  account: z.string().optional(),
-  fees: z.coerce.number().min(0).optional().nullable(),
-  notes: z.string().optional(),
-});
-
-const cryptoTradeSchema = z.object({
-  asset_type: z.literal('crypto'),
-  symbol: z.string().min(1, 'Symbol is required'),
-  quantity: z.coerce.number().positive('Quantity must be a positive number'),
-  entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-  entry_date: z.string().min(1, 'Date and time are required'),
-  account: z.string().optional(),
-  fees: z.coerce.number().min(0).optional().nullable(),
-  notes: z.string().optional(),
-});
+const tradeSchema = z.discriminatedUnion('asset_type', [
+  z.object({
+    asset_type: z.literal('stock'),
+    symbol: z.string().min(1, 'Symbol is required'),
+    side: z.enum(['buy', 'sell']),
+    quantity: z.coerce.number().positive('Quantity must be a positive number'),
+    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
+    entry_date: z.string().min(1, 'Date and time are required'),
+    account: z.string().optional(),
+    fees: z.coerce.number().min(0).optional().nullable(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    asset_type: z.literal('option'),
+    underlying: z.string().min(1, 'Underlying symbol is required'),
+    optionType: z.enum(['call', 'put']),
+    action: z.enum(['buy_to_open', 'sell_to_open', 'buy_to_close', 'sell_to_close']),
+    contracts: z.coerce.number().int().positive('Contracts must be a positive integer').nullable(),
+    strike: z.coerce.number().positive('Strike price must be a positive number').nullable(),
+    expiration_date: z.string().min(1, 'Expiration date is required').nullable(),
+    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
+    multiplier: z.coerce.number().int().positive('Multiplier must be a positive integer').nullable(),
+    entry_date: z.string().min(1, 'Date and time are required'),
+    account: z.string().optional(),
+    fees: z.coerce.number().min(0).optional().nullable(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    asset_type: z.literal('futures'),
+    symbol: z.string().min(1, 'Symbol is required'),
+    contracts: z.coerce.number().int().positive('Contracts must be a positive integer').nullable(),
+    expiration_date: z.string().min(1, 'Expiration is required').nullable(),
+    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
+    multiplier: z.coerce.number().positive('Multiplier must be a positive number').nullable(),
+    currency: z.string().optional(),
+    entry_date: z.string().min(1, 'Date and time are required'),
+    account: z.string().optional(),
+    fees: z.coerce.number().min(0).optional().nullable(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    asset_type: z.literal('crypto'),
+    symbol: z.string().min(1, 'Symbol is required'),
+    quantity: z.coerce.number().positive('Quantity must be a positive number'),
+    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
+    entry_date: z.string().min(1, 'Date and time are required'),
+    account: z.string().optional(),
+    fees: z.coerce.number().min(0).optional().nullable(),
+    notes: z.string().optional(),
+  }),
+]);
 
 export const dynamic = "force-dynamic";
 // Default multipliers for common futures
@@ -114,22 +113,9 @@ export default function AddTradePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get the appropriate schema based on asset type
-  const getSchema = () => {
-    switch (assetType) {
-      case 'stock':
-        return stockTradeSchema;
-      case 'option':
-        return optionTradeSchema;
-      case 'futures':
-        return futureTradeSchema;
-      case 'crypto':
-        return cryptoTradeSchema;
-    }
-  };
-
   // Initialize form with dynamic schema
   const form = useForm<TradeRow>({
-    resolver: zodResolver(getSchema()),
+    resolver: zodResolver(tradeSchema),
     defaultValues: {
       asset_type: assetType,
       side: 'buy',
