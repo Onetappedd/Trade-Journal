@@ -1,4 +1,5 @@
 "use client";
+export const revalidate = 0;
 import * as React from "react";
 import Papa from "papaparse";
 import { useForm } from "react-hook-form";

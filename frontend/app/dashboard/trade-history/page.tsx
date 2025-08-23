@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { useState } from "react";
 import { FiltersBar } from "@/components/trades/FiltersBar";
 import { SummaryHeader } from "@/components/history/SummaryHeader";

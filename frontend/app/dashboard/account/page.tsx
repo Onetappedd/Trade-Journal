@@ -1,4 +1,4 @@
-'use client';
+"use client";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/components/auth/auth-provider';
+import { useAuth } from '@/providers/auth-provider'; // Corrected import path
 
 const usernameSchema = z.object({
   username: z

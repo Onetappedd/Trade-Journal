@@ -1,4 +1,6 @@
 'use client';
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { TaxSummaryCards } from '@/components/tax-center/TaxSummaryCards';
 import { TaxCharts } from '@/components/tax-center/TaxCharts';

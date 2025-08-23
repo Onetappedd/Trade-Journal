@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/components/auth/auth-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { DollarSign, Save, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
