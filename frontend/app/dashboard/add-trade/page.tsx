@@ -67,7 +67,7 @@ const optionTradeSchema = z.object({
 });
 
 const futureTradeSchema = z.object({
-  assetType: z.literal('future'),
+  assetType: z.literal('futures'),
   symbol: z.string().min(1, 'Symbol is required'),
   contracts: z.number().int().positive('Contracts must be a positive integer'),
   expiration: z.string().min(1, 'Expiration is required'),
@@ -120,7 +120,7 @@ export default function AddTradePage() {
         return stockTradeSchema;
       case 'option':
         return optionTradeSchema;
-      case 'future':
+      case 'futures':
         return futureTradeSchema;
       case 'crypto':
         return cryptoTradeSchema;
@@ -139,7 +139,7 @@ export default function AddTradePage() {
       notes: '',
       // Type-specific defaults
       ...(assetType === 'option' && { multiplier: 100 }),
-      ...(assetType === 'future' && { currency: 'USD' }),
+      ...(assetType === 'futures' && { currency: 'USD' }),
     },
   });
 
@@ -154,7 +154,7 @@ export default function AddTradePage() {
       account: '',
       notes: '',
       ...(newType === 'option' && { multiplier: 100 }),
-      ...(newType === 'future' && { currency: 'USD' }),
+      ...(newType === 'futures' && { currency: 'USD' }),
     });
   };
 
@@ -176,7 +176,7 @@ export default function AddTradePage() {
         const price = values.price || 0;
         return contracts * multiplier * price + fees;
       }
-      case 'future': {
+      case 'futures': {
         const contracts = values.contracts || 0;
         const multiplier = values.multiplier || 1;
         const price = values.price || 0;
@@ -208,7 +208,7 @@ export default function AddTradePage() {
         account: data.account,
         notes: '',
         ...(assetType === 'option' && { multiplier: 100 }),
-        ...(assetType === 'future' && { currency: 'USD' }),
+        ...(assetType === 'futures' && { currency: 'USD' }),
       });
     } catch (error: any) {
       console.error('Trade submission error:', error);
@@ -268,7 +268,7 @@ export default function AddTradePage() {
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="stock">Stock</TabsTrigger>
                   <TabsTrigger value="option">Option</TabsTrigger>
-                  <TabsTrigger value="future">Future</TabsTrigger>
+                  <TabsTrigger value="futures">Future</TabsTrigger>
                   <TabsTrigger value="crypto">Crypto</TabsTrigger>
                 </TabsList>
 
@@ -569,7 +569,7 @@ export default function AddTradePage() {
                 </TabsContent>
 
                 {/* Future Fields */}
-                <TabsContent value="future" className="space-y-4">
+                <TabsContent value="futures" className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
@@ -818,7 +818,7 @@ export default function AddTradePage() {
                       <Calculator className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">
                         {assetType === 'option' ? 'Total Premium' : 
-                         assetType === 'future' ? 'Notional Value' : 
+                         assetType === 'futures' ? 'Notional Value' : 
                          'Total Cost'}
                       </span>
                     </div>
@@ -831,7 +831,7 @@ export default function AddTradePage() {
                       = contracts × multiplier × price + fees
                     </p>
                   )}
-                  {assetType === 'future' && (
+                  {assetType === 'futures' && (
                     <p className="text-xs text-muted-foreground mt-2">
                       = contracts × multiplier × price (fees not included in notional)
                     </p>
