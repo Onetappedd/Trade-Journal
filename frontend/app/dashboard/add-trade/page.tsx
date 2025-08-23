@@ -453,7 +453,10 @@ export default function AddTradePage() {
                               step="0.001"
                               placeholder="100"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? undefined : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -473,7 +476,10 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="150.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -592,7 +598,10 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="150.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -626,7 +635,10 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="2.50"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -646,7 +658,10 @@ export default function AddTradePage() {
                             type="number"
                             step="1"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            value={(field.value ?? '') as string | number}
+                            onChange={(e) =>
+                              field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                            }
                           />
                         </FormControl>
                         <FormDescription>
@@ -698,7 +713,10 @@ export default function AddTradePage() {
                               step="1"
                               placeholder="1"
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -738,7 +756,10 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="4500.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -758,7 +779,10 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="50"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormDescription>
@@ -820,7 +844,10 @@ export default function AddTradePage() {
                               step="0.00000001"
                               placeholder="0.5"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -840,7 +867,10 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="50000.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={(field.value ?? '') as string | number}
+                              onChange={(e) =>
+                                field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -867,7 +897,10 @@ export default function AddTradePage() {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          value={(field.value ?? '') as string | number}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                          }
                         />
                       </FormControl>
                       <FormDescription>
