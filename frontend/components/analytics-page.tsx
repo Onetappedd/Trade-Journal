@@ -188,7 +188,7 @@ function CandlestickSeries({
 }) {
   return (
     <Customized
-      content={(props: any) => {
+      component={(props: any) => {
         const { xAxisMap, yAxisMap, offset } = props;
         const xKey = Object.keys(xAxisMap)[0];
         const yKey = Object.keys(yAxisMap)[0];
