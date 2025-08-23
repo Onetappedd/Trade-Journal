@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,44 +70,38 @@ export default function AccountPage() {
       .update({ username: data.username })
       .eq('id', user?.id);
     if (error) {
-      toast({
-        title: 'Failed to update username',
+      toast.error('Failed to update username', {
         description: error.message,
-        variant: 'destructive',
       });
       return;
     }
     // Update user_metadata
     await supabase.auth.updateUser({ data: { username: data.username } });
-    toast({ title: 'Username updated!' });
+    toast.success('Username updated!');
   }
 
   // Email change handler
   async function onEmailSubmit(data: EmailForm) {
     const { error } = await supabase.auth.updateUser({ email: data.email });
     if (error) {
-      toast({
-        title: 'Failed to update email',
+      toast.error('Failed to update email', {
         description: error.message,
-        variant: 'destructive',
       });
       return;
     }
-    toast({ title: 'Email update requested! Check your inbox to confirm.' });
+    toast.success('Email update requested! Check your inbox to confirm.');
   }
 
   // Password change handler
   async function onPasswordSubmit(data: PasswordForm) {
     const { error } = await supabase.auth.updateUser({ password: data.newPassword });
     if (error) {
-      toast({
-        title: 'Failed to update password',
+      toast.error('Failed to update password', {
         description: error.message,
-        variant: 'destructive',
       });
       return;
     }
-    toast({ title: 'Password updated!' });
+    toast.success('Password updated!');
     passwordForm.reset();
   }
 
