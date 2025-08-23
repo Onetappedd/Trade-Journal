@@ -1,7 +1,3 @@
-'use client';
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +25,9 @@ import { ASSET_TYPES } from '@/lib/enums';
 import { TradeRow, TradesResponse } from '@/types/trade';
 import { toast } from 'sonner';
 
-// Helper to format duration
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 function formatDuration(ms: number) {
   if (ms < 0) ms = 0;
   const seconds = Math.floor(ms / 1000);
@@ -42,7 +40,6 @@ function formatDuration(ms: number) {
   return `${seconds}s`;
 }
 
-// Helper to normalize asset type
 const normalizeAsset = (asset: string) => {
   const lower = asset.toLowerCase().trim();
   if (lower === 'options') return 'option';

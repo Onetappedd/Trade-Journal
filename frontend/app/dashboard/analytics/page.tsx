@@ -1,10 +1,9 @@
-'use client';
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { Suspense } from 'react';
 import { AnalyticsPage } from '@/components/analytics-page';
 import { Card } from '@/components/ui/card';
+
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 function AnalyticsLoading() {
   return (

@@ -1,7 +1,3 @@
-"use client";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +8,9 @@ import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider';
 import { DollarSign, Save, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 export default function PortfolioSettingsPage() {
   const { user } = useAuth();

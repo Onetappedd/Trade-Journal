@@ -1,13 +1,12 @@
-'use client';
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bell, Mail, Smartphone, TrendingUp, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 const notifications = [
   {

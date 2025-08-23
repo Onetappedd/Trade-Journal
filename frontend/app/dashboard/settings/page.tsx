@@ -1,10 +1,9 @@
-'use client';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import { SettingsSidebar } from '@/components/settings/SettingsSidebar';
 import { SettingsContent } from '@/components/settings/SettingsContent';
 import { useState } from 'react';
+
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 export type SettingsSection = 'profile' | 'trading' | 'notifications' | 'integrations' | 'billing';
 

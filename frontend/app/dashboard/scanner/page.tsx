@@ -1,11 +1,8 @@
-import type { Metadata } from 'next';
-import { ScannerPage } from '@/components/scanner-page';
+import ScannerClient from './ScannerClient';
 
-export const metadata: Metadata = {
-  title: 'Market Scanner - Trading Journal',
-  description: 'Scan the market for trading opportunities',
-};
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
-export default function Scanner() {
-  return <ScannerPage />;
+export default function Page() {
+  return <ScannerClient />;
 }

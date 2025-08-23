@@ -1,6 +1,3 @@
-'use client';
-export const revalidate = 0;
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,14 +11,15 @@ import {
 } from '@/components/ui/table';
 import { CreditCard, Download, Calendar, DollarSign } from 'lucide-react';
 
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+
 const invoices = [
   { id: 'INV-001', date: '2024-01-01', amount: 29.99, status: 'Paid' },
   { id: 'INV-002', date: '2024-02-01', amount: 29.99, status: 'Paid' },
   { id: 'INV-003', date: '2024-03-01', amount: 29.99, status: 'Paid' },
   { id: 'INV-004', date: '2024-04-01', amount: 29.99, status: 'Pending' },
 ];
-
-export const dynamic = "force-dynamic";
 
 export default function BillingPage() {
   return (

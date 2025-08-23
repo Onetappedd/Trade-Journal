@@ -1,11 +1,8 @@
-import type { Metadata } from 'next';
-import { RiskManagementPage } from '@/components/risk-management-page';
+import RiskManagementClient from './RiskManagementClient';
 
-export const metadata: Metadata = {
-  title: 'Risk Management | Trading Journal',
-  description: 'Monitor and manage your trading risk metrics',
-};
+export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
-export default function RiskManagement() {
-  return <RiskManagementPage />;
+export default function Page() {
+  return <RiskManagementClient />;
 }
