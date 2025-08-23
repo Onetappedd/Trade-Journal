@@ -1,6 +1,6 @@
+'use client';
 // Force dynamic rendering to avoid static generation issues
 export const dynamic = 'force-dynamic';
-'use client';
 
 import { SettingsSidebar } from '@/components/settings/SettingsSidebar';
 import { SettingsContent } from '@/components/settings/SettingsContent';
