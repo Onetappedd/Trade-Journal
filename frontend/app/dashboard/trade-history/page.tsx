@@ -1,3 +1,4 @@
+'use client';
 import { useState } from "react";
 import { FiltersBar } from "@/components/trades/FiltersBar";
 import { SummaryHeader } from "@/components/history/SummaryHeader";
@@ -6,9 +7,6 @@ import { CalendarHeatmap } from "@/components/history/CalendarHeatmap";
 import { Breakdowns } from "@/components/history/Breakdowns";
 import { usePersistedState } from "@/lib/ui/persist";
 import { toast } from "@/components/ui/sonner";
-
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
 
 // Persist filter state by default
 const PERSIST_KEY = "tradingjournal:history:filters:v1";

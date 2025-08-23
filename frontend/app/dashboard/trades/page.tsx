@@ -1,3 +1,4 @@
+'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,6 @@ import Link from 'next/link';
 import { ASSET_TYPES } from '@/lib/enums';
 import { TradeRow, TradesResponse } from '@/types/trade';
 import { toast } from 'sonner';
-
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
 
 function formatDuration(ms: number) {
   if (ms < 0) ms = 0;
