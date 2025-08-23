@@ -58,6 +58,7 @@ export async function addTradeAction(formData: FormData) {
       user_id: user.id,
       symbol: data.symbol,
       asset_type: assetType,
+      broker: (data as any).broker ?? 'Manual',
       side: data.side,
       quantity: data.quantity,
       entry_price: data.entry_price,
