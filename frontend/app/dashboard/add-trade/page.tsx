@@ -233,8 +233,8 @@ export default function AddTradePage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="buy">Buy</SelectItem>
-                            <SelectItem value="sell">Sell</SelectItem>
+                          <SelectItem value="buy">Buy</SelectItem>
+                          <SelectItem value="sell">Sell</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

@@ -1,3 +1,4 @@
+'use client';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,9 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth-provider'; // Corrected import path
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const usernameSchema = z.object({
   username: z

@@ -257,6 +257,11 @@ export default function ImportTradesPage() {
             // For options, use the underlying as the symbol
             const symbolToUse = parsed ? parsed.underlying : row.Symbol;
 
+            // Skip forex trades
+            if (row.asset_type === 'forex') {
+              continue;
+            }
+
             rows.push({
               symbol: symbolToUse, // Use underlying ticker as symbol
               side: (row.Side || '').toLowerCase(),

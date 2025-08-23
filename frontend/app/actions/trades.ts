@@ -8,6 +8,9 @@ import type { Database } from '@/lib/database.types';
 // Explicitly use Node.js runtime to avoid Edge Runtime warnings
 export const runtime = 'nodejs';
 
+const ALLOWED_ASSET_TYPES = ['stock', 'option', 'futures', 'crypto'] as const;
+type AssetType = typeof ALLOWED_ASSET_TYPES[number];
+
 const tradeSchema = z.object({
   symbol: z.string().min(1, 'Symbol is required').toUpperCase(),
   asset_type: z.enum(['stock', 'option', 'crypto', 'futures', 'forex']),
@@ -47,10 +50,14 @@ export async function addTradeAction(formData: FormData) {
   const { data } = parsed;
 
   try {
+    const assetType = data.asset_type as AssetType;
+    if (!ALLOWED_ASSET_TYPES.includes(assetType)) {
+      throw new Error('Unsupported asset_type');
+    }
     const tradeData: Database['public']['Tables']['trades']['Insert'] = {
       user_id: user.id,
       symbol: data.symbol,
-      asset_type: data.asset_type,
+      asset_type: assetType,
       side: data.side,
       quantity: data.quantity,
       entry_price: data.entry_price,
