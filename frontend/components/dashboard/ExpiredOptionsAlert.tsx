@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, X, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/components/auth/auth-provider';
+import { useAuth } from "@/components/providers/auth-provider";
 
 export function ExpiredOptionsAlert() {
   const [expiredCount, setExpiredCount] = useState(0);
