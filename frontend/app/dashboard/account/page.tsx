@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/providers/auth-provider'; // Corrected import path
+import { useAuth } from '@/context/auth';
 
 const usernameSchema = z.object({
   username: z
