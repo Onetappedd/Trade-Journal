@@ -737,7 +737,7 @@ export function AnalyticsPage() {
                         hide={false}
                         domain={['auto', 'auto']}
                         width={62}
-                        tickFormatter={v => Math.round(Number(v))}
+                        tickFormatter={v => Math.round(Number(v)).toString()}
                         tick={{ fontSize: 11, fill: '#888' }}
                       />
                       <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
