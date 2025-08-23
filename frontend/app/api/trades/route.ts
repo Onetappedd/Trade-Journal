@@ -1,83 +1,56 @@
-// app/api/trades/route.ts
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+'use client';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { ASSET_TYPES } from '@/lib/enums';
+import { getServerSupabase } from '@/lib/supabase/server';
 
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { z } from "zod";
-
-const Q = z.object({
-  limit: z.string().transform((v) => Number(v)).pipe(z.number().int().positive().max(500)).optional(),
-  cursor: z.string().optional(),
-  symbol: z.string().trim().optional(),
-  assetType: z.enum(["stock","option","future","crypto"]).optional(),
-  side: z.enum(["buy","sell"]).optional(),
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
-  sort: z.enum(["executedAt.desc","executedAt.asc"]).default("executedAt.desc").optional(),
+const schema = z.object({
+  limit: z.preprocess(v => Number(v), z.number().int().min(1).max(100)).default(100),
+  offset: z.preprocess(v => Number(v), z.number().int().min(0)).default(0),
+  asset: z.string().refine(val => ASSET_TYPES.includes(val as any)).optional(),
+  symbol: z.string().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
 });
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const params = Object.fromEntries(url.searchParams.entries());
+  const supabase = getServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const params = Object.fromEntries(searchParams.entries());
+
+  const parsed = schema.safeParse(params);
+  if (!parsed.success) {
+    return NextResponse.json({ message: 'Invalid query parameters', details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const { limit, offset, asset, symbol, from, to } = parsed.data;
 
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let q = supabase
+      .from('trades')
+      .select('id,user_id,symbol,asset_type,broker,side,status,quantity,entry_price,exit_price,entry_date,exit_date,pnl,fees,strike_price,expiration_date,option_type,underlying,multiplier,currency,fees_currency,notes', { count: 'exact' })
+      .eq('user_id', user.id);
+
+    if (asset) q = q.eq('asset_type', asset);
+    if (symbol) q = q.ilike('symbol', `%${symbol}%`);
+    if (from) q = q.gte('entry_date', from);
+    if (to) q = q.lte('entry_date', to);
+
+    q = q.order('entry_date', { ascending: false }).range(offset, offset + limit - 1);
+
+    const { data: items, error, count } = await q;
+
+    if (error) {
+      return NextResponse.json({ message: 'Error fetching trades', details: error.message }, { status: 500 });
     }
 
-    // Validate/parse query
-    const parsed = Q.safeParse(params);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid query", details: parsed.error.flatten() },
-        { status: 400 },
-      );
-    }
-    const q = parsed.data;
-
-    const take = q.limit ?? 100;
-    const orderBy =
-      q.sort === "executedAt.asc" ? { executedAt: "asc" as const } : { executedAt: "desc" as const };
-
-    const where: any = { userId: session.user.id };
-    if (q.symbol) where.symbol = q.symbol.toUpperCase();
-    if (q.assetType) where.assetType = q.assetType;
-    if (q.side) where.side = q.side;
-    if (q.dateFrom || q.dateTo) {
-      where.executedAt = {};
-      if (q.dateFrom) where.executedAt.gte = new Date(q.dateFrom);
-      if (q.dateTo) where.executedAt.lte = new Date(q.dateTo);
-    }
-
-    // cursor-based pagination (by id)
-    const items = await prisma.trade.findMany({
-      where,
-      take: take + 1,
-      ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
-      orderBy,
-    });
-
-    const hasMore = items.length > take;
-    const data = hasMore ? items.slice(0, take) : items;
-    const nextCursor = hasMore ? data[data.length - 1]?.id ?? null : null;
-
-    return NextResponse.json({ items: data, nextCursor }, { status: 200 });
-  } catch (err: any) {
-    // Server-side logging with useful context; won’t leak to client.
-    console.error("[GET /api/trades] failed", {
-      msg: err?.message,
-      stack: err?.stack,
-      url: req.url,
-      envHasDb: Boolean(process.env.DATABASE_URL),
-    });
-    return NextResponse.json(
-      { error: "E_TRADES_FETCH", message: "Failed to load trades" },
-      { status: 500 },
-    );
+    return NextResponse.json({ items, total: count });
+  } catch (error: any) {
+    return NextResponse.json({ message: 'An unexpected error occurred', details: error.message }, { status: 500 });
   }
 }

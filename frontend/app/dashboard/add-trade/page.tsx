@@ -32,14 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/format';
 import { toSym } from '@/lib/symbol';
 import { fetchJson } from '@/lib/fetchJson';
-import {
-  stockTradeSchema,
-  optionTradeSchema,
-  futureTradeSchema,
-  cryptoTradeSchema,
-  type Trade,
-  type AssetType,
-} from '@/types/trade';
+import { AssetType, TradeRow } from '@/types/trade';
 import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
 
 export const dynamic = "force-dynamic";
@@ -79,7 +72,7 @@ export default function AddTradePage() {
   };
 
   // Initialize form with dynamic schema
-  const form = useForm<Trade>({
+  const form = useForm<TradeRow>({
     resolver: zodResolver(getSchema()),
     defaultValues: {
       assetType,
@@ -139,7 +132,7 @@ export default function AddTradePage() {
   };
 
   // Handle form submission
-  const onSubmit = async (data: Trade) => {
+  const onSubmit = async (data: TradeRow) => {
     setIsSubmitting(true);
     try {
       const response = await fetchJson('/api/trades', {
