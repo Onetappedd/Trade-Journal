@@ -66,7 +66,7 @@ export async function addTradeAction(formData: FormData) {
       exit_date: data.exit_date ? new Date(data.exit_date).toISOString() : undefined,
       notes: data.notes,
       strike_price: data.strike_price,
-      expiry_date: data.expiry_date,
+      expiration_date: (data as any).expiration_date ?? (data as any).expiry_date ?? null,
       option_type: data.option_type,
       status: data.exit_price ? 'closed' : 'open',
     };

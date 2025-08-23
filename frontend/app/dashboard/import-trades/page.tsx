@@ -257,6 +257,9 @@ export default function ImportTradesPage() {
             // For options, use the underlying as the symbol
             const symbolToUse = parsed ? parsed.underlying : row.Symbol;
 
+            // Accept either expiration_date or legacy expiry_date, store as expiration_date
+            const expiration_date = row.expiration_date ?? row.expiry_date ?? null;
+
             // Skip forex trades
             if (row.asset_type === 'forex') {
               continue;
@@ -272,6 +275,7 @@ export default function ImportTradesPage() {
                 new Date(row['Filled Time']).toISOString(),
               asset_type: 'option',
               broker: broker,
+              expiration_date,
               // Don't send status field - let database default handle it
               validation_status: status, // Rename to avoid sending 'status' to DB
               error,
