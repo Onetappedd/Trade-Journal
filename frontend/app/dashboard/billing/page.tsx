@@ -20,7 +20,6 @@ const invoices = [
   { id: 'INV-004', date: '2024-04-01', amount: 29.99, status: 'Pending' },
 ];
 
-'use client';
 export const dynamic = "force-dynamic";
 
 export default function BillingPage() {

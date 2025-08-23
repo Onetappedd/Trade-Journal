@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 'use client';
 
 import * as React from 'react';
@@ -31,8 +32,6 @@ const passwordSchema = z.object({
 type UsernameForm = z.infer<typeof usernameSchema>;
 type EmailForm = z.infer<typeof emailSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
-
-export const dynamic = "force-dynamic";
 
 export default function AccountPage() {
   const { user, loading } = useAuth();

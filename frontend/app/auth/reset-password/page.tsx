@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 'use client';
 
 import { useState } from 'react';
@@ -12,8 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { updatePasswordSchema, type UpdatePasswordFormData } from '@/lib/validations';
 import { createClient } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-
-export const dynamic = 'force-dynamic';
 
 export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);

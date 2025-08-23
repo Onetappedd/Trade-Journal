@@ -42,6 +42,7 @@ import {
 } from '@/types/trade';
 import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
 
+export const dynamic = "force-dynamic";
 // Default multipliers for common futures
 const FUTURE_MULTIPLIERS: Record<string, number> = {
   ES: 50,     // E-mini S&P 500
@@ -57,8 +58,6 @@ const FUTURE_MULTIPLIERS: Record<string, number> = {
   ZS: 50,     // Soybeans
   ZW: 50,     // Wheat
 };
-
-export const dynamic = "force-dynamic";
 
 export default function AddTradePage() {
   const router = useRouter();
