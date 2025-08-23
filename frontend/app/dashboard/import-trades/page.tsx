@@ -341,7 +341,7 @@ export default function ImportTradesPage() {
   async function handleImport() {
     const valid = previewRows.filter((t) => t.validation_status === 'valid');
     if (!valid.length) {
-      toast({ title: 'No valid trades to import', variant: 'destructive' });
+      toast.error('No valid trades to import');
       return;
     }
 
@@ -489,7 +489,7 @@ export default function ImportTradesPage() {
       const result = await res.json();
 
       if (res.ok && result.success > 0) {
-        toast({ title: 'Trade saved successfully!', variant: 'default' });
+        toast.success('Trade saved successfully!');
         manualForm.reset({
           symbol: '',
           side: 'buy',
@@ -501,19 +501,11 @@ export default function ImportTradesPage() {
       } else {
         // Show detailed error message
         const errorMsg = result.errors ? result.errors.join(', ') : result.error || 'Unknown error';
-        toast({
-          title: 'Failed to save trade',
-          description: errorMsg,
-          variant: 'destructive',
-        });
+        toast.error(`Failed to save trade: ${errorMsg}`);
         console.error('Trade save failed:', result);
       }
     } catch (e) {
-      toast({
-        title: 'Failed to save trade',
-        description: String(e),
-        variant: 'destructive',
-      });
+      toast.error(`Failed to save trade: ${String(e)}`);
     } finally {
       setIsSubmitting(false);
     }
