@@ -607,7 +607,7 @@ export function AnalyticsPage() {
   // Compute chart data for the equity curve with useMemo to avoid IIFE-in-JSX errors
   const chartData = useMemo(() => {
     if (!equityHistory || equityHistory.length === 0) return [];
-    let prev = null;
+    let prev: number | null = null;
     return equityHistory.map((d, i) => {
       // Make robust for different shapes
       const date = d.date || d.t || d.time || '';
