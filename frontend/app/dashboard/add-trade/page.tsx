@@ -36,6 +36,60 @@ import { toSym } from '@/lib/symbol';
 import { fetchJson } from '@/lib/fetchJson';
 import { AssetType, TradeRow } from '@/types/trade';
 import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
+import { z } from 'zod';
+
+const stockTradeSchema = z.object({
+  assetType: z.literal('stock'),
+  symbol: z.string().min(1, 'Symbol is required'),
+  side: z.enum(['buy', 'sell']),
+  quantity: z.number().positive('Quantity must be a positive number'),
+  price: z.number().positive('Price must be a positive number'),
+  datetime: z.string().min(1, 'Date and time are required'),
+  account: z.string().optional(),
+  fees: z.number().min(0).optional(),
+  notes: z.string().optional(),
+});
+
+const optionTradeSchema = z.object({
+  assetType: z.literal('option'),
+  underlying: z.string().min(1, 'Underlying symbol is required'),
+  optionType: z.enum(['call', 'put']),
+  action: z.enum(['buy_to_open', 'sell_to_open', 'buy_to_close', 'sell_to_close']),
+  contracts: z.number().int().positive('Contracts must be a positive integer'),
+  strike: z.number().positive('Strike price must be a positive number'),
+  expiration: z.string().min(1, 'Expiration date is required'),
+  price: z.number().positive('Price must be a positive number'),
+  multiplier: z.number().int().positive('Multiplier must be a positive integer'),
+  datetime: z.string().min(1, 'Date and time are required'),
+  account: z.string().optional(),
+  fees: z.number().min(0).optional(),
+  notes: z.string().optional(),
+});
+
+const futureTradeSchema = z.object({
+  assetType: z.literal('future'),
+  symbol: z.string().min(1, 'Symbol is required'),
+  contracts: z.number().int().positive('Contracts must be a positive integer'),
+  expiration: z.string().min(1, 'Expiration is required'),
+  price: z.number().positive('Price must be a positive number'),
+  multiplier: z.number().positive('Multiplier must be a positive number'),
+  currency: z.string().optional(),
+  datetime: z.string().min(1, 'Date and time are required'),
+  account: z.string().optional(),
+  fees: z.number().min(0).optional(),
+  notes: z.string().optional(),
+});
+
+const cryptoTradeSchema = z.object({
+  assetType: z.literal('crypto'),
+  symbol: z.string().min(1, 'Symbol is required'),
+  quantity: z.number().positive('Quantity must be a positive number'),
+  price: z.number().positive('Price must be a positive number'),
+  datetime: z.string().min(1, 'Date and time are required'),
+  account: z.string().optional(),
+  fees: z.number().min(0).optional(),
+  notes: z.string().optional(),
+});
 
 export const dynamic = "force-dynamic";
 // Default multipliers for common futures
