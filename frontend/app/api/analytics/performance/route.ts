@@ -36,10 +36,10 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const equityCurve = data.map((row) => ({ t: row.day, equity: Number(row.equity) }));
-  const maxDrawdown = Math.min(...data.map((row) => Number(row.drawdown) || 0));
+  const equityCurve = data.map((row: any) => ({ t: row.day, equity: Number(row.equity) }));
+  const maxDrawdown = Math.min(...data.map((row: any) => Number(row.drawdown) || 0));
   const returns = data
-    .map((row) => Number(row.daily_return))
+    .map((row: any) => Number(row.daily_return))
     .filter((r) => r !== null && !isNaN(r));
   const avgReturn = returns.reduce((a, b) => a + b, 0) / (returns.length || 1);
   const stddev = Math.sqrt(
