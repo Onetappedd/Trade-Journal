@@ -393,7 +393,12 @@ export default function AddTradePage() {
                       <FormItem>
                         <FormLabel>Date & Time *</FormLabel>
                         <FormControl>
-                          <Input type="datetime-local" {...field} />
+                          <Input
+                            type="datetime-local"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -619,7 +624,12 @@ export default function AddTradePage() {
                         <FormItem>
                           <FormLabel>Expiration Date *</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} />
+                            <Input
+                              type="date"
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -737,7 +747,8 @@ export default function AddTradePage() {
                             <Input
                               type="month"
                               {...field}
-                              onChange={(e) => field.onChange(e.target.value)}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)}
                             />
                           </FormControl>
                           <FormMessage />
