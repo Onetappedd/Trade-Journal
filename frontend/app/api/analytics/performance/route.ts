@@ -40,14 +40,14 @@ export async function POST(req: NextRequest) {
   const maxDrawdown = Math.min(...data.map((row: any) => Number(row.drawdown) || 0));
   const returns = data
     .map((row: any) => Number(row.daily_return))
-    .filter((r) => r !== null && !isNaN(r));
-  const avgReturn = returns.reduce((a, b) => a + b, 0) / (returns.length || 1);
+    .filter((r: number) => r !== null && !isNaN(r));
+  const avgReturn = returns.reduce((a: number, b: number) => a + b, 0) / (returns.length || 1);
   const stddev = Math.sqrt(
-    returns.reduce((a, b) => a + Math.pow(b - avgReturn, 2), 0) / (returns.length || 1),
+    returns.reduce((a: number, b: number) => a + Math.pow(b - avgReturn, 2), 0) / (returns.length || 1),
   );
-  const downsideReturns = returns.filter((r) => r < 0);
+  const downsideReturns = returns.filter((r: number) => r < 0);
   const downsideStddev = Math.sqrt(
-    downsideReturns.reduce((a, b) => a + Math.pow(b - avgReturn, 2), 0) /
+    downsideReturns.reduce((a: number, b: number) => a + Math.pow(b - avgReturn, 2), 0) /
       (downsideReturns.length || 1),
   );
   const sharpe = stddev ? (avgReturn / stddev) * Math.sqrt(252) : 0;
