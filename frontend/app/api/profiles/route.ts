@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
       full_name: body.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
       avatar_url: body.avatar_url || null,
-      website: body.website || null,
     };
 
     // Use upsert to handle both create and update
