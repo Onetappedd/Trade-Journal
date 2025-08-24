@@ -152,7 +152,7 @@ function MetricCard({
       aria-label={ariaLabel || title}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-[#9CA3AF]">{title}</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         {positive ? (
           <TrendingUp className="h-4 w-4 text-[#00C896]" />
         ) : (
@@ -160,9 +160,9 @@ function MetricCard({
         )}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-semibold text-white">{value}</div>
+        <div className="text-2xl font-semibold">{value}</div>
         {delta && (
-          <p className="text-xs text-[#9CA3AF] mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
             {positive ? (
               <ArrowUpRight className="inline h-3 w-3 mr-1 text-[#00C896]" />
             ) : (
@@ -636,8 +636,8 @@ export function AnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Analytics</h1>
-          <p className="text-[#9CA3AF]">Comprehensive trading analytics with your real data</p>
+          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+          <p className="text-muted-foreground">Comprehensive trading analytics with your real data</p>
         </div>
       </div>
 
@@ -702,14 +702,14 @@ export function AnalyticsPage() {
       {/* Charts and Allocation */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
         <Card
-          className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2 h-full"
+          className="xl:col-span-2 h-full"
           aria-label="Equity performance chart"
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Equity Performance</CardTitle>
-                <CardDescription className="text-[#9CA3AF]">
+                <CardTitle>Equity Performance</CardTitle>
+                <CardDescription>
                   Equity/timeframe filters
                 </CardDescription>
               </div>
@@ -726,24 +726,30 @@ export function AnalyticsPage() {
                       data={chartData}
                       margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
                     >
-                      <CartesianGrid strokeOpacity={0.15} vertical={false} />
+                      <CartesianGrid strokeOpacity={0.15} vertical={false} stroke="hsl(var(--border))" />
                       <XAxis
                         dataKey="date"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fontSize: 11, fill: '#888' }}
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       />
                       <YAxis
                         hide={false}
                         domain={['auto', 'auto']}
                         width={62}
                         tickFormatter={v => Math.round(Number(v)).toString()}
-                        tick={{ fontSize: 11, fill: '#888' }}
+                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       />
-                      <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
-                      <RTooltip/>
-                      <Area type="monotone" dataKey="pos" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} dot={false} isAnimationActive={false} />
-                      <Area type="monotone" dataKey="neg" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} dot={false} isAnimationActive={false} />
+                      <ReferenceLine y={INITIAL_CAPITAL} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.35} />
+                      <RTooltip
+                        contentStyle={{
+                          background: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                          color: "hsl(var(--foreground))",
+                        }}
+                      />
+                      <Area type="monotone" dataKey="pos" stroke="hsl(142.1 76.2% 36.3%)" fill="hsl(142.1 76.2% 36.3%)" fillOpacity={0.15} dot={false} isAnimationActive={false} />
+                      <Area type="monotone" dataKey="neg" stroke="hsl(0 84.2% 60.2%)" fill="hsl(0 84.2% 60.2%)" fillOpacity={0.15} dot={false} isAnimationActive={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -753,12 +759,11 @@ export function AnalyticsPage() {
         </Card>
 
         <Card
-          className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm"
           aria-label="Asset allocation"
         >
           <CardHeader className="pb-2">
-            <CardTitle className="text-white">Asset Allocation</CardTitle>
-            <CardDescription className="text-[#9CA3AF]">
+            <CardTitle>Asset Allocation</CardTitle>
+            <CardDescription>
               Portfolio distribution (by market value)
             </CardDescription>
           </CardHeader>
@@ -786,8 +791,9 @@ export function AnalyticsPage() {
                     </Pie>
                     <RTooltip
                       contentStyle={{
-                        background: COLORS.bgDark,
-                        border: `1px solid ${COLORS.bgMuted}`,
+                        background: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        color: "hsl(var(--foreground))",
                       }}
                     />
                   </PieChart>
@@ -795,9 +801,9 @@ export function AnalyticsPage() {
               </ChartContainer>
             ) : (
               <div className="h-[360px] w-full flex items-center justify-center">
-                <p className="text-[#9CA3AF] text-center">
-                  {positions.length === 0 ? 'No open positions' : 'No data available'}
-                </p>
+                              <p className="text-muted-foreground text-center">
+                {positions.length === 0 ? 'No open positions' : 'No data available'}
+              </p>
               </div>
             )}
           </CardContent>
@@ -811,56 +817,56 @@ export function AnalyticsPage() {
           aria-label="Performance metrics"
         >
           <CardHeader className="pb-2">
-            <CardTitle className="text-white">Performance Metrics</CardTitle>
-            <CardDescription className="text-[#9CA3AF]">
+            <CardTitle>Performance Metrics</CardTitle>
+            <CardDescription>
               Sharpe, Profit Factor, Drawdown and more
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Sharpe Ratio</div>
-                <div className="text-xl font-semibold text-white mt-1">
+                          <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg bg-muted">
+                              <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
+              <div className="text-xl font-semibold mt-1">
                   {(analytics?.sharpeRatio || 0).toFixed(2)}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Volatility (σ)</div>
-                <div className="text-xl font-semibold text-white mt-1">{vol.toFixed(2)}</div>
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-xs text-muted-foreground">Volatility (σ)</div>
+                <div className="text-xl font-semibold mt-1">{vol.toFixed(2)}</div>
               </div>
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Max Drawdown</div>
-                <div className="text-xl font-semibold text-white mt-1">
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-xs text-muted-foreground">Max Drawdown</div>
+                <div className="text-xl font-semibold mt-1">
                   {(analytics?.maxDrawdown || 0).toFixed(2)}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Profit Factor</div>
-                <div className="text-xl font-semibold text-white mt-1">
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-xs text-muted-foreground">Profit Factor</div>
+                <div className="text-xl font-semibold mt-1">
                   {(analytics?.profitFactor || 0).toFixed(2)}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Avg Win</div>
-                <div className="text-xl font-semibold text-white mt-1">
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-xs text-muted-foreground">Avg Win</div>
+                <div className="text-xl font-semibold mt-1">
                   {formatCurrency(analytics?.avgWin || 0)}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Avg Loss</div>
-                <div className="text-xl font-semibold text-white mt-1">
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-xs text-muted-foreground">Avg Loss</div>
+                <div className="text-xl font-semibold mt-1">
                   {formatCurrency(analytics?.avgLoss || 0)}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Expectancy</div>
-                <div className="text-xl font-semibold text-white mt-1">
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-xs text-muted-foreground">Expectancy</div>
+                <div className="text-xl font-semibold mt-1">
                   {formatCurrency(expectancy)}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#2D2D2D]">
-                <div className="text-xs text-[#9CA3AF]">Total Trades</div>
-                <div className="text-xl font-semibold text-white mt-1">
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="text-xs text-muted-foreground">Total Trades</div>
+                <div className="text-xl font-semibold mt-1">
                   {analytics?.totalTrades || 0}
                 </div>
               </div>
@@ -875,8 +881,8 @@ export function AnalyticsPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white">Top Winners</CardTitle>
-                <CardDescription className="text-[#9CA3AF]">Best trades by % gain</CardDescription>
+                            <CardTitle>Top Winners</CardTitle>
+            <CardDescription>Best trades by % gain</CardDescription>
               </div>
               <TrendingUp className="h-5 w-5 text-[#00C896]" />
             </div>
