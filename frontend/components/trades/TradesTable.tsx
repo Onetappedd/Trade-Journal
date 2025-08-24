@@ -1,7 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from "react";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  useReactTable,
+  SortingState,
+  ColumnFiltersState,
+  VisibilityState,
+} from "@tanstack/react-table";
+import { format } from "date-fns";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -9,178 +25,311 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ArrowUpDown, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+} from "@/components/ui/table";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Trade, calcPnL, statusOf, usd } from "@/lib/domain/trades";
+import { TradesEmptyState } from "./TradesEmptyState";
 
-// Mock data
-const trades = [
-  {
-    id: 1,
-    symbol: 'AAPL',
-    assetType: 'Stock',
-    side: 'Buy',
-    quantity: 100,
-    entryPrice: 150.25,
-    exitPrice: 155.8,
-    entryDate: '2024-01-15',
-    exitDate: '2024-01-20',
-    pnl: 555.0,
-    tags: ['Tech', 'Long-term'],
-    notes: 'Strong earnings expected',
-    status: 'Closed',
-  },
-  {
-    id: 2,
-    symbol: 'TSLA',
-    assetType: 'Stock',
-    side: 'Sell',
-    quantity: 50,
-    entryPrice: 220.0,
-    exitPrice: null,
-    entryDate: '2024-01-18',
-    exitDate: null,
-    pnl: -125.5,
-    tags: ['EV', 'Volatile'],
-    notes: 'Short position on overvaluation',
-    status: 'Open',
-  },
-  {
-    id: 3,
-    symbol: 'MSFT',
-    assetType: 'Stock',
-    side: 'Buy',
-    quantity: 75,
-    entryPrice: 380.5,
-    exitPrice: 385.25,
-    entryDate: '2024-01-10',
-    exitDate: '2024-01-25',
-    pnl: 356.25,
-    tags: ['Tech', 'Dividend'],
-    notes: 'Cloud growth story',
-    status: 'Closed',
-  },
-];
+interface TradesTableProps {
+  data: Trade[];
+  onRowClick?: (trade: Trade) => void;
+}
 
-export function TradesTable() {
-  const [sortField, setSortField] = useState<string>('');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+const SortableHeader = ({ column, children }: { column: any; children: React.ReactNode }) => {
+  const isSorted = column.getIsSorted();
+  
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      className="h-auto p-0 font-semibold hover:bg-transparent"
+    >
+      {children}
+      {isSorted === "asc" ? (
+        <ChevronUp className="ml-2 h-4 w-4" />
+      ) : isSorted === "desc" ? (
+        <ChevronDown className="ml-2 h-4 w-4" />
+      ) : (
+        <ChevronsUpDown className="ml-2 h-4 w-4" />
+      )}
+    </Button>
+  );
+};
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
+const AssetBadge = ({ assetType }: { assetType: string }) => {
+  const variants: Record<string, "default" | "secondary" | "outline"> = {
+    stock: "default",
+    option: "secondary", 
+    futures: "outline",
+    crypto: "secondary"
   };
+  
+  return (
+    <Badge variant={variants[assetType] || "default"} className="text-xs">
+      {assetType}
+    </Badge>
+  );
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+    Open: "outline",
+    Partial: "secondary",
+    Closed: "default"
+  };
+  
+  return (
+    <Badge variant={variants[status] || "default"} className="text-xs">
+      {status}
+    </Badge>
+  );
+};
+
+const PnLCell = ({ trade }: { trade: Trade }) => {
+  const pnl = calcPnL(trade);
+  const isPositive = pnl.total > 0;
+  const isNegative = pnl.total < 0;
+  
+  return (
+    <div className="text-right">
+      <div className={`font-semibold ${isPositive ? 'text-green-600' : isNegative ? 'text-red-600' : 'text-foreground'}`}>
+        {usd(pnl.total)}
+      </div>
+      <div className="text-xs text-muted-foreground">
+        R: {usd(pnl.realized)} • U: {usd(pnl.unrealized)}
+      </div>
+    </div>
+  );
+};
+
+export function TradesTable({ data, onRowClick }: TradesTableProps) {
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "opened_at", desc: true }
+  ]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [globalFilter, setGlobalFilter] = React.useState("");
+
+  const columns: ColumnDef<Trade>[] = [
+    {
+      accessorKey: "opened_at",
+      header: ({ column }) => <SortableHeader column={column}>Date</SortableHeader>,
+      cell: ({ row }) => {
+        const date = row.getValue("opened_at") as string;
+        return format(new Date(date), "MMM d, yyyy");
+      },
+    },
+    {
+      accessorKey: "symbol",
+      header: ({ column }) => <SortableHeader column={column}>Symbol</SortableHeader>,
+      cell: ({ row }) => <div className="font-medium">{row.getValue("symbol")}</div>,
+    },
+    {
+      accessorKey: "asset_type",
+      header: "Asset",
+      cell: ({ row }) => <AssetBadge assetType={row.getValue("asset_type")} />,
+    },
+    {
+      accessorKey: "side",
+      header: ({ column }) => <SortableHeader column={column}>Side</SortableHeader>,
+      cell: ({ row }) => <div className="capitalize">{row.getValue("side")}</div>,
+    },
+    {
+      accessorKey: "quantity",
+      header: ({ column }) => <SortableHeader column={column}>Qty</SortableHeader>,
+      cell: ({ row }) => <div className="text-right tabular-nums">{row.getValue("quantity")}</div>,
+    },
+    {
+      accessorKey: "open_price",
+      header: ({ column }) => <SortableHeader column={column}>Open</SortableHeader>,
+      cell: ({ row }) => <div className="text-right tabular-nums">{usd(row.getValue("open_price"))}</div>,
+    },
+    {
+      accessorKey: "close_price",
+      header: ({ column }) => <SortableHeader column={column}>Close</SortableHeader>,
+      cell: ({ row }) => {
+        const closePrice = row.getValue("close_price") as number | null;
+        return <div className="text-right tabular-nums">{closePrice ? usd(closePrice) : "—"}</div>;
+      },
+    },
+    {
+      accessorKey: "fees",
+      header: ({ column }) => <SortableHeader column={column}>Fees</SortableHeader>,
+      cell: ({ row }) => {
+        const fees = row.getValue("fees") as number | null;
+        return <div className="text-right tabular-nums">{fees ? usd(fees) : "—"}</div>;
+      },
+    },
+    {
+      id: "pnl",
+      header: ({ column }) => <SortableHeader column={column}>P&L</SortableHeader>,
+      cell: ({ row }) => <PnLCell trade={row.original} />,
+    },
+    {
+      accessorKey: "tags",
+      header: "Tags",
+      cell: ({ row }) => {
+        const tags = row.getValue("tags") as string[] | null;
+        if (!tags || tags.length === 0) return <span className="text-muted-foreground">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {tags.slice(0, 2).map((tag) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+            {tags.length > 2 && (
+              <Badge variant="outline" className="text-xs">
+                +{tags.length - 2}
+              </Badge>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "status",
+      header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
+      cell: ({ row }) => <StatusBadge status={statusOf(row.original)} />,
+    },
+  ];
+
+  const table = useReactTable({
+    data,
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      globalFilter,
+    },
+  });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>All Trades</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('symbol')}>
-                    Symbol <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Asset Type</TableHead>
-                <TableHead>Side</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('entryPrice')}>
-                    Entry Price <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Exit Price</TableHead>
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('entryDate')}>
-                    Entry Date <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Exit Date</TableHead>
-                <TableHead>
-                  <Button variant="ghost" onClick={() => handleSort('pnl')}>
-                    P&L <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead></TableHead>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Input
+          placeholder="Search symbols, tags..."
+          value={globalFilter ?? ""}
+          onChange={(event) => setGlobalFilter(event.target.value)}
+          className="max-w-sm"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table
+              .getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {trades.map((trade) => (
-                <TableRow key={trade.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell className="font-medium">{trade.symbol}</TableCell>
-                  <TableCell>{trade.assetType}</TableCell>
-                  <TableCell>
-                    <Badge variant={trade.side === 'Buy' ? 'default' : 'secondary'}>
-                      {trade.side}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{trade.quantity}</TableCell>
-                  <TableCell>${trade.entryPrice.toFixed(2)}</TableCell>
-                  <TableCell>{trade.exitPrice ? `$${trade.exitPrice.toFixed(2)}` : '-'}</TableCell>
-                  <TableCell>{trade.entryDate}</TableCell>
-                  <TableCell>{trade.exitDate || '-'}</TableCell>
-                  <TableCell>
-                    <span className={trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
-                      ${trade.pnl.toFixed(2)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      {trade.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={trade.status === 'Open' ? 'destructive' : 'default'}>
-                      {trade.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                  onClick={() => onRowClick?.(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              ))
+                         ) : (
+               <TableRow>
+                 <TableCell colSpan={columns.length} className="p-0">
+                   <TradesEmptyState hasFilters={!!globalFilter || Object.keys(columnFilters).length > 0} />
+                 </TableCell>
+               </TableRow>
+             )}
+          </TableBody>
+        </Table>
+      </div>
+      
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          {table.getFilteredSelectedRowModel().rows.length} of{" "}
+          {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
-      </CardContent>
-    </Card>
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
