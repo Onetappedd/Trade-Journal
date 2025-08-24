@@ -9,7 +9,7 @@ import { withTooltip, Tooltip, TooltipWithBounds, defaultStyles } from '@visx/to
 import { WithTooltipProvidedProps } from '@visx/tooltip/lib/enhancers/withTooltip';
 import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
-import { max, extent, bisector } from 'd3-array';
+import { max, extent, bisector, min } from 'd3-array';
 import { timeFormat } from 'd3-time-format';
 
 // P&L data point interface
@@ -45,6 +45,8 @@ export type PnlAreaChartProps = {
   width: number;
   height: number;
   margin?: { top: number; right: number; bottom: number; left: number };
+  mode?: 'realized' | 'total';
+  fallbackUsed?: boolean;
 };
 
 export default withTooltip<PnlAreaChartProps, TooltipData>(
@@ -53,16 +55,27 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
     width,
     height,
     margin = { top: 0, right: 0, bottom: 0, left: 0 },
+    mode = 'realized',
+    fallbackUsed = false,
     showTooltip,
     hideTooltip,
     tooltipData,
     tooltipTop = 0,
     tooltipLeft = 0,
   }: PnlAreaChartProps & WithTooltipProvidedProps<TooltipData>) => {
+    // Handle empty or invalid data with friendly empty state
     if (width < 10 || !data || data.length === 0) {
       return (
-        <div className="flex items-center justify-center h-full">
-          <p className="text-muted-foreground">No P&L data available</p>
+        <div className="flex flex-col items-center justify-center h-full space-y-2 p-4">
+          <div className="text-center">
+            <div className="text-4xl mb-2">📊</div>
+            <p className="text-muted-foreground font-medium">No P&L data available</p>
+            <div className="text-xs text-muted-foreground mt-1 space-y-1">
+              <p>• Try selecting "ALL" time range</p>
+              <p>• Switch to Realized P&L mode</p>
+              <p>• Add some completed trades</p>
+            </div>
+          </div>
         </div>
       );
     }
@@ -70,6 +83,15 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
     // bounds
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
+
+    // Calculate data bounds for smart scaling
+    const dataMin = min(data, getPnlValue) || 0;
+    const dataMax = max(data, getPnlValue) || 0;
+    const dataRange = dataMax - dataMin;
+    
+    // Determine if we should show zero baseline
+    const shouldShowZeroBaseline = dataMin < 0 && dataMax > 0;
+    const baselineValue = shouldShowZeroBaseline ? 0 : dataMin;
 
     // scales
     const dateScale = useMemo(
@@ -82,13 +104,20 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
     );
     
     const pnlValueScale = useMemo(
-      () =>
-        scaleLinear({
+      () => {
+        const domainMin = shouldShowZeroBaseline ? Math.min(0, dataMin) : dataMin;
+        const domainMax = shouldShowZeroBaseline ? Math.max(0, dataMax) : dataMax;
+        
+        // Add padding to domain for better visualization
+        const padding = dataRange > 0 ? dataRange * 0.1 : Math.abs(domainMax) * 0.1;
+        
+        return scaleLinear({
           range: [innerHeight + margin.top, margin.top],
-          domain: [0, (max(data, getPnlValue) || 0) + innerHeight / 3],
+          domain: [domainMin - padding, domainMax + padding],
           nice: true,
-        }),
-      [margin.top, innerHeight, data],
+        });
+      },
+      [margin.top, innerHeight, data, dataMin, dataMax, dataRange, shouldShowZeroBaseline],
     );
 
     // tooltip handler
@@ -124,14 +153,41 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
             rx={14}
           />
           <LinearGradient id="area-background-gradient" from={background} to={background2} />
-          <LinearGradient id="area-gradient" from={accentColor} to={accentColor} toOpacity={0.1} />
+          
+          {/* Dynamic gradient based on P&L values */}
+          {dataMax >= 0 && dataMin < 0 ? (
+            // Mixed positive/negative - use green/red gradient
+            <>
+              <LinearGradient id="area-gradient-positive" from="#10b981" to="#10b981" toOpacity={0.1} />
+              <LinearGradient id="area-gradient-negative" from="#ef4444" to="#ef4444" toOpacity={0.1} />
+            </>
+          ) : dataMax >= 0 ? (
+            // All positive - use green gradient
+            <LinearGradient id="area-gradient" from="#10b981" to="#10b981" toOpacity={0.1} />
+          ) : (
+            // All negative - use red gradient
+            <LinearGradient id="area-gradient" from="#ef4444" to="#ef4444" toOpacity={0.1} />
+          )}
+          {/* Show zero baseline only when data crosses zero */}
+          {shouldShowZeroBaseline && (
+            <Line
+              from={{ x: margin.left, y: pnlValueScale(0) }}
+              to={{ x: innerWidth + margin.left, y: pnlValueScale(0) }}
+              stroke="#6b7280"
+              strokeWidth={1}
+              strokeOpacity={0.5}
+              strokeDasharray="2,2"
+              pointerEvents="none"
+            />
+          )}
+          
           <GridRows
             left={margin.left}
             scale={pnlValueScale}
             width={innerWidth}
             strokeDasharray="1,3"
             stroke={accentColor}
-            strokeOpacity={0}
+            strokeOpacity={0.1}
             pointerEvents="none"
           />
           <GridColumns
@@ -143,16 +199,50 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
             strokeOpacity={0.2}
             pointerEvents="none"
           />
-          <AreaClosed<PnlDataPoint>
-            data={data}
-            x={(d) => dateScale(getDate(d)) ?? 0}
-            y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
-            yScale={pnlValueScale}
-            strokeWidth={1}
-            stroke="url(#area-gradient)"
-            fill="url(#area-gradient)"
-            curve={curveMonotoneX}
-          />
+          {/* Render area chart with dynamic styling based on P&L values */}
+          {dataMax >= 0 && dataMin < 0 ? (
+            // Mixed positive/negative - render two areas
+            <>
+              {/* Positive area (above zero) */}
+              {data.filter(d => getPnlValue(d) >= 0).length > 0 && (
+                <AreaClosed<PnlDataPoint>
+                  data={data.filter(d => getPnlValue(d) >= 0)}
+                  x={(d) => dateScale(getDate(d)) ?? 0}
+                  y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+                  yScale={pnlValueScale}
+                  strokeWidth={1}
+                  stroke="#10b981"
+                  fill="url(#area-gradient-positive)"
+                  curve={curveMonotoneX}
+                />
+              )}
+              {/* Negative area (below zero) */}
+              {data.filter(d => getPnlValue(d) < 0).length > 0 && (
+                <AreaClosed<PnlDataPoint>
+                  data={data.filter(d => getPnlValue(d) < 0)}
+                  x={(d) => dateScale(getDate(d)) ?? 0}
+                  y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+                  yScale={pnlValueScale}
+                  strokeWidth={1}
+                  stroke="#ef4444"
+                  fill="url(#area-gradient-negative)"
+                  curve={curveMonotoneX}
+                />
+              )}
+            </>
+          ) : (
+            // Single area for all positive or all negative
+            <AreaClosed<PnlDataPoint>
+              data={data}
+              x={(d) => dateScale(getDate(d)) ?? 0}
+              y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+              yScale={pnlValueScale}
+              strokeWidth={1}
+              stroke={dataMax >= 0 ? "#10b981" : "#ef4444"}
+              fill="url(#area-gradient)"
+              curve={curveMonotoneX}
+            />
+          )}
           <Bar
             x={margin.left}
             y={margin.top}
@@ -190,7 +280,7 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
                 cx={tooltipLeft}
                 cy={tooltipTop}
                 r={4}
-                fill={accentColorDark}
+                fill={getPnlValue(tooltipData) >= 0 ? "#10b981" : "#ef4444"}
                 stroke="white"
                 strokeWidth={2}
                 pointerEvents="none"
@@ -204,7 +294,10 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
               key={Math.random()}
               top={tooltipTop - 12}
               left={tooltipLeft + 12}
-              style={tooltipStyles}
+              style={{
+                ...tooltipStyles,
+                background: getPnlValue(tooltipData) >= 0 ? '#10b981' : '#ef4444',
+              }}
             >
               {`$${getPnlValue(tooltipData).toLocaleString()}`}
             </TooltipWithBounds>

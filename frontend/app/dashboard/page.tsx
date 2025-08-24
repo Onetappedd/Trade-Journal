@@ -78,6 +78,8 @@ export default async function DashboardPage() {
         .order('entry_date', { ascending: true })
     : { data: [] };
 
+
+
   return (
     <div className="space-y-6">
       <div>

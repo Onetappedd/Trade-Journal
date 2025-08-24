@@ -108,13 +108,43 @@ export async function checkForExpiredOptions(
   supabase: SupabaseClient
 ): Promise<number> {
   try {
-    const { count, error } = await supabase
-      .from('trades')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('asset_type', 'option')
-      .eq('status', 'expired')
-      .eq('editable', true);
+    // Try HEAD request first, fallback to minimal GET if it fails
+    let count = 0;
+    let error = null;
+    
+    try {
+      const { count: headCount, error: headError } = await supabase
+        .from('trades')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('asset_type', 'option')
+        .eq('status', 'expired')
+        .is('editable', true);
+      
+      count = headCount || 0;
+      error = headError;
+    } catch (headError) {
+      // Fallback to minimal GET request
+      try {
+        const { data, error: getError } = await supabase
+          .from('trades')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('asset_type', 'option')
+          .eq('status', 'expired')
+          .is('editable', true)
+          .range(0, 0);
+        
+        count = data ? 1 : 0; // If we get any data, there's at least one
+        error = getError;
+        
+        // Log fallback usage once
+        console.warn('checkForExpiredOptions: HEAD request failed, used GET fallback');
+      } catch (fallbackError) {
+        error = fallbackError;
+        count = 0;
+      }
+    }
 
     if (error) {
       console.error('Error checking expired options:', error);
