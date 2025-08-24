@@ -1,5 +1,4 @@
 import { DashboardStatsSimple } from '@/components/dashboard/DashboardStatsSimple';
-import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
 import { RecentTrades } from '@/components/dashboard/RecentTrades';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
@@ -7,7 +6,6 @@ import { PositionsTable } from '@/components/dashboard/PositionsTable';
 import { ExpiredOptionsAlert } from '@/components/dashboard/ExpiredOptionsAlert';
 import { getPortfolioStats } from '@/lib/metrics';
 import { getDashboardMetrics } from '@/lib/dashboard-metrics';
-import { calculatePortfolioHistory } from '@/lib/portfolio-history-server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import DashboardPnl from '@/components/charts/DashboardPnl';
@@ -71,16 +69,6 @@ export default async function DashboardPage() {
       }
     : stats;
 
-  // Get portfolio history for the performance chart
-  const portfolioHistory = user ? await calculatePortfolioHistory(user.id) : [];
-
-  // Get user's initial capital for the chart
-  const { data: settings } = user
-    ? await supabase.from('user_settings').select('initial_capital').eq('user_id', user.id).single()
-    : { data: null };
-
-  const initialCapital = settings?.initial_capital || 10000;
-
   // Fetch trades for P&L chart
   const { data: trades } = user
     ? await supabase
@@ -101,9 +89,6 @@ export default async function DashboardPage() {
       <ExpiredOptionsAlert />
 
       <DashboardStatsSimple stats={dashboardStats} />
-
-      {/* Robinhood-style Portfolio Performance Chart */}
-      <PortfolioPerformance data={portfolioHistory} initialValue={initialCapital} />
 
       {/* P&L Chart */}
       <DashboardPnl trades={trades || []} />

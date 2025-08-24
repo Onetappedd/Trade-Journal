@@ -35,9 +35,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { usePortfolioAnalytics, usePortfolioPositions } from '@/hooks/usePortfolio';
 import { useAuth } from '@/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
-import { calculatePortfolioHistory, type PortfolioDataPoint } from '@/lib/portfolio-history';
-import { EquityAnalyticsChart } from '@/components/analytics/EquityAnalyticsChart';
 import AnalyticsPnl from '@/components/charts/AnalyticsPnl';
 
 // --- THEME ---
@@ -310,25 +307,7 @@ export function AnalyticsPage() {
 
   const isLoading = analyticsLoading || positionsLoading;
 
-  // Robinhood-style equity curve data (daily equity history)
-  const [equityHistory, setEquityHistory] = useState<PortfolioDataPoint[]>([]);
-  const [equityLoading, setEquityLoading] = useState(false);
-  const { user } = useAuth();
-  useEffect(() => {
-    let mounted = true;
-    async function loadEquity() {
-      try {
-        if (!user?.id) return;
-        setEquityLoading(true);
-        const data = await calculatePortfolioHistory(user.id);
-        if (!mounted) return;
-        setEquityHistory(data);
-      } finally {
-        if (mounted) setEquityLoading(false);
-      }
-    }
-    loadEquity();
-  }, [user?.id]);
+
 
   // Overview metrics (real data)
   // Get initial capital (default to 10000 if not set)
@@ -606,28 +585,7 @@ export function AnalyticsPage() {
   const renderPieLabel = ({ name, percent }: any) =>
     `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`;
 
-  // Compute chart data for the equity curve with useMemo to avoid IIFE-in-JSX errors
-  const chartData = useMemo(() => {
-    if (!equityHistory || equityHistory.length === 0) return [];
-    let prev: number | null = null;
-    return equityHistory.map((d, i) => {
-      // Make robust for different shapes
-      const date = d.date || '';
-      const value = typeof d.value === 'number' ? d.value : 0;
-      const prevValue = prev !== null ? prev : value;
-      const dollarChange = i === 0 ? 0 : value - prevValue;
-      const percentChange = i === 0 ? 0 : ((value - prevValue) / prevValue) * 100;
-      prev = value;
-      return {
-        date,
-        value,
-        dollarChange,
-        percentChange,
-        pos: Math.max(value, 0),
-        neg: Math.min(value, 0),
-      };
-    });
-  }, [equityHistory]);
+
 
   return (
     <div
@@ -704,29 +662,8 @@ export function AnalyticsPage() {
       {/* P&L Chart */}
       <AnalyticsPnl trades={recentTrades} />
 
-      {/* Charts and Allocation */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
-        <Card
-          className="xl:col-span-2 h-full"
-          aria-label="Equity performance chart"
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Equity Performance</CardTitle>
-                <CardDescription>
-                  Equity/timeframe filters
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="h-[300px] md:h-[340px] xl:h-[370px] overflow-hidden p-0">
-            <div className="relative h-full min-h-0">
-              <EquityAnalyticsChart data={chartData} initialCapital={INITIAL_CAPITAL} />
-            </div>
-          </CardContent>
-        </Card>
-
+      {/* Asset Allocation */}
+      <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 mt-4">
         <Card
           aria-label="Asset allocation"
         >
