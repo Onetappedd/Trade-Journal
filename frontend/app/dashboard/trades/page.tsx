@@ -24,6 +24,8 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { ASSET_TYPES } from '@/lib/enums';
 import { TradeRow, TradesResponse } from '@/types/trade';
+import { calculateTradeMetrics, getTradeStatus } from '@/lib/trade-calculations';
+import { PositionsTable } from '@/components/trades/PositionsTable';
 import { toast } from 'sonner';
 
 function formatDuration(ms: number) {
@@ -41,8 +43,9 @@ function formatDuration(ms: number) {
 const normalizeAsset = (asset: string) => {
   const lower = asset.toLowerCase().trim();
   if (lower === 'options') return 'option';
+  if (lower === 'all') return null; // Don't filter by asset type
   if (ASSET_TYPES.includes(lower as any)) return lower;
-  return 'all';
+  return null;
 };
 
 export default function TradesPage() {
@@ -73,7 +76,7 @@ export default function TradesPage() {
       });
       if (q.symbol.trim()) ps.set('symbol', q.symbol.trim());
       const normalizedAsset = normalizeAsset(q.asset);
-      if (normalizedAsset !== 'all') ps.set('asset', normalizedAsset);
+      if (normalizedAsset) ps.set('asset', normalizedAsset);
       if (q.from) ps.set('from', q.from);
       if (q.to) ps.set('to', q.to);
 
@@ -107,6 +110,18 @@ export default function TradesPage() {
     if (pnl === null || pnl === 0) return '';
     return pnl > 0 ? 'text-green-600' : 'text-red-600';
   };
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'Open': return 'bg-yellow-100 text-yellow-800';
+      case 'Closed': return 'bg-green-100 text-green-800';
+      case 'Partial': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Calculate trade metrics
+  const { individualTrades, positions, summary } = calculateTradeMetrics(rows);
 
   const renderContent = () => {
     if (loading) {
@@ -158,13 +173,16 @@ export default function TradesPage() {
               <TableHead>Duration</TableHead>
               <TableHead>Fees</TableHead>
               <TableHead>P&L</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => {
+            {individualTrades.map((row) => {
               const duration = formatDuration(
                 new Date(row.exit_date ?? Date.now()).getTime() - new Date(row.entry_date).getTime()
               );
+              const status = getTradeStatus(row);
+              
               return (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">{row.symbol}</TableCell>
@@ -186,7 +204,12 @@ export default function TradesPage() {
                   <TableCell>{duration}</TableCell>
                   <TableCell>{formatCurrency(row.fees)}</TableCell>
                   <TableCell className={pnlColor(row.pnl)}>
-                    {formatCurrency(row.pnl ?? 0)}
+                    {formatCurrency(row.pnl)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={statusColor(status)}>
+                      {status}
+                    </Badge>
                   </TableCell>
                 </TableRow>
               );
@@ -210,6 +233,36 @@ export default function TradesPage() {
             Add Trade
           </Button>
         </Link>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">{summary.totalTrades}</div>
+            <div className="text-sm text-muted-foreground">Total Trades</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">{summary.openPositions}</div>
+            <div className="text-sm text-muted-foreground">Open Positions</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">{summary.closedPositions}</div>
+            <div className="text-sm text-muted-foreground">Closed Positions</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className={`text-2xl font-bold ${pnlColor(summary.totalPnL)}`}>
+              {formatCurrency(summary.totalPnL)}
+            </div>
+            <div className="text-sm text-muted-foreground">Total P&L</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -250,6 +303,13 @@ export default function TradesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Positions Table */}
+      {positions.length > 0 && (
+        <div className="mb-6">
+          <PositionsTable positions={positions} />
+        </div>
+      )}
 
       {/* Trades Table */}
       <Card>
