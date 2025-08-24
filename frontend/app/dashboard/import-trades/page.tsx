@@ -1,5 +1,4 @@
 "use client";
-export const revalidate = 0;
 import * as React from "react";
 import Papa from "papaparse";
 import { useForm } from "react-hook-form";
@@ -34,8 +33,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ImportProgressModal } from '@/components/import/ImportProgressModal';
-
-export const dynamic = 'force-dynamic';
 
 const WEBULL_OPTIONS_COLUMNS = [
   'Name',
