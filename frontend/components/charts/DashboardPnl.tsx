@@ -18,59 +18,82 @@ interface DashboardPnlProps {
 
 // Calculate P&L for a single trade
 function calculateTradePnl(trade: TradeRow): number {
-  if (!trade.entry_price || !trade.exit_price) return 0;
-
-  const quantity = trade.quantity;
-  const entryPrice = trade.entry_price;
-  const exitPrice = trade.exit_price;
-  const fees = trade.fees || 0;
-
-  let pnl = 0;
-
-  switch (trade.asset_type) {
-    case 'option':
-      const multiplier = trade.multiplier || 100;
-      pnl = (exitPrice - entryPrice) * quantity * multiplier - fees;
-      break;
-
-    case 'futures':
-      // Use point values for futures
-      const pointValues: Record<string, number> = {
-        ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5, RTY: 50, M2K: 5,
-        CL: 1000, MCL: 100, GC: 100, MGC: 10, SI: 5000, SIL: 1000,
-      };
-      const pointValue = Object.entries(pointValues).find(([key]) => 
-        trade.symbol.toUpperCase().startsWith(key)
-      )?.[1] || 1;
-      pnl = (exitPrice - entryPrice) * quantity * pointValue - fees;
-      break;
-
-    case 'stock':
-    case 'crypto':
-    default:
-      pnl = (exitPrice - entryPrice) * quantity - fees;
-      break;
+  // If pnl is already calculated, use it
+  if (trade.pnl !== null && trade.pnl !== undefined) {
+    return trade.pnl;
   }
 
-  return pnl;
+  // If no entry price, can't calculate P&L
+  if (!trade.entry_price) return 0;
+
+  // For closed trades, calculate from entry/exit prices
+  if (trade.exit_price && trade.exit_date) {
+    const quantity = trade.quantity;
+    const entryPrice = trade.entry_price;
+    const exitPrice = trade.exit_price;
+    const fees = trade.fees || 0;
+
+    let pnl = 0;
+
+    switch (trade.asset_type) {
+      case 'option':
+        const multiplier = trade.multiplier || 100;
+        pnl = (exitPrice - entryPrice) * quantity * multiplier - fees;
+        break;
+
+      case 'futures':
+        // Use point values for futures
+        const pointValues: Record<string, number> = {
+          ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5, RTY: 50, M2K: 5,
+          CL: 1000, MCL: 100, GC: 100, MGC: 10, SI: 5000, SIL: 1000,
+        };
+        const pointValue = Object.entries(pointValues).find(([key]) => 
+          trade.symbol.toUpperCase().startsWith(key)
+        )?.[1] || 1;
+        pnl = (exitPrice - entryPrice) * quantity * pointValue - fees;
+        break;
+
+      case 'stock':
+      case 'crypto':
+      default:
+        pnl = (exitPrice - entryPrice) * quantity - fees;
+        break;
+    }
+
+    return pnl;
+  }
+
+  // For open trades, we can't calculate realized P&L yet
+  return 0;
 }
 
 // Build cumulative P&L series from trades
 function buildPnlSeries(trades: TradeRow[]): PnlDataPoint[] {
   if (!trades || trades.length === 0) return [];
 
-  // Filter only closed trades and sort by exit date
-  const closedTrades = trades
-    .filter(trade => trade.exit_price && trade.exit_date)
-    .sort((a, b) => new Date(a.exit_date!).getTime() - new Date(b.exit_date!).getTime());
+  // Filter trades that have P&L data (either calculated pnl or closed trades)
+  const tradesWithPnl = trades.filter(trade => {
+    // Include trades with calculated P&L
+    if (trade.pnl !== null && trade.pnl !== undefined) return true;
+    // Include closed trades that we can calculate P&L for
+    if (trade.exit_price && trade.exit_date && trade.entry_price) return true;
+    return false;
+  });
 
-  if (closedTrades.length === 0) return [];
+  if (tradesWithPnl.length === 0) return [];
+
+  // Sort by date (use exit_date for closed trades, entry_date for open trades)
+  const sortedTrades = tradesWithPnl.sort((a, b) => {
+    const dateA = a.exit_date || a.entry_date;
+    const dateB = b.exit_date || b.entry_date;
+    return new Date(dateA).getTime() - new Date(dateB).getTime();
+  });
 
   // Group trades by date and calculate daily P&L
   const dailyPnl = new Map<string, number>();
   
-  closedTrades.forEach(trade => {
-    const date = trade.exit_date!.split('T')[0]; // Get just the date part
+  sortedTrades.forEach(trade => {
+    const date = (trade.exit_date || trade.entry_date).split('T')[0]; // Get just the date part
     const pnl = calculateTradePnl(trade);
     dailyPnl.set(date, (dailyPnl.get(date) || 0) + pnl);
   });
@@ -93,7 +116,18 @@ function buildPnlSeries(trades: TradeRow[]): PnlDataPoint[] {
 }
 
 export default function DashboardPnl({ trades, className = '' }: DashboardPnlProps) {
+  // Debug logging
+  console.log('DashboardPnl - Total trades:', trades.length);
+  console.log('DashboardPnl - Trades with P&L:', trades.filter(t => t.pnl !== null && t.pnl !== undefined).length);
+  console.log('DashboardPnl - Closed trades:', trades.filter(t => t.exit_price && t.exit_date).length);
+  
   const pnlData = useMemo(() => buildPnlSeries(trades), [trades]);
+  
+  console.log('DashboardPnl - P&L data points:', pnlData.length);
+  if (pnlData.length > 0) {
+    console.log('DashboardPnl - First P&L point:', pnlData[0]);
+    console.log('DashboardPnl - Last P&L point:', pnlData[pnlData.length - 1]);
+  }
 
   // Calculate summary stats
   const summary = useMemo(() => {
@@ -136,9 +170,9 @@ export default function DashboardPnl({ trades, className = '' }: DashboardPnlPro
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {trades.filter(t => t.exit_price && t.exit_date).length}
+                {trades.length}
               </div>
-              <div className="text-sm text-muted-foreground">Closed Trades</div>
+              <div className="text-sm text-muted-foreground">Total Trades</div>
             </div>
           </div>
 

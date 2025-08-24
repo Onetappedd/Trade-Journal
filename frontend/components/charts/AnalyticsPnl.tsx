@@ -36,57 +36,71 @@ interface AnalyticsPnlProps {
 
 // Calculate P&L for a single trade
 function calculateTradePnl(trade: LocalTradeRow): number {
-  if (!trade.entry_price || !trade.exit_price) return 0;
+  // If no entry price, can't calculate P&L
+  if (!trade.entry_price) return 0;
 
-  const quantity = trade.quantity;
-  const entryPrice = trade.entry_price;
-  const exitPrice = trade.exit_price;
+  // For closed trades, calculate from entry/exit prices
+  if (trade.exit_price && trade.exit_date) {
+    const quantity = trade.quantity;
+    const entryPrice = trade.entry_price;
+    const exitPrice = trade.exit_price;
 
-  let pnl = 0;
+    let pnl = 0;
 
-  switch (trade.asset_type) {
-    case 'option':
-      const multiplier = trade.multiplier || 100;
-      pnl = (exitPrice - entryPrice) * quantity * multiplier;
-      break;
+    switch (trade.asset_type) {
+      case 'option':
+        const multiplier = trade.multiplier || 100;
+        pnl = (exitPrice - entryPrice) * quantity * multiplier;
+        break;
 
-    case 'futures':
-      // Use point values for futures
-      const pointValues: Record<string, number> = {
-        ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5, RTY: 50, M2K: 5,
-        CL: 1000, MCL: 100, GC: 100, MGC: 10, SI: 5000, SIL: 1000,
-      };
-      const pointValue = Object.entries(pointValues).find(([key]) => 
-        trade.symbol.toUpperCase().startsWith(key)
-      )?.[1] || 1;
-      pnl = (exitPrice - entryPrice) * quantity * pointValue;
-      break;
+      case 'futures':
+        // Use point values for futures
+        const pointValues: Record<string, number> = {
+          ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5, RTY: 50, M2K: 5,
+          CL: 1000, MCL: 100, GC: 100, MGC: 10, SI: 5000, SIL: 1000,
+        };
+        const pointValue = Object.entries(pointValues).find(([key]) => 
+          trade.symbol.toUpperCase().startsWith(key)
+        )?.[1] || 1;
+        pnl = (exitPrice - entryPrice) * quantity * pointValue;
+        break;
 
-    case 'stock':
-    case 'crypto':
-    default:
-      pnl = (exitPrice - entryPrice) * quantity;
-      break;
+      case 'stock':
+      case 'crypto':
+      default:
+        pnl = (exitPrice - entryPrice) * quantity;
+        break;
+    }
+
+    return pnl;
   }
 
-  return pnl;
+  // For open trades, we can't calculate realized P&L yet
+  return 0;
 }
 
 // Build cumulative P&L series from trades
 function buildPnlSeries(trades: LocalTradeRow[]): PnlDataPoint[] {
   if (!trades || trades.length === 0) return [];
 
-  // Filter only closed trades and sort by exit date
-  const closedTrades = trades
-    .filter(trade => trade.exit_price && trade.exit_date)
-    .sort((a, b) => new Date(a.exit_date!).getTime() - new Date(b.exit_date!).getTime());
+  // Filter trades that have P&L data (closed trades with entry/exit prices)
+  const tradesWithPnl = trades.filter(trade => {
+    // Include closed trades that we can calculate P&L for
+    if (trade.exit_price && trade.exit_date && trade.entry_price) return true;
+    return false;
+  });
 
-  if (closedTrades.length === 0) return [];
+  if (tradesWithPnl.length === 0) return [];
+
+  // Sort by exit date
+  const sortedTrades = tradesWithPnl.sort((a, b) => {
+    return new Date(a.exit_date!).getTime() - new Date(b.exit_date!).getTime();
+  });
 
   // Group trades by date and calculate daily P&L
   const dailyPnl = new Map<string, number>();
   
-  closedTrades.forEach(trade => {
+  sortedTrades.forEach(trade => {
     const date = trade.exit_date!.split('T')[0]; // Get just the date part
     const pnl = calculateTradePnl(trade);
     dailyPnl.set(date, (dailyPnl.get(date) || 0) + pnl);
@@ -153,9 +167,9 @@ export default function AnalyticsPnl({ trades, className = '' }: AnalyticsPnlPro
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {trades.filter(t => t.exit_price && t.exit_date).length}
+                {trades.length}
               </div>
-              <div className="text-sm text-muted-foreground">Closed Trades</div>
+              <div className="text-sm text-muted-foreground">Total Trades</div>
             </div>
           </div>
 
