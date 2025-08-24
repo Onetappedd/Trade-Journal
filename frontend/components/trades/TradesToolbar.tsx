@@ -40,6 +40,7 @@ export interface TradeFilters {
 }
 
 const ASSET_TYPES = [
+  { value: "all", label: "All assets" },
   { value: "stock", label: "Stock" },
   { value: "option", label: "Option" },
   { value: "futures", label: "Futures" },
@@ -47,11 +48,13 @@ const ASSET_TYPES = [
 ];
 
 const SIDES = [
+  { value: "all", label: "All sides" },
   { value: "Buy", label: "Buy" },
   { value: "Sell", label: "Sell" },
 ];
 
 const STATUSES = [
+  { value: "all", label: "All statuses" },
   { value: "Open", label: "Open" },
   { value: "Partial", label: "Partial" },
   { value: "Closed", label: "Closed" },
@@ -64,9 +67,9 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
   
   const [filters, setFilters] = React.useState<TradeFilters>({
     search: searchParams.get("search") || "",
-    assetType: searchParams.getAll("assetType"),
-    side: searchParams.getAll("side"),
-    status: searchParams.getAll("status"),
+    assetType: searchParams.getAll("assetType").length > 0 ? searchParams.getAll("assetType") : ["all"],
+    side: searchParams.getAll("side").length > 0 ? searchParams.getAll("side") : ["all"],
+    status: searchParams.getAll("status").length > 0 ? searchParams.getAll("status") : ["all"],
     dateFrom: searchParams.get("dateFrom") || "",
     dateTo: searchParams.get("dateTo") || "",
     tags: searchParams.getAll("tags"),
@@ -80,9 +83,9 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
     // Update URL params
     const params = new URLSearchParams();
     if (updated.search) params.set("search", updated.search);
-    updated.assetType?.forEach(type => params.append("assetType", type));
-    updated.side?.forEach(side => params.append("side", side));
-    updated.status?.forEach(status => params.append("status", status));
+    updated.assetType?.filter(type => type !== "all").forEach(type => params.append("assetType", type));
+    updated.side?.filter(side => side !== "all").forEach(side => params.append("side", side));
+    updated.status?.filter(status => status !== "all").forEach(status => params.append("status", status));
     if (updated.dateFrom) params.set("dateFrom", updated.dateFrom);
     if (updated.dateTo) params.set("dateTo", updated.dateTo);
     updated.tags?.forEach(tag => params.append("tags", tag));
@@ -93,9 +96,9 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
   const clearFilters = () => {
     const cleared = {
       search: "",
-      assetType: [],
-      side: [],
-      status: [],
+      assetType: ["all"],
+      side: ["all"],
+      status: ["all"],
       dateFrom: "",
       dateTo: "",
       tags: [],
@@ -105,9 +108,14 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
     router.push(pathname);
   };
 
-  const hasActiveFilters = Object.values(filters).some(
-    value => value && (Array.isArray(value) ? value.length > 0 : value !== "")
-  );
+  const hasActiveFilters = Object.entries(filters).some(([key, value]) => {
+    if (key === 'search' && value !== "") return true;
+    if (key === 'dateFrom' && value !== "") return true;
+    if (key === 'dateTo' && value !== "") return true;
+    if (key === 'tags' && Array.isArray(value) && value.length > 0) return true;
+    if (Array.isArray(value) && value.length > 0 && !value.includes("all")) return true;
+    return false;
+  });
 
   // Calculate summary from filtered data
   const summary = React.useMemo(() => {
@@ -170,16 +178,15 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">Asset Type</label>
               <Select
-                value={filters.assetType?.[0] || ""}
+                value={filters.assetType?.[0] || "all"}
                 onValueChange={(value) => 
-                  updateFilters({ assetType: value ? [value] : [] })
+                  updateFilters({ assetType: [value] })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All assets" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All assets</SelectItem>
                   {ASSET_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
@@ -193,16 +200,15 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">Side</label>
               <Select
-                value={filters.side?.[0] || ""}
+                value={filters.side?.[0] || "all"}
                 onValueChange={(value) => 
-                  updateFilters({ side: value ? [value] : [] })
+                  updateFilters({ side: [value] })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All sides" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All sides</SelectItem>
                   {SIDES.map((side) => (
                     <SelectItem key={side.value} value={side.value}>
                       {side.label}
@@ -216,16 +222,15 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select
-                value={filters.status?.[0] || ""}
+                value={filters.status?.[0] || "all"}
                 onValueChange={(value) => 
-                  updateFilters({ status: value ? [value] : [] })
+                  updateFilters({ status: [value] })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
                   {STATUSES.map((status) => (
                     <SelectItem key={status.value} value={status.value}>
                       {status.label}
@@ -305,45 +310,45 @@ export function TradesToolbar({ data, onFiltersChange }: TradesToolbarProps) {
                   </Button>
                 </Badge>
               )}
-              {filters.assetType?.map((type) => (
-                <Badge key={type} variant="secondary" className="gap-1">
-                  Asset: {type}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 ml-1"
-                    onClick={() => updateFilters({ assetType: filters.assetType?.filter(t => t !== type) })}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              ))}
-              {filters.side?.map((side) => (
-                <Badge key={side} variant="secondary" className="gap-1">
-                  Side: {side}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 ml-1"
-                    onClick={() => updateFilters({ side: filters.side?.filter(s => s !== side) })}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              ))}
-              {filters.status?.map((status) => (
-                <Badge key={status} variant="secondary" className="gap-1">
-                  Status: {status}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 ml-1"
-                    onClick={() => updateFilters({ status: filters.status?.filter(s => s !== status) })}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              ))}
+                             {filters.assetType?.filter(type => type !== "all").map((type) => (
+                 <Badge key={type} variant="secondary" className="gap-1">
+                   Asset: {type}
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="h-auto p-0 ml-1"
+                     onClick={() => updateFilters({ assetType: ["all"] })}
+                   >
+                     <X className="h-3 w-3" />
+                   </Button>
+                 </Badge>
+               ))}
+                             {filters.side?.filter(side => side !== "all").map((side) => (
+                 <Badge key={side} variant="secondary" className="gap-1">
+                   Side: {side}
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="h-auto p-0 ml-1"
+                     onClick={() => updateFilters({ side: ["all"] })}
+                   >
+                     <X className="h-3 w-3" />
+                   </Button>
+                 </Badge>
+               ))}
+                             {filters.status?.filter(status => status !== "all").map((status) => (
+                 <Badge key={status} variant="secondary" className="gap-1">
+                   Status: {status}
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="h-auto p-0 ml-1"
+                     onClick={() => updateFilters({ status: ["all"] })}
+                   >
+                     <X className="h-3 w-3" />
+                   </Button>
+                 </Badge>
+               ))}
               {filters.dateFrom && (
                 <Badge variant="secondary" className="gap-1">
                   From: {format(new Date(filters.dateFrom), "MMM d")}

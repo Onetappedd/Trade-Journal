@@ -44,21 +44,21 @@ export default function TradesPage() {
     }
 
     // Asset type filter
-    if (filters.assetType && filters.assetType.length > 0) {
+    if (filters.assetType && filters.assetType.length > 0 && !filters.assetType.includes("all")) {
       filtered = filtered.filter(trade => 
         filters.assetType!.includes(trade.asset_type)
       );
     }
 
     // Side filter
-    if (filters.side && filters.side.length > 0) {
+    if (filters.side && filters.side.length > 0 && !filters.side.includes("all")) {
       filtered = filtered.filter(trade => 
         filters.side!.includes(trade.side)
       );
     }
 
     // Status filter
-    if (filters.status && filters.status.length > 0) {
+    if (filters.status && filters.status.length > 0 && !filters.status.includes("all")) {
       filtered = filtered.filter(trade => 
         filters.status!.includes(statusOf(trade))
       );
