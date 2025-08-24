@@ -26,6 +26,18 @@ export async function GET(req: Request) {
   try {
     console.log('GET /api/trades - Starting request');
     
+    // Check environment variables first
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('GET /api/trades - Missing environment variables');
+      return NextResponse.json({ 
+        error: 'Server configuration error',
+        details: 'Missing Supabase environment variables'
+      }, { status: 500 });
+    }
+    
     const userId = await getUserIdFromRequest();
     console.log('GET /api/trades - User ID:', userId);
     
@@ -45,9 +57,16 @@ export async function GET(req: Request) {
   } catch (err) {
     console.error('GET /api/trades error:', err);
     console.error('GET /api/trades error stack:', err instanceof Error ? err.stack : 'No stack trace');
+    
+    // Return more specific error information
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    const isAuthError = errorMessage.includes('auth') || errorMessage.includes('user');
+    const isDbError = errorMessage.includes('database') || errorMessage.includes('connection');
+    
     return NextResponse.json({ 
       error: 'Internal Server Error',
-      details: err instanceof Error ? err.message : 'Unknown error'
+      details: errorMessage,
+      type: isAuthError ? 'authentication' : isDbError ? 'database' : 'unknown'
     }, { status: 500 });
   }
 }
