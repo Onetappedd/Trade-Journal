@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/components/ui/sonner';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { Trash2, AlertTriangle } from 'lucide-react';
 
 export function TradingSettings() {

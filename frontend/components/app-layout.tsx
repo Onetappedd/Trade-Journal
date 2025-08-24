@@ -15,24 +15,15 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from "@/providers/auth-provider";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
   // Don't show sidebar on login page
   if (pathname === '/login' || pathname.startsWith('/auth')) {
     return <>{children}</>;
-  }
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    );
   }
 
   // Redirect to login if not authenticated

@@ -1,5 +1,5 @@
 'use client';
-import { AuthProvider } from "@/components/providers/auth-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 import RQProvider from "@/components/providers/query-client-provider";
 import { Toaster } from "@/components/ui/sonner";
 

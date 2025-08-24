@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from "@/providers/auth-provider";
 
 const data = {
   teams: [
