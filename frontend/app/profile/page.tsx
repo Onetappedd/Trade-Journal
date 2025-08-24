@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { User, Bell, Shield, CreditCard, Activity } from 'lucide-react';
 
 interface Profile {
@@ -44,7 +44,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -68,11 +68,7 @@ export default function ProfilePage() {
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load profile data',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load profile data');
     } finally {
       setLoading(false);
     }
@@ -91,17 +87,10 @@ export default function ProfilePage() {
       if (error) throw error;
 
       setProfile({ ...profile, ...updates });
-      toast({
-        title: 'Success',
-        description: 'Profile updated successfully',
-      });
+      toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update profile',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update profile');
     } finally {
       setSaving(false);
     }

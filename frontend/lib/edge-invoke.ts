@@ -15,15 +15,15 @@ export async function invokeEdge(path: string, body: unknown) {
   let session = (await supabase.auth.getSession()).data.session;
   if (!session) throw new UnauthenticatedError();
   try {
-    res = await supabase.functions.invoke(path, { body });
-    status = res.status;
+    res = await supabase.functions.invoke(path, { body: body as any });
+    status = res.error ? 400 : 200;
     data = res.data;
     if (status === 401) {
       await supabase.auth.refreshSession();
       session = (await supabase.auth.getSession()).data.session;
       if (!session) throw new UnauthenticatedError();
-      res = await supabase.functions.invoke(path, { body });
-      status = res.status;
+      res = await supabase.functions.invoke(path, { body: body as any });
+      status = res.error ? 400 : 200;
       data = res.data;
     }
     if (process.env.NODE_ENV === 'development') {

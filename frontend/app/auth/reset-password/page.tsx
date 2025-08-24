@@ -12,14 +12,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { updatePasswordSchema, type UpdatePasswordFormData } from '@/lib/validations';
 import { createClient } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { toast } = useToast();
+
   const supabase = createClient();
 
   const {
@@ -44,10 +44,7 @@ export default function ResetPasswordPage() {
         return;
       }
 
-      toast({
-        title: 'Password updated',
-        description: 'Your password has been successfully updated.',
-      });
+      toast.success('Your password has been successfully updated.');
 
       router.push('/dashboard');
     } catch (err) {

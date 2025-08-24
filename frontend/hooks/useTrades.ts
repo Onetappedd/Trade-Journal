@@ -1,5 +1,6 @@
 import useSWR from 'swr';
-import type { TradeListParams, TradeListResult } from '@/lib/trades';
+import type { TradeListParams } from '@/lib/trades';
+import type { TradesResponse } from '@/types/trade';
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error('Failed to fetch trades.');
@@ -29,12 +30,12 @@ export function useTrades(params: Omit<TradeListParams, 'userId'>, {
     pageSize
   };
   const url = '/api/trades?' + toQuery(query);
-  const { data, error, isLoading, mutate } = useSWR<TradeListResult>(enabled ? url : null, fetcher, { revalidateOnFocus: true });
+  const { data, error, isLoading, mutate } = useSWR<TradesResponse>(enabled ? url : null, fetcher, { revalidateOnFocus: true });
   return {
-    data: data?.rows || [],
+    data: data?.items || [],
     total: data?.total ?? 0,
-    page: data?.page ?? page,
-    pageSize: data?.pageSize ?? pageSize,
+    page,
+    pageSize,
     isLoading,
     error,
     mutate,

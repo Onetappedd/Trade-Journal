@@ -20,9 +20,9 @@ function toArray<T>(v: unknown): T[] {
 export function TrendingTickersPage() {
   const { rows, error, isLoading, refresh } = useTrendingTickers();
   // ALWAYS guarantee array
-  const rowsSafe = toArray(rows);
+  const rowsSafe = toArray<any>(rows);
   const tableRows = useMemo(() => {
-    return rowsSafe.map((r) => ({
+    return rowsSafe.map((r: any) => ({
       ...r,
       absChange: Number(((r.price * r.changePct) / 100).toFixed(2)),
     }));

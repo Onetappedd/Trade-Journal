@@ -1,4 +1,5 @@
-import { parseISO, formatISO, utcToZonedTime } from 'date-fns-tz';
+import { parseISO, formatISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 // --- OPTIONS ---
 export function normalizeOptionsQuantity(contracts: number): number {
@@ -65,6 +66,6 @@ export function canonicalizeCryptoMarket(symbol: string): string {
 // --- TIMEZONE ---
 export function bucketDateInTimezone(date: string, timezone: string): string {
   // Returns ISO date string in user's timezone
-  const zoned = utcToZonedTime(parseISO(date), timezone);
+  const zoned = toZonedTime(parseISO(date), timezone);
   return formatISO(zoned, { representation: 'date' });
 }

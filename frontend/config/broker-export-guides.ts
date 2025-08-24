@@ -133,7 +133,7 @@ export const BROKER_EXPORT_GUIDES: Record<string, BrokerGuide> = {
       { title: 'Export → CSV', detail: 'Export or download the data as a CSV file.' },
     ],
     notes: [
-      'If your broker isn't listed, contact support to add a tailored guide.',
+      'If your broker isn\'t listed, contact support to add a tailored guide.',
       'Prefer CSV exports; if using XLSX, ensure the correct sheet and headers.',
     ],
   },

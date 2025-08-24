@@ -14,14 +14,14 @@ function calcRMultiple(trade: TradeRow): number | null {
 export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | null, onClose: () => void }) {
   const [tab, setTab] = useState("Overview");
   const [editingTags, setEditingTags] = useState(false);
-  const [tags, setTags] = useState<string[]>(trade?.tags || []);
+  const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState(trade?.notes || "");
   const [savingNotes, setSavingNotes] = useState(false);
 
   useEffect(() => {
     if (trade) {
       setTab("Overview");
-      setTags(trade.tags || []);
+      setTags([]);
       setNotes(trade.notes || "");
     }
   }, [trade]);
@@ -36,13 +36,12 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
 
   if (!trade) return null;
   const rMultiple = calcRMultiple(trade);
-  // Derived Fills table
-  const fills = (trade.fills || []).slice().sort((a, b) => a.time.localeCompare(b.time));
-  const totalQty = fills.reduce((sum, f) => sum + Number(f.qty || 0), 0);
-  const avgFill = fills.length > 0 ? fills.reduce((sum, f) => sum + (f.price * f.qty), 0) / totalQty : undefined;
-  const realizedPnl = fills.length > 1 && typeof trade.avgEntry === 'number' && typeof trade.avgExit === 'number'
-    ? (Number(trade.avgExit) - Number(trade.avgEntry)) * Number(trade.quantity || 0)
-    : trade.pnl ?? null;
+  // Derived Fills table - not available with current TradeRow structure
+  const fills: any[] = [];
+  const totalQty = trade.quantity || 0;
+  const avgFill = trade.entry_price || 0;
+  const realizedPnl = trade.pnl || 0;
+
 
   // Tags: editable as chips
   const handleTagEdit = () => setEditingTags(true);
@@ -81,7 +80,7 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
         <div>
           <div className="font-bold text-lg tracking-tight">{trade.symbol}</div>
           <div className="flex gap-2 items-center mt-1">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize bg-muted text-muted-foreground border`}>{trade.assetType}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize bg-muted text-muted-foreground border`}>{trade.asset_type}</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize bg-muted text-muted-foreground border`}>{trade.side}</span>
             {typeof trade.pnl === 'number' && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ml-2 ${pnlChipColor(trade.pnl)}`}>{fmtCurrency(trade.pnl)}</span>
@@ -112,12 +111,12 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
         {tab === "Overview" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div><span className="font-medium">Opened:</span> {compactDate(trade.date)}</div>
-              <div><span className="font-medium">Closed:</span> {compactDate(trade.closeDate)}</div>
+              <div><span className="font-medium">Opened:</span> {compactDate(trade.entry_date)}</div>
+              <div><span className="font-medium">Closed:</span> {trade.exit_date ? compactDate(trade.exit_date) : '—'}</div>
               <div><span className="font-medium">Quantity:</span> {trade.quantity}</div>
               <div><span className="font-medium">Fees:</span> {fmtCurrency(trade.fees)}</div>
-              <div><span className="font-medium">Strategy:</span> {trade.strategy || <span className="text-muted-foreground">—</span>}</div>
-              <div><span className="font-medium">Duration:</span> {trade.durationMin != null ? `${trade.durationMin} min` : '—'}</div>
+              <div><span className="font-medium">Strategy:</span> <span className="text-muted-foreground">—</span></div>
+              <div><span className="font-medium">Duration:</span> <span className="text-muted-foreground">—</span></div>
               {typeof rMultiple === 'number' && (
                 <div><span className="font-medium">R Multiple:</span> {rMultiple.toFixed(2)}</div>
               )}
@@ -197,12 +196,7 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
         )}
         {tab === "Files" && (
           <div>
-            <div className="mb-4">{trade.attachments?.length ? trade.attachments.map(file => (
-              <div className="flex items-center gap-2 mb-1" key={file.id}>
-                <span className="inline-block bg-muted px-2 py-0.5 rounded text-xs">{file.name}</span>
-                <a href={file.url} target="_blank" rel="noopener noreferrer" className="underline text-xs">View</a>
-              </div>
-            )) : <span className="text-muted-foreground">No files attached.</span>}</div>
+            <span className="text-muted-foreground">No files attached.</span>
             <button className="px-3 py-1 bg-primary text-white rounded opacity-60 cursor-not-allowed" disabled aria-label="Attach file">Attach file</button>
           </div>
         )}

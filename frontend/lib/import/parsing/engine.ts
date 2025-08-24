@@ -90,9 +90,9 @@ export function detectAdapter(headers: string[], sampleRows: any[]): DetectionRe
 
 const OCC_REGEXES = [
   // AAPL 240920C00185000 (with space)
-  /^(?<under>[A-Z.]+)\s(?<yymmdd>\d{6})(?<right>[CP])(?<strike>\d{8})$/,
+  /^([A-Z.]+)\s(\d{6})([CP])(\d{8})$/,
   // AAPL240920C00185000 (no space)
-  /^(?<under>[A-Z.]+)(?<yymmdd>\d{6})(?<right>[CP])(?<strike>\d{8})$/,
+  /^([A-Z.]+)(\d{6})([CP])(\d{8})$/,
 ];
 
 export function parseOCC(description: string | undefined): {

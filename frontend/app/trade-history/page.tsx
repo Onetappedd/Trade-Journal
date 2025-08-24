@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -62,7 +62,7 @@ export default function TradeHistoryPage() {
     },
   ]);
   const [searchQuery, setSearchQuery] = useState('');
-  const { toast } = useToast();
+
 
   const filteredTrades = trades.filter(
     (trade) =>
@@ -73,12 +73,9 @@ export default function TradeHistoryPage() {
   const handleDeleteTrade = useCallback(
     (tradeId: string) => {
       setTrades((prev) => prev.filter((trade) => trade.id !== tradeId));
-      toast({
-        title: 'Trade deleted',
-        description: 'The trade has been successfully removed.',
-      });
+      toast.success('The trade has been successfully removed.');
     },
-    [toast],
+    [],
   );
 
   return (

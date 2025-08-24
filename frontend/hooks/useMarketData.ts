@@ -74,7 +74,7 @@ export function useStockQuote(symbol: string, refreshInterval: number = 15000) {
 export function useBatchQuotes(symbols: string[], refreshInterval: number = 15000) {
   const { data, error, isLoading, mutate } = useSWR<StockQuote[]>(
     symbols.length > 0 ? ['/api/market/batch-quotes', symbols] : null,
-    ([url, syms]) => batchFetcher(url, syms),
+    ([url, syms]) => batchFetcher(url, syms as string[]),
     {
       refreshInterval,
       revalidateOnFocus: true,
