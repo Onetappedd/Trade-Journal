@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/providers/auth-provider';
 
 const usernameSchema = z.object({
   username: z
@@ -32,7 +32,7 @@ type EmailForm = z.infer<typeof emailSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function AccountPage() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const supabase = createClient();
 
   // Username
@@ -105,7 +105,6 @@ export default function AccountPage() {
     passwordForm.reset();
   }
 
-  if (loading) return <div className="p-8">Loading...</div>;
   if (!user) return <div className="p-8">Not signed in.</div>;
 
   return (

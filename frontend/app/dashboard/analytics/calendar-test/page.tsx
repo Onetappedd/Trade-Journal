@@ -2,6 +2,8 @@ import { getSimplifiedCalendarData } from '@/lib/calendar-metrics-simple';
 import { getUserTradesGroupedByDay } from '@/lib/calendar-metrics';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+export const runtime = 'nodejs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Force dynamic rendering

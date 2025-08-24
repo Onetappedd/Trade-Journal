@@ -2,12 +2,11 @@ import "./globals.css";
 
 import Providers from './providers';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
-
-title: "Trade Journal",
-
-description: "Modern trading dashboard",
-
+  title: "Trade Journal",
+  description: "Modern trading dashboard",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

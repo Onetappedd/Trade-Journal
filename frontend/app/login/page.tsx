@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase-server';
+
+export const runtime = 'nodejs';
 import BackgroundChartAnimation from '@/components/auth/background-chart-animation';
 import TickerTape from '@/components/auth/ticker-tape';
 import LoginForm from '@/components/auth/login-form';

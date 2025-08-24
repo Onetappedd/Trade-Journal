@@ -1,6 +1,8 @@
 import { getUserTradesGroupedByDay } from '@/lib/calendar-metrics-server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+export const runtime = 'nodejs';
 import { calculatePositions } from '@/lib/position-tracker-server';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 

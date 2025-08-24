@@ -16,7 +16,16 @@ const Ctx = createContext<AuthCtx | null>(null);
 
 export function useAuth() {
   const v = useContext(Ctx);
-  if (!v) throw new Error("useAuth must be used within an AuthProvider");
+  if (!v) {
+    // prevent crash during unexpected SSR or missing provider
+    return { 
+      supabase: null, 
+      session: null, 
+      user: null, 
+      userId: null, 
+      signOut: async () => {} 
+    };
+  }
   return v;
 }
 

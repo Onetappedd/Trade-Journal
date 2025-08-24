@@ -10,6 +10,8 @@ import { getDashboardMetrics } from '@/lib/dashboard-metrics';
 import { calculatePortfolioHistory } from '@/lib/portfolio-history-server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+export const runtime = 'nodejs';
 import { updateExpiredOptionsTrades } from '@/lib/trades/updateExpiredOptions';
 
 // Force dynamic rendering to avoid static generation issues

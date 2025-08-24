@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getUserTradesGroupedByDay } from '@/lib/calendar-metrics-server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+export const runtime = 'nodejs';
 import { TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react';
 
 // Force dynamic rendering
