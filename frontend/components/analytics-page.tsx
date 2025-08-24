@@ -38,6 +38,7 @@ import { createClient } from '@/lib/supabase';
 import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
 import { calculatePortfolioHistory, type PortfolioDataPoint } from '@/lib/portfolio-history';
 import { EquityAnalyticsChart } from '@/components/analytics/EquityAnalyticsChart';
+import AnalyticsPnl from '@/components/charts/AnalyticsPnl';
 
 // --- THEME ---
 const COLORS = {
@@ -699,6 +700,9 @@ export function AnalyticsPage() {
           ariaLabel="Win rate"
         />
       </div>
+
+      {/* P&L Chart */}
+      <AnalyticsPnl trades={recentTrades} />
 
       {/* Charts and Allocation */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">

@@ -10,6 +10,7 @@ import { getDashboardMetrics } from '@/lib/dashboard-metrics';
 import { calculatePortfolioHistory } from '@/lib/portfolio-history-server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import DashboardPnl from '@/components/charts/DashboardPnl';
 
 export const runtime = 'nodejs';
 import { updateExpiredOptionsTrades } from '@/lib/trades/updateExpiredOptions';
@@ -80,6 +81,15 @@ export default async function DashboardPage() {
 
   const initialCapital = settings?.initial_capital || 10000;
 
+  // Fetch trades for P&L chart
+  const { data: trades } = user
+    ? await supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('entry_date', { ascending: true })
+    : { data: [] };
+
   return (
     <div className="space-y-6">
       <div>
@@ -94,6 +104,9 @@ export default async function DashboardPage() {
 
       {/* Robinhood-style Portfolio Performance Chart */}
       <PortfolioPerformance data={portfolioHistory} initialValue={initialCapital} />
+
+      {/* P&L Chart */}
+      <DashboardPnl trades={trades || []} />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4">
