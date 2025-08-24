@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+
+export const dynamic = 'force-dynamic';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';

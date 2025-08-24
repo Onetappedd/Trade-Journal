@@ -6,6 +6,8 @@ import { RealizedTradesTable } from '@/components/tax-center/RealizedTradesTable
 import { TaxExportSection } from '@/components/tax-center/TaxExportSection';
 import { TaxResources } from '@/components/tax-center/TaxResources';
 
+export const dynamic = 'force-dynamic';
+
 export default function TaxCenterPage() {
   return (
     <div className="space-y-6">
