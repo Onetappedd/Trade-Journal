@@ -1,12 +1,15 @@
-'use client';
+"use client";
+
 import { useState, useEffect } from 'react';
+
+export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth } from '@/components/auth/auth-provider';
 import { DollarSign, Save, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

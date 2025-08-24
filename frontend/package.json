@@ -21,7 +21,10 @@
     "check-tables": "node scripts/check-table-structure.js",
     "test-real-data": "node scripts/test-real-data.js",
     "test-polygon": "node scripts/test-polygon.js",
-    "types:gen": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > lib/database.types.ts"
+    "types:gen": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > lib/database.types.ts",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "latest",
@@ -52,13 +55,11 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
-    "@tanstack/react-query": "^5.51.3",
-    "@tanstack/react-query-devtools": "^5.51.3",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",
+    "@vercel/analytics": "^1.5.0",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -70,13 +71,12 @@
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "next": "14.2.16",
-    "next-auth": "^4.24.11",
     "next-themes": "latest",
     "papaparse": "latest",
     "react": "^18",
     "react-day-picker": "latest",
     "react-dom": "^18",
-    "react-hook-form": "^7.53.0",
+    "react-hook-form": "latest",
     "react-resizable-panels": "latest",
     "recharts": "^3.1.2",
     "sonner": "latest",
@@ -89,14 +89,19 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "^5.0.1",
+    "@vitest/ui": "^3.2.4",
     "dotenv": "^16.3.1",
+    "jsdom": "^26.1.0",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

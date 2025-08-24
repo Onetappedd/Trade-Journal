@@ -1,5 +1,8 @@
 'use client';
+
 import * as React from 'react';
+
+export const dynamic = 'force-dynamic';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { createClient } from '@/lib/supabase';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/components/auth/auth-provider';
 
 const usernameSchema = z.object({
   username: z
@@ -70,38 +73,44 @@ export default function AccountPage() {
       .update({ username: data.username })
       .eq('id', user?.id);
     if (error) {
-      toast.error('Failed to update username', {
+      toast({
+        title: 'Failed to update username',
         description: error.message,
+        variant: 'destructive',
       });
       return;
     }
     // Update user_metadata
     await supabase.auth.updateUser({ data: { username: data.username } });
-    toast.success('Username updated!');
+    toast({ title: 'Username updated!' });
   }
 
   // Email change handler
   async function onEmailSubmit(data: EmailForm) {
     const { error } = await supabase.auth.updateUser({ email: data.email });
     if (error) {
-      toast.error('Failed to update email', {
+      toast({
+        title: 'Failed to update email',
         description: error.message,
+        variant: 'destructive',
       });
       return;
     }
-    toast.success('Email update requested! Check your inbox to confirm.');
+    toast({ title: 'Email update requested! Check your inbox to confirm.' });
   }
 
   // Password change handler
   async function onPasswordSubmit(data: PasswordForm) {
     const { error } = await supabase.auth.updateUser({ password: data.newPassword });
     if (error) {
-      toast.error('Failed to update password', {
+      toast({
+        title: 'Failed to update password',
         description: error.message,
+        variant: 'destructive',
       });
       return;
     }
-    toast.success('Password updated!');
+    toast({ title: 'Password updated!' });
     passwordForm.reset();
   }
 

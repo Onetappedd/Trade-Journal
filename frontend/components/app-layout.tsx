@@ -1,6 +1,4 @@
 'use client';
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import type React from 'react';
 import { usePathname } from 'next/navigation';
@@ -15,7 +13,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuth } from '@/components/auth/auth-provider';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

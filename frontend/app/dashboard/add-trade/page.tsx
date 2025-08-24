@@ -1,6 +1,4 @@
 'use client';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -34,68 +32,16 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/format';
 import { toSym } from '@/lib/symbol';
 import { fetchJson } from '@/lib/fetchJson';
-import { AssetType, TradeRow } from '@/types/trade';
+import {
+  stockTradeSchema,
+  optionTradeSchema,
+  futureTradeSchema,
+  cryptoTradeSchema,
+  type Trade,
+  type AssetType,
+} from '@/types/trade';
 import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
-import { z } from 'zod';
-import { addTradeAction } from '@/app/actions/add-trade';
 
-// ... existing code ...
-
-type TradeFormValues = z.infer<typeof tradeSchema>;
-
-const tradeSchema = z.discriminatedUnion('asset_type', [
-  z.object({
-    asset_type: z.literal('stock'),
-    symbol: z.string().min(1, 'Symbol is required'),
-    side: z.enum(['buy', 'sell']),
-    quantity: z.coerce.number().positive('Quantity must be a positive number'),
-    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-    entry_date: z.string().min(1, 'Date and time are required'),
-    account: z.string().optional(),
-    fees: z.coerce.number().min(0).optional().nullable(),
-    notes: z.string().optional(),
-  }),
-  z.object({
-    asset_type: z.literal('option'),
-    underlying: z.string().min(1, 'Underlying symbol is required'),
-    optionType: z.enum(['call', 'put']),
-    action: z.enum(['buy_to_open', 'sell_to_open', 'buy_to_close', 'sell_to_close']),
-    contracts: z.coerce.number().int().positive('Contracts must be a positive integer').nullable(),
-    strike: z.coerce.number().positive('Strike price must be a positive number').nullable(),
-    expiration_date: z.string().min(1, 'Expiration date is required').nullable(),
-    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-    multiplier: z.coerce.number().int().positive('Multiplier must be a positive integer').nullable(),
-    entry_date: z.string().min(1, 'Date and time are required'),
-    account: z.string().optional(),
-    fees: z.coerce.number().min(0).optional().nullable(),
-    notes: z.string().optional(),
-  }),
-  z.object({
-    asset_type: z.literal('futures'),
-    symbol: z.string().min(1, 'Symbol is required'),
-    contracts: z.coerce.number().int().positive('Contracts must be a positive integer').nullable(),
-    expiration_date: z.string().min(1, 'Expiration is required').nullable(),
-    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-    multiplier: z.coerce.number().positive('Multiplier must be a positive number').nullable(),
-    currency: z.string().optional(),
-    entry_date: z.string().min(1, 'Date and time are required'),
-    account: z.string().optional(),
-    fees: z.coerce.number().min(0).optional().nullable(),
-    notes: z.string().optional(),
-  }),
-  z.object({
-    asset_type: z.literal('crypto'),
-    symbol: z.string().min(1, 'Symbol is required'),
-    quantity: z.coerce.number().positive('Quantity must be a positive number'),
-    entry_price: z.coerce.number().positive('Price must be a positive number').nullable(),
-    entry_date: z.string().min(1, 'Date and time are required'),
-    account: z.string().optional(),
-    fees: z.coerce.number().min(0).optional().nullable(),
-    notes: z.string().optional(),
-  }),
-]);
-
-export const dynamic = "force-dynamic";
 // Default multipliers for common futures
 const FUTURE_MULTIPLIERS: Record<string, number> = {
   ES: 50,     // E-mini S&P 500
@@ -118,34 +64,47 @@ export default function AddTradePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get the appropriate schema based on asset type
+  const getSchema = () => {
+    switch (assetType) {
+      case 'stock':
+        return stockTradeSchema;
+      case 'option':
+        return optionTradeSchema;
+      case 'future':
+        return futureTradeSchema;
+      case 'crypto':
+        return cryptoTradeSchema;
+    }
+  };
+
   // Initialize form with dynamic schema
-  const form = useForm<TradeFormValues>({
-    resolver: zodResolver(tradeSchema),
+  const form = useForm<Trade>({
+    resolver: zodResolver(getSchema()),
     defaultValues: {
-      asset_type: assetType,
+      assetType,
       side: 'buy',
-      entry_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      datetime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       fees: 0,
       account: '',
       notes: '',
       // Type-specific defaults
       ...(assetType === 'option' && { multiplier: 100 }),
-      ...(assetType === 'futures' && { currency: 'USD' }),
-    } as Partial<TradeFormValues>,
+      ...(assetType === 'future' && { currency: 'USD' }),
+    },
   });
 
   // Handle asset type change
   const handleAssetTypeChange = (newType: AssetType) => {
     setAssetType(newType);
     form.reset({
-      asset_type: newType,
+      assetType: newType,
       side: form.getValues('side'),
-      entry_date: form.getValues('entry_date'),
+      datetime: form.getValues('datetime'),
       fees: 0,
       account: '',
       notes: '',
       ...(newType === 'option' && { multiplier: 100 }),
-      ...(newType === 'futures' && { currency: 'USD' }),
+      ...(newType === 'future' && { currency: 'USD' }),
     });
   };
 
@@ -158,19 +117,19 @@ export default function AddTradePage() {
       case 'stock':
       case 'crypto': {
         const quantity = values.quantity || 0;
-        const price = values.entry_price || 0;
+        const price = values.price || 0;
         return quantity * price + fees;
       }
       case 'option': {
         const contracts = values.contracts || 0;
         const multiplier = values.multiplier || 100;
-        const price = values.entry_price || 0;
+        const price = values.price || 0;
         return contracts * multiplier * price + fees;
       }
-      case 'futures': {
+      case 'future': {
         const contracts = values.contracts || 0;
         const multiplier = values.multiplier || 1;
-        const price = values.entry_price || 0;
+        const price = values.price || 0;
         return contracts * multiplier * price;
       }
       default:
@@ -179,63 +138,40 @@ export default function AddTradePage() {
   };
 
   // Handle form submission
-  const onSubmit = async (data: TradeFormValues) => {
+  const onSubmit = async (data: Trade) => {
     setIsSubmitting(true);
     try {
-      // Map form data to server action input format
-      const serverData = {
-        ...data,
-        // Map option-specific fields
-        ...(data.asset_type === 'option' && {
-          optionType: data.optionType,
-          strike: data.strike || 0,
-          expiration: data.expiration_date || '',
-          multiplier: data.multiplier || 100,
-        }),
-        // Map futures-specific fields  
-        ...(data.asset_type === 'futures' && {
-          contractCode: data.symbol,
-          tickSize: 0.01, // Default values - could be made configurable
-          tickValue: 0.01,
-          pointMultiplier: data.multiplier || 1,
-        }),
-        // Ensure required fields are present
-        quantity: data.quantity || (data.asset_type === 'option' ? (data.contracts || 0) : 0),
-        entry_price: data.entry_price || 0,
-        isClosed: false,
-      };
-
-      const result = await addTradeAction(serverData);
-
-      if (!result.ok) {
-        // Handle validation errors
-        if (result.errors.fieldErrors) {
-          Object.entries(result.errors.fieldErrors).forEach(([field, messages]) => {
-            form.setError(field as any, { message: messages?.[0] || 'Invalid field' });
-          });
-        }
-        if (result.errors.formErrors) {
-          toast.error(result.errors.formErrors[0] || 'Failed to add trade');
-        }
-        return;
-      }
+      const response = await fetchJson('/api/trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
 
       toast.success('Trade added successfully!');
       
       // Reset form but keep common fields
       form.reset({
-        asset_type: assetType,
+        assetType,
         side: data.side,
-        entry_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        datetime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
         fees: 0,
         account: data.account,
         notes: '',
         ...(assetType === 'option' && { multiplier: 100 }),
-        ...(assetType === 'futures' && { currency: 'USD' }),
+        ...(assetType === 'future' && { currency: 'USD' }),
       });
     } catch (error: any) {
       console.error('Trade submission error:', error);
-      toast.error('Could not add trade. Please try again.');
+      
+      if (error.issues) {
+        // Show field-specific errors
+        error.issues.forEach((issue: any) => {
+          form.setError(issue.path as any, { message: issue.message });
+        });
+        toast.error('Please check the form for errors');
+      } else {
+        toast.error('Could not add trade. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -282,7 +218,7 @@ export default function AddTradePage() {
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="stock">Stock</TabsTrigger>
                   <TabsTrigger value="option">Option</TabsTrigger>
-                  <TabsTrigger value="futures">Future</TabsTrigger>
+                  <TabsTrigger value="future">Future</TabsTrigger>
                   <TabsTrigger value="crypto">Crypto</TabsTrigger>
                 </TabsList>
 
@@ -301,8 +237,8 @@ export default function AddTradePage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                          <SelectItem value="buy">Buy</SelectItem>
-                          <SelectItem value="sell">Sell</SelectItem>
+                            <SelectItem value="buy">Buy</SelectItem>
+                            <SelectItem value="sell">Sell</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -312,7 +248,7 @@ export default function AddTradePage() {
 
                   <FormField
                     control={form.control}
-                    name="entry_date"
+                    name="datetime"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Date & Time *</FormLabel>
@@ -387,7 +323,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="entry_price"
+                      name="price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price per Share *</FormLabel>
@@ -526,7 +462,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="expiration_date"
+                      name="expiration"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Expiration Date *</FormLabel>
@@ -540,7 +476,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="entry_price"
+                      name="price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price per Contract *</FormLabel>
@@ -563,7 +499,7 @@ export default function AddTradePage() {
                     control={form.control}
                     name="multiplier"
                     render={({ field }) => (
-                        <FormItem>
+                      <FormItem>
                         <FormLabel>Multiplier</FormLabel>
                         <FormControl>
                           <Input
@@ -583,7 +519,7 @@ export default function AddTradePage() {
                 </TabsContent>
 
                 {/* Future Fields */}
-                <TabsContent value="futures" className="space-y-4">
+                <TabsContent value="future" className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
@@ -632,7 +568,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="expiration_date"
+                      name="expiration"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Expiration (YYYY-MM) *</FormLabel>
@@ -652,7 +588,7 @@ export default function AddTradePage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
-                      name="entry_price"
+                      name="price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price *</FormLabel>
@@ -754,7 +690,7 @@ export default function AddTradePage() {
 
                     <FormField
                       control={form.control}
-                      name="entry_price"
+                      name="price"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Price *</FormLabel>
@@ -832,7 +768,7 @@ export default function AddTradePage() {
                       <Calculator className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">
                         {assetType === 'option' ? 'Total Premium' : 
-                         assetType === 'futures' ? 'Notional Value' : 
+                         assetType === 'future' ? 'Notional Value' : 
                          'Total Cost'}
                       </span>
                     </div>
@@ -845,7 +781,7 @@ export default function AddTradePage() {
                       = contracts × multiplier × price + fees
                     </p>
                   )}
-                  {assetType === 'futures' && (
+                  {assetType === 'future' && (
                     <p className="text-xs text-muted-foreground mt-2">
                       = contracts × multiplier × price (fees not included in notional)
                     </p>

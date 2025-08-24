@@ -1,5 +1,4 @@
 'use client';
-export const dynamic = 'force-dynamic';
 
 import type React from 'react';
 
@@ -24,6 +23,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { User, Bell, Shield, CreditCard, Activity } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 interface Profile {
   id: string;

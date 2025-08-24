@@ -1,29 +1,35 @@
-import "./globals.css";
+import type React from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/components/auth/auth-provider';
 
-import Providers from './providers';
+const inter = Inter({ subsets: ['latin'] });
 
-export const metadata = {
-
-title: "Trade Journal",
-
-description: "Modern trading dashboard",
-
+export const metadata: Metadata = {
+  title: 'Trading Journal Dashboard',
+  description: 'Professional trading journal and analytics platform',
+  generator: 'v0.dev',
 };
 
+import { Toaster } from "@/components/ui/sonner";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-
-return (
-
-<html lang="en" suppressHydrationWarning>
-
-<body>
-
-<Providers>{children}</Providers>
-
-</body>
-
-</html>
-
-);
-
+  return (
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={inter.className}>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange>
+            {children}
+          </ThemeProvider>
+        </AuthProvider>
+        <Toaster richColors closeButton />
+      </body>
+    </html>
+  );
 }

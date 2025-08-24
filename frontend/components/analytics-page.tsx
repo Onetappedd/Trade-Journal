@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-
 import {
   BarChart,
   Bar,
@@ -10,19 +9,17 @@ import {
   CartesianGrid,
   Tooltip as RTooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  ReferenceLine,
-  Cell,
-  PieChart,
-  Pie,
   LineChart,
   Line,
+  PieChart,
+  Pie,
+  Cell,
   ComposedChart,
   Customized,
 } from 'recharts';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -33,10 +30,11 @@ import {
 } from '@/components/ui/table';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { usePortfolioAnalytics, usePortfolioPositions } from '@/hooks/usePortfolio';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
+import { ProfessionalEquityChart } from '@/components/charts/ProfessionalEquityChart';
 import { calculatePortfolioHistory, type PortfolioDataPoint } from '@/lib/portfolio-history';
+import Link from 'next/link';
 
 // --- THEME ---
 const COLORS = {
@@ -304,7 +302,7 @@ export function AnalyticsPage() {
     summary: posSummary,
     isLoading: positionsLoading,
   } = usePortfolioPositions(30000);
-  const { trades: recentTrades, loading: tradesLoading } = useRecentTrades(1000);
+  const { trades: recentTrades, loading: tradesLoading } = useRecentTrades(10);
 
   const isLoading = analyticsLoading || positionsLoading;
 
@@ -604,29 +602,6 @@ export function AnalyticsPage() {
   const renderPieLabel = ({ name, percent }: any) =>
     `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`;
 
-  // Compute chart data for the equity curve with useMemo to avoid IIFE-in-JSX errors
-  const chartData = useMemo(() => {
-    if (!equityHistory || equityHistory.length === 0) return [];
-    let prev = null;
-    return equityHistory.map((d, i) => {
-      // Make robust for different shapes
-      const date = d.date || d.t || d.time || '';
-      const value = typeof d.value === 'number' ? d.value : d.balance ?? d.close ?? d.value ?? 0;
-      const prevValue = prev !== null ? prev : value;
-      const dollarChange = i === 0 ? 0 : value - prevValue;
-      const percentChange = i === 0 ? 0 : ((value - prevValue) / prevValue) * 100;
-      prev = value;
-      return {
-        date,
-        value,
-        dollarChange,
-        percentChange,
-        pos: Math.max(value, 0),
-        neg: Math.min(value, 0),
-      };
-    });
-  }, [equityHistory]);
-
   return (
     <div
       className="mx-auto w-full max-w=[1400px] px-4 lg:px-6 py-6 lg:py-8"
@@ -702,7 +677,7 @@ export function AnalyticsPage() {
       {/* Charts and Allocation */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-4">
         <Card
-          className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2 h-full"
+          className="bg-[#1E1E1E] border-[#2D2D2D] rounded-xl shadow-sm xl:col-span-2"
           aria-label="Equity performance chart"
         >
           <CardHeader className="pb-2">
@@ -710,45 +685,20 @@ export function AnalyticsPage() {
               <div>
                 <CardTitle className="text-white">Equity Performance</CardTitle>
                 <CardDescription className="text-[#9CA3AF]">
-                  Equity/timeframe filters
+                  Robinhood-style P&L with timeframe filters
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="h-[300px] md:h-[340px] xl:h-[370px] overflow-hidden p-0">
-            <div className="relative h-full min-h-0">
-              {/* CHART FIX: match dashboard with visible y-axis, auto domain (supports negatives) */}
-              {/* This must be client-only: move this part to a separate 'EquityAnalyticsChart.tsx' client component, import it below, and wrap with 'use client' at the top of that file. */}
-              <div suppressHydrationWarning>
-                {typeof window === 'undefined' ? null : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={chartData}
-                      margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
-                    >
-                      <CartesianGrid strokeOpacity={0.15} vertical={false} />
-                      <XAxis
-                        dataKey="date"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: '#888' }}
-                      />
-                      <YAxis
-                        hide={false}
-                        domain={['auto', 'auto']}
-                        width={62}
-                        tickFormatter={v => Math.round(Number(v))}
-                        tick={{ fontSize: 11, fill: '#888' }}
-                      />
-                      <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />
-                      <RTooltip/>
-                      <Area type="monotone" dataKey="pos" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} dot={false} isAnimationActive={false} />
-                      <Area type="monotone" dataKey="neg" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} dot={false} isAnimationActive={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
+          <CardContent className="pt-2">
+            <ProfessionalEquityChart 
+              data={equityHistory} 
+              initialValue={INITIAL_CAPITAL}
+              title="Equity Performance"
+              subtitle="Robinhood-style P&L with timeframe filters"
+              height={360}
+              className="bg-transparent border-0 shadow-none"
+            />
           </CardContent>
         </Card>
 
@@ -1015,7 +965,7 @@ export function AnalyticsPage() {
                       </TableCell>
                     </TableRow>
                   )}
-                  {recentTrades.slice(0, 20).map((t) => {
+                  {recentTrades.map((t) => {
                     const isClosed = !!(t.exit_price && t.exit_date);
                     const assetType = String(t.asset_type || 'stock').toLowerCase();
                     const mult =
@@ -1058,20 +1008,15 @@ export function AnalyticsPage() {
                       </TableRow>
                     );
                   })}
-                  {recentTrades.length > 20 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center p-4">
-                        <a
-                          href="/dashboard/trade-history"
-                          className="inline-block px-4 py-2 rounded bg-primary text-white hover:bg-primary/90 transition-colors"
-                        >
-                          View all trade history ({recentTrades.length} total)
-                        </a>
-                      </TableCell>
-                    </TableRow>
-                  )}
                 </TableBody>
               </Table>
+            </div>
+            <div className="mt-4 pt-4 border-t border-[#2D2D2D]">
+              <Link href="/dashboard/trades">
+                <Button variant="outline" className="w-full text-[#9CA3AF] border-[#2D2D2D] hover:bg-[#2D2D2D]">
+                  View All Trades
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
