@@ -99,7 +99,6 @@ export function IntegrationSettings() {
                         <Switch
                           checked={broker.autoSync}
                           onCheckedChange={() => toggleAutoSync(broker.id)}
-                          size="sm"
                         />
                         <Label className="text-sm">Auto-sync trades</Label>
                       </div>

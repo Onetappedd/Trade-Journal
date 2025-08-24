@@ -288,12 +288,7 @@ export function PortfolioPerformance({ data, initialValue = 10000 }: PortfolioPe
                 neg: Math.min(d.displayValue, 0),
               }))}
               margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
-              onMouseMove={(e) => {
-                if (e && e.activePayload && e.activePayload[0]) {
-                  setHoveredData(e.activePayload[0].payload);
-                }
-              }}
-              onMouseLeave={() => setHoveredData(null)}
+
             >
               <CartesianGrid strokeOpacity={0.15} vertical={false} />
               <XAxis

@@ -1,9 +1,10 @@
 "use client";
 import React from "react";
 
-export function FiltersBar({ filters, onChange }: {
+export function FiltersBar({ filters, onChange, small }: {
   filters: Record<string, any>;
   onChange: (next: Record<string, any>) => void;
+  small?: boolean;
 }) {
   // Scaffolding only: build out filter fields, datepickers, tag selects, etc. later
   return (

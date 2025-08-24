@@ -188,7 +188,7 @@ function CandlestickSeries({
 }) {
   return (
     <Customized
-      content={(props: any) => {
+      component={(props: any) => {
         const { xAxisMap, yAxisMap, offset } = props;
         const xKey = Object.keys(xAxisMap)[0];
         const yKey = Object.keys(yAxisMap)[0];
@@ -607,11 +607,11 @@ export function AnalyticsPage() {
   // Compute chart data for the equity curve with useMemo to avoid IIFE-in-JSX errors
   const chartData = useMemo(() => {
     if (!equityHistory || equityHistory.length === 0) return [];
-    let prev = null;
+    let prev: number | null = null;
     return equityHistory.map((d, i) => {
       // Make robust for different shapes
-      const date = d.date || d.t || d.time || '';
-      const value = typeof d.value === 'number' ? d.value : d.balance ?? d.close ?? d.value ?? 0;
+      const date = d.date || '';
+      const value = typeof d.value === 'number' ? d.value : 0;
       const prevValue = prev !== null ? prev : value;
       const dollarChange = i === 0 ? 0 : value - prevValue;
       const percentChange = i === 0 ? 0 : ((value - prevValue) / prevValue) * 100;
@@ -737,7 +737,7 @@ export function AnalyticsPage() {
                         hide={false}
                         domain={['auto', 'auto']}
                         width={62}
-                        tickFormatter={v => Math.round(Number(v))}
+                        tickFormatter={v => Math.round(Number(v)).toString()}
                         tick={{ fontSize: 11, fill: '#888' }}
                       />
                       <ReferenceLine y={INITIAL_CAPITAL} stroke="currentColor" strokeOpacity={0.35} />

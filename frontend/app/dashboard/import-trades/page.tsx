@@ -5,7 +5,7 @@ import Papa from "papaparse";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -76,6 +76,9 @@ type TradePreview = {
   quantity: number;
   entry_price: number;
   entry_date: string;
+  asset_type?: string;
+  broker?: string;
+  expiration_date?: string;
   status?: string;
   validation_status?: string;
   error?: string;
@@ -150,8 +153,8 @@ export default function ImportTradesPage() {
   // Import progress modal state
   const [importModalOpen, setImportModalOpen] = React.useState(false);
   const [importProgress, setImportProgress] = React.useState(0);
-  const [importStatus, setImportStatus] = React.useState<'importing' | 'success' | 'error'>(
-    'importing',
+  const [importStatus, setImportStatus] = React.useState<'idle' | 'validating' | 'importing' | 'done' | 'error'>(
+    'idle',
   );
   const [importResults, setImportResults] = React.useState({
     successCount: 0,
@@ -344,7 +347,7 @@ export default function ImportTradesPage() {
   async function handleImport() {
     const valid = previewRows.filter((t) => t.validation_status === 'valid');
     if (!valid.length) {
-      toast({ title: 'No valid trades to import', variant: 'destructive' });
+      toast.error('No valid trades to import');
       return;
     }
 
@@ -401,7 +404,7 @@ export default function ImportTradesPage() {
 
       if (res.ok && result.success > 0) {
         // Set success status
-        setImportStatus('success');
+        setImportStatus('done');
         setImportResults({
           successCount: result.success || 0,
           errorCount: result.error || 0,
@@ -418,13 +421,13 @@ export default function ImportTradesPage() {
 
         // Clear the data after successful import (but wait for user to close modal)
         setTimeout(() => {
-          if (importStatus === 'success') {
+          if (importStatus === 'done') {
             clearData();
           }
         }, 2000);
       } else if (res.ok && result.duplicates > 0) {
         // All duplicates case
-        setImportStatus('success');
+        setImportStatus('done');
         setImportResults({
           successCount: 0,
           errorCount: 0,
@@ -461,7 +464,7 @@ export default function ImportTradesPage() {
   // Handle modal close
   const handleModalClose = () => {
     setImportModalOpen(false);
-    if (importStatus === 'success') {
+    if (importStatus === 'done') {
       clearData();
     }
   };
@@ -492,7 +495,7 @@ export default function ImportTradesPage() {
       const result = await res.json();
 
       if (res.ok && result.success > 0) {
-        toast({ title: 'Trade saved successfully!', variant: 'default' });
+        toast.success('Trade saved successfully!');
         manualForm.reset({
           symbol: '',
           side: 'buy',
@@ -504,19 +507,11 @@ export default function ImportTradesPage() {
       } else {
         // Show detailed error message
         const errorMsg = result.errors ? result.errors.join(', ') : result.error || 'Unknown error';
-        toast({
-          title: 'Failed to save trade',
-          description: errorMsg,
-          variant: 'destructive',
-        });
+        toast.error('Failed to save trade', { description: errorMsg });
         console.error('Trade save failed:', result);
       }
     } catch (e) {
-      toast({
-        title: 'Failed to save trade',
-        description: String(e),
-        variant: 'destructive',
-      });
+      toast.error('Failed to save trade', { description: String(e) });
     } finally {
       setIsSubmitting(false);
     }
@@ -932,13 +927,13 @@ export default function ImportTradesPage() {
       <ImportProgressModal
         isOpen={importModalOpen}
         onClose={handleModalClose}
-        totalTrades={importSummary?.valid || 0}
-        currentProgress={importProgress}
         status={importStatus}
-        successCount={importResults.successCount}
-        errorCount={importResults.errorCount}
-        duplicateCount={importResults.duplicateCount}
-        errorMessage={importResults.errorMessage}
+        progress={importProgress}
+        summary={{
+          imported: importResults.successCount,
+          skipped: importResults.duplicateCount,
+          failed: importResults.errorCount,
+        }}
       />
     </div>
   );

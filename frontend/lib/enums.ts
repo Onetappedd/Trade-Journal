@@ -1,7 +1,7 @@
 export const ASSET_TYPES = ['stock', 'option', 'futures', 'crypto'] as const;
 export const BROKER_ENUM = [] as const;
-export const SIDE_ENUM = [] as const;
-export const STATUS_ENUM = [] as const;
+export const SIDE_ENUM = ['buy', 'sell'] as const;
+export const STATUS_ENUM = ['open', 'closed', 'partial'] as const;
 
 export type AssetType = typeof ASSET_TYPES[number];
 export type Broker = typeof BROKER_ENUM[number];

@@ -1,7 +1,7 @@
 'use client';
 
-import { TradeTable } from '@/components/trades/TradeTable';
-import { TradeStats } from '@/components/trades/TradeStats';
+import TradeTable from '@/components/trades/TradeTable';
+import TradeStats from '@/components/trades/TradeStats';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { RefreshCw } from 'lucide-react';

@@ -117,36 +117,87 @@ export default function AddTradePage() {
   const [assetType, setAssetType] = useState<AssetType>('stock');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get the appropriate schema based on asset type
-  // Initialize form with dynamic schema
-  const form = useForm<TradeFormValues>({
-    resolver: zodResolver(tradeSchema),
-    defaultValues: {
-      asset_type: assetType,
-      side: 'buy',
+  // Get appropriate default values based on asset type
+  const getDefaultValues = (type: AssetType): Partial<TradeFormValues> => {
+    const baseValues = {
       entry_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       fees: 0,
       account: '',
       notes: '',
-      // Type-specific defaults
-      ...(assetType === 'option' && { multiplier: 100 }),
-      ...(assetType === 'futures' && { currency: 'USD' }),
-    } as Partial<TradeFormValues>,
+    };
+
+    switch (type) {
+      case 'stock':
+        return {
+          asset_type: 'stock',
+          symbol: '',
+          side: 'buy',
+          quantity: 1,
+          entry_price: null,
+          ...baseValues,
+        };
+      case 'option':
+        return {
+          asset_type: 'option',
+          underlying: '',
+          optionType: 'call',
+          action: 'buy_to_open',
+          contracts: null,
+          strike: null,
+          expiration_date: null,
+          entry_price: null,
+          multiplier: 100,
+          ...baseValues,
+        };
+      case 'futures':
+        return {
+          asset_type: 'futures',
+          symbol: '',
+          contracts: null,
+          expiration_date: null,
+          entry_price: null,
+          multiplier: null,
+          currency: 'USD',
+          ...baseValues,
+        };
+      case 'crypto':
+        return {
+          asset_type: 'crypto',
+          symbol: '',
+          quantity: 1,
+          entry_price: null,
+          ...baseValues,
+        };
+      default:
+        return {
+          asset_type: 'stock',
+          symbol: '',
+          side: 'buy',
+          quantity: 1,
+          entry_price: null,
+          ...baseValues,
+        };
+    }
+  };
+
+  // Initialize form with dynamic schema
+  const form = useForm<TradeFormValues>({
+    resolver: zodResolver(tradeSchema),
+    defaultValues: getDefaultValues(assetType),
   });
 
   // Handle asset type change
   const handleAssetTypeChange = (newType: AssetType) => {
     setAssetType(newType);
-    form.reset({
-      asset_type: newType,
-      side: form.getValues('side'),
-      entry_date: form.getValues('entry_date'),
-      fees: 0,
-      account: '',
-      notes: '',
-      ...(newType === 'option' && { multiplier: 100 }),
-      ...(newType === 'futures' && { currency: 'USD' }),
-    });
+    
+    // Get current entry_date to preserve it
+    const currentEntryDate = form.getValues('entry_date') || format(new Date(), "yyyy-MM-dd'T'HH:mm");
+    
+    // Get new default values and preserve entry_date
+    const newDefaults = getDefaultValues(newType);
+    newDefaults.entry_date = currentEntryDate;
+    
+    form.reset(newDefaults);
   };
 
   // Calculate totals for display
@@ -154,24 +205,24 @@ export default function AddTradePage() {
     const values = form.watch();
     const fees = values.fees || 0;
 
-    switch (assetType) {
+    switch (values.asset_type) {
       case 'stock':
       case 'crypto': {
-        const quantity = values.quantity || 0;
+        const quantity = 'quantity' in values ? values.quantity || 0 : 0;
         const price = values.entry_price || 0;
         return quantity * price + fees;
       }
       case 'option': {
-        const contracts = values.contracts || 0;
-        const multiplier = values.multiplier || 100;
+        const contracts = 'contracts' in values ? values.contracts || 0 : 0;
+        const multiplier = 'multiplier' in values ? values.multiplier || 100 : 100;
         const price = values.entry_price || 0;
         return contracts * multiplier * price + fees;
       }
       case 'futures': {
-        const contracts = values.contracts || 0;
-        const multiplier = values.multiplier || 1;
+        const contracts = 'contracts' in values ? values.contracts || 0 : 0;
+        const multiplier = 'multiplier' in values ? values.multiplier || 1 : 1;
         const price = values.entry_price || 0;
-        return contracts * multiplier * price;
+        return contracts * multiplier * price + fees;
       }
       default:
         return 0;
@@ -182,28 +233,60 @@ export default function AddTradePage() {
   const onSubmit = async (data: TradeFormValues) => {
     setIsSubmitting(true);
     try {
-      // Map form data to server action input format
-      const serverData = {
-        ...data,
-        // Map option-specific fields
-        ...(data.asset_type === 'option' && {
-          optionType: data.optionType,
-          strike: data.strike || 0,
-          expiration: data.expiration_date || '',
-          multiplier: data.multiplier || 100,
-        }),
-        // Map futures-specific fields  
-        ...(data.asset_type === 'futures' && {
-          contractCode: data.symbol,
-          tickSize: 0.01, // Default values - could be made configurable
-          tickValue: 0.01,
-          pointMultiplier: data.multiplier || 1,
-        }),
-        // Ensure required fields are present
-        quantity: data.quantity || (data.asset_type === 'option' ? (data.contracts || 0) : 0),
+      // Map form data to server action input format based on asset type
+      let serverData: any = {
+        asset_type: data.asset_type,
+        entry_date: data.entry_date,
+        fees: data.fees || 0,
+        notes: data.notes || '',
+        account: data.account || '',
         entry_price: data.entry_price || 0,
         isClosed: false,
       };
+
+      // Add asset-specific fields
+      switch (data.asset_type) {
+        case 'stock':
+          serverData = {
+            ...serverData,
+            symbol: data.symbol,
+            side: 'side' in data ? data.side : 'buy',
+            quantity: 'quantity' in data ? data.quantity : 0,
+          };
+          break;
+        case 'crypto':
+          serverData = {
+            ...serverData,
+            symbol: data.symbol,
+            quantity: 'quantity' in data ? data.quantity : 0,
+          };
+          break;
+        case 'option':
+          serverData = {
+            ...serverData,
+            underlying: data.underlying,
+            optionType: data.optionType,
+            action: data.action,
+            strike: data.strike || 0,
+            expiration: data.expiration_date || '',
+            multiplier: data.multiplier || 100,
+            quantity: 'contracts' in data ? data.contracts || 0 : 0,
+          };
+          break;
+        case 'futures':
+          serverData = {
+            ...serverData,
+            symbol: data.symbol,
+            contractCode: data.symbol,
+            expiration: data.expiration_date || '',
+            multiplier: data.multiplier || 1,
+            tickSize: 0.01,
+            tickValue: 0.01,
+            pointMultiplier: data.multiplier || 1,
+            quantity: 'contracts' in data ? data.contracts || 0 : 0,
+          };
+          break;
+      }
 
       const result = await addTradeAction(serverData);
 
@@ -222,17 +305,13 @@ export default function AddTradePage() {
 
       toast.success('Trade added successfully!');
       
-      // Reset form but keep common fields
-      form.reset({
-        asset_type: assetType,
-        side: data.side,
-        entry_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-        fees: 0,
-        account: data.account,
-        notes: '',
-        ...(assetType === 'option' && { multiplier: 100 }),
-        ...(assetType === 'futures' && { currency: 'USD' }),
-      });
+      // Reset form with fresh defaults
+      const newDefaults = getDefaultValues(assetType);
+      // Preserve account if it was set
+      if (data.account) {
+        newDefaults.account = data.account;
+      }
+      form.reset(newDefaults);
     } catch (error: any) {
       console.error('Trade submission error:', error);
       toast.error('Could not add trade. Please try again.');
@@ -377,7 +456,8 @@ export default function AddTradePage() {
                               step="0.001"
                               placeholder="100"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -397,7 +477,8 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="150.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -496,7 +577,8 @@ export default function AddTradePage() {
                               step="1"
                               placeholder="1"
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -516,7 +598,8 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="150.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -531,7 +614,7 @@ export default function AddTradePage() {
                         <FormItem>
                           <FormLabel>Expiration Date *</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} />
+                            <Input type="date" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -550,7 +633,8 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="2.50"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -570,7 +654,8 @@ export default function AddTradePage() {
                             type="number"
                             step="1"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
                           />
                         </FormControl>
                         <FormDescription>
@@ -622,7 +707,8 @@ export default function AddTradePage() {
                               step="1"
                               placeholder="1"
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -640,6 +726,7 @@ export default function AddTradePage() {
                             <Input
                               type="month"
                               {...field}
+                              value={field.value || ''}
                               onChange={(e) => field.onChange(e.target.value)}
                             />
                           </FormControl>
@@ -662,7 +749,8 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="4500.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -682,7 +770,8 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="50"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormDescription>
@@ -744,7 +833,8 @@ export default function AddTradePage() {
                               step="0.00000001"
                               placeholder="0.5"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -764,7 +854,8 @@ export default function AddTradePage() {
                               step="0.01"
                               placeholder="50000.00"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -791,6 +882,7 @@ export default function AddTradePage() {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
+                          value={field.value || ''}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </FormControl>

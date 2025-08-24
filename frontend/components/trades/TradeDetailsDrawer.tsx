@@ -2,23 +2,16 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 import { fmtCurrency, compactDate, pnlChipColor } from "@/lib/ui/formatters";
-import { Trade } from "@/lib/trades";
+import { TradeRow } from "@/types/trade";
 
 const TABS = ["Overview", "Fills", "Notes", "Files"];
 
-function calcRMultiple(trade: Trade): number | null {
-  if (trade.rMultiple != null) return trade.rMultiple;
-  // If avgEntry, avgExit, and stop are available, compute; else null
-  if (typeof trade.avgEntry === 'number' && typeof trade.avgExit === 'number' && typeof trade.stop === 'number') {
-    const risk = Math.abs(trade.avgEntry - trade.stop);
-    if (risk > 0) {
-      return (trade.avgExit - trade.avgEntry) / risk;
-    }
-  }
+function calcRMultiple(trade: TradeRow): number | null {
+  // R-multiple calculation not available with current TradeRow structure
   return null;
 }
 
-export function TradeDetailsDrawer({ trade, onClose }: { trade: Trade | null, onClose: () => void }) {
+export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | null, onClose: () => void }) {
   const [tab, setTab] = useState("Overview");
   const [editingTags, setEditingTags] = useState(false);
   const [tags, setTags] = useState<string[]>(trade?.tags || []);
@@ -79,7 +72,7 @@ export function TradeDetailsDrawer({ trade, onClose }: { trade: Trade | null, on
       id="details-sheet"
       tabIndex={-1}
       role="dialog"
-      aria-label={`Trade details for ${trade.symbol}`}
+      aria-label={`TradeRow details for ${trade.symbol}`}
       className="fixed top-0 right-0 w-full sm:w-[440px] h-full bg-popover z-50 shadow-lg border-l border-border flex flex-col outline-none"
       style={{ maxWidth: 500 }}
       onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
@@ -194,7 +187,7 @@ export function TradeDetailsDrawer({ trade, onClose }: { trade: Trade | null, on
               className="border rounded w-full min-h-[120px] p-2 text-sm"
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              aria-label="Trade Notes"
+              aria-label="TradeRow Notes"
               disabled={savingNotes}
               onBlur={handleNotesBlur}
               placeholder="Add notes..."

@@ -405,7 +405,7 @@ export function PerformanceComparison() {
                       <Legend />
                       <Bar
                         dataKey="return"
-                        fill={(entry: any) => (entry.return >= 0 ? '#10b981' : '#ef4444')}
+                        fill="#8884d8"
                         name="Return (%)"
                       />
                     </BarChart>
