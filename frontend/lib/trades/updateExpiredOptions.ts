@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ExpiredOptionUpdate {
   tradesUpdated: number;
@@ -11,8 +11,10 @@ export interface ExpiredOptionUpdate {
  * Marks them as 'expired' (worthless) with exit_price = 0.00 and exit_date = expiration_date
  * and sets them as editable for user review/correction.
  */
-export async function updateExpiredOptionsTrades(userId: string): Promise<ExpiredOptionUpdate> {
-  const supabase = createClient();
+export async function updateExpiredOptionsTrades(
+  userId: string, 
+  supabase: SupabaseClient
+): Promise<ExpiredOptionUpdate> {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
   try {
@@ -101,9 +103,10 @@ export async function updateExpiredOptionsTrades(userId: string): Promise<Expire
 /**
  * Check if user has any expired options that need attention
  */
-export async function checkForExpiredOptions(userId: string): Promise<number> {
-  const supabase = createClient();
-
+export async function checkForExpiredOptions(
+  userId: string, 
+  supabase: SupabaseClient
+): Promise<number> {
   try {
     const { count, error } = await supabase
       .from('trades')

@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   // Check and update expired options on dashboard load
   if (user) {
     try {
-      await updateExpiredOptionsTrades(user.id);
+      await updateExpiredOptionsTrades(user.id, supabase);
     } catch (error) {
       console.error('Failed to update expired options:', error);
     }

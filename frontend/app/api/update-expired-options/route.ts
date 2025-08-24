@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await updateExpiredOptionsTrades(user.id);
+    const result = await updateExpiredOptionsTrades(user.id, supabase);
 
     return NextResponse.json({
       success: true,
