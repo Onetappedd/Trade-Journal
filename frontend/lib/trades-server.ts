@@ -23,29 +23,75 @@ export type TradeListResult = {
 };
 
 export async function getTrades(params: TradeListParams): Promise<TradeListResult> {
-  // Source: Supabase (see export logic)
-  const supabase = createClient();
-  const page = Math.max(1, Number(params.page) || 1);
-  const pageSize = Math.max(1, Math.min(Number(params.pageSize) || 50, 200));
-  let query = supabase.from('trades').select('*', { count: 'exact' }).eq('user_id', params.userId);
-  if (params.assetType && params.assetType.length > 0) query = query.in('asset_type', params.assetType);
-  if (params.side && params.side.length > 0) query = query.in('side', params.side);
-  if (params.symbol) query = query.ilike('symbol', `%${params.symbol}%`);
-  if (params.dateFrom) query = query.gte('opened_at', params.dateFrom);
-  if (params.dateTo) query = query.lte('opened_at', params.dateTo);
-  if (params.sort && params.sort.field) {
-    query = query.order(params.sort.field, { ascending: params.sort.dir === 'asc' });
-  } else {
-    query = query.order('opened_at', { ascending: false });
+  try {
+    console.log('getTrades - Starting with params:', { ...params, userId: params.userId ? 'present' : 'missing' });
+    
+    // Source: Supabase (see export logic)
+    const supabase = createClient();
+    console.log('getTrades - Supabase client created');
+    
+    const page = Math.max(1, Number(params.page) || 1);
+    const pageSize = Math.max(1, Math.min(Number(params.pageSize) || 50, 200));
+    
+    console.log('getTrades - Building query for user:', params.userId);
+    let query = supabase.from('trades').select('*', { count: 'exact' }).eq('user_id', params.userId);
+    
+    if (params.assetType && params.assetType.length > 0) {
+      console.log('getTrades - Adding asset type filter:', params.assetType);
+      query = query.in('asset_type', params.assetType);
+    }
+    if (params.side && params.side.length > 0) {
+      console.log('getTrades - Adding side filter:', params.side);
+      query = query.in('side', params.side);
+    }
+    if (params.symbol) {
+      console.log('getTrades - Adding symbol filter:', params.symbol);
+      query = query.ilike('symbol', `%${params.symbol}%`);
+    }
+    if (params.dateFrom) {
+      console.log('getTrades - Adding date from filter:', params.dateFrom);
+      query = query.gte('opened_at', params.dateFrom);
+    }
+    if (params.dateTo) {
+      console.log('getTrades - Adding date to filter:', params.dateTo);
+      query = query.lte('opened_at', params.dateTo);
+    }
+    
+    if (params.sort && params.sort.field) {
+      console.log('getTrades - Adding sort:', params.sort);
+      query = query.order(params.sort.field, { ascending: params.sort.dir === 'asc' });
+    } else {
+      console.log('getTrades - Using default sort by opened_at desc');
+      query = query.order('opened_at', { ascending: false });
+    }
+    
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    console.log('getTrades - Adding range:', { from, to });
+    query = query.range(from, to);
+    
+    console.log('getTrades - Executing query');
+    const { data, count, error } = await query;
+    
+    if (error) {
+      console.error('getTrades - Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('getTrades - Query successful, data count:', data?.length || 0);
+    
+    // Normalize, compute realized PnL for each row
+    const rows: Trade[] = (data as any[]).map(normalizeTrade);
+    console.log('getTrades - Normalized rows count:', rows.length);
+    
+    const result = { rows, total: count ?? 0, page, pageSize };
+    console.log('getTrades - Returning result:', { rowsCount: result.rows.length, total: result.total, page: result.page, pageSize: result.pageSize });
+    
+    return result;
+  } catch (err) {
+    console.error('getTrades - Unexpected error:', err);
+    throw err;
   }
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  query = query.range(from, to);
-  const { data, count, error } = await query;
-  if (error) throw error;
-  // Normalize, compute realized PnL for each row
-  const rows: Trade[] = (data as any[]).map(normalizeTrade);
-  return { rows, total: count ?? 0, page, pageSize };
 }
 
 export function computeRealizedPnl(trade: Trade): { pnl: number; pnlPct: number } {

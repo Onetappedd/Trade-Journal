@@ -24,15 +24,30 @@ function parseParams(url: URL): Omit<TradeListParams, 'userId'> {
 
 export async function GET(req: Request) {
   try {
+    console.log('GET /api/trades - Starting request');
+    
     const userId = await getUserIdFromRequest();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    console.log('GET /api/trades - User ID:', userId);
+    
+    if (!userId) {
+      console.log('GET /api/trades - Unauthorized: No user ID');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const url = new URL(req.url);
     const params = parseParams(url);
+    console.log('GET /api/trades - Params:', params);
+    
     const result = await getTrades({ ...params, userId });
+    console.log('GET /api/trades - Result rows count:', result.rows.length);
+    
     return NextResponse.json(result);
   } catch (err) {
-    console.error('GET /api/trades error', err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('GET /api/trades error:', err);
+    console.error('GET /api/trades error stack:', err instanceof Error ? err.stack : 'No stack trace');
+    return NextResponse.json({ 
+      error: 'Internal Server Error',
+      details: err instanceof Error ? err.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
