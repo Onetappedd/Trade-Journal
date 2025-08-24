@@ -147,7 +147,7 @@ export function ProfessionalEquityChart({
   }, [chartData, timeframe]);
 
   return (
-    <Card className={`bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 ${className}`}>
+         <Card className={`bg-[#1E1E1E] border-[#2D2D2D] ${className}`}>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
@@ -156,44 +156,44 @@ export function ProfessionalEquityChart({
           </div>
           
           <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="flex bg-gray-800 rounded-lg p-1">
-              <Button
-                variant={viewMode === 'dollar' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('dollar')}
-                className={`h-8 px-3 text-xs ${viewMode === 'dollar' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-              >
-                <DollarSign className="w-3 h-3 mr-1" />
-                $
-              </Button>
-              <Button
-                variant={viewMode === 'percent' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('percent')}
-                className={`h-8 px-3 text-xs ${viewMode === 'percent' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-              >
-                <Percent className="w-3 h-3 mr-1" />
-                %
-              </Button>
-            </div>
+                         {/* View Mode Toggle */}
+             <div className="flex bg-[#2D2D2D] rounded-lg p-1">
+               <Button
+                 variant={viewMode === 'dollar' ? 'default' : 'ghost'}
+                 size="sm"
+                 onClick={() => setViewMode('dollar')}
+                 className={`h-8 px-3 text-xs ${viewMode === 'dollar' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+               >
+                 <DollarSign className="w-3 h-3 mr-1" />
+                 $
+               </Button>
+               <Button
+                 variant={viewMode === 'percent' ? 'default' : 'ghost'}
+                 size="sm"
+                 onClick={() => setViewMode('percent')}
+                 className={`h-8 px-3 text-xs ${viewMode === 'percent' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+               >
+                 <Percent className="w-3 h-3 mr-1" />
+                 %
+               </Button>
+             </div>
 
-            {/* Timeframe Toggle */}
-            {showTimeframeToggle && (
-              <div className="flex bg-gray-800 rounded-lg p-1">
-                {(['1D', '1W', '1M', '3M', '1Y', 'ALL'] as const).map((tf) => (
-                  <Button
-                    key={tf}
-                    variant={timeframe === tf ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setTimeframe(tf)}
-                    className={`h-8 px-2 text-xs ${timeframe === tf ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                  >
-                    {tf}
-                  </Button>
-                ))}
-              </div>
-            )}
+             {/* Timeframe Toggle */}
+             {showTimeframeToggle && (
+               <div className="flex bg-[#2D2D2D] rounded-lg p-1">
+                 {(['1D', '1W', '1M', '3M', '1Y', 'ALL'] as const).map((tf) => (
+                   <Button
+                     key={tf}
+                     variant={timeframe === tf ? 'default' : 'ghost'}
+                     size="sm"
+                     onClick={() => setTimeframe(tf)}
+                     className={`h-8 px-2 text-xs ${timeframe === tf ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                   >
+                     {tf}
+                   </Button>
+                 ))}
+               </div>
+             )}
           </div>
         </div>
 
