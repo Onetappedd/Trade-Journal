@@ -1,6 +1,7 @@
 // Portfolio value calculation with real-time prices
 import { createClient } from '@/lib/supabase';
 import { getRealTimePrices } from '@/lib/prices';
+import type { TradeRow } from '@/types/trade';
 
 export interface PortfolioPosition {
   symbol: string;
@@ -56,7 +57,7 @@ export async function calculateRealPortfolioValue(userId: string): Promise<Portf
       symbol: string;
       totalQuantity: number;
       totalCost: number;
-      trades: any[];
+      trades: TradeRow[];
       assetType: string;
     }
   >();
@@ -67,7 +68,7 @@ export async function calculateRealPortfolioValue(userId: string): Promise<Portf
       symbol,
       totalQuantity: 0,
       totalCost: 0,
-      trades: [],
+      trades: [] as TradeRow[],
       assetType: trade.asset_type || 'stock',
     };
 
@@ -80,7 +81,7 @@ export async function calculateRealPortfolioValue(userId: string): Promise<Portf
       existing.totalCost -= trade.quantity * trade.entry_price;
     }
 
-    existing.trades.push(trade);
+    existing.trades.push(trade as TradeRow);
     positionMap.set(symbol, existing);
   }
 

@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase';
-import { createClient } from '@/lib/supabase';
 import type { AssetType, TradeRow, TradesResponse } from '@/types/trade';
 
 export type TradeListParams = {

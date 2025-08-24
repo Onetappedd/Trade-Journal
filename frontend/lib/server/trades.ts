@@ -28,7 +28,7 @@ export async function fetchTradesForUser(userId: string, opts?: {
   cursor?: string | null;
   filters?: Record<string, unknown>;
 }): Promise<{ items: Trade[]; nextCursor: string | null }> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const limit = opts?.limit ?? 100;
   let query = supabase
     .from('trades')

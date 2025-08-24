@@ -2,25 +2,26 @@ import { z } from 'zod';
 
 export const sideSchema = z.enum(['buy', 'sell']); // lower-case enforced
 
-export const baseTradeSchema = z
-  .object({
-    symbol: z.string().trim().min(1, 'Symbol is required'),
-    side: sideSchema,
-    quantity: z.number().int().positive('Must be > 0'),
-    entry_price: z.number().positive('Entry price must be > 0'),
-    entry_date: z
-      .string()
-      .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Invalid entry date' }),
-    // Optional exit
-    isClosed: z.boolean().optional().default(false),
-    exit_price: z.number().positive('Exit price must be > 0').optional().nullable(),
-    exit_date: z
-      .string()
-      .nullable()
-      .optional()
-      .refine((v) => v == null || !Number.isNaN(Date.parse(v)), { message: 'Invalid exit date' }),
-    notes: z.string().optional().nullable(),
-  })
+const baseTradeObject = z.object({
+  symbol: z.string().trim().min(1, 'Symbol is required'),
+  side: sideSchema,
+  quantity: z.number().int().positive('Must be > 0'),
+  entry_price: z.number().positive('Entry price must be > 0'),
+  entry_date: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), { message: 'Invalid entry date' }),
+  // Optional exit
+  isClosed: z.boolean().optional().default(false),
+  exit_price: z.number().positive('Exit price must be > 0').optional().nullable(),
+  exit_date: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((v) => v == null || !Number.isNaN(Date.parse(v)), { message: 'Invalid exit date' }),
+  notes: z.string().optional().nullable(),
+});
+
+export const baseTradeSchema = baseTradeObject
   .refine(
     (data) => {
       if (!data.isClosed) return true;
@@ -38,11 +39,11 @@ export const baseTradeSchema = z
     { message: 'Exit date must be on/after entry date', path: ['exit_date'] },
   );
 
-export const stockTradeSchema = baseTradeSchema.extend({
+export const stockTradeSchema = baseTradeObject.extend({
   asset_type: z.literal('stock'),
 });
 
-export const optionTradeSchema = baseTradeSchema
+export const optionTradeSchema = baseTradeObject
   .extend({
     asset_type: z.literal('option'),
     optionType: z.enum(['call', 'put']),
@@ -57,7 +58,7 @@ export const optionTradeSchema = baseTradeSchema
     path: ['expiration'],
   });
 
-export const futuresTradeSchema = baseTradeSchema.extend({
+export const futuresTradeSchema = baseTradeObject.extend({
   asset_type: z.literal('futures'),
   contractCode: z.string().trim().min(1, 'Contract code required'),
   tickSize: z.number().positive(),
@@ -65,7 +66,7 @@ export const futuresTradeSchema = baseTradeSchema.extend({
   pointMultiplier: z.number().positive(),
 });
 
-export const anyTradeSchema = z.discriminatedUnion('asset_type', [
+export const anyTradeSchema = z.union([
   stockTradeSchema,
   optionTradeSchema,
   futuresTradeSchema,

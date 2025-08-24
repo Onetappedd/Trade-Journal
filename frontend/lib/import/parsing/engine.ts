@@ -105,8 +105,11 @@ export function parseOCC(description: string | undefined): {
   const s = description.trim().toUpperCase();
   for (const r of OCC_REGEXES) {
     const m = s.match(r);
-    if (m && m.groups) {
-      const { under, yymmdd, right, strike } = m.groups as any;
+    if (m && m.length >= 5) {
+      const under = m[1];
+      const yymmdd = m[2];
+      const right = m[3] as 'C' | 'P';
+      const strike = m[4];
       const yy = parseInt(yymmdd.slice(0, 2), 10);
       const mm = yymmdd.slice(2, 4);
       const dd = yymmdd.slice(4, 6);
@@ -114,7 +117,7 @@ export function parseOCC(description: string | undefined): {
       const expiry = `${year}-${mm}-${dd}`;
       // OCC strike has 5 decimals implied: e.g., 00185000 => 185.000
       const strikeNum = Number((parseInt(strike, 10) / 1000).toFixed(3));
-      return { underlying: under, expiry, right: right as any, strike: strikeNum };
+      return { underlying: under, expiry, right, strike: strikeNum };
     }
   }
   return {};
@@ -826,7 +829,7 @@ function tastyParse({ rows, headerMap, userTimezone, assetClass }: any) {
       let symbol = String(get(r, 'symbol') || '')
         .toUpperCase()
         .trim();
-      let right = (get(r, 'type') || get(r, 'Put/Call') || '')
+      let right: 'C' | 'P' | undefined = (get(r, 'type') || get(r, 'Put/Call') || '')
         .toString()
         .toUpperCase()
         .startsWith('P')
