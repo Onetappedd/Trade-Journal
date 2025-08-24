@@ -9,6 +9,7 @@ type AuthCtx = {
   session: Session | null;
   user: Session['user'] | null;
   userId: string | null;
+  loading: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -23,6 +24,7 @@ export function useAuth() {
       session: null, 
       user: null, 
       userId: null, 
+      loading: true,
       signOut: async () => {} 
     };
   }
@@ -35,10 +37,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   ), []);
   const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
+      setLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      setLoading(false);
+    });
     return () => subscription?.unsubscribe();
   }, [supabase]);
 
@@ -52,9 +61,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session, 
       user: session?.user ?? null,
       userId: session?.user?.id ?? null,
+      loading,
       signOut
     }),
-    [supabase, session, signOut]
+    [supabase, session, loading, signOut]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -19,11 +19,20 @@ import { useAuth } from "@/providers/auth-provider";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   // Don't show sidebar on login page
   if (pathname === '/login' || pathname.startsWith('/auth')) {
     return <>{children}</>;
+  }
+
+  // Show loading while auth state is being determined
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   // Redirect to login if not authenticated
