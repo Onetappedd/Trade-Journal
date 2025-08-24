@@ -1,4 +1,4 @@
-export type AssetType = "stock" | "option" | "future" | "crypto";
+export type AssetType = "stock" | "option" | "futures" | "crypto";
 
 export type BaseTrade = {
   id: string;
@@ -28,7 +28,7 @@ export type OptionTrade = BaseTrade & {
 };
 
 export type FutureTrade = BaseTrade & {
-  assetType: "future";
+  assetType: "futures";
   contractCode: string;
   expiration: string;
   pointValue: number;
@@ -75,7 +75,7 @@ export const optionTradeSchema = z.object({
 });
 
 export const futureTradeSchema = z.object({
-  assetType: z.literal('future'),
+  assetType: z.literal('futures'),
   symbol: z.string().min(1, 'Symbol is required'),
   contracts: z.number().int().min(1),
   multiplier: z.number().min(0.01),

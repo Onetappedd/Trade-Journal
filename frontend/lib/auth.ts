@@ -1,10 +1,9 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+// frontend/lib/auth.ts
+import { createClient } from '@/lib/supabase-server';
 
-export async function getUserIdFromRequest(_req: Request) {
-  const supabase = createServerClient({ cookies });
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.id || null;
+export async function getUserIdFromRequest(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) return null;
+  return user?.id ?? null;
 }

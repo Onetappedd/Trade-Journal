@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase-server';
 import type { AssetType, Trade, TradeListParams, TradeListResult } from '@/types/trade';
 
 export type TradeListParams = {
@@ -101,10 +101,28 @@ function normalizeTrade(raw: any): Trade {
     notes: raw.notes,
     tags: raw.tags ?? [],
   };
+
+  // Compute realized PnL
+  const { pnl, pnlPct } = computeRealizedPnl({
+    ...common,
+    closePrice: raw.close_price ? Number(raw.close_price) : null,
+    assetType: raw.asset_type,
+  } as Trade);
+
+  const tradeWithPnl = {
+    ...common,
+    realizedPnl: pnl,
+    realizedPnlPct: pnlPct,
+  };
+
+  // Return specific trade type based on asset_type
   switch (raw.asset_type) {
+    case 'stock':
+    case 'crypto':
+      return tradeWithPnl as Trade;
     case 'option':
       return {
-        ...common,
+        ...tradeWithPnl,
         assetType: 'option',
         optionType: raw.option_type,
         strike: Number(raw.strike),
@@ -113,7 +131,7 @@ function normalizeTrade(raw: any): Trade {
       };
     case 'futures':
       return {
-        ...common,
+        ...tradeWithPnl,
         assetType: 'futures',
         contractCode: raw.contract_code,
         expiration: raw.expiration,
@@ -121,13 +139,7 @@ function normalizeTrade(raw: any): Trade {
         tickSize: raw.tick_size ? Number(raw.tick_size) : null,
         tickValue: raw.tick_value ? Number(raw.tick_value) : null,
       };
-    case 'crypto':
-      return {
-        ...common,
-        assetType: 'crypto',
-        quoteCurrency: raw.quote_currency,
-      };
     default:
-      return { ...common };
+      return tradeWithPnl as Trade;
   }
 }

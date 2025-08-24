@@ -1,42 +1,38 @@
-export const dynamic = "force-dynamic";
+// frontend/app/api/trades/route.ts
+import { NextResponse } from 'next/server';
+import { getUserIdFromRequest } from '@/lib/auth';
+import { getTrades, type TradeListParams } from '@/lib/trades-server';
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getTrades } from '@/lib/trades';
-import { getUserIdFromRequest } from '@/lib/auth'; // IMPLEMENT OR ADJUST based on your auth setup
+export const runtime = 'nodejs';
 
-export async function GET(req: NextRequest) {
-  // Require auth
-  const userId = await getUserIdFromRequest(req);
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  // Paging, sorting, filtering from query params
-  const url = req.nextUrl;
-  const page = url.searchParams.get('page');
-  const pageSize = url.searchParams.get('pageSize');
-  const sortField = url.searchParams.get('sortField');
-  const sortDir = url.searchParams.get('sortDir') as 'asc' | 'desc' | undefined;
-  const dateFrom = url.searchParams.get('dateFrom');
-  const dateTo = url.searchParams.get('dateTo');
-  const assetTypes = url.searchParams.get('assetTypes')?.split(',').filter(Boolean) || undefined;
-  const status = url.searchParams.get('status')?.split(',').filter(Boolean) as any;
+function parseParams(url: URL): Omit<TradeListParams, 'userId'> {
+  const page = Number(url.searchParams.get('page') ?? '1');
+  const pageSize = Number(url.searchParams.get('pageSize') ?? '50');
+  const accountId = url.searchParams.get('accountId') || undefined;
   const symbol = url.searchParams.get('symbol') || undefined;
-  const text = url.searchParams.get('q') || undefined;
+  const dateFrom = url.searchParams.get('dateFrom') || undefined;
+  const dateTo = url.searchParams.get('dateTo') || undefined;
 
+  // allow multiple values
+  const assetTypeParams = url.searchParams.getAll('assetType');
+  const sideParams = url.searchParams.getAll('side');
+  const assetType = assetTypeParams.length ? assetTypeParams : undefined;
+  const side = sideParams.length ? sideParams : undefined;
+
+  return { accountId, symbol, assetType, side, dateFrom, dateTo, page, pageSize };
+}
+
+export async function GET(req: Request) {
   try {
-    const result = await getTrades({
-      userId,
-      page: page ? Number(page) : undefined,
-      pageSize: pageSize ? Number(pageSize) : undefined,
-      sort: sortField ? { field: sortField, dir: sortDir || 'desc' } : undefined,
-      dateFrom,
-      dateTo,
-      assetTypes,
-      status,
-      symbol,
-      text,
-    });
+    const userId = await getUserIdFromRequest();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const url = new URL(req.url);
+    const params = parseParams(url);
+    const result = await getTrades({ ...params, userId });
     return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to fetch trades' }, { status: 500 });
+  } catch (err) {
+    console.error('GET /api/trades error', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
