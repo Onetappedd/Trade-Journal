@@ -39,25 +39,25 @@ const CustomTooltip = ({ active, payload, label, viewMode, initialValue }: any) 
     const pnl = data.pnl || (value - (initialValue || 10000));
     const pnlPercent = ((pnl / (initialValue || 10000)) * 100);
     
-    return (
-      <div className="bg-black/90 border border-gray-700 rounded-lg p-3 shadow-lg backdrop-blur-sm">
-        <p className="text-gray-300 text-sm font-medium">{label}</p>
-        <div className="mt-2 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-xs">Value:</span>
-            <span className={`text-sm font-semibold ${value >= (initialValue || 10000) ? 'text-green-400' : 'text-red-400'}`}>
-              {viewMode === 'dollar' ? `$${value.toLocaleString()}` : `${pnlPercent.toFixed(2)}%`}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-xs">P&L:</span>
-            <span className={`text-sm font-semibold ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {pnl >= 0 ? '+' : ''}{viewMode === 'dollar' ? `$${pnl.toLocaleString()}` : `${pnlPercent.toFixed(2)}%`}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
+         return (
+       <div className="bg-background border border-border rounded-lg p-3 shadow-lg backdrop-blur-sm">
+         <p className="text-foreground text-sm font-medium">{label}</p>
+         <div className="mt-2 space-y-1">
+           <div className="flex items-center justify-between">
+             <span className="text-muted-foreground text-xs">Value:</span>
+             <span className={`text-sm font-semibold ${value >= (initialValue || 10000) ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+               {viewMode === 'dollar' ? `$${value.toLocaleString()}` : `${pnlPercent.toFixed(2)}%`}
+             </span>
+           </div>
+           <div className="flex items-center justify-between">
+             <span className="text-muted-foreground text-xs">P&L:</span>
+             <span className={`text-sm font-semibold ${pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+               {pnl >= 0 ? '+' : ''}{viewMode === 'dollar' ? `$${pnl.toLocaleString()}` : `${pnlPercent.toFixed(2)}%`}
+             </span>
+           </div>
+         </div>
+       </div>
+     );
   }
   return null;
 };
@@ -147,47 +147,47 @@ export function ProfessionalEquityChart({
   }, [chartData, timeframe]);
 
   return (
-         <Card className={`bg-[#1E1E1E] border-[#2D2D2D] ${className}`}>
+         <Card className={`${className}`}>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white text-lg font-semibold">{title}</CardTitle>
-            <p className="text-gray-400 text-sm">{subtitle}</p>
+                         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+             <p className="text-muted-foreground text-sm">{subtitle}</p>
           </div>
           
           <div className="flex items-center gap-2">
                          {/* View Mode Toggle */}
-             <div className="flex bg-[#2D2D2D] rounded-lg p-1">
+             <div className="flex bg-muted rounded-lg p-1">
                <Button
                  variant={viewMode === 'dollar' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setViewMode('dollar')}
-                 className={`h-8 px-3 text-xs ${viewMode === 'dollar' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                 className="h-8 px-3 text-xs"
                >
                  <DollarSign className="w-3 h-3 mr-1" />
-                 $
+                 Dollar
                </Button>
                <Button
                  variant={viewMode === 'percent' ? 'default' : 'ghost'}
                  size="sm"
                  onClick={() => setViewMode('percent')}
-                 className={`h-8 px-3 text-xs ${viewMode === 'percent' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                 className="h-8 px-3 text-xs"
                >
                  <Percent className="w-3 h-3 mr-1" />
-                 %
+                 Percent
                </Button>
              </div>
 
              {/* Timeframe Toggle */}
              {showTimeframeToggle && (
-               <div className="flex bg-[#2D2D2D] rounded-lg p-1">
+               <div className="flex bg-muted rounded-lg p-1">
                  {(['1D', '1W', '1M', '3M', '1Y', 'ALL'] as const).map((tf) => (
                    <Button
                      key={tf}
                      variant={timeframe === tf ? 'default' : 'ghost'}
                      size="sm"
                      onClick={() => setTimeframe(tf)}
-                     className={`h-8 px-2 text-xs ${timeframe === tf ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                     className="h-8 px-2 text-xs"
                    >
                      {tf}
                    </Button>
@@ -209,7 +209,7 @@ export function ProfessionalEquityChart({
               {metrics.isPositive ? '+' : ''}{viewMode === 'dollar' ? `$${metrics.totalReturn.toLocaleString()}` : `${metrics.totalReturnPercent.toFixed(2)}%`}
             </span>
           </div>
-          <span className="text-gray-500 text-sm">
+                     <span className="text-muted-foreground text-sm">
             {viewMode === 'dollar' ? `$${chartData[chartData.length - 1]?.value?.toLocaleString() || initialValue.toLocaleString()}` : `${metrics.totalReturnPercent.toFixed(2)}%`}
           </span>
         </div>
@@ -242,18 +242,18 @@ export function ProfessionalEquityChart({
                 </linearGradient>
               </defs>
 
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke="#374151" 
-                strokeOpacity={0.3}
-                vertical={false}
-              />
-              
-              <XAxis
-                dataKey="date"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                             <CartesianGrid 
+                 strokeDasharray="3 3" 
+                 stroke="hsl(var(--border))" 
+                 strokeOpacity={0.3}
+                 vertical={false}
+               />
+               
+               <XAxis
+                 dataKey="date"
+                 axisLine={false}
+                 tickLine={false}
+                 tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                 tickFormatter={(value) => {
                   const date = new Date(value);
                   switch (timeframe) {
@@ -273,10 +273,10 @@ export function ProfessionalEquityChart({
                 interval="preserveStartEnd"
               />
               
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                             <YAxis
+                 axisLine={false}
+                 tickLine={false}
+                 tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                 tickFormatter={(value) => {
                   if (viewMode === 'dollar') {
                     return `$${(value / 1000).toFixed(0)}k`;
@@ -287,13 +287,13 @@ export function ProfessionalEquityChart({
                 domain={['auto', 'auto']}
               />
 
-              {/* Reference line for breakeven */}
-              <ReferenceLine
-                y={viewMode === 'dollar' ? initialValue : 0}
-                stroke="#6b7280"
-                strokeDasharray="3 3"
-                strokeOpacity={0.5}
-              />
+                             {/* Reference line for breakeven */}
+               <ReferenceLine
+                 y={viewMode === 'dollar' ? initialValue : 0}
+                 stroke="hsl(var(--muted-foreground))"
+                 strokeDasharray="3 3"
+                 strokeOpacity={0.5}
+               />
 
               <Tooltip
                 content={<CustomTooltip viewMode={viewMode} initialValue={initialValue} />}

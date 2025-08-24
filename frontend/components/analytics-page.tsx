@@ -33,6 +33,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { ProfessionalEquityChart } from '@/components/charts/ProfessionalEquityChart';
 import { calculatePortfolioHistory, type PortfolioDataPoint } from '@/lib/portfolio-history';
+import Link from 'next/link';
 
 // --- THEME ---
 const COLORS = {
@@ -300,7 +301,7 @@ export function AnalyticsPage() {
     summary: posSummary,
     isLoading: positionsLoading,
   } = usePortfolioPositions(30000);
-  const { trades: recentTrades, loading: tradesLoading } = useRecentTrades(1000);
+  const { trades: recentTrades, loading: tradesLoading } = useRecentTrades(10);
 
   const isLoading = analyticsLoading || positionsLoading;
 
@@ -1008,6 +1009,13 @@ export function AnalyticsPage() {
                   })}
                 </TableBody>
               </Table>
+            </div>
+            <div className="mt-4 pt-4 border-t border-[#2D2D2D]">
+              <Link href="/dashboard/trades">
+                <Button variant="outline" className="w-full text-[#9CA3AF] border-[#2D2D2D] hover:bg-[#2D2D2D]">
+                  View All Trades
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
