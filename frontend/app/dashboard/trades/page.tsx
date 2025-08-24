@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { ASSET_TYPES } from '@/lib/enums';
 import { TradeRow, TradesResponse } from '@/types/trade';
 import { calculateTradeMetrics, getTradeStatus } from '@/lib/trade-calculations';
+import { formatCurrency } from '@/lib/utils';
 import { PositionsTable } from '@/components/trades/PositionsTable';
 import { toast } from 'sonner';
 
@@ -120,7 +121,7 @@ export default function TradesPage() {
     }
   };
 
-  // Calculate trade metrics
+  // Calculate trade metrics using the corrected logic
   const { individualTrades, positions, summary } = calculateTradeMetrics(rows);
 
   const renderContent = () => {

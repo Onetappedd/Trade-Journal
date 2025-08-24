@@ -1,5 +1,23 @@
 import { createClient } from '@/lib/supabase';
 
+// Futures point values for common contracts
+const FUTURES_POINT_VALUES: Record<string, number> = {
+  ES: 50, MES: 5,
+  NQ: 20, MNQ: 2,
+  YM: 5, MYM: 0.5,
+  RTY: 50, M2K: 5,
+  CL: 1000, MCL: 100,
+  GC: 100, MGC: 10,
+  SI: 5000, SIL: 1000,
+};
+
+function getFuturesPointValue(symbol: string): number {
+  const key = Object.keys(FUTURES_POINT_VALUES).find(k => 
+    symbol.toUpperCase().startsWith(k)
+  );
+  return key ? FUTURES_POINT_VALUES[key] : 1;
+}
+
 export interface PortfolioDataPoint {
   date: string;
   value: number;
@@ -55,12 +73,18 @@ export async function calculatePortfolioHistory(
           ? Number((trade as any).multiplier)
           : trade.asset_type === 'option'
             ? 100
-            : 1;
+            : trade.asset_type === 'futures'
+              ? getFuturesPointValue(trade.symbol)
+              : 1;
       const side = String(trade.side || '').toLowerCase();
-      const pnl =
-        side === 'buy'
-          ? (trade.exit_price - trade.entry_price) * trade.quantity * multiplier
-          : (trade.entry_price - trade.exit_price) * trade.quantity * multiplier;
+      const fees = (trade as any).fees || 0;
+      
+      let pnl = 0;
+      if (side === 'buy') {
+        pnl = (trade.exit_price - trade.entry_price) * trade.quantity * multiplier - fees;
+      } else {
+        pnl = (trade.entry_price - trade.exit_price) * trade.quantity * multiplier - fees;
+      }
 
       const currentPnL = dailyPnL.get(exitDate) || 0;
       dailyPnL.set(exitDate, currentPnL + pnl);

@@ -37,6 +37,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { PortfolioPerformance } from '@/components/dashboard/PortfolioPerformance';
 import { calculatePortfolioHistory, type PortfolioDataPoint } from '@/lib/portfolio-history';
+import { EquityAnalyticsChart } from '@/components/analytics/EquityAnalyticsChart';
 
 // --- THEME ---
 const COLORS = {
@@ -717,43 +718,7 @@ export function AnalyticsPage() {
           </CardHeader>
           <CardContent className="h-[300px] md:h-[340px] xl:h-[370px] overflow-hidden p-0">
             <div className="relative h-full min-h-0">
-              {/* CHART FIX: match dashboard with visible y-axis, auto domain (supports negatives) */}
-              {/* This must be client-only: move this part to a separate 'EquityAnalyticsChart.tsx' client component, import it below, and wrap with 'use client' at the top of that file. */}
-              <div suppressHydrationWarning>
-                {typeof window === 'undefined' ? null : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={chartData}
-                      margin={{ top: 16, right: 16, bottom: 8, left: 8 }}
-                    >
-                      <CartesianGrid strokeOpacity={0.15} vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="date"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                      />
-                      <YAxis
-                        hide={false}
-                        domain={['auto', 'auto']}
-                        width={62}
-                        tickFormatter={v => Math.round(Number(v)).toString()}
-                        tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                      />
-                      <ReferenceLine y={INITIAL_CAPITAL} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.35} />
-                      <RTooltip
-                        contentStyle={{
-                          background: "hsl(var(--background))",
-                          border: "1px solid hsl(var(--border))",
-                          color: "hsl(var(--foreground))",
-                        }}
-                      />
-                      <Area type="monotone" dataKey="pos" stroke="hsl(142.1 76.2% 36.3%)" fill="hsl(142.1 76.2% 36.3%)" fillOpacity={0.15} dot={false} isAnimationActive={false} />
-                      <Area type="monotone" dataKey="neg" stroke="hsl(0 84.2% 60.2%)" fill="hsl(0 84.2% 60.2%)" fillOpacity={0.15} dot={false} isAnimationActive={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
+              <EquityAnalyticsChart data={chartData} initialCapital={INITIAL_CAPITAL} />
             </div>
           </CardContent>
         </Card>

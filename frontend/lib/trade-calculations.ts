@@ -45,26 +45,35 @@ function calculatePnLForTrade(trade: TradeRow): number {
   const exitPrice = trade.exit_price;
   const fees = trade.fees || 0;
   
-  // Determine direction multiplier (buy = 1, sell = -1)
-  const direction = trade.side === 'buy' ? 1 : -1;
-  
   let pnl = 0;
   
   switch (trade.asset_type) {
     case 'option':
       const multiplier = trade.multiplier || 100;
-      pnl = (exitPrice - entryPrice) * quantity * multiplier * direction - fees;
+      if (trade.side === 'buy') {
+        pnl = (exitPrice - entryPrice) * quantity * multiplier - fees;
+      } else {
+        pnl = (entryPrice - exitPrice) * quantity * multiplier - fees;
+      }
       break;
       
     case 'futures':
       const pointValue = getFuturesPointValue(trade.symbol);
-      pnl = (exitPrice - entryPrice) * quantity * pointValue * direction - fees;
+      if (trade.side === 'buy') {
+        pnl = (exitPrice - entryPrice) * quantity * pointValue - fees;
+      } else {
+        pnl = (entryPrice - exitPrice) * quantity * pointValue - fees;
+      }
       break;
       
     case 'stock':
     case 'crypto':
     default:
-      pnl = (exitPrice - entryPrice) * quantity * direction - fees;
+      if (trade.side === 'buy') {
+        pnl = (exitPrice - entryPrice) * quantity - fees;
+      } else {
+        pnl = (entryPrice - exitPrice) * quantity - fees;
+      }
       break;
   }
   
@@ -101,7 +110,7 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
     let totalFees = 0;
     let realizedPnL = 0;
     
-    // Calculate position metrics
+    // Calculate position metrics using FIFO logic
     sortedTrades.forEach(trade => {
       const quantity = trade.quantity;
       const fees = trade.fees || 0;
@@ -111,12 +120,28 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
         totalQuantity += quantity;
         totalEntryValue += (trade.entry_price || 0) * quantity;
       } else {
-        // Sell trade - reduce position
+        // Sell trade - reduce position using FIFO
         const sellQuantity = Math.min(quantity, totalQuantity);
         if (sellQuantity > 0) {
           const avgEntryPrice = totalEntryValue / totalQuantity;
-          totalExitValue += (trade.exit_price || 0) * sellQuantity;
-          realizedPnL += ((trade.exit_price || 0) - avgEntryPrice) * sellQuantity - fees;
+          const exitPrice = trade.exit_price || 0;
+          totalExitValue += exitPrice * sellQuantity;
+          
+          // Calculate P&L based on asset type
+          let tradePnL = 0;
+          const assetType = sortedTrades[0].asset_type;
+          
+          if (assetType === 'option') {
+            const multiplier = sortedTrades[0].multiplier || 100;
+            tradePnL = (exitPrice - avgEntryPrice) * sellQuantity * multiplier - fees;
+          } else if (assetType === 'futures') {
+            const pointValue = getFuturesPointValue(sortedTrades[0].symbol);
+            tradePnL = (exitPrice - avgEntryPrice) * sellQuantity * pointValue - fees;
+          } else {
+            tradePnL = (exitPrice - avgEntryPrice) * sellQuantity - fees;
+          }
+          
+          realizedPnL += tradePnL;
           totalQuantity -= sellQuantity;
           totalEntryValue -= avgEntryPrice * sellQuantity;
         }
@@ -124,7 +149,16 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
     });
     
     const averageEntryPrice = totalQuantity > 0 ? totalEntryValue / totalQuantity : 0;
-    const averageExitPrice = totalQuantity === 0 && totalExitValue > 0 ? totalExitValue / (totalEntryValue / averageEntryPrice) : null;
+    
+    // Calculate average exit price for closed positions
+    let averageExitPrice: number | null = null;
+    if (totalQuantity === 0 && totalExitValue > 0) {
+      // For closed positions, calculate the total quantity sold
+      const totalSoldQuantity = sortedTrades
+        .filter(t => t.side === 'sell')
+        .reduce((sum, t) => sum + t.quantity, 0);
+      averageExitPrice = totalSoldQuantity > 0 ? totalExitValue / totalSoldQuantity : null;
+    }
     
     // Determine status
     let status: 'Open' | 'Closed' | 'Partial' = 'Open';
