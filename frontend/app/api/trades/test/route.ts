@@ -64,6 +64,7 @@ export async function GET() {
       .from('trades')
       .select('*', { count: 'exact' })
       .eq('user_id', userId)
+      .order('entry_date', { ascending: false })
       .limit(5);
     
     if (tradesError) {

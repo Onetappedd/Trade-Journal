@@ -52,7 +52,7 @@ export async function GET(req: Request) {
       .from('trades')
       .select('*', { count: 'exact' })
       .eq('user_id', userId)
-      .order('opened_at', { ascending: false })
+      .order('entry_date', { ascending: false })
       .range(from, to);
     
     // Add filters if provided
@@ -66,10 +66,10 @@ export async function GET(req: Request) {
       query = query.ilike('symbol', `%${params.symbol}%`);
     }
     if (params.dateFrom) {
-      query = query.gte('opened_at', params.dateFrom);
+      query = query.gte('entry_date', params.dateFrom);
     }
     if (params.dateTo) {
-      query = query.lte('opened_at', params.dateTo);
+      query = query.lte('entry_date', params.dateTo);
     }
     
     console.log('GET /api/trades - Executing query');
@@ -85,9 +85,43 @@ export async function GET(req: Request) {
     
     console.log('GET /api/trades - Query successful, data count:', data?.length || 0);
     
-    // Return raw data for now to avoid normalization issues
+    // Transform database data to match frontend types
+    const transformedRows = (data || []).map(trade => ({
+      id: trade.id,
+      userId: trade.user_id,
+      assetType: trade.asset_type,
+      symbol: trade.symbol,
+      side: trade.side,
+      quantity: Number(trade.quantity),
+      openPrice: Number(trade.entry_price),
+      closePrice: trade.exit_price ? Number(trade.exit_price) : null,
+      fees: trade.fees ? Number(trade.fees) : null,
+      openedAt: trade.entry_date,
+      closedAt: trade.exit_date || null,
+      status: trade.status,
+      notes: trade.notes,
+      realizedPnl: trade.pnl ? Number(trade.pnl) : null,
+      realizedPnlPct: null, // Calculate this if needed
+      tags: [], // Add tags if you have them
+      // Option specific fields
+      ...(trade.asset_type === 'option' && {
+        optionType: trade.option_type,
+        strike: trade.strike_price ? Number(trade.strike_price) : 0,
+        expiration: trade.expiration_date || '',
+        multiplier: 100
+      }),
+      // Futures specific fields
+      ...(trade.asset_type === 'futures' && {
+        contractCode: trade.symbol,
+        expiration: trade.expiration_date || '',
+        pointValue: 1,
+        tickSize: null,
+        tickValue: null
+      })
+    }));
+    
     const result = {
-      rows: data || [],
+      rows: transformedRows,
       total: count || 0,
       page,
       pageSize
