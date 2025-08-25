@@ -271,13 +271,15 @@ export default function ImportTradesPage() {
               symbol: symbolToUse, // Use underlying ticker as symbol
               side: (row.Side || '').toLowerCase(),
               quantity: Number(row['Total Qty']),
-              entry_price: Number(row['Avg Price']), // This is actually the exit price for filled trades
+              // For filled trades, estimate entry price based on side and execution price
+              entry_price: row.Side?.toLowerCase() === 'buy' 
+                ? Number(row['Avg Price']) * 0.9995 // Estimate entry slightly lower for buys
+                : Number(row['Avg Price']) * 1.0005, // Estimate entry slightly higher for sells
               entry_date:
                 parseFilledTimeToISO(row['Filled Time']) ||
                 new Date(row['Filled Time']).toISOString(),
-              // For filled trades, the "Avg Price" is the exit price, and we need to estimate entry price
-              // or treat this as a completed trade with the same entry/exit price
-              exit_price: Number(row['Avg Price']), // Same as entry_price for now
+              // For filled trades, the "Avg Price" is the actual execution price
+              exit_price: Number(row['Avg Price']),
               exit_date:
                 parseFilledTimeToISO(row['Filled Time']) ||
                 new Date(row['Filled Time']).toISOString(),

@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         tradeData.exit_date = t.exit_date ? new Date(t.exit_date).toISOString() : new Date(t.entry_date).toISOString();
         tradeData.status = 'closed';
       } else if (t.status === 'closed') {
-        // If marked as closed but no exit price, use entry price as exit price
+        // If marked as closed but no exit price, use entry price as exit price (fallback)
         tradeData.exit_price = Number(t.entry_price);
         tradeData.exit_date = new Date(t.entry_date).toISOString();
         tradeData.status = 'closed';

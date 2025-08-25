@@ -244,8 +244,23 @@ export function getTradePrice(trade: NormalizedTrade): number {
  * Get the realized P&L for a trade, preferring the pnl field when status indicates closed
  */
 export function getTradeRealizedPnl(trade: NormalizedTrade): number | null {
+  console.log('🔍 REALIZED PNL - Calculating for trade:', {
+    id: trade.id,
+    symbol: trade.symbol,
+    status: trade.status,
+    isClosed: isTradeClosed(trade),
+    pnl: trade.pnl,
+    entry_price: trade.entry_price,
+    exit_price: trade.exit_price,
+    side: trade.side,
+    quantity: trade.quantity,
+    multiplier: trade.multiplier,
+    fees: trade.fees
+  });
+
   // If status indicates closed and we have a pnl value, use it
   if (isTradeClosed(trade) && trade.pnl !== null && trade.pnl !== undefined) {
+    console.log('🔍 REALIZED PNL - Using existing pnl value:', trade.pnl);
     return trade.pnl;
   }
   
@@ -264,9 +279,20 @@ export function getTradeRealizedPnl(trade: NormalizedTrade): number | null {
       pnl = (entryPrice - exitPrice) * quantity * multiplier - fees;
     }
     
+    console.log('🔍 REALIZED PNL - Calculated from prices:', {
+      side: trade.side,
+      quantity,
+      entryPrice,
+      exitPrice,
+      multiplier,
+      fees,
+      pnl
+    });
+    
     return pnl;
   }
   
+  console.log('🔍 REALIZED PNL - No P&L data available');
   return null;
 }
 
