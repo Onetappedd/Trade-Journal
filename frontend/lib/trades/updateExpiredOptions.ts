@@ -113,16 +113,16 @@ export async function checkForExpiredOptions(
     let error = null;
     
     try {
-      const { count: headCount, error: headError } = await supabase
+      const { data: expiredOptions, error: fetchError } = await supabase
         .from('trades')
-        .select('*', { count: 'exact', head: true })
+        .select('*')
         .eq('user_id', userId)
         .eq('asset_type', 'option')
         .eq('status', 'expired')
-        .is('editable', true);
+        .eq('editable', true);
       
-      count = headCount || 0;
-      error = headError;
+      count = expiredOptions ? expiredOptions.length : 0;
+      error = fetchError;
     } catch (headError) {
       // Fallback to minimal GET request
       try {
@@ -132,7 +132,7 @@ export async function checkForExpiredOptions(
           .eq('user_id', userId)
           .eq('asset_type', 'option')
           .eq('status', 'expired')
-          .is('editable', true)
+          .eq('editable', true)
           .range(0, 0);
         
         count = data ? 1 : 0; // If we get any data, there's at least one

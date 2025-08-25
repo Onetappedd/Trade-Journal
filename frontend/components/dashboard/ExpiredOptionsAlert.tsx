@@ -31,7 +31,7 @@ export function ExpiredOptionsAlert() {
           .eq('user_id', user.id)
           .eq('asset_type', 'option')
           .eq('status', 'expired')
-          .is('editable', true);
+          .eq('editable', true);
         
         count = headCount || 0;
         error = headError;
@@ -44,7 +44,7 @@ export function ExpiredOptionsAlert() {
             .eq('user_id', user.id)
             .eq('asset_type', 'option')
             .eq('status', 'expired')
-            .is('editable', true)
+            .eq('editable', true)
             .range(0, 0);
           
           count = data ? 1 : 0; // If we get any data, there's at least one
