@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { mapTrades, type NormalizedTrade, isTradeClosed, getTradeDate, getTradeRealizedPnl } from '@/lib/trade-mapper';
+import { mapTrades, type NormalizedTrade, isTradeClosed, getTradeDate, getTradeRealizedPnl, getTradeMultiplier } from '@/lib/trade-mapper';
 import { filterDataByRange, type TimeRange } from '@/components/charts/RangeFilter';
 import { useUrlParams } from '@/hooks/useUrlParams';
 
@@ -65,41 +65,38 @@ export interface GenericTrade {
 
 // Calculate P&L for a single trade using normalized data
 function calculateTradePnl(trade: NormalizedTrade): number {
-  // DEBUG: Log individual trade P&L calculation
-  console.log('🔍 PNL CALC - Trade:', {
-    id: trade.id,
-    symbol: trade.symbol,
-    side: trade.side,
-    quantity: trade.quantity,
-    entry_price: trade.entry_price,
-    exit_price: trade.exit_price,
-    fees: trade.fees,
-    status: trade.status,
-    asset_type: trade.asset_type,
-    multiplier: trade.multiplier,
-    pnl: trade.pnl,
-    isClosed: isTradeClosed(trade)
-  });
+  // If we have a pre-calculated P&L value, use it (this should match the position tracker)
+  if (trade.pnl !== null && trade.pnl !== undefined) {
+    return trade.pnl;
+  }
 
-  // Use the hardened P&L calculation logic
-  const realizedPnl = getTradeRealizedPnl(trade);
+  // Otherwise, calculate from entry/exit prices if available
+  if (trade.exit_price !== null && trade.entry_price !== null) {
+    const quantity = trade.quantity;
+    const entryPrice = trade.entry_price;
+    const exitPrice = trade.exit_price;
+    const fees = trade.fees || 0;
+    const multiplier = getTradeMultiplier(trade);
+
+    let pnl = 0;
+    if (trade.side === 'buy') {
+      pnl = (exitPrice - entryPrice) * quantity * multiplier - fees;
+    } else {
+      pnl = (entryPrice - exitPrice) * quantity * multiplier - fees;
+    }
+    
+    return pnl;
+  }
   
-  console.log('🔍 PNL CALC - Realized P&L result:', realizedPnl);
-  
-  // Return realized P&L if available, otherwise 0 for open trades
-  return realizedPnl !== null ? realizedPnl : 0;
+  return 0;
 }
 
 // Build cumulative P&L series from trades (REALIZED mode by default)
 function buildPnlSeries(trades: GenericTrade[]): { series: PnlDataPoint[], mode: 'realized' | 'total', fallbackUsed: boolean } {
   if (!trades || trades.length === 0) return { series: [], mode: 'realized', fallbackUsed: false };
 
-  console.log('🔍 SERIES BUILD - Raw trades count:', trades.length);
-
   // Normalize trades using the mapper
   const normalizedTrades = mapTrades(trades);
-
-  console.log('🔍 SERIES BUILD - Normalized trades count:', normalizedTrades.length);
 
   // Default to REALIZED mode - only include closed trades with realized P&L
   const realizedTrades = normalizedTrades.filter(trade => {
@@ -110,15 +107,8 @@ function buildPnlSeries(trades: GenericTrade[]): { series: PnlDataPoint[], mode:
     return false;
   });
 
-  console.log('🔍 SERIES BUILD - Realized trades count:', realizedTrades.length);
-
   // Build realized series
   const realizedSeries = buildSeriesFromTrades(realizedTrades, 'realized');
-  
-  console.log('🔍 SERIES BUILD - Realized series length:', realizedSeries.length);
-  if (realizedSeries.length > 0) {
-    console.log('🔍 SERIES BUILD - Sample series points:', realizedSeries.slice(0, 3));
-  }
   
   // If we have realized P&L data, return it
   if (realizedSeries.length > 0) {
@@ -136,11 +126,7 @@ function buildPnlSeries(trades: GenericTrade[]): { series: PnlDataPoint[], mode:
     return false;
   });
 
-  console.log('🔍 SERIES BUILD - Total trades count (fallback):', totalTrades.length);
-
   const totalSeries = buildSeriesFromTrades(totalTrades, 'total');
-  
-  console.log('🔍 SERIES BUILD - Total series length (fallback):', totalSeries.length);
   
   if (totalSeries.length > 0) {
     return { series: totalSeries, mode: 'total', fallbackUsed: true };
@@ -153,8 +139,6 @@ function buildPnlSeries(trades: GenericTrade[]): { series: PnlDataPoint[], mode:
 // Helper function to build series from filtered trades
 function buildSeriesFromTrades(trades: NormalizedTrade[], mode: 'realized' | 'total'): PnlDataPoint[] {
   if (trades.length === 0) return [];
-
-  console.log('🔍 SERIES FROM TRADES - Building series for', trades.length, 'trades, mode:', mode);
 
   // Sort by date (use exit_date for closed trades, entry_date for open trades)
   const sortedTrades = trades.sort((a, b) => {
@@ -171,11 +155,7 @@ function buildSeriesFromTrades(trades: NormalizedTrade[], mode: 'realized' | 'to
     const pnl = calculateTradePnl(trade);
     const currentDailyPnl = dailyPnl.get(date) || 0;
     dailyPnl.set(date, currentDailyPnl + pnl);
-    
-    console.log('🔍 SERIES FROM TRADES - Daily P&L for', date, ':', pnl, '-> Total for day:', currentDailyPnl + pnl);
   });
-
-  console.log('🔍 SERIES FROM TRADES - Daily P&L map:', Object.fromEntries(dailyPnl));
 
   // Convert to cumulative series with strict ascending order
   let cumulativePnl = 0;
@@ -191,11 +171,7 @@ function buildSeriesFromTrades(trades: NormalizedTrade[], mode: 'realized' | 'to
       date,
       value: cumulativePnl,
     });
-    
-    console.log('🔍 SERIES FROM TRADES - Cumulative P&L for', date, ':', cumulativePnl);
   });
-
-  console.log('🔍 SERIES FROM TRADES - Final series length:', series.length);
 
   // Ensure we return at least one point if there's any realized P&L
   if (series.length === 0 && mode === 'realized') {
@@ -204,8 +180,6 @@ function buildSeriesFromTrades(trades: NormalizedTrade[], mode: 'realized' | 'to
       return sum + pnl;
     }, 0);
     
-    console.log('🔍 SERIES FROM TRADES - Total realized P&L (fallback):', totalRealizedPnl);
-    
     if (totalRealizedPnl !== 0) {
       const lastTrade = sortedTrades[sortedTrades.length - 1];
       const lastDate = getTradeDate(lastTrade).split('T')[0];
@@ -213,8 +187,6 @@ function buildSeriesFromTrades(trades: NormalizedTrade[], mode: 'realized' | 'to
         date: lastDate,
         value: totalRealizedPnl,
       });
-      
-      console.log('🔍 SERIES FROM TRADES - Added fallback point:', { date: lastDate, value: totalRealizedPnl });
     }
   }
 
@@ -225,10 +197,15 @@ function buildSeriesFromTrades(trades: NormalizedTrade[], mode: 'realized' | 'to
 function calculatePnlSummary(trades: GenericTrade[], filteredData: PnlDataPoint[]): PnlSummary {
   const normalizedTrades = mapTrades(trades);
   
-  // Calculate realized P&L from closed trades
+  // Calculate realized P&L from closed trades - prioritize pre-calculated P&L values
   const realizedPnl = normalizedTrades
     .filter(trade => isTradeClosed(trade))
     .reduce((sum, trade) => {
+      // Use pre-calculated P&L if available (from position tracker)
+      if (trade.pnl !== null && trade.pnl !== undefined) {
+        return sum + trade.pnl;
+      }
+      // Otherwise calculate from entry/exit prices
       const pnl = getTradeRealizedPnl(trade);
       return sum + (pnl || 0);
     }, 0);
@@ -240,7 +217,7 @@ function calculatePnlSummary(trades: GenericTrade[], filteredData: PnlDataPoint[
       if (!trade.entry_price || (!trade.mark_price && !trade.last_price)) return sum;
       
       const currentPrice = trade.mark_price || trade.last_price || 0;
-      const multiplier = trade.multiplier || 1;
+      const multiplier = getTradeMultiplier(trade);
       
       let pnl = 0;
       if (trade.side === 'buy') {

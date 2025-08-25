@@ -9,6 +9,7 @@ import { withTooltip, Tooltip, TooltipWithBounds, defaultStyles } from '@visx/to
 import { WithTooltipProvidedProps } from '@visx/tooltip/lib/enhancers/withTooltip';
 import { localPoint } from '@visx/event';
 import { LinearGradient } from '@visx/gradient';
+import { AxisLeft, AxisBottom } from '@visx/axis';
 import { max, extent, bisector, min } from 'd3-array';
 import { timeFormat } from 'd3-time-format';
 
@@ -54,7 +55,7 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
     data,
     width,
     height,
-    margin = { top: 0, right: 0, bottom: 0, left: 0 },
+    margin = { top: 20, right: 20, bottom: 40, left: 60 },
     mode = 'realized',
     fallbackUsed = false,
     showTooltip,
@@ -199,6 +200,39 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
             strokeOpacity={0.2}
             pointerEvents="none"
           />
+          
+          {/* Y-axis (P&L values) */}
+          <AxisLeft
+            left={margin.left}
+            scale={pnlValueScale}
+            stroke="#6b7280"
+            strokeWidth={1}
+            tickStroke="#6b7280"
+            tickLabelProps={() => ({
+              fill: '#6b7280',
+              fontSize: 11,
+              textAnchor: 'end',
+              dy: '0.33em',
+            })}
+            tickFormat={(value) => `$${Number(value).toLocaleString()}`}
+          />
+          
+          {/* X-axis (dates) */}
+          <AxisBottom
+            top={innerHeight + margin.top}
+            scale={dateScale}
+            stroke="#6b7280"
+            strokeWidth={1}
+            tickStroke="#6b7280"
+            tickLabelProps={() => ({
+              fill: '#6b7280',
+              fontSize: 11,
+              textAnchor: 'middle',
+              dy: '0.33em',
+            })}
+            tickFormat={(value) => formatDate(value as Date)}
+          />
+          
           {/* Render area chart with dynamic styling based on P&L values */}
           {dataMax >= 0 && dataMin < 0 ? (
             // Mixed positive/negative - render two areas
