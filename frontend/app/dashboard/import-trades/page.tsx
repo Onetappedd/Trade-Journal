@@ -73,6 +73,8 @@ type TradePreview = {
   quantity: number;
   entry_price: number;
   entry_date: string;
+  exit_price?: number;
+  exit_date?: string;
   asset_type?: string;
   broker?: string;
   expiration_date?: string;
@@ -269,14 +271,20 @@ export default function ImportTradesPage() {
               symbol: symbolToUse, // Use underlying ticker as symbol
               side: (row.Side || '').toLowerCase(),
               quantity: Number(row['Total Qty']),
-              entry_price: Number(row['Avg Price']),
+              entry_price: Number(row['Avg Price']), // This is actually the exit price for filled trades
               entry_date:
+                parseFilledTimeToISO(row['Filled Time']) ||
+                new Date(row['Filled Time']).toISOString(),
+              // For filled trades, the "Avg Price" is the exit price, and we need to estimate entry price
+              // or treat this as a completed trade with the same entry/exit price
+              exit_price: Number(row['Avg Price']), // Same as entry_price for now
+              exit_date:
                 parseFilledTimeToISO(row['Filled Time']) ||
                 new Date(row['Filled Time']).toISOString(),
               asset_type: 'option',
               broker: broker,
               expiration_date,
-              // Don't send status field - let database default handle it
+              status: 'closed', // Mark as closed since these are filled trades
               validation_status: status, // Rename to avoid sending 'status' to DB
               error,
               ...parsed,

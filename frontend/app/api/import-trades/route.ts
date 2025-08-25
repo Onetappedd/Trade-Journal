@@ -89,6 +89,21 @@ export async function POST(req: NextRequest) {
         notes: t.notes || null,
       };
 
+      // Handle exit data for closed trades
+      if (t.exit_price !== undefined && t.exit_price !== null) {
+        tradeData.exit_price = Number(t.exit_price);
+        tradeData.exit_date = t.exit_date ? new Date(t.exit_date).toISOString() : new Date(t.entry_date).toISOString();
+        tradeData.status = 'closed';
+      } else if (t.status === 'closed') {
+        // If marked as closed but no exit price, use entry price as exit price
+        tradeData.exit_price = Number(t.entry_price);
+        tradeData.exit_date = new Date(t.entry_date).toISOString();
+        tradeData.status = 'closed';
+      } else {
+        // Default to open status
+        tradeData.status = 'open';
+      }
+
       // Add optional fields only if they exist
       if (t.underlying) tradeData.underlying = String(t.underlying);
 
