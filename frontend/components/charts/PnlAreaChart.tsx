@@ -155,13 +155,15 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
           />
           <LinearGradient id="area-background-gradient" from={background} to={background2} />
           
-          {/* Dynamic gradient based on P&L values */}
-          <LinearGradient 
-            id="area-gradient" 
-            from={dataMax >= 0 ? "#10b981" : "#ef4444"} 
-            to={dataMax >= 0 ? "#10b981" : "#ef4444"} 
-            toOpacity={0.1} 
-          />
+          {/* Dynamic gradient that transitions between red and green based on P&L */}
+          <defs>
+            <linearGradient id="area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" /> {/* Red for negative */}
+              <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.6" /> {/* Orange for neutral */}
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.8" /> {/* Green for positive */}
+            </linearGradient>
+          </defs>
+          
           {/* Show zero baseline only when data crosses zero */}
           {shouldShowZeroBaseline && (
             <Line
@@ -226,7 +228,7 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
             tickFormat={(value) => formatDate(value as Date)}
           />
           
-          {/* Render area chart with dynamic styling based on P&L values */}
+          {/* Render area chart with dynamic stroke color based on current P&L */}
           <AreaClosed<PnlDataPoint>
             data={data}
             x={(d) => dateScale(getDate(d)) ?? 0}
