@@ -158,9 +158,9 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
           {/* Dynamic gradient that transitions between red and green based on P&L */}
           <defs>
             <linearGradient id="area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" /> {/* Red for negative */}
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" /> {/* Green for positive */}
               <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.6" /> {/* Orange for neutral */}
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.8" /> {/* Green for positive */}
+              <stop offset="100%" stopColor="#ef4444" stopOpacity="0.8" /> {/* Red for negative */}
             </linearGradient>
           </defs>
           

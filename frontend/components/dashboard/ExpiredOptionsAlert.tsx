@@ -17,52 +17,15 @@ export function ExpiredOptionsAlert() {
 
   useEffect(() => {
     async function checkExpiredOptions() {
-      if (!user) return;
-
-      const supabase = createClient();
-      // Try HEAD request first, fallback to minimal GET if it fails
-      let count = 0;
-      let error = null;
-      
-      try {
-        const { count: headCount, error: headError } = await supabase
-          .from('trades')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('asset_type', 'option')
-          .eq('status', 'expired')
-          .eq('editable', true);
-        
-        count = headCount || 0;
-        error = headError;
-      } catch (headError) {
-        // Fallback to minimal GET request
-        try {
-          const { data, error: getError } = await supabase
-            .from('trades')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('asset_type', 'option')
-            .eq('status', 'expired')
-            .eq('editable', true)
-            .range(0, 0);
-          
-          count = data ? 1 : 0; // If we get any data, there's at least one
-          error = getError;
-          
-          // Log fallback usage once
-          console.warn('ExpiredOptionsAlert: HEAD request failed, used GET fallback');
-        } catch (fallbackError) {
-          error = fallbackError;
-          count = 0;
-        }
+      if (!user) {
+        setIsLoading(false);
+        return;
       }
 
-      if (!error && count && count > 0) {
-        setExpiredCount(count);
-        setIsVisible(true);
-      }
+      // Temporarily disabled to prevent API errors
+      // TODO: Fix authentication for client-side expired options check
       setIsLoading(false);
+      return;
     }
 
     checkExpiredOptions();
