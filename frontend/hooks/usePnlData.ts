@@ -149,11 +149,36 @@ function calculatePnlSummary(trades: GenericTrade[], filteredData: PnlDataPoint[
   const totalPnl = realizedPnl + unrealizedPnl;
 
   // Calculate change from filtered data
-  const change = filteredData.length > 1 
-    ? filteredData[filteredData.length - 1].value - filteredData[filteredData.length - 2].value
-    : filteredData.length === 1 
-      ? filteredData[0].value 
-      : 0;
+  const change = (() => {
+    if (filteredData.length === 0) return 0;
+    
+    // Get today's date
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Find today's P&L value
+    const todayDataPoint = filteredData.find(d => d.date === today);
+    const yesterdayDataPoint = filteredData.find(d => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return d.date === yesterday.toISOString().split('T')[0];
+    });
+    
+    if (todayDataPoint && yesterdayDataPoint) {
+      // Today's change = today's P&L - yesterday's P&L
+      return todayDataPoint.value - yesterdayDataPoint.value;
+    } else if (todayDataPoint) {
+      // If we only have today's data, return today's total P&L
+      return todayDataPoint.value;
+    } else if (filteredData.length > 1) {
+      // Fallback: use the last two data points
+      return filteredData[filteredData.length - 1].value - filteredData[filteredData.length - 2].value;
+    } else if (filteredData.length === 1) {
+      // If only one data point, return that value
+      return filteredData[0].value;
+    }
+    
+    return 0;
+  })();
 
   // Count trades
   const closedTradesCount = closedTrades.length;
