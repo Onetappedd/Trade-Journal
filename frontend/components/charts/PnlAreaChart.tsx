@@ -4,12 +4,16 @@ import React from 'react';
 import { Group } from '@visx/group';
 import { AreaClosed, Line, Bar } from '@visx/shape';
 import { curveMonotoneX } from '@visx/curve';
+import { GridRows, GridColumns } from '@visx/grid';
 import { scaleTime, scaleLinear } from '@visx/scale';
 import { extent, max, min } from 'd3-array';
 import { format } from 'date-fns';
 import { TooltipWithBounds, useTooltip } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { bisector } from 'd3-array';
+import { LinearGradient } from '@visx/gradient';
+import { AxisLeft, AxisBottom } from '@visx/axis';
+import { timeFormat } from 'd3-time-format';
 
 interface PnlDataPoint {
   date: string;
@@ -28,6 +32,15 @@ interface PnlAreaChartProps {
 const getDate = (d: PnlDataPoint) => new Date(d.date);
 const getPnlValue = (d: PnlDataPoint) => d.value;
 const bisectDate = bisector<PnlDataPoint, Date>((d) => new Date(d.date)).left;
+
+// Theme colors
+export const background = '#3b6978';
+export const background2 = '#204051';
+export const accentColor = '#edffea';
+export const accentColorDark = '#75daad';
+
+// util
+const formatDate = timeFormat("%b %d, '%y");
 
 export default function PnlAreaChart({
   data,
@@ -68,7 +81,7 @@ export default function PnlAreaChart({
 
   // Create scales
   const dateScale = scaleTime({
-    range: [0, innerWidth],
+    range: [margin.left, innerWidth + margin.left],
     domain: extent(data, getDate) as [Date, Date],
   });
 
@@ -81,7 +94,7 @@ export default function PnlAreaChart({
   const domainMax = Math.max(0, dataMax);
   
   const pnlValueScale = scaleLinear({
-    range: [innerHeight, 0],
+    range: [innerHeight + margin.top, margin.top],
     domain: [domainMin, domainMax],
     nice: true,
   });
@@ -99,7 +112,7 @@ export default function PnlAreaChart({
   // Handle tooltip
   const handleTooltip = (event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
     const { x } = localPoint(event) || { x: 0 };
-    const x0 = dateScale.invert(x - margin.left);
+    const x0 = dateScale.invert(x);
     const index = bisectDate(data, x0, 1);
     const d0 = data[index - 1];
     const d1 = data[index];
@@ -110,31 +123,61 @@ export default function PnlAreaChart({
     showTooltip({
       tooltipData: d,
       tooltipLeft: x,
-      tooltipTop: pnlValueScale(getPnlValue(d)) + margin.top,
+      tooltipTop: pnlValueScale(getPnlValue(d)),
     });
   };
 
   return (
-    <div className="relative">
+    <div>
       <svg width={width} height={height}>
-        <Group left={margin.left} top={margin.top}>
+        <rect
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          fill="url(#area-background-gradient)"
+          rx={14}
+        />
+        <LinearGradient id="area-background-gradient" from={background} to={background2} />
+        
+        <Group left={0} top={0}>
           {/* Define clip paths */}
           <defs>
             {/* Clip region for above zero (green area) */}
             <clipPath id="above-clip">
-              <rect x={0} y={0} width={innerWidth} height={zeroY} />
+              <rect x={margin.left} y={margin.top} width={innerWidth} height={zeroY - margin.top} />
             </clipPath>
             {/* Clip region for below zero (red area) */}
             <clipPath id="below-clip">
-              <rect x={0} y={zeroY} width={innerWidth} height={innerHeight - zeroY} />
+              <rect x={margin.left} y={zeroY} width={innerWidth} height={innerHeight + margin.top - zeroY} />
             </clipPath>
           </defs>
+
+          {/* Grid */}
+          <GridRows
+            left={margin.left}
+            scale={pnlValueScale}
+            width={innerWidth}
+            strokeDasharray="1,3"
+            stroke={accentColor}
+            strokeOpacity={0.1}
+            pointerEvents="none"
+          />
+          <GridColumns
+            top={margin.top}
+            scale={dateScale}
+            height={innerHeight}
+            strokeDasharray="1,3"
+            stroke={accentColor}
+            strokeOpacity={0.2}
+            pointerEvents="none"
+          />
 
           {/* Show zero baseline only when data crosses zero */}
           {crossesZero && (
             <Line
-              from={{ x: 0, y: zeroY }}
-              to={{ x: innerWidth, y: zeroY }}
+              from={{ x: margin.left, y: zeroY }}
+              to={{ x: innerWidth + margin.left, y: zeroY }}
               stroke="#6b7280"
               strokeWidth={1}
               strokeDasharray="4,4"
@@ -178,49 +221,124 @@ export default function PnlAreaChart({
             </g>
           )}
           
+          {/* Y-axis (P&L values) */}
+          <AxisLeft
+            left={margin.left}
+            scale={pnlValueScale}
+            stroke="#6b7280"
+            strokeWidth={1}
+            tickStroke="#6b7280"
+            tickLabelProps={() => ({
+              fill: '#6b7280',
+              fontSize: 11,
+              textAnchor: 'end',
+              dy: '0.33em',
+            })}
+            tickFormat={(value) => `$${Number(value).toLocaleString()}`}
+          />
+          
+          {/* X-axis (dates) */}
+          <AxisBottom
+            top={innerHeight + margin.top}
+            scale={dateScale}
+            stroke="#6b7280"
+            strokeWidth={1}
+            tickStroke="#6b7280"
+            tickLabelProps={() => ({
+              fill: '#6b7280',
+              fontSize: 11,
+              textAnchor: 'middle',
+              dy: '0.33em',
+            })}
+            tickFormat={(value) => formatDate(value as Date)}
+          />
+          
           {/* Invisible bar for tooltip */}
           <Bar
-            x={0}
-            y={0}
+            x={margin.left}
+            y={margin.top}
             width={innerWidth}
             height={innerHeight}
             fill="transparent"
+            rx={14}
             onTouchStart={handleTooltip}
             onTouchMove={handleTooltip}
             onMouseMove={handleTooltip}
             onMouseLeave={() => hideTooltip()}
           />
+          
+          {/* Tooltip markers */}
+          {tooltipData && tooltipTop !== undefined && tooltipLeft !== undefined && (
+            <g>
+              <Line
+                from={{ x: tooltipLeft, y: margin.top }}
+                to={{ x: tooltipLeft, y: innerHeight + margin.top }}
+                stroke={accentColorDark}
+                strokeWidth={2}
+                pointerEvents="none"
+                strokeDasharray="5,2"
+              />
+              <circle
+                cx={tooltipLeft}
+                cy={tooltipTop + 1}
+                r={4}
+                fill="black"
+                fillOpacity={0.1}
+                stroke="black"
+                strokeOpacity={0.1}
+                strokeWidth={2}
+                pointerEvents="none"
+              />
+              <circle
+                cx={tooltipLeft}
+                cy={tooltipTop}
+                r={4}
+                fill={getPnlValue(tooltipData) >= 0 ? "#22c55e" : "#ef4444"}
+                stroke="white"
+                strokeWidth={2}
+                pointerEvents="none"
+              />
+            </g>
+          )}
         </Group>
       </svg>
       
       {/* Tooltip */}
-      {tooltipData && (
-        <TooltipWithBounds
-          key={Math.random()}
-          top={tooltipTop}
-          left={tooltipLeft}
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '8px 12px',
-            fontSize: '12px',
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
-          }}
-        >
-          <div className="tabular-nums">
-            <div className="font-medium">
-              {format(getDate(tooltipData), 'MMM dd, yyyy')}
-            </div>
-            <div className={`font-bold ${getPnlValue(tooltipData) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {getPnlValue(tooltipData) >= 0 ? '+' : ''}${getPnlValue(tooltipData).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-          </div>
-        </TooltipWithBounds>
+      {tooltipData && tooltipTop !== undefined && tooltipLeft !== undefined && (
+        <div>
+          <TooltipWithBounds
+            key={Math.random()}
+            top={tooltipTop - 12}
+            left={tooltipLeft + 12}
+            style={{
+              backgroundColor: getPnlValue(tooltipData) >= 0 ? '#22c55e' : '#ef4444',
+              color: 'white',
+              border: '1px solid white',
+              borderRadius: '4px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+            }}
+          >
+            {`$${getPnlValue(tooltipData).toLocaleString()}`}
+          </TooltipWithBounds>
+          <TooltipWithBounds
+            top={innerHeight + margin.top - 14}
+            left={tooltipLeft}
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              textAlign: 'center',
+              transform: 'translateX(-50%)',
+            }}
+          >
+            {formatDate(getDate(tooltipData))}
+          </TooltipWithBounds>
+        </div>
       )}
     </div>
   );
