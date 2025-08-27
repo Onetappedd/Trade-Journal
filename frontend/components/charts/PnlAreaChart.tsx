@@ -1,319 +1,186 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React from 'react';
+import { Group } from '@visx/group';
 import { AreaClosed, Line, Bar } from '@visx/shape';
 import { curveMonotoneX } from '@visx/curve';
-import { GridRows, GridColumns } from '@visx/grid';
 import { scaleTime, scaleLinear } from '@visx/scale';
-import { withTooltip, Tooltip, TooltipWithBounds, defaultStyles } from '@visx/tooltip';
-import { WithTooltipProvidedProps } from '@visx/tooltip/lib/enhancers/withTooltip';
+import { extent, max, min } from 'd3-array';
+import { format } from 'date-fns';
+import { TooltipWithBounds, useTooltip } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
-import { LinearGradient } from '@visx/gradient';
-import { AxisLeft, AxisBottom } from '@visx/axis';
-import { max, extent, bisector, min } from 'd3-array';
-import { timeFormat } from 'd3-time-format';
+import { bisector } from 'd3-array';
 
-// P&L data point interface
 interface PnlDataPoint {
   date: string;
   value: number;
 }
 
-type TooltipData = PnlDataPoint;
-
-// Theme colors
-export const background = '#3b6978';
-export const background2 = '#204051';
-export const accentColor = '#edffea';
-export const accentColorDark = '#75daad';
-const tooltipStyles = {
-  ...defaultStyles,
-  background,
-  border: '1px solid white',
-  color: 'white',
-};
-
-// util
-const formatDate = timeFormat("%b %d, '%y");
-
-// accessors
-const getDate = (d: PnlDataPoint) => new Date(d.date);
-const getPnlValue = (d: PnlDataPoint) => d.value;
-const bisectDate = bisector<PnlDataPoint, Date>((d) => new Date(d.date)).left;
-
-export type PnlAreaChartProps = {
+interface PnlAreaChartProps {
   data: PnlDataPoint[];
   width: number;
   height: number;
   margin?: { top: number; right: number; bottom: number; left: number };
   mode?: 'realized' | 'total';
   fallbackUsed?: boolean;
-};
+}
 
-export default withTooltip<PnlAreaChartProps, TooltipData>(
-  ({
-    data,
-    width,
-    height,
-    margin = { top: 20, right: 20, bottom: 40, left: 60 },
-    mode = 'realized',
-    fallbackUsed = false,
-    showTooltip,
-    hideTooltip,
+const getDate = (d: PnlDataPoint) => new Date(d.date);
+const getPnlValue = (d: PnlDataPoint) => d.value;
+const bisectDate = bisector<PnlDataPoint, Date>((d) => new Date(d.date)).left;
+
+export default function PnlAreaChart({
+  data,
+  width,
+  height,
+  margin = { top: 20, right: 20, bottom: 40, left: 60 },
+}: PnlAreaChartProps) {
+  const {
     tooltipData,
-    tooltipTop = 0,
-    tooltipLeft = 0,
-  }: PnlAreaChartProps & WithTooltipProvidedProps<TooltipData>) => {
-    // Handle empty or invalid data with friendly empty state
-    if (width < 10 || !data || data.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full space-y-2 p-4">
-          <div className="text-center">
-            <div className="text-4xl mb-2">📊</div>
-            <p className="text-muted-foreground font-medium">No P&L data available</p>
-            <div className="text-xs text-muted-foreground mt-1 space-y-1">
-              <p>• Try selecting "ALL" time range</p>
-              <p>• Switch to Realized P&L mode</p>
-              <p>• Add some completed trades</p>
-            </div>
-          </div>
-        </div>
-      );
+    tooltipLeft,
+    tooltipTop,
+    hideTooltip,
+    showTooltip,
+  } = useTooltip<PnlDataPoint>();
+
+  // Calculate dimensions
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  // Create scales
+  const dateScale = scaleTime({
+    range: [0, innerWidth],
+    domain: extent(data, getDate) as [Date, Date],
+  });
+
+  const pnlValueScale = scaleLinear({
+    range: [innerHeight, 0],
+    domain: [min(data, getPnlValue) ?? 0, max(data, getPnlValue) ?? 0],
+    nice: true,
+  });
+
+  // Calculate zero baseline position
+  const zeroY = pnlValueScale(0);
+  
+  // Split data into positive and negative series
+  const positiveData = data.map(d => ({ ...d, value: Math.max(d.value, 0) }));
+  const negativeData = data.map(d => ({ ...d, value: Math.min(d.value, 0) }));
+  
+  // Check if data crosses zero
+  const dataMin = min(data, getPnlValue) ?? 0;
+  const dataMax = max(data, getPnlValue) ?? 0;
+  const crossesZero = dataMin < 0 && dataMax > 0;
+
+  // Handle tooltip
+  const handleTooltip = (event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
+    const { x } = localPoint(event) || { x: 0 };
+    const x0 = dateScale.invert(x - margin.left);
+    const index = bisectDate(data, x0, 1);
+    const d0 = data[index - 1];
+    const d1 = data[index];
+    let d = d0;
+    if (d1 && getDate(d1)) {
+      d = x0.valueOf() - getDate(d0).valueOf() > getDate(d1).valueOf() - x0.valueOf() ? d1 : d0;
     }
+    showTooltip({
+      tooltipData: d,
+      tooltipLeft: x,
+      tooltipTop: pnlValueScale(getPnlValue(d)) + margin.top,
+    });
+  };
 
-    // bounds
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
-
-    // Calculate data bounds for smart scaling
-    const dataMin = min(data, getPnlValue) || 0;
-    const dataMax = max(data, getPnlValue) || 0;
-    const dataRange = dataMax - dataMin;
-    
-    // Determine if we should show zero baseline
-    const shouldShowZeroBaseline = dataMin < 0 && dataMax > 0;
-    const baselineValue = shouldShowZeroBaseline ? 0 : dataMin;
-
-    // scales
-    const dateScale = useMemo(
-      () =>
-        scaleTime({
-          range: [margin.left, innerWidth + margin.left],
-          domain: extent(data, getDate) as [Date, Date],
-        }),
-      [innerWidth, margin.left, data],
-    );
-    
-    const pnlValueScale = useMemo(
-      () => {
-        const domainMin = shouldShowZeroBaseline ? Math.min(0, dataMin) : dataMin;
-        const domainMax = shouldShowZeroBaseline ? Math.max(0, dataMax) : dataMax;
-        
-        // Add padding to domain for better visualization
-        const padding = dataRange > 0 ? dataRange * 0.1 : Math.abs(domainMax) * 0.1;
-        
-        return scaleLinear({
-          range: [innerHeight + margin.top, margin.top],
-          domain: [domainMin - padding, domainMax + padding],
-          nice: true,
-        });
-      },
-      [margin.top, innerHeight, data, dataMin, dataMax, dataRange, shouldShowZeroBaseline],
-    );
-
-    // tooltip handler
-    const handleTooltip = useCallback(
-      (event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
-        const { x } = localPoint(event) || { x: 0 };
-        const x0 = dateScale.invert(x);
-        const index = bisectDate(data, x0, 1);
-        const d0 = data[index - 1];
-        const d1 = data[index];
-        let d = d0;
-        if (d1 && getDate(d1)) {
-          d = x0.valueOf() - getDate(d0).valueOf() > getDate(d1).valueOf() - x0.valueOf() ? d1 : d0;
-        }
-        showTooltip({
-          tooltipData: d,
-          tooltipLeft: x,
-          tooltipTop: pnlValueScale(getPnlValue(d)),
-        });
-      },
-      [showTooltip, pnlValueScale, dateScale, data],
-    );
-
-    return (
-      <div>
-        <svg width={width} height={height}>
-          <rect
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            fill="url(#area-background-gradient)"
-            rx={14}
-          />
-          <LinearGradient id="area-background-gradient" from={background} to={background2} />
-          
-          {/* Dynamic gradient that transitions between red and green based on P&L */}
-          <defs>
-            <linearGradient id="area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
-              <stop offset="49%" stopColor="#10b981" stopOpacity="0.8" />
-              <stop offset="51%" stopColor="#ef4444" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity="0.8" />
-            </linearGradient>
-          </defs>
-          
-          {/* Single area chart with dynamic color based on P&L values */}
-          <AreaClosed<PnlDataPoint>
-            data={data}
-            x={(d) => dateScale(getDate(d)) ?? 0}
-            y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
-            yScale={pnlValueScale}
-            strokeWidth={1}
-            stroke={dataMax >= 0 ? "#10b981" : "#ef4444"}
-            fill="url(#area-gradient)"
-            curve={curveMonotoneX}
-          />
-          
+  return (
+    <div className="relative">
+      <svg width={width} height={height}>
+        <Group left={margin.left} top={margin.top}>
           {/* Show zero baseline only when data crosses zero */}
-          {shouldShowZeroBaseline && (
+          {crossesZero && (
             <Line
-              from={{ x: margin.left, y: pnlValueScale(0) }}
-              to={{ x: innerWidth + margin.left, y: pnlValueScale(0) }}
+              from={{ x: 0, y: zeroY }}
+              to={{ x: innerWidth, y: zeroY }}
               stroke="#6b7280"
               strokeWidth={1}
-              strokeOpacity={0.5}
-              strokeDasharray="2,2"
-              pointerEvents="none"
+              strokeDasharray="4,4"
+              opacity={0.5}
             />
           )}
           
-          <GridRows
-            left={margin.left}
-            scale={pnlValueScale}
-            width={innerWidth}
-            strokeDasharray="1,3"
-            stroke={accentColor}
-            strokeOpacity={0.1}
-            pointerEvents="none"
-          />
-          <GridColumns
-            top={margin.top}
-            scale={dateScale}
-            height={innerHeight}
-            strokeDasharray="1,3"
-            stroke={accentColor}
-            strokeOpacity={0.2}
-            pointerEvents="none"
-          />
+          {/* Positive area (green, fills down to zero) */}
+          {dataMax > 0 && (
+            <AreaClosed<PnlDataPoint>
+              data={positiveData}
+              x={(d) => dateScale(getDate(d)) ?? 0}
+              y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+              y0={zeroY}
+              yScale={pnlValueScale}
+              strokeWidth={2}
+              stroke="#22c55e"
+              fill="#22c55e"
+              fillOpacity={0.3}
+              curve={curveMonotoneX}
+            />
+          )}
           
-          {/* Y-axis (P&L values) */}
-          <AxisLeft
-            left={margin.left}
-            scale={pnlValueScale}
-            stroke="#6b7280"
-            strokeWidth={1}
-            tickStroke="#6b7280"
-            tickLabelProps={() => ({
-              fill: '#6b7280',
-              fontSize: 11,
-              textAnchor: 'end',
-              dy: '0.33em',
-            })}
-            tickFormat={(value) => `$${Number(value).toLocaleString()}`}
-          />
+          {/* Negative area (red, fills up to zero) */}
+          {dataMin < 0 && (
+            <AreaClosed<PnlDataPoint>
+              data={negativeData}
+              x={(d) => dateScale(getDate(d)) ?? 0}
+              y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+              y0={zeroY}
+              yScale={pnlValueScale}
+              strokeWidth={2}
+              stroke="#ef4444"
+              fill="#ef4444"
+              fillOpacity={0.3}
+              curve={curveMonotoneX}
+            />
+          )}
           
-          {/* X-axis (dates) */}
-          <AxisBottom
-            top={innerHeight + margin.top}
-            scale={dateScale}
-            stroke="#6b7280"
-            strokeWidth={1}
-            tickStroke="#6b7280"
-            tickLabelProps={() => ({
-              fill: '#6b7280',
-              fontSize: 11,
-              textAnchor: 'middle',
-              dy: '0.33em',
-            })}
-            tickFormat={(value) => formatDate(value as Date)}
-          />
-          
+          {/* Invisible bar for tooltip */}
           <Bar
-            x={margin.left}
-            y={margin.top}
+            x={0}
+            y={0}
             width={innerWidth}
             height={innerHeight}
             fill="transparent"
-            rx={14}
             onTouchStart={handleTooltip}
             onTouchMove={handleTooltip}
             onMouseMove={handleTooltip}
             onMouseLeave={() => hideTooltip()}
           />
-          {tooltipData && (
-            <g>
-              <Line
-                from={{ x: tooltipLeft, y: margin.top }}
-                to={{ x: tooltipLeft, y: innerHeight + margin.top }}
-                stroke={accentColorDark}
-                strokeWidth={2}
-                pointerEvents="none"
-                strokeDasharray="5,2"
-              />
-              <circle
-                cx={tooltipLeft}
-                cy={tooltipTop + 1}
-                r={4}
-                fill="black"
-                fillOpacity={0.1}
-                stroke="black"
-                strokeOpacity={0.1}
-                strokeWidth={2}
-                pointerEvents="none"
-              />
-              <circle
-                cx={tooltipLeft}
-                cy={tooltipTop}
-                r={4}
-                fill={getPnlValue(tooltipData) >= 0 ? "#10b981" : "#ef4444"}
-                stroke="white"
-                strokeWidth={2}
-                pointerEvents="none"
-              />
-            </g>
-          )}
-        </svg>
-        {tooltipData && (
-          <div>
-            <TooltipWithBounds
-              key={Math.random()}
-              top={tooltipTop - 12}
-              left={tooltipLeft + 12}
-              style={{
-                ...tooltipStyles,
-                background: getPnlValue(tooltipData) >= 0 ? '#10b981' : '#ef4444',
-              }}
-            >
-              {`$${getPnlValue(tooltipData).toLocaleString()}`}
-            </TooltipWithBounds>
-            <Tooltip
-              top={innerHeight + margin.top - 14}
-              left={tooltipLeft}
-              style={{
-                ...defaultStyles,
-                minWidth: 72,
-                textAlign: 'center',
-                transform: 'translateX(-50%)',
-              }}
-            >
-              {formatDate(getDate(tooltipData))}
-            </Tooltip>
+        </Group>
+      </svg>
+      
+      {/* Tooltip */}
+      {tooltipData && (
+        <TooltipWithBounds
+          key={Math.random()}
+          top={tooltipTop}
+          left={tooltipLeft}
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '8px 12px',
+            fontSize: '12px',
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+          }}
+        >
+          <div className="tabular-nums">
+            <div className="font-medium">
+              {format(getDate(tooltipData), 'MMM dd, yyyy')}
+            </div>
+            <div className={`font-bold ${getPnlValue(tooltipData) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {getPnlValue(tooltipData) >= 0 ? '+' : ''}${getPnlValue(tooltipData).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
           </div>
-        )}
-      </div>
-    );
-  },
-);
+        </TooltipWithBounds>
+      )}
+    </div>
+  );
+}
