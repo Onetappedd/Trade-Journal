@@ -308,8 +308,8 @@ export default function PnlAreaChart({
         <div>
           <TooltipWithBounds
             key={Math.random()}
-            top={tooltipTop - 40}
-            left={tooltipLeft + 10}
+            top={Math.max(10, tooltipTop - 50)}
+            left={Math.min(tooltipLeft + 15, width - 100)}
             style={{
               backgroundColor: getPnlValue(tooltipData) >= 0 ? '#22c55e' : '#ef4444',
               color: 'white',
@@ -321,12 +321,13 @@ export default function PnlAreaChart({
               position: 'absolute',
               zIndex: 1000,
               pointerEvents: 'none',
+              whiteSpace: 'nowrap',
             }}
           >
             {`$${getPnlValue(tooltipData).toLocaleString()}`}
           </TooltipWithBounds>
           <TooltipWithBounds
-            top={innerHeight + margin.top + 10}
+            top={innerHeight + margin.top + 15}
             left={tooltipLeft}
             style={{
               backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -340,6 +341,7 @@ export default function PnlAreaChart({
               position: 'absolute',
               zIndex: 1000,
               pointerEvents: 'none',
+              whiteSpace: 'nowrap',
             }}
           >
             {formatDate(getDate(tooltipData))}
