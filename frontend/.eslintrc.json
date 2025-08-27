@@ -1,5 +1,8 @@
 {
   "extends": ["next/core-web-vitals"],
+  "linterOptions": {
+    "reportUnusedDisableDirectives": "error"
+  },
   "rules": {
     "no-irregular-whitespace": "error",
     "no-restricted-imports": [
