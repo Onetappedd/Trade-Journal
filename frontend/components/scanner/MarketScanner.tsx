@@ -37,6 +37,7 @@ import { SavedScansDropdown } from './SavedScansDropdown'
 import { CommandPalette } from './CommandPalette'
 import { useScannerState } from '@/hooks/useScannerState'
 import { useSavedScans } from '@/hooks/useSavedScans'
+import { useScannerData } from '@/hooks/useScannerData'
 import { cn } from '@/lib/utils'
 
 export function MarketScanner() {
@@ -58,6 +59,7 @@ export function MarketScanner() {
   } = useScannerState()
 
   const { savedScans, saveScan, loadScan } = useSavedScans()
+  const { usingRealData } = useScannerData(filters, preset)
 
   // Handle mobile detection
   useEffect(() => {
@@ -140,6 +142,12 @@ export function MarketScanner() {
                   {preset}
                 </Badge>
               )}
+              <Badge 
+                variant={usingRealData ? "default" : "outline"} 
+                className="text-xs"
+              >
+                {usingRealData ? "Live Data" : "Demo Mode"}
+              </Badge>
             </div>
 
             <div className="flex items-center space-x-2">
