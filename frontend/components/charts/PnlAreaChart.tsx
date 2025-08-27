@@ -34,6 +34,8 @@ export default function PnlAreaChart({
   width,
   height,
   margin = { top: 20, right: 20, bottom: 40, left: 60 },
+  mode = 'realized',
+  fallbackUsed = false,
 }: PnlAreaChartProps) {
   const {
     tooltipData,
@@ -42,6 +44,23 @@ export default function PnlAreaChart({
     hideTooltip,
     showTooltip,
   } = useTooltip<PnlDataPoint>();
+
+  // Handle empty data
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full space-y-2 p-4">
+        <div className="text-center">
+          <div className="text-4xl mb-2">📊</div>
+          <p className="text-muted-foreground font-medium">No P&L data available</p>
+          <div className="text-xs text-muted-foreground mt-1 space-y-1">
+            <p>• Try selecting "ALL" time range</p>
+            <p>• Switch to Realized P&L mode</p>
+            <p>• Add some completed trades</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate dimensions
   const innerWidth = width - margin.left - margin.right;
@@ -53,23 +72,29 @@ export default function PnlAreaChart({
     domain: extent(data, getDate) as [Date, Date],
   });
 
+  // Ensure scale includes zero and has nice ticks
+  const dataMin = min(data, getPnlValue) ?? 0;
+  const dataMax = max(data, getPnlValue) ?? 0;
+  
+  // Force 0 into the domain for proper baseline
+  const domainMin = Math.min(0, dataMin);
+  const domainMax = Math.max(0, dataMax);
+  
   const pnlValueScale = scaleLinear({
     range: [innerHeight, 0],
-    domain: [min(data, getPnlValue) ?? 0, max(data, getPnlValue) ?? 0],
+    domain: [domainMin, domainMax],
     nice: true,
   });
 
-  // Calculate zero baseline position
+  // Compute zero baseline position in pixels
   const zeroY = pnlValueScale(0);
   
-  // Split data into positive and negative series
-  const positiveData = data.map(d => ({ ...d, value: Math.max(d.value, 0) }));
-  const negativeData = data.map(d => ({ ...d, value: Math.min(d.value, 0) }));
-  
   // Check if data crosses zero
-  const dataMin = min(data, getPnlValue) ?? 0;
-  const dataMax = max(data, getPnlValue) ?? 0;
   const crossesZero = dataMin < 0 && dataMax > 0;
+  
+  // Derive two datasets
+  const aboveData = data.map(d => ({ ...d, value: Math.max(d.value, 0) }));
+  const belowData = data.map(d => ({ ...d, value: Math.min(d.value, 0) }));
 
   // Handle tooltip
   const handleTooltip = (event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
@@ -93,6 +118,18 @@ export default function PnlAreaChart({
     <div className="relative">
       <svg width={width} height={height}>
         <Group left={margin.left} top={margin.top}>
+          {/* Define clip paths */}
+          <defs>
+            {/* Clip region for above zero (green area) */}
+            <clipPath id="above-clip">
+              <rect x={0} y={0} width={innerWidth} height={zeroY} />
+            </clipPath>
+            {/* Clip region for below zero (red area) */}
+            <clipPath id="below-clip">
+              <rect x={0} y={zeroY} width={innerWidth} height={innerHeight - zeroY} />
+            </clipPath>
+          </defs>
+
           {/* Show zero baseline only when data crosses zero */}
           {crossesZero && (
             <Line
@@ -105,36 +142,40 @@ export default function PnlAreaChart({
             />
           )}
           
-          {/* Positive area (green, fills down to zero) */}
-          {dataMax > 0 && (
-            <AreaClosed<PnlDataPoint>
-              data={positiveData}
-              x={(d) => dateScale(getDate(d)) ?? 0}
-              y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
-              y0={zeroY}
-              yScale={pnlValueScale}
-              strokeWidth={2}
-              stroke="#22c55e"
-              fill="#22c55e"
-              fillOpacity={0.3}
-              curve={curveMonotoneX}
-            />
+          {/* Red area (below zero) - rendered first */}
+          {dataMin < 0 && (
+            <g clipPath="url(#below-clip)">
+              <AreaClosed<PnlDataPoint>
+                data={belowData}
+                x={(d) => dateScale(getDate(d)) ?? 0}
+                y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+                y0={zeroY}
+                yScale={pnlValueScale}
+                strokeWidth={2}
+                stroke="#ef4444"
+                fill="#ef4444"
+                fillOpacity={0.3}
+                curve={curveMonotoneX}
+              />
+            </g>
           )}
           
-          {/* Negative area (red, fills up to zero) */}
-          {dataMin < 0 && (
-            <AreaClosed<PnlDataPoint>
-              data={negativeData}
-              x={(d) => dateScale(getDate(d)) ?? 0}
-              y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
-              y0={zeroY}
-              yScale={pnlValueScale}
-              strokeWidth={2}
-              stroke="#ef4444"
-              fill="#ef4444"
-              fillOpacity={0.3}
-              curve={curveMonotoneX}
-            />
+          {/* Green area (above zero) - rendered second */}
+          {dataMax > 0 && (
+            <g clipPath="url(#above-clip)">
+              <AreaClosed<PnlDataPoint>
+                data={aboveData}
+                x={(d) => dateScale(getDate(d)) ?? 0}
+                y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+                y0={zeroY}
+                yScale={pnlValueScale}
+                strokeWidth={2}
+                stroke="#22c55e"
+                fill="#22c55e"
+                fillOpacity={0.3}
+                curve={curveMonotoneX}
+              />
+            </g>
           )}
           
           {/* Invisible bar for tooltip */}
