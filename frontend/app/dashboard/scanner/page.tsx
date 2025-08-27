@@ -1,8 +1,8 @@
-import ScannerClient from './ScannerClient';
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
+import { MarketScanner } from '@/components/scanner/MarketScanner'
 
-export default function Page() {
-  return <ScannerClient />;
+export default function ScannerPage() {
+  return <MarketScanner />
 }
