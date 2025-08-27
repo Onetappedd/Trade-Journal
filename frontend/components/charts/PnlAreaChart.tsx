@@ -157,60 +157,25 @@ export default withTooltip<PnlAreaChartProps, TooltipData>(
           
           {/* Dynamic gradient that transitions between red and green based on P&L */}
           <defs>
-            <linearGradient id="area-gradient-positive" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.1" />
-            </linearGradient>
-            <linearGradient id="area-gradient-negative" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity="0.1" />
+              <stop offset="49%" stopColor="#10b981" stopOpacity="0.8" />
+              <stop offset="51%" stopColor="#ef4444" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#ef4444" stopOpacity="0.8" />
             </linearGradient>
           </defs>
           
-          {/* Render separate areas for positive and negative P&L */}
-          {dataMax >= 0 && dataMin < 0 ? (
-            // Mixed positive/negative - render two separate areas
-            <>
-              {/* Positive area (above zero) */}
-              {data.filter(d => getPnlValue(d) >= 0).length > 0 && (
-                <AreaClosed<PnlDataPoint>
-                  data={data.filter(d => getPnlValue(d) >= 0)}
-                  x={(d) => dateScale(getDate(d)) ?? 0}
-                  y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
-                  yScale={pnlValueScale}
-                  strokeWidth={1}
-                  stroke="#10b981"
-                  fill="url(#area-gradient-positive)"
-                  curve={curveMonotoneX}
-                />
-              )}
-              {/* Negative area (below zero) */}
-              {data.filter(d => getPnlValue(d) < 0).length > 0 && (
-                <AreaClosed<PnlDataPoint>
-                  data={data.filter(d => getPnlValue(d) < 0)}
-                  x={(d) => dateScale(getDate(d)) ?? 0}
-                  y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
-                  yScale={pnlValueScale}
-                  strokeWidth={1}
-                  stroke="#ef4444"
-                  fill="url(#area-gradient-negative)"
-                  curve={curveMonotoneX}
-                />
-              )}
-            </>
-          ) : (
-            // Single area for all positive or all negative
-            <AreaClosed<PnlDataPoint>
-              data={data}
-              x={(d) => dateScale(getDate(d)) ?? 0}
-              y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
-              yScale={pnlValueScale}
-              strokeWidth={1}
-              stroke={dataMax >= 0 ? "#10b981" : "#ef4444"}
-              fill={dataMax >= 0 ? "url(#area-gradient-positive)" : "url(#area-gradient-negative)"}
-              curve={curveMonotoneX}
-            />
-          )}
+          {/* Single area chart with dynamic color based on P&L values */}
+          <AreaClosed<PnlDataPoint>
+            data={data}
+            x={(d) => dateScale(getDate(d)) ?? 0}
+            y={(d) => pnlValueScale(getPnlValue(d)) ?? 0}
+            yScale={pnlValueScale}
+            strokeWidth={1}
+            stroke={dataMax >= 0 ? "#10b981" : "#ef4444"}
+            fill="url(#area-gradient)"
+            curve={curveMonotoneX}
+          />
           
           {/* Show zero baseline only when data crosses zero */}
           {shouldShowZeroBaseline && (
