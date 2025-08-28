@@ -1,5 +1,8 @@
-import { BSInputs, BSOutputs, IVInputs, IVResult, DayCountMode } from './types'
+import { BSOutputs, IVInputs, IVResult, DayCountMode } from './types'
 import { getIVCacheKey, getCachedIV, setCachedIV } from './cache'
+
+// Re-export BSInputs from types for backward compatibility
+export type { BSInputs } from './types'
 
 // Constants
 const EPSILON = 1e-10

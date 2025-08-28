@@ -1,3 +1,18 @@
+export interface Quote {
+  symbol: string
+  price: number
+  bid: number
+  ask: number
+  volume: number
+  change: number
+  changePercent: number
+  high: number
+  low: number
+  open: number
+  previousClose: number
+  timestamp: number
+}
+
 export interface BSInputs {
   S: number // Underlying price
   K: number // Strike price
@@ -27,7 +42,7 @@ export interface IVInputs {
   type: 'call' | 'put'
 }
 
-export interface IVResult {
+export type IVResult = {
   kind: 'success'
   iv: number
 } | {
