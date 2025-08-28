@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, Maximize2, Minimize2 } from 'lucide-react'
 import { 
   LineChart, 
   Line, 
@@ -45,11 +45,12 @@ export function PayoffChart({
   onTogglePnl
 }: PayoffChartProps) {
   const [hoveredPrice, setHoveredPrice] = useState<number | null>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
 
-  // Generate chart data
+  // Generate chart data with realistic scaling
   const chartData = useMemo((): ChartPoint[] => {
-    const range = 0.4 // ±40% around current price
-    const minPrice = state.S * (1 - range)
+    const range = 0.3 // ±30% around current price for more realistic view
+    const minPrice = Math.max(0, state.S * (1 - range))
     const maxPrice = state.S * (1 + range)
     const points = 100
 
@@ -101,6 +102,25 @@ export function PayoffChart({
       Math.abs(point.expirationPnl) < 0.01
     )?.underlyingPrice || results.breakeven
   }, [chartData, results.breakeven])
+
+  // Calculate realistic Y-axis bounds for better scaling
+  const yAxisBounds = useMemo(() => {
+    const values = chartData.flatMap(point => [
+      showPnl ? point.todayPnl : point.todayValue,
+      showPnl ? point.expirationPnl : point.expirationValue
+    ])
+    
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    const range = max - min
+    
+    // Add 10% padding and ensure reasonable bounds
+    const padding = range * 0.1
+    const minBound = Math.min(min - padding, -results.price * state.multiplier * 0.5)
+    const maxBound = Math.max(max + padding, results.price * state.multiplier * 2)
+    
+    return { min: minBound, max: maxBound }
+  }, [chartData, showPnl, results.price, state.multiplier])
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -159,10 +179,29 @@ export function PayoffChart({
             {state.type.toUpperCase()} {state.K}
           </span>
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="ml-2"
+        >
+          {isExpanded ? (
+            <>
+              <Minimize2 className="h-4 w-4 mr-1" />
+              Minimize
+            </>
+          ) : (
+            <>
+              <Maximize2 className="h-4 w-4 mr-1" />
+              Enlarge
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Chart */}
-      <div className="h-64">
+      <div className={isExpanded ? "h-96" : "h-80"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -174,6 +213,7 @@ export function PayoffChart({
             <YAxis 
               tickFormatter={(value) => formatCurrency(value)}
               stroke="#6B7280"
+              domain={[yAxisBounds.min, yAxisBounds.max]}
             />
             <Tooltip content={<CustomTooltip />} />
             
@@ -293,7 +333,7 @@ export function PayoffChart({
             <div className="col-span-2">
               <span className="text-muted-foreground">Max Gain:</span>
               <div className="font-medium text-green-600">
-                {state.type === 'call' ? 'Unlimited' : formatCurrency(state.K * state.multiplier)}
+                {state.type === 'call' ? 'Unlimited' : formatCurrency((state.K - results.price) * state.multiplier)}
               </div>
             </div>
           </div>
