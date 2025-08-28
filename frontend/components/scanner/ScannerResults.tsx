@@ -387,10 +387,10 @@ export function ScannerResults({
                             <Star className="h-4 w-4 mr-2" />
                             {row.isWatchlisted ? 'Remove from Watchlist' : 'Add to Watchlist'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Open in Advanced Chart
-                          </DropdownMenuItem>
+                                                  <DropdownMenuItem onClick={() => window.open(`https://www.tradingview.com/symbols/${row.symbol}`, '_blank')}>
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open in Advanced Chart (TV)
+                        </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Plus className="h-4 w-4 mr-2" />
                             Create New Trade

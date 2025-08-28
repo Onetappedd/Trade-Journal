@@ -35,6 +35,7 @@ import { ScannerDetails } from './ScannerDetails'
 import { ScannerPresets } from './ScannerPresets'
 import { SavedScansDropdown } from './SavedScansDropdown'
 import { CommandPalette } from './CommandPalette'
+import { ScreenerPanel } from '@/components/tv/ScreenerPanel'
 import { useScannerState } from '@/hooks/useScannerState'
 import { useSavedScans } from '@/hooks/useSavedScans'
 import { useScannerData } from '@/hooks/useScannerData'
@@ -46,6 +47,7 @@ export function MarketScanner() {
   const [isCommandOpen, setIsCommandOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'results' | 'screener'>('results')
   
   const {
     filters,
@@ -215,19 +217,60 @@ export function MarketScanner() {
 
         {/* Main Grid */}
         <div className="flex-1 flex">
-          {/* Results Table */}
+          {/* Left Content */}
           <div className={cn(
             "flex-1 overflow-hidden",
             selectedSymbol && !isMobile ? "w-2/3" : "w-full"
           )}>
-            <ScannerResults 
-              filters={filters}
-              preset={preset}
-              sortConfig={sortConfig}
-              visibleColumns={visibleColumns}
-              selectedSymbol={selectedSymbol}
-              onSymbolSelect={setSelectedSymbol}
-            />
+            {/* Tab Navigation */}
+            <div className="border-b bg-background">
+              <div className="flex">
+                <button
+                  onClick={() => setActiveTab('results')}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+                    activeTab === 'results'
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Scanner Results
+                </button>
+                <button
+                  onClick={() => setActiveTab('screener')}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+                    activeTab === 'screener'
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  TradingView Screener
+                </button>
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'results' && (
+              <ScannerResults 
+                filters={filters}
+                preset={preset}
+                sortConfig={sortConfig}
+                visibleColumns={visibleColumns}
+                selectedSymbol={selectedSymbol}
+                onSymbolSelect={setSelectedSymbol}
+              />
+            )}
+            
+            {activeTab === 'screener' && (
+              <div className="p-4">
+                <ScreenerPanel 
+                  symbol={selectedSymbol || 'NASDAQ:AAPL'}
+                  onSymbolSelect={setSelectedSymbol}
+                  theme="dark"
+                />
+              </div>
+            )}
           </div>
 
           {/* Details Panel */}

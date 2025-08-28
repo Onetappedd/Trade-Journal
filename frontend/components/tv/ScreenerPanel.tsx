@@ -1,103 +1,78 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import dynamic from 'next/dynamic'
+
+// Dynamically import TradingView widget with SSR disabled
+const TradingViewWidget = dynamic(
+  () => import('react-ts-tradingview-widgets').then((mod) => mod.AdvancedRealTimeChart),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-96 bg-muted rounded flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading TradingView Screener...</p>
+        </div>
+      </div>
+    )
+  }
+)
 
 interface ScreenerPanelProps {
   symbol?: string
   onSymbolSelect?: (symbol: string) => void
   className?: string
+  theme?: 'light' | 'dark'
 }
 
-declare global {
-  interface Window {
-    TradingView: any
-  }
-}
+export function ScreenerPanel({ symbol, onSymbolSelect, className, theme = 'dark' }: ScreenerPanelProps) {
+  const [key, setKey] = useState(0) // For re-rendering when theme changes
 
-export function ScreenerPanel({ symbol, onSymbolSelect, className }: ScreenerPanelProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const widgetRef = useRef<any>(null)
-
+  // Re-render widget when theme changes
   useEffect(() => {
-    // Load TradingView widget script
-    const script = document.createElement('script')
-    script.src = 'https://s3.tradingview.com/tv.js'
-    script.async = true
-    script.onload = initWidget
-    document.head.appendChild(script)
+    setKey(prev => prev + 1)
+  }, [theme])
 
-    return () => {
-      document.head.removeChild(script)
-      if (widgetRef.current) {
-        widgetRef.current.remove()
-      }
-    }
-  }, [])
-
-  const initWidget = () => {
-    if (!containerRef.current || !window.TradingView) return
-
-    widgetRef.current = new window.TradingView.widget({
-      container: containerRef.current,
-      symbol: symbol || 'NASDAQ:AAPL',
-      interval: 'D',
-      timezone: 'America/New_York',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      toolbar_bg: '#f1f3f6',
-      enable_publishing: false,
-      allow_symbol_change: true,
-      container_id: containerRef.current.id,
-      width: '100%',
-      height: '100%',
-      studies: [
-        'RSI@tv-basicstudies',
-        'MASimple@tv-basicstudies'
-      ],
-      show_popup_button: true,
-      popup_width: '1000',
-      popup_height: '650',
-      disabled_features: [
-        'use_localstorage_for_settings',
-        'volume_force_overlay'
-      ],
-      enabled_features: [
-        'study_templates'
-      ],
-      overrides: {
-        'mainSeriesProperties.candleStyle.wickUpColor': '#26a69a',
-        'mainSeriesProperties.candleStyle.wickDownColor': '#ef5350'
-      }
-    })
-
-    // Listen for symbol changes
-    if (onSymbolSelect) {
-      widgetRef.current.onChartReady(() => {
-        widgetRef.current.chart().onSymbolChanged().subscribe(
-          null,
-          (symbolInfo: any) => {
-            if (symbolInfo && symbolInfo.symbol) {
-              onSymbolSelect(symbolInfo.symbol)
-            }
-          }
-        )
-      })
-    }
-  }
+  console.log('ScreenerPanel mounting with symbol:', symbol, 'theme:', theme)
 
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="text-sm">Market Screener</CardTitle>
+        <CardTitle className="text-sm">TradingView Screener (Live)</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div 
-          ref={containerRef}
-          id="tradingview-screener"
-          className="w-full h-96"
-        />
+        <div className="w-full h-[650px]">
+          <TradingViewWidget
+            key={key}
+            symbol={symbol || 'NASDAQ:AAPL'}
+            theme={theme}
+            locale="en"
+            autosize
+            interval="D"
+            timezone="America/New_York"
+            style="1"
+            toolbar_bg="#f1f3f6"
+            enable_publishing={false}
+            allow_symbol_change={true}
+            container_id="tradingview-screener"
+            studies={[
+              'RSI@tv-basicstudies',
+              'MASimple@tv-basicstudies'
+            ]}
+            show_popup_button={true}
+            popup_width="1000"
+            popup_height="650"
+            disabled_features={[
+              'use_localstorage_for_settings',
+              'volume_force_overlay'
+            ]}
+            enabled_features={[
+              'study_templates'
+            ]}
+          />
+        </div>
       </CardContent>
     </Card>
   )

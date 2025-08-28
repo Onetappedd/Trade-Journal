@@ -1,130 +1,63 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+
+// Dynamically import TradingView widget with SSR disabled
+const TradingViewWidget = dynamic(
+  () => import('react-ts-tradingview-widgets').then((mod) => mod.SymbolOverview),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-32 bg-muted rounded flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-xs text-muted-foreground">Loading chart...</p>
+        </div>
+      </div>
+    )
+  }
+)
 
 interface SymbolOverviewCardProps {
   symbol: string
   className?: string
+  theme?: 'light' | 'dark'
 }
 
-declare global {
-  interface Window {
-    TradingView: any
-  }
-}
+export function SymbolOverviewCard({ symbol, className, theme = 'dark' }: SymbolOverviewCardProps) {
+  const [key, setKey] = useState(0) // For re-rendering when theme or symbol changes
 
-export function SymbolOverviewCard({ symbol, className }: SymbolOverviewCardProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const widgetRef = useRef<any>(null)
-
+  // Re-render widget when theme or symbol changes
   useEffect(() => {
-    // Load TradingView widget script if not already loaded
-    if (!window.TradingView) {
-      const script = document.createElement('script')
-      script.src = 'https://s3.tradingview.com/tv.js'
-      script.async = true
-      script.onload = initWidget
-      document.head.appendChild(script)
-    } else {
-      initWidget()
-    }
+    setKey(prev => prev + 1)
+  }, [theme, symbol])
 
-    return () => {
-      if (widgetRef.current) {
-        widgetRef.current.remove()
-      }
-    }
-  }, [symbol])
-
-  const initWidget = () => {
-    if (!containerRef.current || !window.TradingView) return
-
-    widgetRef.current = new window.TradingView.widget({
-      container: containerRef.current,
-      symbol: symbol,
-      interval: 'D',
-      timezone: 'America/New_York',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      toolbar_bg: '#f1f3f6',
-      enable_publishing: false,
-      allow_symbol_change: false,
-      hide_top_toolbar: true,
-      hide_legend: true,
-      save_image: false,
-      container_id: containerRef.current.id,
-      width: '100%',
-      height: '100%',
-      studies: [],
-      disabled_features: [
-        'use_localstorage_for_settings',
-        'volume_force_overlay',
-        'header_symbol_search',
-        'header_compare',
-        'header_settings',
-        'header_fullscreen_button',
-        'header_screenshot',
-        'header_chart_type',
-        'header_indicators',
-        'header_undo_redo',
-        'header_saveload',
-        'left_toolbar',
-        'control_bar',
-        'timeframes_toolbar',
-        'edit_buttons_in_legend',
-        'context_menus',
-        'border_around_the_chart',
-        'header_resolutions',
-        'header_interval_dialog_button',
-        'show_interval_dialog_on_key_press',
-        'header_indicators_dialog_button',
-        'show_indicators_dialog_on_key_press',
-        'symbol_info',
-        'volume',
-        'trading_notifications',
-        'header_chart_type',
-        'header_compare',
-        'header_settings',
-        'header_fullscreen_button',
-        'header_screenshot',
-        'header_indicators',
-        'header_undo_redo',
-        'header_saveload',
-        'left_toolbar',
-        'control_bar',
-        'timeframes_toolbar',
-        'edit_buttons_in_legend',
-        'context_menus',
-        'border_around_the_chart',
-        'header_resolutions',
-        'header_interval_dialog_button',
-        'show_interval_dialog_on_key_press',
-        'header_indicators_dialog_button',
-        'show_indicators_dialog_on_key_press',
-        'symbol_info',
-        'volume',
-        'trading_notifications'
-      ],
-      enabled_features: [
-        'hide_left_toolbar_by_default'
-      ],
-      overrides: {
-        'mainSeriesProperties.candleStyle.wickUpColor': '#26a69a',
-        'mainSeriesProperties.candleStyle.wickDownColor': '#ef5350',
-        'mainSeriesProperties.candleStyle.upColor': '#26a69a',
-        'mainSeriesProperties.candleStyle.downColor': '#ef5350',
-        'mainSeriesProperties.candleStyle.borderUpColor': '#26a69a',
-        'mainSeriesProperties.candleStyle.borderDownColor': '#ef5350'
-      }
-    })
-  }
+  console.log('SymbolOverviewCard mounting with symbol:', symbol, 'theme:', theme)
 
   return (
-    <div 
-      ref={containerRef}
-      id={`tradingview-overview-${symbol}`}
-      className={`w-full h-32 ${className || ''}`}
-    />
+    <div className={`w-full h-32 ${className || ''}`}>
+      <TradingViewWidget
+        key={key}
+        symbols={[[symbol]]}
+        dateFormat="MMM dd, yyyy"
+        locale="en"
+        autosize
+        container_id={`tradingview-overview-${symbol}`}
+        colorTheme={theme}
+        isTransparent={false}
+
+        chartType="area"
+        scalePosition="right"
+        scaleMode="Normal"
+        fontFamily="Trebuchet MS, sans-serif"
+        fontSize="10"
+        noTimeScale={false}
+        valuesTracking="0"
+
+        width="100%"
+        height="100%"
+      />
+    </div>
   )
 }
