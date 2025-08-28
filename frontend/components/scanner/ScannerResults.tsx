@@ -116,7 +116,7 @@ export function ScannerResults({
   const rowVirtualizer = useVirtualizer({
     count: filteredData.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 50,
+    estimateSize: () => 44, // Slightly more compact rows
     overscan: 5,
   })
 
@@ -163,6 +163,7 @@ export function ScannerResults({
           </span>
         )
       case 'volume':
+        if (value === 0) return '-'
         if (value >= 1000000) {
           return `${(value / 1000000).toFixed(1)}M`
         } else if (value >= 1000) {
@@ -228,6 +229,48 @@ export function ScannerResults({
     return columnLabels[column] || column
   }
 
+  const getColumnWidth = (column: string) => {
+    const columnWidths: Record<string, string> = {
+      symbol: 'w-20', // Fixed width for symbol
+      name: 'min-w-0 flex-1', // Flexible width, will take remaining space
+      sector: 'w-32', // Fixed width for sector
+      price: 'w-24', // Fixed width for price
+      change: 'w-24', // Fixed width for % change
+      volume: 'w-20', // Compact width for volume
+      rvol: 'w-16', // Compact width for RVOL
+      week52High: 'w-24', // Fixed width for 52W high
+      week52Low: 'w-24', // Fixed width for 52W low
+      atrPercent: 'w-20', // Compact width for ATR
+      rsi: 'w-16', // Compact width for RSI
+      winRate: 'w-20', // Compact width for win rate
+      avgPnl: 'w-24', // Fixed width for avg P&L
+      tradesCount: 'w-16', // Compact width for trades count
+      lastTraded: 'w-24' // Fixed width for last traded
+    }
+    return columnWidths[column] || 'w-auto'
+  }
+
+  const getColumnAlignment = (column: string) => {
+    const alignments: Record<string, string> = {
+      symbol: 'text-left',
+      name: 'text-left',
+      sector: 'text-left',
+      price: 'text-right',
+      change: 'text-right',
+      volume: 'text-right',
+      rvol: 'text-right',
+      week52High: 'text-right',
+      week52Low: 'text-right',
+      atrPercent: 'text-right',
+      rsi: 'text-right',
+      winRate: 'text-right',
+      avgPnl: 'text-right',
+      tradesCount: 'text-right',
+      lastTraded: 'text-center'
+    }
+    return alignments[column] || 'text-left'
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -253,98 +296,118 @@ export function ScannerResults({
   return (
     <div className="flex flex-col h-full">
       {/* Search and Controls */}
-      <div className="p-4 border-b">
-        <div className="flex items-center space-x-2">
-          <Input
-            placeholder="Search symbols..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-          <Badge variant="secondary">
-            {filteredData.length} results
-          </Badge>
+      <div className="p-3 border-b bg-muted/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Input
+              placeholder="Search symbols..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64 h-8"
+            />
+            <Badge variant="secondary" className="text-xs">
+              {filteredData.length} results
+            </Badge>
+          </div>
         </div>
       </div>
 
       {/* Table */}
       <div ref={parentRef} className="flex-1 overflow-auto">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
-            <TableRow>
-              {visibleColumns.map((column) => (
-                <TableHead key={column} className="cursor-pointer hover:bg-muted/50">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 font-medium"
-                    onClick={() => handleSort(column)}
-                  >
-                    {getColumnHeader(column)}
-                    {sortConfig.find(s => s.id === column) && (
-                      <span className="ml-1">
-                        {sortConfig.find(s => s.id === column)?.desc ? '↓' : '↑'}
-                      </span>
+        <div className="w-full">
+          <Table className="border-collapse">
+            <TableHeader className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b">
+              <TableRow>
+                {visibleColumns.map((column) => (
+                  <TableHead 
+                    key={column} 
+                    className={cn(
+                      "cursor-pointer hover:bg-muted/50",
+                      getColumnWidth(column),
+                      getColumnAlignment(column)
                     )}
-                  </Button>
-                </TableHead>
-              ))}
-              <TableHead className="w-12">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const row = filteredData[virtualRow.index]
-              return (
-                <TableRow
-                  key={row.symbol}
-                  className={cn(
-                    'cursor-pointer hover:bg-muted/50',
-                    selectedSymbol === row.symbol && 'bg-muted'
-                  )}
-                  onClick={() => onSymbolSelect(row.symbol)}
-                  style={{
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  {visibleColumns.map((column) => (
-                    <TableCell key={column}>
-                      {formatValue(row[column as keyof ScannerResult], column)}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 font-medium w-full justify-start text-xs"
+                      onClick={() => handleSort(column)}
+                    >
+                      {getColumnHeader(column)}
+                      {sortConfig.find(s => s.id === column) && (
+                        <span className="ml-1">
+                          {sortConfig.find(s => s.id === column)?.desc ? '↓' : '↑'}
+                        </span>
+                      )}
+                    </Button>
+                  </TableHead>
+                ))}
+                <TableHead className="w-16 text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const row = filteredData[virtualRow.index]
+                return (
+                  <TableRow
+                    key={row.symbol}
+                    className={cn(
+                      'cursor-pointer hover:bg-muted/30 transition-colors',
+                      selectedSymbol === row.symbol && 'bg-muted/50'
+                    )}
+                    onClick={() => onSymbolSelect(row.symbol)}
+                    style={{
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    {visibleColumns.map((column) => (
+                      <TableCell 
+                        key={column}
+                        className={cn(
+                          getColumnWidth(column),
+                          getColumnAlignment(column),
+                          'py-1.5 px-2'
+                        )}
+                      >
+                        <div className="truncate text-sm">
+                          {formatValue(row[column as keyof ScannerResult], column)}
+                        </div>
+                      </TableCell>
+                    ))}
+                    <TableCell className="w-16 text-center py-1.5 px-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleWatchlistToggle(row.symbol)}>
+                            <Star className="h-4 w-4 mr-2" />
+                            {row.isWatchlisted ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open in Advanced Chart
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create New Trade
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Add Note
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
-                  ))}
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleWatchlistToggle(row.symbol)}>
-                          <Star className="h-4 w-4 mr-2" />
-                          {row.isWatchlisted ? 'Remove from Watchlist' : 'Add to Watchlist'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Open in Advanced Chart
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create New Trade
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Add Note
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Empty State */}
