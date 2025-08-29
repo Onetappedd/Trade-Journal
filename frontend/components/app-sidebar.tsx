@@ -130,7 +130,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     async function fetchDbUser() {
       if (user) {
         const { data, error } = await supabase
-          .from('users')
+          .from('profiles')
           .select('username')
           .eq('id', user.id)
           .single();

@@ -39,8 +39,8 @@ const STATUSES: { value: ImportStatus; label: string; variant: 'default' | 'seco
 export function ImportHistoryTable() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
-    status: '',
-    source: '',
+    status: 'all',
+    source: 'all',
     dateFrom: '',
     dateTo: '',
   });
@@ -50,8 +50,8 @@ export function ImportHistoryTable() {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: '25',
-      ...(filters.status && { status: filters.status }),
-      ...(filters.source && { source: filters.source }),
+      ...(filters.status && filters.status !== 'all' && { status: filters.status }),
+      ...(filters.source && filters.source !== 'all' && { source: filters.source }),
       ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
       ...(filters.dateTo && { dateTo: filters.dateTo }),
     });
@@ -119,7 +119,7 @@ export function ImportHistoryTable() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 {STATUSES.map((status) => (
                   <SelectItem key={status.value} value={status.value}>
                     {status.label}
@@ -133,7 +133,7 @@ export function ImportHistoryTable() {
                 <SelectValue placeholder="Source" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Sources</SelectItem>
+                <SelectItem value="all">All Sources</SelectItem>
                 {SOURCES.map((source) => (
                   <SelectItem key={source.value} value={source.value}>
                     {source.label}
