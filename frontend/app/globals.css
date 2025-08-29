@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import marketing tokens */
+@import '../styles/marketing/tokens.css';
+
 /* shadcn/ui theme tokens + base styles */
 @layer base {
   :root {

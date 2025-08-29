@@ -87,4 +87,33 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Focus-visible styles for accessibility */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+  
+  /* Ensure sufficient color contrast */
+  .text-muted-foreground {
+    color: hsl(var(--muted-foreground));
+  }
+  
+  /* Smooth scrolling for anchor links */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

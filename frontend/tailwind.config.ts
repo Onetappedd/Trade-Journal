@@ -12,6 +12,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -46,6 +49,17 @@ const config: Config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        // Marketing colors
+        pp: {
+          bg: 'var(--pp-bg)',
+          card: 'var(--pp-card)',
+          muted: 'var(--pp-muted)',
+          text: 'var(--pp-text)',
+          accent: 'var(--pp-accent)',
+          danger: 'var(--pp-danger)',
+          ring: 'var(--pp-ring)',
+          border: 'var(--pp-border)',
+        },
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',
