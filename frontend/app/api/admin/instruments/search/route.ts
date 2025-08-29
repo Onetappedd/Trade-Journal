@@ -81,11 +81,12 @@ async function searchInstrumentsHandler(request: NextRequest) {
 
     // Add instruments found via aliases
     aliases?.forEach(alias => {
-      if (alias.instruments && !allInstruments.has(alias.instruments.id)) {
-        allInstruments.set(alias.instruments.id, {
-          ...alias.instruments,
-          execution_count: alias.instruments.execution_count?.[0]?.count || 0,
-          alias_count: alias.instruments.alias_count?.[0]?.count || 0,
+      const instrument = alias.instruments as any;
+      if (instrument && !allInstruments.has(instrument.id)) {
+        allInstruments.set(instrument.id, {
+          ...instrument,
+          execution_count: instrument.execution_count?.[0]?.count || 0,
+          alias_count: instrument.alias_count?.[0]?.count || 0,
           matched_via: `alias: ${alias.alias_symbol}`,
         });
       }
