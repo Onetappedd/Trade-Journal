@@ -10,6 +10,8 @@ import {
   Target,
   Settings,
   Calendar,
+  Shield,
+  Merge,
 } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
@@ -55,8 +57,12 @@ const data = {
           url: '/dashboard/add-trade',
         },
         {
-          title: 'Import Trades',
-          url: '/dashboard/import-trades',
+          title: 'Import Hub',
+          url: '/dashboard/import',
+        },
+        {
+          title: 'Manual Entry',
+          url: '/dashboard/import/manual',
         },
       ],
     },
@@ -98,6 +104,17 @@ const data = {
       title: 'Settings',
       url: '/dashboard/settings',
       icon: Settings,
+    },
+    {
+      title: 'Admin',
+      url: '/admin',
+      icon: Shield,
+      items: [
+        {
+          title: 'Merge Instruments',
+          url: '/admin/instruments/merge',
+        },
+      ],
     },
   ],
 };
