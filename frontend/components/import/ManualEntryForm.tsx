@@ -220,9 +220,9 @@ export function ManualEntryForm() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select instrument type" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="equity">Equity</SelectItem>
-                    <SelectItem value="option">Option</SelectItem>
+                  <SelectContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                    <SelectItem value="equity">Common Shares</SelectItem>
+                    <SelectItem value="option">Options Contracts</SelectItem>
                     <SelectItem value="futures">Futures</SelectItem>
                   </SelectContent>
                 </Select>
@@ -255,7 +255,7 @@ export function ManualEntryForm() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select side" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
                     <SelectItem value="buy">Buy</SelectItem>
                     <SelectItem value="sell">Sell</SelectItem>
                     <SelectItem value="short">Short</SelectItem>
@@ -336,7 +336,7 @@ export function ManualEntryForm() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
                     <SelectItem value="USD">USD</SelectItem>
                     <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="GBP">GBP</SelectItem>
@@ -358,6 +358,9 @@ export function ManualEntryForm() {
                   placeholder="NASDAQ, ARCA, CME"
                   {...form.register('venue')}
                 />
+                <p className="text-xs text-muted-foreground">
+                  The exchange or trading venue where the execution occurred (e.g., NASDAQ, NYSE, ARCA, CME)
+                </p>
                 {form.formState.errors.venue && (
                   <p className="text-sm text-red-600">{form.formState.errors.venue.message}</p>
                 )}
@@ -423,7 +426,7 @@ export function ManualEntryForm() {
                       <SelectTrigger>
                         <SelectValue placeholder="Select option type" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
                         <SelectItem value="call">Call</SelectItem>
                         <SelectItem value="put">Put</SelectItem>
                       </SelectContent>
