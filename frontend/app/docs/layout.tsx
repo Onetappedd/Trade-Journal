@@ -1,0 +1,20 @@
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Documentation - Trade Journal',
+  description: 'Documentation and help for Trade Journal',
+};
+
+export default function DocsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="prose prose-gray max-w-none dark:prose-invert">
+        {children}
+      </div>
+    </div>
+  );
+}
