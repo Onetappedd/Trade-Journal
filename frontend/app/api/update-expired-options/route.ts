@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 import { updateExpiredOptionsTrades } from '@/lib/trades/updateExpiredOptions';
 
 export async function POST(req: NextRequest) {

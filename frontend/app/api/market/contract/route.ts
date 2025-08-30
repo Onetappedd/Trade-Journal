@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DemoPolygonProvider } from '@/lib/marketdata/polygon'
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const provider = new DemoPolygonProvider()
 
 export async function GET(request: NextRequest) {

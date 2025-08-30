@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const USERNAME_REGEX = /^[a-z0-9]{3,15}$/;
 
 export async function GET(req: NextRequest) {

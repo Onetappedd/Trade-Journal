@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { withTelemetry } from '@/lib/observability/withTelemetry';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 async function searchInstrumentsHandler(request: NextRequest) {
   const supabase = getServerSupabase();
   
