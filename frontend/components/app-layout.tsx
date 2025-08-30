@@ -21,8 +21,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
-  // Don't show sidebar on login page
-  if (pathname === '/login' || pathname.startsWith('/auth')) {
+  // Don't show sidebar on public pages (login, auth, and root landing page)
+  if (pathname === '/login' || pathname.startsWith('/auth') || pathname === '/') {
     return <>{children}</>;
   }
 
