@@ -9,9 +9,9 @@ import { SecurityPanel } from '@/components/marketing/SecurityPanel';
 import { PricingTable } from '@/components/marketing/PricingTable';
 import { Testimonials } from '@/components/marketing/Testimonials';
 import { FAQAccordion } from '@/components/marketing/FAQAccordion';
-import { FinalCTA } from '@/components/marketing/FinalCTA';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { FinalCTA } from '@/components/marketing/FinalCTA';
 
 export default function MarketingPage() {
   const jsonLd = {
