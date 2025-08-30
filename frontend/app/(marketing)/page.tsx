@@ -11,6 +11,8 @@ import { Testimonials } from '@/components/marketing/Testimonials';
 import { FAQAccordion } from '@/components/marketing/FAQAccordion';
 import { FinalCTA } from '@/components/marketing/FinalCTA';
 
+export const dynamic = 'force-dynamic';
+
 export default function MarketingPage() {
   const jsonLd = {
     "@context": "https://schema.org",
