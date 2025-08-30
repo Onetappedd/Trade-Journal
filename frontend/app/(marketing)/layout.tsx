@@ -8,8 +8,7 @@ const inter = Inter({
   display: 'swap',
 });
 
-export const dynamic = 'force-static';
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'ProfitPad — The modern trade journal',
