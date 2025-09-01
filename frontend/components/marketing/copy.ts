@@ -49,8 +49,8 @@ export const PRICING = {
       description: "Perfect for getting started",
       features: [
         "Up to 100 trades per month",
-        "Basic analytics",
-        "CSV import",
+        "Basic P&L tracking",
+        "CSV import (up to 1,000 rows)",
         "Email support"
       ],
       cta: "Get started",
@@ -58,35 +58,21 @@ export const PRICING = {
     },
     {
       name: "Pro",
-      price: "$29",
+      price: "$20",
       period: "per month",
-      description: "For active traders",
+      description: "For serious traders",
       features: [
         "Unlimited trades",
-        "Advanced analytics",
-        "Options pricing",
-        "Broker integrations",
+        "Advanced analytics & charts",
+        "All import formats (CSV, Excel, IBKR Flex)",
+        "Options lifecycle tracking",
+        "Portfolio performance metrics",
         "Priority support",
+        "API access",
         "Custom reports"
       ],
       cta: "Start free trial",
       popular: true
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      period: "",
-      description: "For teams and institutions",
-      features: [
-        "Everything in Pro",
-        "Team collaboration",
-        "API access",
-        "Custom integrations",
-        "Dedicated support",
-        "SLA guarantees"
-      ],
-      cta: "Contact sales",
-      popular: false
     }
   ]
 };

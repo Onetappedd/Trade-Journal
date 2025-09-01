@@ -14,6 +14,7 @@ import {
   X,
   Merge,
   Shield,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,6 +36,7 @@ const quickActions = [
 ];
 
 const adminActions = [
+  { name: 'User Management', href: '/admin/users', icon: Users },
   { name: 'Merge Instruments', href: '/admin/instruments/merge', icon: Merge },
 ];
 

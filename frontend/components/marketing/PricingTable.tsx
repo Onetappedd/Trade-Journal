@@ -25,19 +25,11 @@ export function PricingTable({ id }: PricingTableProps) {
     },
     {
       name: 'Pro',
-      price: 12,
+      price: 20,
       description: 'For serious traders',
       features: PRICING.tiers[1].features,
       cta: 'Start free trial',
       popular: true
-    },
-    {
-      name: 'Team',
-      price: 29,
-      description: 'For trading teams',
-      features: PRICING.tiers[2].features,
-      cta: 'Contact sales',
-      popular: false
     }
   ];
 
@@ -84,7 +76,7 @@ export function PricingTable({ id }: PricingTableProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {tiers.map((tier, index) => {
             const displayPrice = isAnnual 
               ? Math.round(tier.price * annualMultiplier) 
@@ -174,7 +166,7 @@ export function PricingTable({ id }: PricingTableProps) {
         {/* Footer */}
         <div className="text-center mt-12">
           <p className="text-sm text-[--pp-muted]">
-            All plans include 14-day free trial. No credit card required.
+            All plans include 7-day free trial. No credit card required.
           </p>
         </div>
       </div>
