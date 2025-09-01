@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Map, CheckCircle, AlertCircle, Clock, FileText, Mail, Zap } from 'lucide-react';
 
@@ -87,6 +88,22 @@ const BROKER_PRESETS = {
       fees: 'Commission',
     },
   },
+  webull: {
+    name: 'Webull Options',
+    mapping: {
+      timestamp: 'Filled Time',
+      symbol: 'Name',
+      side: 'Side',
+      quantity: 'Filled',
+      price: 'Avg Price',
+      fees: 'Fees',
+      instrument_type: 'instrument_type', // Will be auto-detected as 'option'
+      expiry: 'expiry', // Will be extracted from Name column
+      strike: 'strike', // Will be extracted from Name column
+      option_type: 'option_type', // Will be extracted from Name column
+      underlying: 'underlying', // Will be extracted from Name column
+    },
+  },
   etrade: {
     name: 'E*TRADE',
     mapping: {
@@ -160,6 +177,13 @@ export function MappingWizard({
   );
   const [isCommitting, setIsCommitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [importProgress, setImportProgress] = useState({
+    current: 0,
+    total: 0,
+    status: 'idle' as 'idle' | 'processing' | 'completed' | 'error',
+    message: '',
+    summary: null as any
+  });
 
   // Validate mapping
   const validation = useMemo(() => {
@@ -224,9 +248,18 @@ export function MappingWizard({
     }
 
     setIsCommitting(true);
+    setImportProgress({
+      current: 0,
+      total: 0,
+      status: 'processing',
+      message: 'Starting import...',
+      summary: null
+    });
     
     try {
       // Step 1: Start the import job
+      setImportProgress(prev => ({ ...prev, message: 'Initializing import job...' }));
+      
       const startResponse = await fetch('/api/import/csv/commit-start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -247,6 +280,7 @@ export function MappingWizard({
       const startResult = await startResponse.json();
       const { jobId, totalRows } = startResult;
       
+      setImportProgress(prev => ({ ...prev, total: totalRows, message: `Processing ${totalRows} rows...` }));
       toast.success(`Import started: ${totalRows} rows to process`);
 
       // Step 2: Process chunks with progress tracking
@@ -257,6 +291,13 @@ export function MappingWizard({
       let totalErrors = 0;
 
       while (processedRows < totalRows) {
+        // Update progress
+        setImportProgress(prev => ({ 
+          ...prev, 
+          current: processedRows,
+          message: `Processing rows ${processedRows + 1} to ${Math.min(processedRows + chunkSize, totalRows)} of ${totalRows}...`
+        }));
+
         // Process chunk
         const chunkResponse = await fetch('/api/import/csv/commit-chunk', {
           method: 'POST',
@@ -286,9 +327,22 @@ export function MappingWizard({
           
           if (progress.status === 'completed') {
             // Import is complete
+            setImportProgress(prev => ({ 
+              ...prev, 
+              current: totalRows,
+              status: 'completed',
+              message: 'Import completed successfully!',
+              summary: progress.summary
+            }));
+            
             toast.success(`Import completed: ${progress.summary.added} added, ${progress.summary.duplicates} duplicates, ${progress.summary.errors} errors`);
-            onSuccess(startResult.runId, progress.summary);
-            onClose();
+            
+            // Wait a moment to show completion, then close
+            setTimeout(() => {
+              onSuccess(startResult.runId, progress.summary);
+              onClose();
+            }, 2000);
+            
             return;
           }
         }
@@ -301,11 +355,35 @@ export function MappingWizard({
       const finalProgressResponse = await fetch(`/api/import/csv/progress?jobId=${jobId}`);
       if (finalProgressResponse.ok) {
         const finalProgress = await finalProgressResponse.json();
+        setImportProgress(prev => ({ 
+          ...prev, 
+          current: totalRows,
+          status: 'completed',
+          message: 'Import completed successfully!',
+          summary: finalProgress.summary
+        }));
+        
         toast.success(`Import completed: ${finalProgress.summary.added} added, ${finalProgress.summary.duplicates} duplicates, ${finalProgress.summary.errors} errors`);
-        onSuccess(startResult.runId, finalProgress.summary);
+        
+        setTimeout(() => {
+          onSuccess(startResult.runId, finalProgress.summary);
+          onClose();
+        }, 2000);
       } else {
+        setImportProgress(prev => ({ 
+          ...prev, 
+          current: totalRows,
+          status: 'completed',
+          message: 'Import completed successfully!',
+          summary: { added: totalAdded, duplicates: totalDuplicates, errors: totalErrors, total: totalRows }
+        }));
+        
         toast.success(`Import completed: ${totalAdded} added, ${totalDuplicates} duplicates, ${totalErrors} errors`);
-        onSuccess(startResult.runId, { added: totalAdded, duplicates: totalDuplicates, errors: totalErrors, total: totalRows });
+        
+        setTimeout(() => {
+          onSuccess(startResult.runId, { added: totalAdded, duplicates: totalDuplicates, errors: totalErrors, total: totalRows });
+          onClose();
+        }, 2000);
       }
       
       onClose();
@@ -411,6 +489,35 @@ export function MappingWizard({
                   </ul>
                 </AlertDescription>
               </Alert>
+            )}
+
+            {/* Progress Bar */}
+            {importProgress.status === 'processing' && (
+              <div className="space-y-2 pt-4">
+                <div className="flex justify-between text-sm">
+                  <span>{importProgress.message}</span>
+                  <span>{importProgress.current} / {importProgress.total}</span>
+                </div>
+                <Progress 
+                  value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} 
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {/* Completion Summary */}
+            {importProgress.status === 'completed' && importProgress.summary && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                <div className="flex items-center gap-2 text-green-800">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">Import Completed!</span>
+                </div>
+                <div className="text-sm text-green-700 mt-2 space-y-1">
+                  <p>• {importProgress.summary.added || 0} trades imported</p>
+                  <p>• {importProgress.summary.duplicates || 0} duplicates skipped</p>
+                  <p>• {importProgress.summary.errors || 0} errors encountered</p>
+                </div>
+              </div>
             )}
 
             {/* Actions */}
