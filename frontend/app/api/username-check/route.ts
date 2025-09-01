@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   );
 
   // Prefer calling a SECURITY DEFINER RPC to avoid exposing table reads via RLS
-  const { data, error } = await supabase.rpc('username_available', { u: username });
+  const { data, error } = await supabase.rpc('username_available', { u: username } as any);
 
   if (error) {
     return NextResponse.json({ available: false, error: error.message }, { status: 500 });

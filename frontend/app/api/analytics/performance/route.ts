@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     asset_classes: assetClasses?.length ? assetClasses : null,
     account_ids: accounts?.length ? accounts : null,
     symbols: symbols?.length ? symbols : null,
-  });
+  } as any);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

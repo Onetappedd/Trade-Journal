@@ -51,7 +51,7 @@ export async function POST(
     const { error: transactionError } = await supabase.rpc('delete_import_run_cascade', {
       p_run_id: runId,
       p_user_id: user.id
-    });
+    } as any);
 
     if (transactionError) {
       console.error('Transaction error:', transactionError);

@@ -72,7 +72,7 @@ export default function AdminUsersPage() {
       
       const { error } = await supabase.rpc('add_admin_user', {
         admin_email: newAdminEmail.trim().toLowerCase()
-      });
+      } as any);
 
       if (error) throw error;
 
@@ -94,7 +94,7 @@ export default function AdminUsersPage() {
       
       const { error } = await supabase.rpc('remove_admin_user', {
         admin_email: email
-      });
+      } as any);
 
       if (error) throw error;
 

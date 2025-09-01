@@ -304,7 +304,7 @@ export async function POST(request: NextRequest) {
       p_mapping: JSON.stringify(importJob.mapping),
       p_offset: offset,
       p_limit: limit
-    });
+    } as any);
 
     if (transactionError) {
       console.error('Transaction error:', transactionError);

@@ -105,7 +105,7 @@ async function mergeInstrumentsHandler(request: NextRequest) {
       p_source_id: sourceId,
       p_target_id: targetId,
       p_admin_user_id: user.id
-    });
+    } as any);
 
     if (mergeError) {
       console.error('Merge transaction error:', mergeError);
