@@ -1,8 +1,9 @@
 "use client";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
 
-let _client: ReturnType<typeof createSupabaseClient> | null = null;
+let _client: ReturnType<typeof createSupabaseClient<Database>> | null = null;
 
 export function createClient() {
   if (_client) return _client;
@@ -15,6 +16,6 @@ export function createClient() {
     );
   }
 
-  _client = createSupabaseClient(url ?? "", key ?? "", { auth: { persistSession: true } });
+  _client = createSupabaseClient<Database>(url ?? "", key ?? "", { auth: { persistSession: true } });
   return _client;
 }

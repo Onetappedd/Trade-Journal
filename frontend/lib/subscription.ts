@@ -40,7 +40,7 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
     return null;
   }
   
-  return data as UserSubscription;
+  return data;
 }
 
 export async function checkUserAccess(userId: string, requiredRole: UserRole = 'free'): Promise<SubscriptionCheck> {

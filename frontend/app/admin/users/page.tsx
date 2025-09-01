@@ -12,23 +12,10 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { UserPlus, UserMinus, Shield, Users, Mail } from 'lucide-react';
 
-interface AdminUser {
-  id: string;
-  email: string;
-  role: string;
-  created_at: string;
-  updated_at: string;
-}
+import type { Database } from '@/lib/supabase/types';
 
-interface UserProfile {
-  id: string;
-  email: string;
-  role: string;
-  subscription_status: string;
-  trial_ends_at: string | null;
-  subscription_ends_at: string | null;
-  access_status: string;
-}
+type AdminUser = Database['public']['Tables']['admin_users']['Row'];
+type UserProfile = Database['public']['Views']['user_subscription_status']['Row'];
 
 export default function AdminUsersPage() {
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
