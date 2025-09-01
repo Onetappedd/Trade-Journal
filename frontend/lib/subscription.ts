@@ -65,9 +65,9 @@ export async function checkUserAccess(userId: string, requiredRole: UserRole = '
   const trialEndsAt = subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null;
   const subscriptionEndsAt = subscription.subscription_ends_at ? new Date(subscription.subscription_ends_at) : null;
   
-  const isTrialActive = subscription.subscription_status === 'trial' && trialEndsAt && trialEndsAt > now;
-  const isSubscriptionActive = subscription.subscription_status === 'active' && 
-    (!subscriptionEndsAt || subscriptionEndsAt > now);
+  const isTrialActive = Boolean(subscription.subscription_status === 'trial' && trialEndsAt && trialEndsAt > now);
+  const isSubscriptionActive = Boolean(subscription.subscription_status === 'active' && 
+    (!subscriptionEndsAt || subscriptionEndsAt > now));
   const isExpired = !isTrialActive && !isSubscriptionActive;
   
   const daysLeftInTrial = isTrialActive && trialEndsAt 
@@ -82,10 +82,7 @@ export async function checkUserAccess(userId: string, requiredRole: UserRole = '
   } else if (requiredRole === 'free') {
     hasAccess = isTrialActive || isSubscriptionActive;
   } else if (requiredRole === 'pro') {
-    hasAccess = (subscription.role === 'pro' || subscription.role === 'admin') && 
-                (isTrialActive || isSubscriptionActive);
-  } else if (requiredRole === 'admin') {
-    hasAccess = subscription.role === 'admin';
+    hasAccess = subscription.role === 'pro' && (isTrialActive || isSubscriptionActive);
   }
   
   return {

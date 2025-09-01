@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // Step 1: Mark stuck runs (>24h processing) as failed
     try {
-      const { data: stuckRuns, error: stuckError } = await supabase.rpc('mark_stuck_import_runs' as any);
+      const { data: stuckRuns, error: stuckError } = await supabase.rpc('mark_stuck_import_runs');
       
       if (stuckError) {
         console.error('Error marking stuck runs:', stuckError);
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     // Step 2: Purge temp_uploads older than 24h
     try {
-      const { data: purgedUploads, error: purgeError } = await supabase.rpc('cleanup_temp_uploads' as any);
+      const { data: purgedUploads, error: purgeError } = await supabase.rpc('cleanup_temp_uploads');
       
       if (purgeError) {
         console.error('Error purging temp uploads:', purgeError);
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     // Step 3: Compact import_jobs rows older than 7 days
     try {
-      const { data: compactedJobs, error: compactError } = await supabase.rpc('compact_old_import_jobs' as any);
+      const { data: compactedJobs, error: compactError } = await supabase.rpc('compact_old_import_jobs');
       
       if (compactError) {
         console.error('Error compacting import jobs:', compactError);
