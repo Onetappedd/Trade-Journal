@@ -104,13 +104,13 @@ export async function upgradeToPro(userId: string): Promise<{ success: boolean; 
   
   // This would typically integrate with Stripe
   // For now, we'll just update the user role
-  const { error } = await supabase
-    .from('profiles' as any)
+  const { error } = await (supabase as any)
+    .from('profiles')
     .update({ 
       role: 'pro',
       subscription_status: 'active',
       subscription_ends_at: null // Set to null for ongoing subscription
-    } as any)
+    })
     .eq('id', userId);
     
   if (error) {
@@ -124,12 +124,12 @@ export async function cancelSubscription(userId: string): Promise<{ success: boo
   const supabase = createClient();
   
   // This would typically integrate with Stripe
-  const { error } = await supabase
-    .from('profiles' as any)
+  const { error } = await (supabase as any)
+    .from('profiles')
     .update({ 
       subscription_status: 'cancelled',
       subscription_ends_at: new Date().toISOString()
-    } as any)
+    })
     .eq('id', userId);
     
   if (error) {
