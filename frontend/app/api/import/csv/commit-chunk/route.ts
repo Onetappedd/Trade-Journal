@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
 
     // Download file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
-      .from('temp-uploads')
+      .from('imports')
       .download(importJob.upload_ref);
 
     if (downloadError || !fileData) {

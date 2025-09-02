@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     const { data: tempUpload, error: uploadError } = await supabase
       .from('temp_uploads')
       .select('*')
-      .eq('upload_token', uploadToken)
+      .eq('token', uploadToken)
       .eq('user_id', user.id)
       .single();
 
@@ -142,17 +142,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Upload token expired' }, { status: 400 });
     }
 
-    // Download file from storage
+    // Download file from storage - construct path from token
+    const filePath = `temp/${user.id}/${uploadToken}`;
     const { data: fileData, error: downloadError } = await supabase.storage
-      .from('temp-uploads')
-      .download(tempUpload.file_path);
+      .from('imports')
+      .download(filePath);
 
     if (downloadError || !fileData) {
       return NextResponse.json({ error: 'Failed to download file' }, { status: 500 });
     }
 
     const buffer = Buffer.from(await fileData.arrayBuffer());
-    const fileType = detectFileType(tempUpload.filename, tempUpload.content_type);
+    const fileType = detectFileType(tempUpload.filename, tempUpload.file_type);
 
     // Count total rows
     const totalRows = await countTotalRows(buffer, fileType);
@@ -193,7 +194,7 @@ export async function POST(request: NextRequest) {
       .insert({
         import_run_id: importRun.id,
         user_id: user.id,
-        upload_ref: tempUpload.file_path,
+        upload_ref: filePath,
         mapping: mapping,
         options: options || {},
         total_rows: totalRows,
