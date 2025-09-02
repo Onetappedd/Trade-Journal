@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
-import { parse } from 'csv-parse';
+import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { XMLParser } from 'fast-xml-parser';
 import { randomBytes } from 'crypto';
@@ -21,33 +21,24 @@ function detectFileType(filename: string, contentType: string): 'csv' | 'tsv' | 
   return 'csv';
 }
 
-// Parse CSV/TSV sample
-async function parseCsvSample(buffer: Buffer, delimiter: string = ','): Promise<{ headers: string[], rows: any[] }> {
+// Parse CSV/TSV sample using Papa Parse (like the old working implementation)
+async function parseCsvSample(buffer: Buffer, fileType: string): Promise<{ headers: string[], rows: any[] }> {
   return new Promise((resolve, reject) => {
-    const parser = parse({
+    const csvString = buffer.toString('utf-8');
+    const delimiter = fileType === 'tsv' ? '\t' : ',';
+    
+    Papa.parse(csvString, {
       delimiter,
-      columns: true,
-      skip_empty_lines: true,
-      max_record_size: 1024 * 1024, // 1MB max record
+      header: true,
+      skipEmptyLines: true,
+      preview: 50, // Only parse first 50 rows for sample
+      complete: (results: any) => {
+        const headers = (results.meta?.fields || []) as string[];
+        const rows = (results.data || []) as any[];
+        resolve({ headers, rows });
+      },
+      error: (error: any) => reject(error),
     });
-
-    const rows: any[] = [];
-    let headers: string[] = [];
-
-    parser.on('readable', () => {
-      let record;
-      while ((record = parser.read()) && rows.length < 50) {
-        if (rows.length === 0) {
-          headers = Object.keys(record);
-        }
-        rows.push(record);
-      }
-    });
-
-    parser.on('error', reject);
-    parser.on('end', () => resolve({ headers, rows }));
-    parser.write(buffer);
-    parser.end();
   });
 }
 
@@ -153,24 +144,40 @@ function parseFlexXmlSample(buffer: Buffer): { headers: string[], rows: any[] } 
 function generateMappingGuess(headers: string[], brokerHint?: string): Record<string, string | undefined> {
   const guess: Record<string, string | undefined> = {};
   
-     const headerMap: Record<string, string[]> = {
-     timestamp: ['time', 'datetime', 'date', 'timestamp', 'trade_time', 'execution_time'],
-     symbol: ['symbol', 'ticker', 'instrument', 'security'],
-     side: ['side', 'action', 'buy_sell', 'type'],
-     quantity: ['quantity', 'qty', 'shares', 'size', 'amount'],
-     price: ['price', 'execution_price', 'fill_price', 'trade_price'],
-     fees: ['fees', 'commission', 'commission_and_fees', 'total_fees'],
-     currency: ['currency', 'curr'],
-     venue: ['venue', 'exchange', 'market'],
-     order_id: ['order_id', 'orderid', 'order_number', 'orderid'],
-     exec_id: ['exec_id', 'execid', 'execution_id', 'execid'],
-     instrument_type: ['instrument_type', 'type', 'security_type', 'instrumenttype'],
-     expiry: ['expiry', 'expiration', 'exp_date'],
-     strike: ['strike', 'strike_price'],
-     option_type: ['option_type', 'put_call', 'optiontype'],
-     multiplier: ['multiplier', 'contract_size'],
-     underlying: ['underlying', 'underlying_symbol'],
-   };
+  // Auto-detect Webull options format
+  if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side')) {
+    // This looks like Webull options - apply specific mapping
+    guess.timestamp = 'Filled Time';
+    guess.symbol = 'Name';
+    guess.side = 'Side';
+    guess.quantity = 'Filled';
+    guess.price = 'Avg Price';
+    guess.fees = 'Fees';
+    
+    // For options, we'll extract additional info from the Name column
+    // The Name column contains: QQQ250822P00563000 (Symbol + Expiry + Type + Strike)
+    console.log('Auto-detected Webull options format');
+    return guess;
+  }
+  
+  const headerMap: Record<string, string[]> = {
+    timestamp: ['time', 'datetime', 'date', 'timestamp', 'trade_time', 'execution_time', 'filled_time'],
+    symbol: ['symbol', 'ticker', 'instrument', 'security', 'name'],
+    side: ['side', 'action', 'buy_sell', 'type'],
+    quantity: ['quantity', 'qty', 'shares', 'size', 'amount', 'filled'],
+    price: ['price', 'execution_price', 'fill_price', 'trade_price', 'avg_price'],
+    fees: ['fees', 'commission', 'commission_and_fees', 'total_fees'],
+    currency: ['currency', 'curr'],
+    venue: ['venue', 'exchange', 'market'],
+    order_id: ['order_id', 'orderid', 'order_number', 'orderid'],
+    exec_id: ['exec_id', 'execid', 'execution_id', 'execid'],
+    instrument_type: ['instrument_type', 'type', 'security_type', 'instrumenttype'],
+    expiry: ['expiry', 'expiration', 'exp_date'],
+    strike: ['strike', 'strike_price'],
+    option_type: ['option_type', 'put_call', 'optiontype'],
+    multiplier: ['multiplier', 'contract_size'],
+    underlying: ['underlying', 'underlying_symbol'],
+  };
 
   // Apply broker-specific mappings
   const brokerMappings: Record<string, Record<string, string[]>> = {
@@ -391,7 +398,7 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
 }
 
 async function csvInitHandler(request: NextRequest): Promise<NextResponse> {
-  // Add timeout protection
+  // Add timeout protection - increased to 45 seconds for large files
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('Request timeout')), 45000); // 45 second timeout
   });
