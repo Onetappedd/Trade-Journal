@@ -295,7 +295,7 @@ export function MappingWizard({
         setImportProgress(prev => ({ 
           ...prev, 
           current: processedRows,
-          message: `Processing rows ${processedRows + 1} to ${Math.min(processedRows + chunkSize, totalRows)} of ${totalRows}...`
+          message: `Processing rows ${processedRows + 1} to ${Math.min(processedRows + chunkSize, totalRows)} of ${totalRows}... (${Math.round((processedRows / totalRows) * 100)}% complete)`
         }));
 
         // Process chunk
@@ -390,6 +390,14 @@ export function MappingWizard({
       
     } catch (error) {
       console.error('Commit error:', error);
+      
+      // Set error status for display
+      setImportProgress(prev => ({
+        ...prev,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to commit import'
+      }));
+      
       toast.error(error instanceof Error ? error.message : 'Failed to commit import');
     } finally {
       setIsCommitting(false);
@@ -493,15 +501,43 @@ export function MappingWizard({
 
             {/* Progress Bar */}
             {importProgress.status === 'processing' && (
-              <div className="space-y-2 pt-4">
-                <div className="flex justify-between text-sm">
-                  <span>{importProgress.message}</span>
-                  <span>{importProgress.current} / {importProgress.total}</span>
+              <div className="space-y-4 pt-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-blue-800 mb-3">
+                    <Clock className="h-5 w-5 animate-spin" />
+                    <span className="font-medium">Importing Your Data...</span>
+                  </div>
+                  
+                  {/* Progress Details */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-700">{importProgress.message}</span>
+                      <span className="font-medium text-blue-800">
+                        {importProgress.current.toLocaleString()} / {importProgress.total.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    {/* Main Progress Bar */}
+                    <Progress 
+                      value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} 
+                      className="w-full h-3"
+                    />
+                    
+                    {/* Progress Percentage */}
+                    <div className="text-center">
+                      <span className="text-sm font-medium text-blue-800">
+                        {importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0}% Complete
+                      </span>
+                    </div>
+                    
+                    {/* Estimated Time */}
+                    {importProgress.current > 0 && (
+                      <div className="text-xs text-blue-600 text-center">
+                        Processing approximately {Math.ceil((importProgress.total - importProgress.current) / 2000)} more chunks...
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Progress 
-                  value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} 
-                  className="w-full"
-                />
               </div>
             )}
 
@@ -516,6 +552,35 @@ export function MappingWizard({
                   <p>• {importProgress.summary.added || 0} trades imported</p>
                   <p>• {importProgress.summary.duplicates || 0} duplicates skipped</p>
                   <p>• {importProgress.summary.errors || 0} errors encountered</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {importProgress.status === 'error' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                <div className="flex items-center gap-2 text-red-800">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="font-medium">Import Failed</span>
+                </div>
+                <div className="text-sm text-red-700 mt-2 space-y-2">
+                  <p className="font-medium">Error Details:</p>
+                  <div className="bg-red-100 p-3 rounded border border-red-200">
+                    <p className="font-mono text-xs break-words">
+                      {importProgress.message}
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setImportProgress(prev => ({ ...prev, status: 'idle', message: '', summary: null }));
+                      }}
+                    >
+                      Try Again
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

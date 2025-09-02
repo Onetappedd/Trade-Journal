@@ -175,6 +175,19 @@ export function CsvImportCard() {
           <p className="text-xs text-muted-foreground mt-1">
             Supports .csv, .tsv, .xls, .xlsx, .xml (IBKR Flex) files
           </p>
+          
+          {/* Processing Indicator */}
+          {isProcessing && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span>Analyzing file structure...</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                This may take a few seconds for large files
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Recent Uploads */}
