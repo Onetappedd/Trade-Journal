@@ -225,13 +225,39 @@ export function CsvImportCard() {
                 <li>Server timeout - try with a smaller file</li>
                 <li>Database connection issues</li>
               </ul>
-              <div className="mt-3">
+              <div className="mt-3 space-y-2">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setUploads([])}
                 >
                   Clear Errors & Try Again
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/test-db');
+                      const result = await response.json();
+                      console.log('Database test result:', result);
+                      if (result.success) {
+                        toast.success('Database connection test passed', {
+                          description: `Total time: ${result.timing.total}ms`
+                        });
+                      } else {
+                        toast.error('Database connection test failed', {
+                          description: result.details
+                        });
+                      }
+                    } catch (error) {
+                      toast.error('Database test failed', {
+                        description: error instanceof Error ? error.message : 'Unknown error'
+                      });
+                    }
+                  }}
+                >
+                  Test Database Connection
                 </Button>
               </div>
             </div>

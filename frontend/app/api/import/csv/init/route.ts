@@ -238,85 +238,85 @@ function generateMappingGuess(headers: string[], brokerHint?: string): Record<st
 }
 
 async function csvInitHandlerInternal(request: NextRequest): Promise<NextResponse> {
+  const startTime = Date.now();
+  const supabase = getServerSupabase();
+  
   try {
-    const supabase = getServerSupabase();
-    
-    // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // Get user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userAuthTime = Date.now();
+    console.log(`[CSV Init] User auth: ${userAuthTime - startTime}ms`);
+
+    // Parse form data
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const brokerHint = formData.get('broker_hint') as string;
-
+    
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file size (10MB max)
+    const formParseTime = Date.now();
+    console.log(`[CSV Init] Form parse: ${formParseTime - userAuthTime}ms`);
+
+    // Check file size
     if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // Detect file type
     const fileType = detectFileType(file.name, file.type);
+    const fileTypeTime = Date.now();
+    console.log(`[CSV Init] File type detection: ${fileTypeTime - formParseTime}ms`);
 
-    // Log file upload with sanitized data
-    console.log('CSV init upload:', {
-      userId: user.id,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType,
-      brokerHint,
-      timestamp: new Date().toISOString()
-    });
-
-    // Parse sample data based on file type
+    // Parse sample data
+    const buffer = Buffer.from(await file.arrayBuffer());
+    let sampleRows: any[] = [];
     let headers: string[] = [];
-    let rows: any[] = [];
 
+    const parseStartTime = Date.now();
+    
     try {
-      switch (fileType) {
-        case 'csv':
-          ({ headers, rows } = await parseCsvSample(buffer, ','));
-          break;
-        case 'tsv':
-          ({ headers, rows } = await parseCsvSample(buffer, '\t'));
-          break;
-        case 'xlsx':
-        case 'xls':
-          ({ headers, rows } = parseExcelSample(buffer));
-          break;
-        case 'xml':
-          ({ headers, rows } = parseFlexXmlSample(buffer));
-          break;
-        default:
-          return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+      if (fileType === 'csv' || fileType === 'tsv') {
+        const result = await parseCsvSample(buffer, fileType);
+        sampleRows = result.rows;
+        headers = result.headers;
+      } else if (fileType === 'xlsx' || fileType === 'xls') {
+        const result = await parseExcelSample(buffer);
+        sampleRows = result.rows;
+        headers = result.headers;
+      } else if (fileType === 'xml') {
+        const result = await parseFlexXmlSample(buffer);
+        sampleRows = result.rows;
+        headers = result.headers;
       }
     } catch (parseError) {
-      console.error('Parse error:', {
-        userId: user.id,
-        fileName: file.name,
-        fileType,
-        error: parseError instanceof Error ? parseError.message : 'Unknown error'
-      });
-      return NextResponse.json({ error: 'Failed to parse file' }, { status: 400 });
+      console.error('Parse error:', parseError);
+      return NextResponse.json({ 
+        error: 'Failed to parse file',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+      }, { status: 400 });
     }
 
-    if (headers.length === 0) {
-      return NextResponse.json({ error: 'No valid headers found' }, { status: 400 });
-    }
+    const parseTime = Date.now();
+    console.log(`[CSV Init] File parsing: ${parseTime - parseStartTime}ms`);
 
     // Generate mapping guess
-    const guess = generateMappingGuess(headers, brokerHint);
+    const guess = generateMappingGuess(headers, fileType);
+    const guessTime = Date.now();
+    console.log(`[CSV Init] Mapping guess: ${guessTime - parseTime}ms`);
 
     // Generate upload token
-    const uploadToken = randomBytes(32).toString('hex');
-
-    // Store file in temporary storage (15 minutes)
+    const uploadToken = randomBytes(16).toString('hex');
     const tempKey = `temp/${user.id}/${uploadToken}`;
+
+    // Upload to storage
+    const storageStartTime = Date.now();
+    console.log(`[CSV Init] Starting storage upload to: ${tempKey}`);
+    
     const { error: storageError } = await supabase.storage
       .from('imports')
       .upload(tempKey, buffer, {
@@ -328,12 +328,19 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
       console.error('Storage error:', {
         userId: user.id,
         fileName: file.name,
-        error: storageError.message
+        error: storageError.message,
+        storageTime: Date.now() - storageStartTime
       });
-      return NextResponse.json({ error: 'Failed to store file' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to store file', details: storageError.message }, { status: 500 });
     }
 
-    // Store metadata in database for cleanup
+    const storageTime = Date.now();
+    console.log(`[CSV Init] Storage upload: ${storageTime - storageStartTime}ms`);
+
+    // Store metadata in database
+    const dbStartTime = Date.now();
+    console.log(`[CSV Init] Starting database insert`);
+    
     const { error: dbError } = await supabase.from('temp_uploads').insert({
       token: uploadToken,
       user_id: user.id,
@@ -347,8 +354,7 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
         userId: user.id,
         fileName: file.name,
         error: dbError.message,
-        details: dbError.details,
-        hint: dbError.hint
+        dbTime: Date.now() - dbStartTime
       });
       return NextResponse.json({ 
         error: 'Failed to store file metadata',
@@ -356,28 +362,25 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
       }, { status: 500 });
     }
 
-    // Log successful initialization
-    console.log('CSV init completed:', {
-      userId: user.id,
-      fileName: file.name,
-      uploadToken: uploadToken.substring(0, 8) + '...',
-      headerCount: headers.length,
-      sampleRowCount: rows.length,
-      timestamp: new Date().toISOString()
-    });
+    const dbTime = Date.now();
+    console.log(`[CSV Init] Database insert: ${dbTime - dbStartTime}ms`);
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[CSV Init] Total processing time: ${totalTime}ms`);
 
     return NextResponse.json({
-      sampleRows: rows,
+      uploadToken,
+      sampleRows,
       headers,
       guess,
-      uploadToken,
       fileType,
     });
   } catch (error) {
     console.error('Unexpected error in CSV init:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      totalTime: Date.now() - startTime
     });
     
     return NextResponse.json({ 
@@ -390,7 +393,7 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
 async function csvInitHandler(request: NextRequest): Promise<NextResponse> {
   // Add timeout protection
   const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Request timeout')), 25000); // 25 second timeout
+    setTimeout(() => reject(new Error('Request timeout')), 45000); // 45 second timeout
   });
 
   try {
