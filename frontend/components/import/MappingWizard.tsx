@@ -190,22 +190,34 @@ export function MappingWizard({
     // Check if this looks like Webull options data
     if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
         headers.includes('Filled') && headers.includes('Avg Price')) {
-      // Auto-apply Webull preset
-      const webullPreset = BROKER_PRESETS.webull;
-      const newMapping: Record<string, string> = {};
+      // Auto-apply comprehensive Webull options mapping
+      const newMapping: Record<string, string | undefined> = {
+        timestamp: 'Filled Time',
+        symbol: 'Name',
+        side: 'Side',
+        quantity: 'Filled',
+        price: 'Avg Price',
+        fees: headers.includes('Fees') ? 'Fees' : undefined,
+        currency: 'USD', // Webull is typically USD
+        venue: 'NASDAQ', // Webull options are typically NASDAQ
+        order_id: headers.includes('Order ID') ? 'Order ID' : undefined,
+        exec_id: headers.includes('Exec ID') ? 'Exec ID' : undefined,
+        instrument_type: 'option', // Always options for Webull
+        expiry: 'Name', // Will be extracted from Name column
+        strike: 'Name', // Will be extracted from Name column
+        option_type: 'Name', // Will be extracted from Name column
+        multiplier: '100', // Standard options multiplier
+        underlying: 'Name', // Will be extracted from Name column
+      };
       
-      // Only apply mappings for headers that exist
-      for (const [canonicalField, headerName] of Object.entries(webullPreset.mapping)) {
-        if (headers.includes(headerName)) {
-          newMapping[canonicalField] = headerName;
-        }
-      }
+      // Filter out undefined values and convert to Record<string, string>
+      const filteredMapping: Record<string, string> = Object.fromEntries(
+        Object.entries(newMapping).filter(([_, value]) => value !== undefined) as [string, string][]
+      );
       
-      // Set the mapping if we have valid mappings
-      if (Object.keys(newMapping).length > 0) {
-        setMapping(newMapping);
-        console.log('Auto-applied Webull options preset');
-      }
+      // Set the mapping
+      setMapping(filteredMapping);
+      console.log('Auto-applied comprehensive Webull options preset');
     }
   }, [headers]);
 
@@ -251,7 +263,7 @@ export function MappingWizard({
 
   // Generate preview data
   const previewData = useMemo(() => {
-    return sampleRows.slice(0, 10).map((row, index) => {
+    return sampleRows.slice(0, 20).map((row, index) => {
       const preview: any = { row: index + 1 };
       
       for (const [canonicalField, headerName] of Object.entries(mapping)) {
@@ -448,24 +460,28 @@ export function MappingWizard({
             <div>
               <h3 className="text-lg font-semibold mb-3">Broker Presets</h3>
               
-              {/* Auto-detection indicator */}
-              {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
-               headers.includes('Filled') && headers.includes('Avg Price') && (
-                <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-green-800">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="text-sm font-medium">Webull Options format auto-detected!</span>
-                  </div>
-                  <p className="text-xs text-green-700 mt-1">The mapping has been automatically configured for your Webull options data.</p>
-                  <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
-                    <p className="font-medium">Options Contract Parsing:</p>
-                    <p>• <strong>Symbol:</strong> Will extract underlying (QQQ, AMD, TSLA) from Name column</p>
-                    <p>• <strong>Expiry:</strong> Will parse expiration date from Name column</p>
-                    <p>• <strong>Strike:</strong> Will extract strike price from Name column</p>
-                    <p>• <strong>Type:</strong> Will determine Call/Put from Name column</p>
-                  </div>
-                </div>
-              )}
+                             {/* Auto-detection indicator */}
+               {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+                headers.includes('Filled') && headers.includes('Avg Price') && (
+                 <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                   <div className="flex items-center gap-2 text-green-800">
+                     <CheckCircle className="h-4 w-4" />
+                     <span className="text-sm font-medium">Webull Options format fully auto-configured! 🎯</span>
+                   </div>
+                   <p className="text-xs text-green-700 mt-1">All fields have been automatically mapped - no user input required!</p>
+                   <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
+                     <p className="font-medium">Auto-configured Fields:</p>
+                     <p>• <strong>Timestamp:</strong> Filled Time</p>
+                     <p>• <strong>Symbol:</strong> Name (will extract underlying from options contract)</p>
+                     <p>• <strong>Side:</strong> Side (Buy/Sell)</p>
+                     <p>• <strong>Quantity:</strong> Filled</p>
+                     <p>• <strong>Price:</strong> Avg Price</p>
+                     <p>• <strong>Instrument Type:</strong> Option (auto-set)</p>
+                     <p>• <strong>Multiplier:</strong> 100 (standard options)</p>
+                     <p className="mt-2 font-medium text-green-900">✅ Ready to import - click "Import Data" below!</p>
+                   </div>
+                 </div>
+               )}
               
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(BROKER_PRESETS).map(([key, preset]) => (
@@ -517,14 +533,17 @@ export function MappingWizard({
                           {mapping[field.key] || ''}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">(none)</SelectItem>
-                        {headers.filter(header => header && header.trim() !== '').map((header) => (
-                          <SelectItem key={header} value={header}>
-                            {header}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                                             <SelectContent 
+                         className="!bg-white !border-gray-200 !shadow-lg" 
+                         style={{ backgroundColor: 'white', '--tw-bg-opacity': '1' } as React.CSSProperties}
+                       >
+                         <SelectItem value="none" className="!bg-white hover:!bg-gray-100 focus:!bg-gray-100">(none)</SelectItem>
+                         {headers.filter(header => header && header.trim() !== '').map((header) => (
+                           <SelectItem key={header} value={header} className="!bg-white hover:!bg-gray-100 focus:!bg-gray-100">
+                             {header}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
                     </Select>
                   </div>
                 ))}
@@ -658,8 +677,8 @@ export function MappingWizard({
 
           {/* Right Panel - Preview */}
           <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Preview (First 10 Rows)</h3>
+                         <div>
+               <h3 className="text-lg font-semibold mb-3">Preview (First 20 Rows)</h3>
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -688,15 +707,22 @@ export function MappingWizard({
               </div>
             </div>
 
-            {/* Summary */}
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Import Summary</h4>
-              <div className="text-sm space-y-1">
-                <p>• {sampleRows.length} total rows detected</p>
-                <p>• {Object.keys(mapping).filter(k => mapping[k]).length} fields mapped</p>
-                <p>• {CANONICAL_FIELDS.filter(f => f.required && mapping[f.key]).length}/{CANONICAL_FIELDS.filter(f => f.required).length} required fields</p>
-              </div>
-            </div>
+                         {/* Summary */}
+             <div className="bg-muted p-4 rounded-lg">
+               <h4 className="font-medium mb-2">Import Summary</h4>
+               <div className="text-sm space-y-1">
+                 <p>• {sampleRows.length} total rows detected</p>
+                 <p>• {Object.keys(mapping).filter(k => mapping[k]).length} fields mapped</p>
+                 <p>• {CANONICAL_FIELDS.filter(f => f.required && mapping[f.key]).length}/{CANONICAL_FIELDS.filter(f => f.required).length} required fields</p>
+                 {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+                  headers.includes('Filled') && headers.includes('Avg Price') && (
+                   <div className="mt-3 p-2 bg-green-100 rounded border border-green-200">
+                     <p className="text-xs text-green-800 font-medium">🎯 Webull Options Import</p>
+                     <p className="text-xs text-green-700">All fields auto-configured for options trading</p>
+                   </div>
+                 )}
+               </div>
+             </div>
           </div>
         </div>
       </DialogContent>

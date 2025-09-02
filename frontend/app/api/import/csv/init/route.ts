@@ -27,12 +27,12 @@ async function parseCsvSample(buffer: Buffer, fileType: string): Promise<{ heade
     const csvString = buffer.toString('utf-8');
     const delimiter = fileType === 'tsv' ? '\t' : ',';
     
-    Papa.parse(csvString, {
-      delimiter,
-      header: true,
-      skipEmptyLines: true,
-      preview: 50, // Only parse first 50 rows for sample
-      complete: (results: any) => {
+           Papa.parse(csvString, {
+         delimiter,
+         header: true,
+         skipEmptyLines: true,
+         preview: 1000, // Parse first 1000 rows for sample
+         complete: (results: any) => {
         const headers = (results.meta?.fields || []) as string[];
         const rows = (results.data || []) as any[];
         resolve({ headers, rows });
@@ -55,7 +55,7 @@ function parseExcelSample(buffer: Buffer): { headers: string[], rows: any[] } {
   }
 
   const headers = jsonData[0] as string[];
-  const rows = jsonData.slice(1, 51).map((row: any) => {
+     const rows = jsonData.slice(1, 1001).map((row: any) => {
     const obj: any = {};
     headers.forEach((header, index) => {
       obj[header] = row[index];
@@ -86,7 +86,7 @@ function parseFlexXmlSample(buffer: Buffer): { headers: string[], rows: any[] } 
       ? parsed.FlexQueryResponse.Trades.Trade 
       : [parsed.FlexQueryResponse.Trades.Trade];
     
-    tradeArray.slice(0, 50).forEach((trade: any) => {
+         tradeArray.slice(0, 1000).forEach((trade: any) => {
       trades.push({
         dateTime: trade.dateTime || trade['@_dateTime'],
         symbol: trade.symbol,
@@ -114,7 +114,7 @@ function parseFlexXmlSample(buffer: Buffer): { headers: string[], rows: any[] } 
       ? parsed.FlexQueryResponse.OptionEAE.OptionEAE
       : [parsed.FlexQueryResponse.OptionEAE.OptionEAE];
     
-    optionArray.slice(0, 50).forEach((option: any) => {
+         optionArray.slice(0, 1000).forEach((option: any) => {
       trades.push({
         dateTime: option.dateTime || option['@_dateTime'],
         symbol: option.symbol,
