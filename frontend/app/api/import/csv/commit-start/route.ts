@@ -144,13 +144,35 @@ export async function POST(request: NextRequest) {
 
     // Download file from storage - construct path from token
     const filePath = `temp/${user.id}/${uploadToken}`;
+    console.log(`[Commit Start] Attempting to download file from path: ${filePath}`);
+    console.log(`[Commit Start] User ID: ${user.id}, Upload Token: ${uploadToken}`);
+    
+    // First, let's check what files exist in the user's directory
+    const { data: files, error: listError } = await supabase.storage
+      .from('imports')
+      .list(`temp/${user.id}`);
+    
+    if (listError) {
+      console.error(`[Commit Start] Failed to list files:`, listError);
+    } else {
+      console.log(`[Commit Start] Files in user directory:`, files);
+    }
+    
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('imports')
       .download(filePath);
 
     if (downloadError || !fileData) {
-      return NextResponse.json({ error: 'Failed to download file' }, { status: 500 });
+      console.error(`[Commit Start] Download failed:`, {
+        filePath,
+        userId: user.id,
+        uploadToken,
+        error: downloadError?.message || 'No file data'
+      });
+      return NextResponse.json({ error: 'Failed to download file', details: downloadError?.message || 'No file data' }, { status: 500 });
     }
+    
+    console.log(`[Commit Start] File downloaded successfully, size: ${fileData.size} bytes`);
 
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const fileType = detectFileType(tempUpload.filename, tempUpload.file_type);

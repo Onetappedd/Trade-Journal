@@ -323,6 +323,8 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
     // Upload to storage
     const storageStartTime = Date.now();
     console.log(`[CSV Init] Starting storage upload to: ${tempKey}`);
+    console.log(`[CSV Init] User ID: ${user.id}, Upload Token: ${uploadToken}`);
+    console.log(`[CSV Init] Full storage path: imports/${tempKey}`);
     
     const { error: storageError } = await supabase.storage
       .from('imports')
