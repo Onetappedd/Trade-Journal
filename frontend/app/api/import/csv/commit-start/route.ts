@@ -156,6 +156,17 @@ export async function POST(request: NextRequest) {
       console.error(`[Commit Start] Failed to list files:`, listError);
     } else {
       console.log(`[Commit Start] Files in user directory:`, files);
+      console.log(`[Commit Start] Looking for file with token: ${uploadToken}`);
+      
+      // Check if our specific file exists
+      if (files && files.length > 0) {
+        const targetFile = files.find(f => f.name === uploadToken);
+        if (targetFile) {
+          console.log(`[Commit Start] Found target file:`, targetFile);
+        } else {
+          console.log(`[Commit Start] Target file not found. Available files:`, files.map(f => f.name));
+        }
+      }
     }
     
     const { data: fileData, error: downloadError } = await supabase.storage

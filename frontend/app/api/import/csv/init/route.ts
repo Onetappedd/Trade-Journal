@@ -333,30 +333,47 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
         upsert: true,
       });
 
-    if (storageError) {
-      console.error('Storage error:', {
-        userId: user.id,
-        fileName: file.name,
-        error: storageError.message,
-        storageTime: Date.now() - storageStartTime
-      });
-      return NextResponse.json({ error: 'Failed to store file', details: storageError.message }, { status: 500 });
-    }
+         if (storageError) {
+       console.error('Storage error:', {
+         userId: user.id,
+         fileName: file.name,
+         error: storageError.message,
+         storageTime: Date.now() - storageStartTime
+       });
+       return NextResponse.json({ error: 'Failed to store file', details: storageError.message }, { status: 500 });
+     }
 
-    const storageTime = Date.now();
-    console.log(`[CSV Init] Storage upload: ${storageTime - storageStartTime}ms`);
+     const storageTime = Date.now();
+     console.log(`[CSV Init] Storage upload: ${storageTime - storageStartTime}ms`);
+     
+     // Verify the file was actually uploaded
+     const { data: uploadedFile, error: verifyError } = await supabase.storage
+       .from('imports')
+       .list(`temp/${user.id}`);
+     
+     if (verifyError) {
+       console.error('Failed to verify upload:', verifyError);
+     } else {
+       console.log(`[CSV Init] Files in directory after upload:`, uploadedFile);
+       const targetFile = uploadedFile?.find(f => f.name === uploadToken);
+       if (targetFile) {
+         console.log(`[CSV Init] Successfully verified file upload:`, targetFile);
+       } else {
+         console.error(`[CSV Init] File not found after upload! Looking for: ${uploadToken}`);
+       }
+     }
 
     // Store metadata in database
     const dbStartTime = Date.now();
     console.log(`[CSV Init] Starting database insert`);
     
-    const { error: dbError } = await supabase.from('temp_uploads').insert({
-      token: uploadToken,
-      user_id: user.id,
-      filename: file.name,
-      file_type: fileType,
-      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    });
+         const { error: dbError } = await supabase.from('temp_uploads').insert({
+       token: uploadToken,
+       user_id: user.id,
+       filename: file.name,
+       file_type: fileType,
+       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours to match commit-start check
+     });
 
     if (dbError) {
       console.error('Database error:', {
