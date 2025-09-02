@@ -23,30 +23,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing jobId parameter' }, { status: 400 });
     }
 
-    // Get import job progress
-    const { data: jobProgress, error: progressError } = await supabase
-      .from('import_job_progress')
+    // Get import run details directly
+    const { data: importRun, error: runError } = await supabase
+      .from('import_runs')
       .select('*')
-      .eq('job_id', jobId)
+      .eq('id', jobId)
       .eq('user_id', user.id)
       .single();
 
-    if (progressError || !jobProgress) {
-      return NextResponse.json({ error: 'Invalid job ID' }, { status: 400 });
+    if (runError || !importRun) {
+      return NextResponse.json({ error: 'Invalid import run ID' }, { status: 400 });
     }
 
-    // Check if job is completed
-    if (jobProgress.processed_rows >= jobProgress.total_rows && jobProgress.status === 'processing') {
-      // Get final summary from import run
-      const { data: importRun, error: runError } = await supabase
-        .from('import_runs')
-        .select('summary')
-        .eq('id', jobProgress.import_run_id)
-        .single();
+    // Create a progress object from the import run
+    const jobProgress = {
+      processed_rows: importRun.summary?.added || 0,
+      total_rows: importRun.summary?.total || 0,
+      status: importRun.status,
+      import_run_id: importRun.id
+    };
 
-      if (!runError && importRun) {
+    // Check if job is completed
+    if (jobProgress.processed_rows >= jobProgress.total_rows && importRun.status === 'processing') {
+              // Get final summary from import run (already have it)
         const summary = importRun.summary || {};
-        const errors = summary.errors || 0;
+
+              const errors = summary.errors || 0;
         const added = summary.added || 0;
 
         // Determine final status
@@ -57,15 +59,6 @@ export async function GET(request: NextRequest) {
           finalStatus = 'success';
         }
 
-        // Update job status
-        await supabase
-          .from('import_jobs')
-          .update({
-            status: 'completed',
-            finished_at: new Date().toISOString()
-          })
-          .eq('id', jobId);
-
         // Update import run status
         await supabase
           .from('import_runs')
@@ -73,13 +66,15 @@ export async function GET(request: NextRequest) {
             status: finalStatus,
             finished_at: new Date().toISOString()
           })
-          .eq('id', jobProgress.import_run_id);
+          .eq('id', jobId);
+
+
 
         // Run matching engine in background (fire-and-forget)
         try {
           await matchUserTrades({ 
             userId: user.id, 
-            sinceImportRunId: jobProgress.import_run_id 
+            sinceImportRunId: jobId 
           });
         } catch (matchError) {
           console.error('Background matching error:', matchError);
@@ -103,12 +98,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Return current progress
+    const progressPercentage = jobProgress.total_rows > 0 ? 
+      Math.round((jobProgress.processed_rows / jobProgress.total_rows) * 100) : 0;
+    const remainingRows = Math.max(0, jobProgress.total_rows - jobProgress.processed_rows);
+    
     return NextResponse.json({
       processed: jobProgress.processed_rows,
       total: jobProgress.total_rows,
       status: jobProgress.status,
-      progressPercentage: jobProgress.progress_percentage,
-      remainingRows: jobProgress.remaining_rows,
+      progressPercentage: progressPercentage,
+      remainingRows: remainingRows,
       message: `Processing... ${jobProgress.processed_rows}/${jobProgress.total_rows} rows`
     });
 

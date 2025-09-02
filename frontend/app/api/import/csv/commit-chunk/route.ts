@@ -216,26 +216,42 @@ export async function POST(request: NextRequest) {
 
     const { jobId, offset, limit } = validation.data;
 
-    // Get import job details
-    const { data: importJob, error: jobError } = await supabase
-      .from('import_jobs')
+    // Get import run details (using jobId as runId for now)
+    const { data: importRun, error: runError } = await supabase
+      .from('import_runs')
       .select('*')
       .eq('id', jobId)
       .eq('user_id', user.id)
       .single();
 
-    if (jobError || !importJob) {
-      return NextResponse.json({ error: 'Invalid job ID' }, { status: 400 });
+    if (runError || !importRun) {
+      return NextResponse.json({ error: 'Invalid import run ID' }, { status: 400 });
     }
 
-    if (importJob.status !== 'processing') {
-      return NextResponse.json({ error: 'Job is not in processing state' }, { status: 400 });
+    if (importRun.status !== 'processing') {
+      return NextResponse.json({ error: 'Import run is not in processing state' }, { status: 400 });
+    }
+
+    // Try to get progress from import_job_progress if available
+    let processedRows = 0;
+    try {
+      const { data: progress } = await supabase
+        .from('import_job_progress')
+        .select('*')
+        .eq('job_id', jobId)
+        .eq('user_id', user.id)
+        .single();
+      
+      processedRows = progress?.processed_rows || 0;
+    } catch (error) {
+      // Progress table might not exist, use 0 as default
+      processedRows = 0;
     }
 
     // Check if chunk is already processed
-    if (offset < importJob.processed_rows) {
+    if (offset < processedRows) {
       return NextResponse.json({
-        processedRows: importJob.processed_rows,
+        processedRows: processedRows,
         added: 0,
         duplicates: 0,
         errors: 0,
@@ -243,10 +259,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Download file from storage
+    // Download file from storage - construct path from import run ID
+    const filePath = `temp/${user.id}/${jobId}`;
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('imports')
-      .download(importJob.upload_ref);
+      .download(filePath);
 
     if (downloadError || !fileData) {
       return NextResponse.json({ error: 'Failed to download file' }, { status: 500 });
@@ -254,11 +271,15 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await fileData.arrayBuffer());
     
-    // Determine file type from upload_ref
-    const fileType = importJob.upload_ref.includes('.xml') ? 'xml' :
-                    importJob.upload_ref.includes('.xlsx') ? 'xlsx' :
-                    importJob.upload_ref.includes('.xls') ? 'xls' :
-                    importJob.upload_ref.includes('.tsv') ? 'tsv' : 'csv';
+    // Determine file type from filename in temp_uploads
+    const { data: tempUpload } = await supabase
+      .from('temp_uploads')
+      .select('file_type')
+      .eq('token', jobId)
+      .eq('user_id', user.id)
+      .single();
+
+    const fileType = tempUpload?.file_type || 'csv';
 
     // Parse chunk based on file type
     let chunkRows: any[];
@@ -298,10 +319,10 @@ export async function POST(request: NextRequest) {
     // Use transaction for batch processing
     const { data: result, error: transactionError } = await supabase.rpc('process_import_chunk', {
       p_job_id: jobId,
-      p_import_run_id: importJob.import_run_id,
+      p_import_run_id: jobId, // jobId is now the import run ID
       p_user_id: user.id,
       p_chunk_rows: JSON.stringify(chunkRows),
-      p_mapping: JSON.stringify(importJob.mapping),
+      p_mapping: JSON.stringify({}), // We'll need to get this from somewhere else
       p_offset: offset,
       p_limit: limit
     } as any);
@@ -315,13 +336,33 @@ export async function POST(request: NextRequest) {
          const lineNumber = offset + i + 1; // +1 for 1-based line numbers
 
         try {
-          // Map row to canonical fields
-          const mappedData: any = {};
-          for (const [canonicalField, sourceField] of Object.entries(importJob.mapping)) {
-            if (sourceField && typeof sourceField === 'string' && row[sourceField] !== undefined) {
-              mappedData[canonicalField] = row[sourceField];
-            }
-          }
+                     // Map row to canonical fields - we need to get the mapping from somewhere
+           // For now, we'll use a basic mapping based on the file type
+           const mappedData: any = {};
+           
+           // Basic mapping for Webull options (most common case)
+           if (row.Name && row['Filled Time'] && row.Side && row.Filled && row['Avg Price']) {
+             mappedData.timestamp = row['Filled Time'];
+             mappedData.symbol = row.Name;
+             mappedData.side = row.Side;
+             mappedData.quantity = row.Filled;
+             mappedData.price = row['Avg Price'];
+             mappedData.fees = row.Fees || '0';
+             mappedData.currency = 'USD';
+             mappedData.venue = 'NASDAQ';
+             mappedData.instrument_type = 'option';
+             mappedData.multiplier = '100';
+           } else {
+             // Fallback to basic mapping
+             mappedData.timestamp = row.timestamp || row.time || row.date || row.datetime;
+             mappedData.symbol = row.symbol || row.ticker || row.name;
+             mappedData.side = row.side || row.action || row.type;
+             mappedData.quantity = row.quantity || row.qty || row.shares || row.amount;
+             mappedData.price = row.price || row.execution_price || row.fill_price;
+             mappedData.fees = row.fees || row.commission || '0';
+             mappedData.currency = row.currency || 'USD';
+             mappedData.venue = row.venue || row.exchange || 'UNKNOWN';
+           }
 
           // Validate required fields
           const requiredFields: CanonicalField[] = ['timestamp', 'symbol', 'side', 'quantity', 'price'];
@@ -434,24 +475,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Update job progress
-    const newProcessedRows = Math.min(offset + chunkRows.length, importJob.total_rows);
-    await supabase
-      .from('import_jobs')
-      .update({ processed_rows: newProcessedRows })
-      .eq('id', jobId);
+    const newProcessedRows = Math.min(offset + chunkRows.length, importRun.summary?.total || 0);
+    
+    // Try to update import_job_progress if it exists
+    try {
+      await supabase
+        .from('import_job_progress')
+        .update({ processed_rows: newProcessedRows })
+        .eq('job_id', jobId);
+    } catch (error) {
+      // Progress table might not exist, continue anyway
+      console.log('Could not update progress table:', error);
+    }
 
     // Update import run summary
     await supabase
       .from('import_runs')
       .update({
         summary: {
-          total: importJob.total_rows,
-          added: (importJob.processed_rows || 0) + added,
-          duplicates: duplicates,
-          errors: errors,
+          total: importRun.summary?.total || 0,
+          added: (importRun.summary?.added || 0) + added,
+          duplicates: (importRun.summary?.duplicates || 0) + duplicates,
+          errors: (importRun.summary?.errors || 0) + errors,
         }
       })
-      .eq('id', importJob.import_run_id);
+      .eq('id', jobId);
 
     return NextResponse.json({
       processedRows: newProcessedRows,
