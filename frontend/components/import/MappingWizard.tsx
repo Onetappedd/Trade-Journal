@@ -185,6 +185,30 @@ export function MappingWizard({
     summary: null as any
   });
 
+  // Auto-detect and apply Webull preset if applicable
+  useMemo(() => {
+    // Check if this looks like Webull options data
+    if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+        headers.includes('Filled') && headers.includes('Avg Price')) {
+      // Auto-apply Webull preset
+      const webullPreset = BROKER_PRESETS.webull;
+      const newMapping: Record<string, string> = {};
+      
+      // Only apply mappings for headers that exist
+      for (const [canonicalField, headerName] of Object.entries(webullPreset.mapping)) {
+        if (headers.includes(headerName)) {
+          newMapping[canonicalField] = headerName;
+        }
+      }
+      
+      // Set the mapping if we have valid mappings
+      if (Object.keys(newMapping).length > 0) {
+        setMapping(newMapping);
+        console.log('Auto-applied Webull options preset');
+      }
+    }
+  }, [headers]);
+
   // Validate mapping
   const validation = useMemo(() => {
     const errors: string[] = [];
@@ -423,6 +447,26 @@ export function MappingWizard({
             {/* Presets */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Broker Presets</h3>
+              
+              {/* Auto-detection indicator */}
+              {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+               headers.includes('Filled') && headers.includes('Avg Price') && (
+                <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Webull Options format auto-detected!</span>
+                  </div>
+                  <p className="text-xs text-green-700 mt-1">The mapping has been automatically configured for your Webull options data.</p>
+                  <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
+                    <p className="font-medium">Options Contract Parsing:</p>
+                    <p>• <strong>Symbol:</strong> Will extract underlying (QQQ, AMD, TSLA) from Name column</p>
+                    <p>• <strong>Expiry:</strong> Will parse expiration date from Name column</p>
+                    <p>• <strong>Strike:</strong> Will extract strike price from Name column</p>
+                    <p>• <strong>Type:</strong> Will determine Call/Put from Name column</p>
+                  </div>
+                </div>
+              )}
+              
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(BROKER_PRESETS).map(([key, preset]) => (
                   <Button
@@ -457,7 +501,7 @@ export function MappingWizard({
                     <Select
                       value={mapping[field.key] || ''}
                                             onValueChange={(value) => {
-                        if (value) {
+                        if (value && value !== 'none') {
                           setMapping(prev => ({ ...prev, [field.key]: value }));
                         } else {
                           setMapping(prev => {
@@ -469,11 +513,13 @@ export function MappingWizard({
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select column..." />
+                        <SelectValue placeholder="Select column...">
+                          {mapping[field.key] || ''}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">(none)</SelectItem>
-                        {headers.map((header) => (
+                        <SelectItem value="none">(none)</SelectItem>
+                        {headers.filter(header => header && header.trim() !== '').map((header) => (
                           <SelectItem key={header} value={header}>
                             {header}
                           </SelectItem>
