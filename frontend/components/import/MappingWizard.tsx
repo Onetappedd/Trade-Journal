@@ -190,25 +190,23 @@ export function MappingWizard({
     // Check if this looks like Webull options data
     if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
         headers.includes('Filled') && headers.includes('Avg Price')) {
-      // Auto-apply comprehensive Webull options mapping
-      const newMapping: Record<string, string | undefined> = {
-        timestamp: 'Filled Time',
-        symbol: 'Name',
-        side: 'Side',
-        quantity: 'Filled',
-        price: 'Avg Price',
-        fees: headers.includes('Fees') ? 'Fees' : undefined,
-        currency: 'USD', // Webull is typically USD
-        venue: 'NASDAQ', // Webull options are typically NASDAQ
-        order_id: headers.includes('Order ID') ? 'Order ID' : undefined,
-        exec_id: headers.includes('Exec ID') ? 'Exec ID' : undefined,
-        instrument_type: 'option', // Always options for Webull
-        expiry: 'Name', // Will be extracted from Name column
-        strike: 'Name', // Will be extracted from Name column
-        option_type: 'Name', // Will be extracted from Name column
-        multiplier: '100', // Standard options multiplier
-        underlying: 'Name', // Will be extracted from Name column
-      };
+             // Auto-apply comprehensive Webull options mapping
+       const newMapping: Record<string, string | undefined> = {
+         timestamp: 'Filled Time',
+         symbol: 'Name', // Will extract underlying from options contract
+         side: 'Side',
+         quantity: 'Filled',
+         price: 'Avg Price',
+         fees: headers.includes('Fees') ? 'Fees' : undefined,
+         currency: 'USD', // Webull is typically USD
+         venue: 'NASDAQ', // Webull options are typically NASDAQ
+         order_id: headers.includes('Order ID') ? 'Order ID' : undefined,
+         exec_id: headers.includes('Exec ID') ? 'Exec ID' : undefined,
+         instrument_type: 'option', // Always options for Webull
+         multiplier: '100', // Standard options multiplier
+         // Note: expiry, strike, option_type, and underlying will be extracted from the Name column
+         // during the actual import process, so we don't map them here to avoid duplicates
+       };
       
       // Filter out undefined values and convert to Record<string, string>
       const filteredMapping: Record<string, string> = Object.fromEntries(
@@ -478,6 +476,7 @@ export function MappingWizard({
                      <p>• <strong>Price:</strong> Avg Price</p>
                      <p>• <strong>Instrument Type:</strong> Option (auto-set)</p>
                      <p>• <strong>Multiplier:</strong> 100 (standard options)</p>
+                     <p className="mt-1 text-green-700">• <strong>Options Data:</strong> Expiry, Strike, Type will be parsed from Name column during import</p>
                      <p className="mt-2 font-medium text-green-900">✅ Ready to import - click "Import Data" below!</p>
                    </div>
                  </div>
@@ -718,7 +717,7 @@ export function MappingWizard({
                   headers.includes('Filled') && headers.includes('Avg Price') && (
                    <div className="mt-3 p-2 bg-green-100 rounded border border-green-200">
                      <p className="text-xs text-green-800 font-medium">🎯 Webull Options Import</p>
-                     <p className="text-xs text-green-700">All fields auto-configured for options trading</p>
+                     <p className="text-xs text-green-700">Core fields mapped, options data will be parsed from Name column</p>
                    </div>
                  )}
                </div>
