@@ -374,7 +374,7 @@ export async function POST(request: NextRequest) {
 
           // Normalize data
           const normalizedData = {
-            timestamp: parseTimestamp(mappedData.timestamp, importJob.options?.tz),
+                         timestamp: parseTimestamp(mappedData.timestamp, undefined),
             symbol: normalizeSymbol(mappedData.symbol),
             side: normalizeSide(mappedData.side),
             quantity: parseNumber(mappedData.quantity),
@@ -430,7 +430,7 @@ export async function POST(request: NextRequest) {
               .from('executions_normalized')
               .insert({
                 user_id: user.id,
-                import_run_id: importJob.import_run_id,
+                                 import_run_id: jobId,
                 unique_hash: uniqueHash,
                 instrument_id: instrumentId,
                 timestamp: normalizedData.timestamp,

@@ -45,61 +45,59 @@ export async function GET(request: NextRequest) {
 
     // Check if job is completed
     if (jobProgress.processed_rows >= jobProgress.total_rows && importRun.status === 'processing') {
-              // Get final summary from import run (already have it)
-        const summary = importRun.summary || {};
+      // Get final summary from import run (already have it)
+      const summary = importRun.summary || {};
 
-              const errors = summary.errors || 0;
-        const added = summary.added || 0;
+      const errors = summary.errors || 0;
+      const added = summary.added || 0;
 
-        // Determine final status
-        let finalStatus: 'success' | 'partial' | 'failed';
-        if (errors > 0) {
-          finalStatus = added > 0 ? 'partial' : 'failed';
-        } else {
-          finalStatus = 'success';
-        }
-
-        // Update import run status
-        await supabase
-          .from('import_runs')
-          .update({
-            status: finalStatus,
-            finished_at: new Date().toISOString()
-          })
-          .eq('id', jobId);
-
-
-
-        // Run matching engine in background (fire-and-forget)
-        try {
-          await matchUserTrades({ 
-            userId: user.id, 
-            sinceImportRunId: jobId 
-          });
-        } catch (matchError) {
-          console.error('Background matching error:', matchError);
-          // Don't fail the request if matching fails
-        }
-
-        return NextResponse.json({
-          processed: jobProgress.total_rows,
-          total: jobProgress.total_rows,
-          status: 'completed',
-          finalStatus,
-          summary: {
-            added: summary.added || 0,
-            duplicates: summary.duplicates || 0,
-            errors: summary.errors || 0,
-            total: jobProgress.total_rows
-          },
-          message: `Import ${finalStatus}`
-        });
+      // Determine final status
+      let finalStatus: 'success' | 'partial' | 'failed';
+      if (errors > 0) {
+        finalStatus = added > 0 ? 'partial' : 'failed';
+      } else {
+        finalStatus = 'success';
       }
+
+      // Update import run status
+      await supabase
+        .from('import_runs')
+        .update({
+          status: finalStatus,
+          finished_at: new Date().toISOString()
+        })
+        .eq('id', jobId);
+
+      // Run matching engine in background (fire-and-forget)
+      try {
+        await matchUserTrades({ 
+          userId: user.id, 
+          sinceImportRunId: jobId 
+        });
+      } catch (matchError) {
+        console.error('Background matching error:', matchError);
+        // Don't fail the request if matching fails
+      }
+
+      return NextResponse.json({
+        processed: jobProgress.total_rows,
+        total: jobProgress.total_rows,
+        status: 'completed',
+        finalStatus,
+        summary: {
+          added: summary.added || 0,
+          duplicates: summary.duplicates || 0,
+          errors: summary.errors || 0,
+          total: jobProgress.total_rows
+        },
+        message: `Import ${finalStatus}`
+      });
     }
 
     // Return current progress
-    const progressPercentage = jobProgress.total_rows > 0 ? 
-      Math.round((jobProgress.processed_rows / jobProgress.total_rows) * 100) : 0;
+    const progressPercentage = jobProgress.total_rows > 0 
+      ? Math.round((jobProgress.processed_rows / jobProgress.total_rows) * 100) 
+      : 0;
     const remainingRows = Math.max(0, jobProgress.total_rows - jobProgress.processed_rows);
     
     return NextResponse.json({
