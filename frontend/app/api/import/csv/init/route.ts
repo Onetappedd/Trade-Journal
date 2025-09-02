@@ -237,7 +237,7 @@ function generateMappingGuess(headers: string[], brokerHint?: string): Record<st
   return guess;
 }
 
-async function csvInitHandler(request: NextRequest) {
+async function csvInitHandlerInternal(request: NextRequest): Promise<NextResponse> {
   try {
     const supabase = getServerSupabase();
     
@@ -384,6 +384,32 @@ async function csvInitHandler(request: NextRequest) {
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
+  }
+}
+
+async function csvInitHandler(request: NextRequest): Promise<NextResponse> {
+  // Add timeout protection
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout')), 25000); // 25 second timeout
+  });
+
+  try {
+    const result = await Promise.race([
+      csvInitHandlerInternal(request),
+      timeoutPromise
+    ]);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Request timeout') {
+      console.error('CSV init timeout:', {
+        timestamp: new Date().toISOString()
+      });
+      return NextResponse.json({ 
+        error: 'Request timeout - file processing took too long',
+        details: 'Please try with a smaller file or contact support'
+      }, { status: 408 });
+    }
+    throw error;
   }
 }
 

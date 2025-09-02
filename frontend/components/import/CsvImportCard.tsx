@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Upload, FileText, Map, Clock, Plus } from 'lucide-react';
+import { Upload, FileText, Map, Clock, Plus, AlertCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { MappingWizard } from './MappingWizard';
 
@@ -49,10 +49,30 @@ export function CsvImportCard() {
         body: formData,
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to process file');
-      }
+              if (!response.ok) {
+          let errorMessage = 'Failed to process file';
+          
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.details || errorMessage;
+          } catch (parseError) {
+            // If response is not JSON, try to get text
+            try {
+              const errorText = await response.text();
+              if (errorText.includes('timeout') || errorText.includes('timeout')) {
+                errorMessage = 'File processing timed out. Please try with a smaller file.';
+              } else if (errorText.includes('error')) {
+                errorMessage = 'Server error occurred while processing file.';
+              } else {
+                errorMessage = `Server error (${response.status}): ${errorText.substring(0, 100)}`;
+              }
+            } catch (textError) {
+              errorMessage = `Server error (${response.status}): Unable to read error details`;
+            }
+          }
+          
+          throw new Error(errorMessage);
+        }
 
       const result = await response.json();
       
@@ -189,6 +209,34 @@ export function CsvImportCard() {
             </div>
           )}
         </div>
+
+        {/* Error Display */}
+        {uploads.some(upload => upload.status === 'error') && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-red-800 mb-2">
+              <AlertCircle className="h-4 w-4" />
+              <span className="font-medium">File Processing Error</span>
+            </div>
+            <div className="text-sm text-red-700">
+              <p>One or more files failed to process. Common causes:</p>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>File is too large (max 10MB)</li>
+                <li>Unsupported file format</li>
+                <li>Server timeout - try with a smaller file</li>
+                <li>Database connection issues</li>
+              </ul>
+              <div className="mt-3">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setUploads([])}
+                >
+                  Clear Errors & Try Again
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent Uploads */}
         {uploads.length > 0 && (
