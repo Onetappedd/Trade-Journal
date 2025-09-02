@@ -238,126 +238,153 @@ function generateMappingGuess(headers: string[], brokerHint?: string): Record<st
 }
 
 async function csvInitHandler(request: NextRequest) {
-  const supabase = getServerSupabase();
-  
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const formData = await request.formData();
-  const file = formData.get('file') as File;
-  const brokerHint = formData.get('broker_hint') as string;
-
-  if (!file) {
-    return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-  }
-
-  // Validate file size (10MB max)
-  if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const fileType = detectFileType(file.name, file.type);
-
-  // Log file upload with sanitized data
-  console.log('CSV init upload:', {
-    userId: user.id,
-    fileName: file.name,
-    fileSize: file.size,
-    fileType,
-    brokerHint,
-    timestamp: new Date().toISOString()
-  });
-
-  // Parse sample data based on file type
-  let headers: string[] = [];
-  let rows: any[] = [];
-
   try {
-    switch (fileType) {
-      case 'csv':
-        ({ headers, rows } = await parseCsvSample(buffer, ','));
-        break;
-      case 'tsv':
-        ({ headers, rows } = await parseCsvSample(buffer, '\t'));
-        break;
-      case 'xlsx':
-      case 'xls':
-        ({ headers, rows } = parseExcelSample(buffer));
-        break;
-      case 'xml':
-        ({ headers, rows } = parseFlexXmlSample(buffer));
-        break;
-      default:
-        return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+    const supabase = getServerSupabase();
+    
+    // Get authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-  } catch (parseError) {
-    console.error('Parse error:', {
+
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const brokerHint = formData.get('broker_hint') as string;
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const fileType = detectFileType(file.name, file.type);
+
+    // Log file upload with sanitized data
+    console.log('CSV init upload:', {
       userId: user.id,
       fileName: file.name,
+      fileSize: file.size,
       fileType,
-      error: parseError instanceof Error ? parseError.message : 'Unknown error'
-    });
-    return NextResponse.json({ error: 'Failed to parse file' }, { status: 400 });
-  }
-
-  if (headers.length === 0) {
-    return NextResponse.json({ error: 'No valid headers found' }, { status: 400 });
-  }
-
-  // Generate mapping guess
-  const guess = generateMappingGuess(headers, brokerHint);
-
-  // Generate upload token
-  const uploadToken = randomBytes(32).toString('hex');
-
-  // Store file in temporary storage (15 minutes)
-  const tempKey = `temp/${user.id}/${uploadToken}`;
-  const { error: storageError } = await supabase.storage
-    .from('imports')
-    .upload(tempKey, buffer, {
-      contentType: file.type,
-      upsert: true,
+      brokerHint,
+      timestamp: new Date().toISOString()
     });
 
-  if (storageError) {
-    console.error('Storage error:', {
+    // Parse sample data based on file type
+    let headers: string[] = [];
+    let rows: any[] = [];
+
+    try {
+      switch (fileType) {
+        case 'csv':
+          ({ headers, rows } = await parseCsvSample(buffer, ','));
+          break;
+        case 'tsv':
+          ({ headers, rows } = await parseCsvSample(buffer, '\t'));
+          break;
+        case 'xlsx':
+        case 'xls':
+          ({ headers, rows } = parseExcelSample(buffer));
+          break;
+        case 'xml':
+          ({ headers, rows } = parseFlexXmlSample(buffer));
+          break;
+        default:
+          return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+      }
+    } catch (parseError) {
+      console.error('Parse error:', {
+        userId: user.id,
+        fileName: file.name,
+        fileType,
+        error: parseError instanceof Error ? parseError.message : 'Unknown error'
+      });
+      return NextResponse.json({ error: 'Failed to parse file' }, { status: 400 });
+    }
+
+    if (headers.length === 0) {
+      return NextResponse.json({ error: 'No valid headers found' }, { status: 400 });
+    }
+
+    // Generate mapping guess
+    const guess = generateMappingGuess(headers, brokerHint);
+
+    // Generate upload token
+    const uploadToken = randomBytes(32).toString('hex');
+
+    // Store file in temporary storage (15 minutes)
+    const tempKey = `temp/${user.id}/${uploadToken}`;
+    const { error: storageError } = await supabase.storage
+      .from('imports')
+      .upload(tempKey, buffer, {
+        contentType: file.type,
+        upsert: true,
+      });
+
+    if (storageError) {
+      console.error('Storage error:', {
+        userId: user.id,
+        fileName: file.name,
+        error: storageError.message
+      });
+      return NextResponse.json({ error: 'Failed to store file' }, { status: 500 });
+    }
+
+    // Store metadata in database for cleanup
+    const { error: dbError } = await supabase.from('temp_uploads').insert({
+      token: uploadToken,
+      user_id: user.id,
+      filename: file.name,
+      file_type: fileType,
+      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    });
+
+    if (dbError) {
+      console.error('Database error:', {
+        userId: user.id,
+        fileName: file.name,
+        error: dbError.message,
+        details: dbError.details,
+        hint: dbError.hint
+      });
+      return NextResponse.json({ 
+        error: 'Failed to store file metadata',
+        details: dbError.message 
+      }, { status: 500 });
+    }
+
+    // Log successful initialization
+    console.log('CSV init completed:', {
       userId: user.id,
       fileName: file.name,
-      error: storageError.message
+      uploadToken: uploadToken.substring(0, 8) + '...',
+      headerCount: headers.length,
+      sampleRowCount: rows.length,
+      timestamp: new Date().toISOString()
     });
-    return NextResponse.json({ error: 'Failed to store file' }, { status: 500 });
+
+    return NextResponse.json({
+      sampleRows: rows,
+      headers,
+      guess,
+      uploadToken,
+      fileType,
+    });
+  } catch (error) {
+    console.error('Unexpected error in CSV init:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
-
-  // Store metadata in database for cleanup
-  await supabase.from('temp_uploads').insert({
-    token: uploadToken,
-    user_id: user.id,
-    filename: file.name,
-    file_type: fileType,
-    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  });
-
-  // Log successful initialization
-  console.log('CSV init completed:', {
-    userId: user.id,
-    fileName: file.name,
-    uploadToken: uploadToken.substring(0, 8) + '...',
-    headerCount: headers.length,
-    sampleRowCount: rows.length,
-    timestamp: new Date().toISOString()
-  });
-
-  return NextResponse.json({
-    sampleRows: rows,
-    headers,
-    guess,
-    uploadToken,
-    fileType,
-  });
 }
 
 // Export with telemetry wrapper
