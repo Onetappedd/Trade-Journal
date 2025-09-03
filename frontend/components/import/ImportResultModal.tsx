@@ -55,8 +55,8 @@ export function ImportResultModal({ importRun, onClose }: ImportResultModalProps
     initialData: importRun,
   });
 
-  const sourceConfig = SOURCES[runDetails.source];
-  const statusConfig = STATUSES[runDetails.status];
+  const sourceConfig = SOURCES[runDetails.source] || { label: 'Unknown', icon: FileText };
+  const statusConfig = STATUSES[runDetails.status] || { label: 'Unknown', variant: 'secondary', icon: AlertCircle };
   const SourceIcon = sourceConfig.icon;
   const StatusIcon = statusConfig.icon;
 

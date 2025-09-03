@@ -210,7 +210,8 @@ export async function POST(request: NextRequest) {
           duplicates: 0,
           errors: 0,
           file_type: fileType,
-          filename: tempUpload.filename
+          filename: tempUpload.filename,
+          mapping: mapping // Store the mapping in the summary
         }
       })
       .select()

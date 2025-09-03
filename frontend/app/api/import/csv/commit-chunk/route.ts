@@ -354,15 +354,8 @@ export async function POST(request: NextRequest) {
     let errors = 0;
     const errorDetails: any[] = [];
     
-    // Get the mapping from temp_uploads (we need to store this when creating the import run)
-    const { data: tempUploadWithMapping } = await supabase
-      .from('temp_uploads')
-      .select('mapping')
-      .eq('token', jobId)
-      .eq('user_id', user.id)
-      .single();
-    
-    const mapping = tempUploadWithMapping?.mapping || {};
+    // Get the mapping from the import run summary
+    const mapping: Record<string, string> = importRun.summary?.mapping || {};
     
     // Process each row individually
     for (let i = 0; i < chunkRows.length; i++) {
@@ -370,33 +363,35 @@ export async function POST(request: NextRequest) {
          const lineNumber = offset + i + 1; // +1 for 1-based line numbers
 
         try {
-                     // Map row to canonical fields - we need to get the mapping from somewhere
-           // For now, we'll use a basic mapping based on the file type
-           const mappedData: any = {};
-           
-           // Basic mapping for Webull options (most common case)
-           if (row.Name && row['Filled Time'] && row.Side && row.Filled && row['Avg Price']) {
-             mappedData.timestamp = row['Filled Time'];
-             mappedData.symbol = row.Name;
-             mappedData.side = row.Side;
-             mappedData.quantity = row.Filled;
-             mappedData.price = row['Avg Price'];
-             mappedData.fees = row.Fees || '0';
-             mappedData.currency = 'USD';
-             mappedData.venue = 'NASDAQ';
-             mappedData.instrument_type = 'option';
-             mappedData.multiplier = '100';
-           } else {
-             // Fallback to basic mapping
-             mappedData.timestamp = row.timestamp || row.time || row.date || row.datetime;
-             mappedData.symbol = row.symbol || row.ticker || row.name;
-             mappedData.side = row.side || row.action || row.type;
-             mappedData.quantity = row.quantity || row.qty || row.shares || row.amount;
-             mappedData.price = row.price || row.execution_price || row.fill_price;
-             mappedData.fees = row.fees || row.commission || '0';
-             mappedData.currency = row.currency || 'USD';
-             mappedData.venue = row.venue || row.exchange || 'UNKNOWN';
-           }
+          // Map row to canonical fields using the user's mapping
+          const mappedData: any = {};
+          
+          // Apply the user's field mapping
+          for (const [canonicalField, csvHeader] of Object.entries(mapping)) {
+            if (csvHeader && row[csvHeader] !== undefined) {
+              mappedData[canonicalField] = row[csvHeader];
+            }
+          }
+          
+          // Handle special cases for Webull options
+          if (mapping.symbol === 'Name' && row.Name) {
+            // Extract options data from the Name column
+            const nameParts = row.Name.split(' ');
+            if (nameParts.length >= 4) {
+              // Format: "SPY 240315C00500000" or similar
+              const underlying = nameParts[0];
+              const expiryStr = nameParts[1];
+              const optionType = nameParts[2].charAt(0).toUpperCase(); // C or P
+              const strikeStr = nameParts[2].substring(1);
+              
+              mappedData.underlying = underlying;
+              mappedData.expiry = expiryStr;
+              mappedData.option_type = optionType === 'C' ? 'call' : 'put';
+              mappedData.strike = strikeStr;
+              mappedData.instrument_type = 'option';
+              mappedData.multiplier = '100';
+            }
+          }
 
           // Validate required fields
           const requiredFields: CanonicalField[] = ['timestamp', 'symbol', 'side', 'quantity', 'price'];
