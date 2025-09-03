@@ -116,6 +116,7 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
     parser.on('readable', () => {
       let record;
       while ((record = parser.read()) && rows.length < limit) {
+        // Include rows from offset onwards (0-based indexing)
         if (currentRow >= offset) {
           rows.push(record);
         }
@@ -124,7 +125,10 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
     });
 
     parser.on('error', reject);
-    parser.on('end', () => resolve(rows));
+    parser.on('end', () => {
+      console.log(`[CSV Parse] Parsed ${currentRow} total rows, returning ${rows.length} rows from offset ${offset}`);
+      resolve(rows);
+    });
     parser.write(buffer);
     parser.end();
   });
@@ -301,7 +305,9 @@ export async function POST(request: NextRequest) {
       case 'csv':
       case 'tsv':
         const delimiter = fileType === 'tsv' ? '\t' : ',';
+        console.log(`[Commit Chunk] Parsing CSV with offset: ${offset}, limit: ${limit}, delimiter: ${delimiter}`);
         chunkRows = await parseCsvChunk(buffer, offset, limit, delimiter);
+        console.log(`[Commit Chunk] CSV parsing result: ${chunkRows.length} rows`);
         break;
       case 'xlsx':
       case 'xls':
@@ -315,6 +321,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (chunkRows.length === 0) {
+      console.log(`[Commit Chunk] No rows in chunk - offset: ${offset}, limit: ${limit}, file size: ${buffer.length} bytes`);
       return NextResponse.json({
         processedRows: offset,
         added: 0,

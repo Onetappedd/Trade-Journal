@@ -332,6 +332,9 @@ export function MappingWizard({
           message: `Processing rows ${processedRows + 1} to ${Math.min(processedRows + chunkSize, totalRows)} of ${totalRows}... (${Math.round((processedRows / totalRows) * 100)}% complete)`
         }));
 
+        // Calculate the actual limit for this chunk (don't exceed total rows)
+        const actualLimit = Math.min(chunkSize, totalRows - processedRows);
+        
         // Process chunk
         const chunkResponse = await fetch('/api/import/csv/commit-chunk', {
           method: 'POST',
@@ -339,7 +342,7 @@ export function MappingWizard({
           body: JSON.stringify({
             jobId,
             offset: processedRows,
-            limit: chunkSize,
+            limit: actualLimit,
           }),
         });
 
