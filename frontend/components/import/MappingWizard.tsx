@@ -190,23 +190,23 @@ export function MappingWizard({
     // Check if this looks like Webull options data
     if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
         headers.includes('Filled') && headers.includes('Avg Price')) {
-             // Auto-apply comprehensive Webull options mapping
-       const newMapping: Record<string, string | undefined> = {
-         timestamp: 'Filled Time',
-         symbol: 'Name', // Will extract underlying from options contract
-         side: 'Side',
-         quantity: 'Filled',
-         price: 'Avg Price',
-         fees: headers.includes('Fees') ? 'Fees' : undefined,
-         currency: 'USD', // Webull is typically USD
-         venue: 'NASDAQ', // Webull options are typically NASDAQ
-         order_id: headers.includes('Order ID') ? 'Order ID' : undefined,
-         exec_id: headers.includes('Exec ID') ? 'Exec ID' : undefined,
-         instrument_type: 'option', // Always options for Webull
-         multiplier: '100', // Standard options multiplier
-         // Note: expiry, strike, option_type, and underlying will be extracted from the Name column
-         // during the actual import process, so we don't map them here to avoid duplicates
-       };
+      // Auto-apply comprehensive Webull options mapping
+      const newMapping: Record<string, string | undefined> = {
+        timestamp: 'Filled Time',
+        symbol: 'Name', // Will extract underlying from options contract
+        side: 'Side',
+        quantity: 'Filled',
+        price: 'Avg Price',
+        fees: headers.includes('Fees') ? 'Fees' : undefined,
+        currency: 'USD', // Webull is typically USD
+        venue: 'NASDAQ', // Webull options are typically NASDAQ
+        order_id: headers.includes('Order ID') ? 'Order ID' : undefined,
+        exec_id: headers.includes('Exec ID') ? 'Exec ID' : undefined,
+        instrument_type: 'option', // Always options for Webull
+        multiplier: '100', // Standard options multiplier
+        // Note: expiry, strike, option_type, and underlying will be extracted from the Name column
+        // during the actual import process, so we don't map them here to avoid duplicates
+      };
       
       // Filter out undefined values and convert to Record<string, string>
       const filteredMapping: Record<string, string> = Object.fromEntries(
@@ -274,7 +274,7 @@ export function MappingWizard({
     });
   }, [sampleRows, mapping]);
 
-  // Commit mapping with chunked processing
+  // Simplified commit function based on working implementation
   const handleCommit = async () => {
     if (!validation) {
       toast.error('Please fix validation errors before committing');
@@ -284,7 +284,7 @@ export function MappingWizard({
     setIsCommitting(true);
     setImportProgress({
       current: 0,
-      total: 0,
+      total: sampleRows.length,
       status: 'processing',
       message: 'Starting import...',
       summary: null
@@ -317,136 +317,80 @@ export function MappingWizard({
       setImportProgress(prev => ({ ...prev, total: totalRows, message: `Processing ${totalRows} rows...` }));
       toast.success(`Import started: ${totalRows} rows to process`);
 
-      // Step 2: Process chunks with progress tracking
-      const chunkSize = 2000; // Process 2000 rows per chunk
-      let processedRows = 0;
-      let totalAdded = 0;
-      let totalDuplicates = 0;
-      let totalErrors = 0;
+      // Step 2: Process all rows in one go (simplified approach)
+      setImportProgress(prev => ({ ...prev, message: 'Processing all rows...' }));
+      
+      const chunkResponse = await fetch('/api/import/csv/commit-chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId,
+          offset: 0,
+          limit: totalRows, // Process all rows at once
+        }),
+      });
 
-      while (processedRows < totalRows) {
-        // Update progress
-        setImportProgress(prev => ({ 
-          ...prev, 
-          current: processedRows,
-          message: `Processing rows ${processedRows + 1} to ${Math.min(processedRows + chunkSize, totalRows)} of ${totalRows}... (${Math.round((processedRows / totalRows) * 100)}% complete)`
-        }));
-
-        // Calculate the actual limit for this chunk (don't exceed total rows)
-        const actualLimit = Math.min(chunkSize, totalRows - processedRows);
-        
-        // Process chunk
-        const chunkResponse = await fetch('/api/import/csv/commit-chunk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jobId,
-            offset: processedRows,
-            limit: actualLimit,
-          }),
-        });
-
-        if (!chunkResponse.ok) {
-          const error = await chunkResponse.json();
-          throw new Error(error.error || 'Failed to process chunk');
-        }
-
-        const chunkResult = await chunkResponse.json();
-        
-        // Validate chunk result structure
-        if (!chunkResult || typeof chunkResult !== 'object') {
-          throw new Error('Invalid chunk response format');
-        }
-        
-                 // Handle completion message
-         if (chunkResult.message === 'No more rows to process - import complete') {
-           console.log('Import completed - no more rows to process');
-           processedRows = totalRows; // Mark as complete
-           break; // Exit the loop
-         }
-         
-         // Handle normal chunk result - only if we have the expected properties
-         if (chunkResult.processedRows !== undefined) {
-           processedRows = chunkResult.processedRows;
-           totalAdded += chunkResult.added || 0;
-           totalDuplicates += chunkResult.duplicates || 0;
-           totalErrors += chunkResult.errors || 0;
-         } else {
-           console.warn('Unexpected chunk result structure:', chunkResult);
-         }
-
-        // Check if we've processed all rows or if the chunk indicates completion
-        if (processedRows >= totalRows || chunkResult.message === 'No more rows to process - import complete') {
-          // All rows processed, check final progress
-          const progressResponse = await fetch(`/api/import/csv/progress?jobId=${startResult.runId}`);
-          if (progressResponse.ok) {
-            const progress = await progressResponse.json();
-            
-            if (progress.status === 'completed') {
-              // Import is complete
-              setImportProgress(prev => ({ 
-                ...prev, 
-                current: totalRows,
-                status: 'completed',
-                message: 'Import completed successfully!',
-                summary: progress.summary
-              }));
-              
-              toast.success(`Import completed: ${progress.summary.added} added, ${progress.summary.duplicates} duplicates, ${progress.summary.errors} errors`);
-              
-              // Wait a moment to show completion, then close
-              setTimeout(() => {
-                onSuccess(startResult.runId, progress.summary);
-                onClose();
-              }, 2000);
-              
-              return;
-            }
-          }
-          
-          // If progress check failed or not completed, break out of loop
-          break;
-        }
-
-        // Small delay to prevent overwhelming the server
-        await new Promise(resolve => setTimeout(resolve, 100));
+      if (!chunkResponse.ok) {
+        const error = await chunkResponse.json();
+        throw new Error(error.error || 'Failed to process rows');
       }
 
-      // Final progress check
-      const finalProgressResponse = await fetch(`/api/import/csv/progress?jobId=${startResult.runId}`);
-      if (finalProgressResponse.ok) {
-        const finalProgress = await finalProgressResponse.json();
+      const chunkResult = await chunkResponse.json();
+      
+      // Handle the result
+      if (chunkResult.message === 'No more rows to process - import complete') {
+        // Import completed successfully
         setImportProgress(prev => ({ 
           ...prev, 
           current: totalRows,
           status: 'completed',
           message: 'Import completed successfully!',
-          summary: finalProgress.summary
+          summary: { 
+            added: chunkResult.added || 0, 
+            duplicates: chunkResult.duplicates || 0, 
+            errors: chunkResult.errors || 0,
+            total: totalRows
+          }
         }));
         
-        toast.success(`Import completed: ${finalProgress.summary.added} added, ${finalProgress.summary.duplicates} duplicates, ${finalProgress.summary.errors} errors`);
+        toast.success(`Import completed: ${chunkResult.added || 0} added, ${chunkResult.duplicates || 0} duplicates, ${chunkResult.errors || 0} errors`);
         
         setTimeout(() => {
-          onSuccess(startResult.runId, finalProgress.summary);
+          onSuccess(startResult.runId, { 
+            added: chunkResult.added || 0, 
+            duplicates: chunkResult.duplicates || 0, 
+            errors: chunkResult.errors || 0,
+            total: totalRows
+          });
           onClose();
         }, 2000);
       } else {
+        // Use the chunk result data
         setImportProgress(prev => ({ 
           ...prev, 
           current: totalRows,
           status: 'completed',
           message: 'Import completed successfully!',
-          summary: { added: totalAdded, duplicates: totalDuplicates, errors: totalErrors, total: totalRows }
+          summary: { 
+            added: chunkResult.added || 0, 
+            duplicates: chunkResult.duplicates || 0, 
+            errors: chunkResult.errors || 0,
+            total: totalRows
+          }
         }));
         
-        toast.success(`Import completed: ${totalAdded} added, ${totalDuplicates} duplicates, ${totalErrors} errors`);
+        toast.success(`Import completed: ${chunkResult.added || 0} added, ${chunkResult.duplicates || 0} duplicates, ${chunkResult.errors || 0} errors`);
         
         setTimeout(() => {
-          onSuccess(startResult.runId, { added: totalAdded, duplicates: totalDuplicates, errors: totalErrors, total: totalRows });
+          onSuccess(startResult.runId, { 
+            added: chunkResult.added || 0, 
+            duplicates: chunkResult.duplicates || 0, 
+            errors: chunkResult.errors || 0,
+            total: totalRows
+          });
+          onClose();
         }, 2000);
       }
-      
-      onClose();
       
     } catch (error) {
       console.error('Commit error:', error);
@@ -484,29 +428,29 @@ export function MappingWizard({
             <div>
               <h3 className="text-lg font-semibold mb-3">Broker Presets</h3>
               
-                             {/* Auto-detection indicator */}
-               {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
-                headers.includes('Filled') && headers.includes('Avg Price') && (
-                 <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                   <div className="flex items-center gap-2 text-green-800">
-                     <CheckCircle className="h-4 w-4" />
-                     <span className="text-sm font-medium">Webull Options format fully auto-configured! 🎯</span>
-                   </div>
-                   <p className="text-xs text-green-700 mt-1">All fields have been automatically mapped - no user input required!</p>
-                   <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
-                     <p className="font-medium">Auto-configured Fields:</p>
-                     <p>• <strong>Timestamp:</strong> Filled Time</p>
-                     <p>• <strong>Symbol:</strong> Name (will extract underlying from options contract)</p>
-                     <p>• <strong>Side:</strong> Side (Buy/Sell)</p>
-                     <p>• <strong>Quantity:</strong> Filled</p>
-                     <p>• <strong>Price:</strong> Avg Price</p>
-                     <p>• <strong>Instrument Type:</strong> Option (auto-set)</p>
-                     <p>• <strong>Multiplier:</strong> 100 (standard options)</p>
-                     <p className="mt-1 text-green-700">• <strong>Options Data:</strong> Expiry, Strike, Type will be parsed from Name column during import</p>
-                     <p className="mt-2 font-medium text-green-900">✅ Ready to import - click "Import Data" below!</p>
-                   </div>
-                 </div>
-               )}
+              {/* Auto-detection indicator */}
+              {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+               headers.includes('Filled') && headers.includes('Avg Price') && (
+                <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Webull Options format fully auto-configured! 🎯</span>
+                  </div>
+                  <p className="text-xs text-green-700 mt-1">All fields have been automatically mapped - no user input required!</p>
+                  <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
+                    <p className="font-medium">Auto-configured Fields:</p>
+                    <p>• <strong>Timestamp:</strong> Filled Time</p>
+                    <p>• <strong>Symbol:</strong> Name (will extract underlying from options contract)</p>
+                    <p>• <strong>Side:</strong> Side (Buy/Sell)</p>
+                    <p>• <strong>Quantity:</strong> Filled</p>
+                    <p>• <strong>Price:</strong> Avg Price</p>
+                    <p>• <strong>Instrument Type:</strong> Option (auto-set)</p>
+                    <p>• <strong>Multiplier:</strong> 100 (standard options)</p>
+                    <p className="mt-1 text-green-700">• <strong>Options Data:</strong> Expiry, Strike, Type will be parsed from Name column during import</p>
+                    <p className="mt-2 font-medium text-green-900">✅ Ready to import - click "Import Data" below!</p>
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(BROKER_PRESETS).map(([key, preset]) => (
@@ -541,7 +485,7 @@ export function MappingWizard({
                     <p className="text-xs text-muted-foreground">{field.description}</p>
                     <Select
                       value={mapping[field.key] || ''}
-                                            onValueChange={(value) => {
+                      onValueChange={(value) => {
                         if (value && value !== 'none') {
                           setMapping(prev => ({ ...prev, [field.key]: value }));
                         } else {
@@ -558,17 +502,17 @@ export function MappingWizard({
                           {mapping[field.key] || ''}
                         </SelectValue>
                       </SelectTrigger>
-                                             <SelectContent 
-                         className="!bg-white !border-gray-200 !shadow-lg" 
-                         style={{ backgroundColor: 'white', '--tw-bg-opacity': '1' } as React.CSSProperties}
-                       >
-                         <SelectItem value="none" className="!bg-white hover:!bg-gray-100 focus:!bg-gray-100">(none)</SelectItem>
-                         {headers.filter(header => header && header.trim() !== '').map((header) => (
-                           <SelectItem key={header} value={header} className="!bg-white hover:!bg-gray-100 focus:!bg-gray-100">
-                             {header}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
+                      <SelectContent 
+                        className="!bg-white !border-gray-200 !shadow-lg" 
+                        style={{ backgroundColor: 'white', '--tw-bg-opacity': '1' } as React.CSSProperties}
+                      >
+                        <SelectItem value="none" className="!bg-white hover:!bg-gray-100 focus:!bg-gray-100">(none)</SelectItem>
+                        {headers.filter(header => header && header.trim() !== '').map((header) => (
+                          <SelectItem key={header} value={header} className="!bg-white hover:!bg-gray-100 focus:!bg-gray-100">
+                            {header}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
                 ))}
@@ -619,13 +563,6 @@ export function MappingWizard({
                         {importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0}% Complete
                       </span>
                     </div>
-                    
-                    {/* Estimated Time */}
-                    {importProgress.current > 0 && (
-                      <div className="text-xs text-blue-600 text-center">
-                        Processing approximately {Math.ceil((importProgress.total - importProgress.current) / 2000)} more chunks...
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -702,8 +639,8 @@ export function MappingWizard({
 
           {/* Right Panel - Preview */}
           <div className="space-y-4">
-                         <div>
-               <h3 className="text-lg font-semibold mb-3">Preview (First 20 Rows)</h3>
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Preview (First 20 Rows)</h3>
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -732,22 +669,22 @@ export function MappingWizard({
               </div>
             </div>
 
-                         {/* Summary */}
-             <div className="bg-muted p-4 rounded-lg">
-               <h4 className="font-medium mb-2">Import Summary</h4>
-               <div className="text-sm space-y-1">
-                 <p>• {sampleRows.length} total rows detected</p>
-                 <p>• {Object.keys(mapping).filter(k => mapping[k]).length} fields mapped</p>
-                 <p>• {CANONICAL_FIELDS.filter(f => f.required && mapping[f.key]).length}/{CANONICAL_FIELDS.filter(f => f.required).length} required fields</p>
-                 {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
-                  headers.includes('Filled') && headers.includes('Avg Price') && (
-                   <div className="mt-3 p-2 bg-green-100 rounded border border-green-200">
-                     <p className="text-xs text-green-800 font-medium">🎯 Webull Options Import</p>
-                     <p className="text-xs text-green-700">Core fields mapped, options data will be parsed from Name column</p>
-                   </div>
-                 )}
-               </div>
-             </div>
+            {/* Summary */}
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2">Import Summary</h4>
+              <div className="text-sm space-y-1">
+                <p>• {sampleRows.length} total rows detected</p>
+                <p>• {Object.keys(mapping).filter(k => mapping[k]).length} fields mapped</p>
+                <p>• {CANONICAL_FIELDS.filter(f => f.required && mapping[f.key]).length}/{CANONICAL_FIELDS.filter(f => f.required).length} required fields</p>
+                {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+                 headers.includes('Filled') && headers.includes('Avg Price') && (
+                  <div className="mt-3 p-2 bg-green-100 rounded border border-green-200">
+                    <p className="text-xs text-green-800 font-medium">🎯 Webull Options Import</p>
+                    <p className="text-xs text-green-700">Core fields mapped, options data will be parsed from Name column</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>
