@@ -355,7 +355,7 @@ export function MappingWizard({
         totalErrors += chunkResult.errors || 0;
 
         // Check progress
-        const progressResponse = await fetch(`/api/import/csv/progress?jobId=${jobId}`);
+        const progressResponse = await fetch(`/api/import/csv/progress?jobId=${startResult.runId}`);
         if (progressResponse.ok) {
           const progress = await progressResponse.json();
           
@@ -386,7 +386,7 @@ export function MappingWizard({
       }
 
       // Final progress check
-      const finalProgressResponse = await fetch(`/api/import/csv/progress?jobId=${jobId}`);
+      const finalProgressResponse = await fetch(`/api/import/csv/progress?jobId=${startResult.runId}`);
       if (finalProgressResponse.ok) {
         const finalProgress = await finalProgressResponse.json();
         setImportProgress(prev => ({ 
@@ -416,7 +416,6 @@ export function MappingWizard({
         
         setTimeout(() => {
           onSuccess(startResult.runId, { added: totalAdded, duplicates: totalDuplicates, errors: totalErrors, total: totalRows });
-          onClose();
         }, 2000);
       }
       

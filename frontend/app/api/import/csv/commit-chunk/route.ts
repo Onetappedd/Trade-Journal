@@ -259,19 +259,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Download file from storage - construct path from import run ID
+    // Download file from storage - jobId is now the upload token
     const filePath = `temp/${user.id}/${jobId}`;
+    console.log(`[Commit Chunk] Attempting to download file from path: ${filePath}`);
+    console.log(`[Commit Chunk] User ID: ${user.id}, Upload Token: ${jobId}`);
+    
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('imports')
       .download(filePath);
 
     if (downloadError || !fileData) {
-      return NextResponse.json({ error: 'Failed to download file' }, { status: 500 });
+      console.error(`[Commit Chunk] Download failed:`, {
+        filePath,
+        userId: user.id,
+        uploadToken: jobId,
+        error: downloadError?.message || 'No file data'
+      });
+      return NextResponse.json({ error: 'Failed to download file', details: downloadError?.message || 'No file data' }, { status: 500 });
     }
+    
+    console.log(`[Commit Chunk] File downloaded successfully, size: ${fileData.size} bytes`);
 
     const buffer = Buffer.from(await fileData.arrayBuffer());
     
-    // Determine file type from filename in temp_uploads
+    // Get file type from temp_uploads
     const { data: tempUpload } = await supabase
       .from('temp_uploads')
       .select('file_type')
@@ -319,7 +330,7 @@ export async function POST(request: NextRequest) {
     // Use transaction for batch processing
     const { data: result, error: transactionError } = await supabase.rpc('process_import_chunk', {
       p_job_id: jobId,
-      p_import_run_id: jobId, // jobId is now the import run ID
+      p_import_run_id: jobId, // jobId is the upload token, we'll need to handle this in the RPC
       p_user_id: user.id,
       p_chunk_rows: JSON.stringify(chunkRows),
       p_mapping: JSON.stringify({}), // We'll need to get this from somewhere else

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing jobId parameter' }, { status: 400 });
     }
 
-    // Get import run details directly
+    // Get import run details directly (jobId is now always the import run ID)
     const { data: importRun, error: runError } = await supabase
       .from('import_runs')
       .select('*')

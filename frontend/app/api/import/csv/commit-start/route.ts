@@ -221,6 +221,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create import run' }, { status: 500 });
     }
 
+
+
     // Try to create import job progress record (optional)
     try {
       await supabase
@@ -240,7 +242,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       runId: importRun.id,
-      jobId: importRun.id, // Use import run ID as job ID for now
+      jobId: uploadToken, // Use upload token as job ID so we can find the file
       totalRows: totalRows,
       fileType: fileType,
       message: 'Import job started successfully'
