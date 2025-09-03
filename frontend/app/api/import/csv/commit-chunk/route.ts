@@ -216,16 +216,19 @@ export async function POST(request: NextRequest) {
 
     const { jobId, offset, limit } = validation.data;
 
-    // Get import run details (using jobId as runId for now)
+    // Get import run details - jobId is the upload token, so we need to find the import run
+    // by looking for the most recent import run for this user
     const { data: importRun, error: runError } = await supabase
       .from('import_runs')
       .select('*')
-      .eq('id', jobId)
       .eq('user_id', user.id)
+      .eq('status', 'processing')
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
 
     if (runError || !importRun) {
-      return NextResponse.json({ error: 'Invalid import run ID' }, { status: 400 });
+      return NextResponse.json({ error: 'No active import run found' }, { status: 400 });
     }
 
     if (importRun.status !== 'processing') {
@@ -510,7 +513,7 @@ export async function POST(request: NextRequest) {
           errors: (importRun.summary?.errors || 0) + errors,
         }
       })
-      .eq('id', jobId);
+      .eq('id', importRun.id);
 
     return NextResponse.json({
       processedRows: newProcessedRows,
