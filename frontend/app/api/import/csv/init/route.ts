@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
-import Papa from 'papaparse';
+import { parse } from 'csv-parse';
 import * as XLSX from 'xlsx';
 import { XMLParser } from 'fast-xml-parser';
 import { randomBytes } from 'crypto';
@@ -21,24 +21,41 @@ function detectFileType(filename: string, contentType: string): 'csv' | 'tsv' | 
   return 'csv';
 }
 
-// Parse CSV/TSV sample using Papa Parse (like the old working implementation)
+// Parse CSV/TSV sample using csv-parse library
 async function parseCsvSample(buffer: Buffer, fileType: string): Promise<{ headers: string[], rows: any[] }> {
   return new Promise((resolve, reject) => {
     const csvString = buffer.toString('utf-8');
     const delimiter = fileType === 'tsv' ? '\t' : ',';
     
-           Papa.parse(csvString, {
-         delimiter,
-         header: true,
-         skipEmptyLines: true,
-         preview: 1000, // Parse first 1000 rows for sample
-         complete: (results: any) => {
-        const headers = (results.meta?.fields || []) as string[];
-        const rows = (results.data || []) as any[];
-        resolve({ headers, rows });
-      },
-      error: (error: any) => reject(error),
+    const rows: any[] = [];
+    let headers: string[] = [];
+    let rowCount = 0;
+    
+    const parser = parse({
+      delimiter,
+      columns: true,
+      skip_empty_lines: true,
+      max_record_size: 1024 * 1024,
     });
+    
+    parser.on('readable', () => {
+      let record;
+      while ((record = parser.read()) && rowCount < 1000) {
+        if (rowCount === 0) {
+          headers = Object.keys(record);
+        }
+        rows.push(record);
+        rowCount++;
+      }
+    });
+    
+    parser.on('error', reject);
+    parser.on('end', () => {
+      resolve({ headers, rows });
+    });
+    
+    parser.write(csvString);
+    parser.end();
   });
 }
 
@@ -442,9 +459,5 @@ async function csvInitHandler(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-// Export with telemetry wrapper
-export const POST = withTelemetry(csvInitHandler, {
-  route: '/api/import/csv/init',
-  redactFields: ['raw_payload', 'csv_content', 'file_content'],
-  maxPayloadSize: 10 * 1024 * 1024 // 10MB
-});
+// Export directly without telemetry wrapper for now
+export const POST = csvInitHandler;

@@ -117,21 +117,31 @@ export function withTelemetry(
       // Extract and process payload for logging
       if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
         try {
-          const body = await request.clone().text();
-          if (body) {
-            payload = JSON.parse(body);
-            
-            // Check payload size
-            if (config.maxPayloadSize && !checkPayloadSize(payload, config.maxPayloadSize)) {
-              return NextResponse.json(
-                { error: 'Payload too large' },
-                { status: 413 }
-              );
+          // Check if this is a multipart form (file upload)
+          const contentType = request.headers.get('content-type') || '';
+          if (contentType.includes('multipart/form-data')) {
+            // For file uploads, don't try to parse as JSON
+            payload = { type: 'multipart/form-data', hasFiles: true };
+            payloadHash = 'file-upload';
+            redactedPayload = { type: 'multipart/form-data', hasFiles: true };
+          } else {
+            // Try to parse as JSON for regular requests
+            const body = await request.clone().text();
+            if (body) {
+              payload = JSON.parse(body);
+              
+              // Check payload size
+              if (config.maxPayloadSize && !checkPayloadSize(payload, config.maxPayloadSize)) {
+                return NextResponse.json(
+                  { error: 'Payload too large' },
+                  { status: 413 }
+                );
+              }
+              
+              // Generate hash and redact sensitive data
+              payloadHash = generatePayloadHash(payload);
+              redactedPayload = redactPayload(payload, config.redactFields);
             }
-            
-            // Generate hash and redact sensitive data
-            payloadHash = generatePayloadHash(payload);
-            redactedPayload = redactPayload(payload, config.redactFields);
           }
         } catch (parseError) {
           // Non-JSON payload, skip payload processing
