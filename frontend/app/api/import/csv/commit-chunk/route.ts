@@ -126,7 +126,16 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
 
     parser.on('error', reject);
     parser.on('end', () => {
-      console.log(`[CSV Parse] Parsed ${currentRow} total rows, returning ${rows.length} rows from offset ${offset}`);
+      console.log(`[CSV Parse] Parsed ${currentRow} total rows, returning ${rows.length} rows from offset ${offset} with limit ${limit}`);
+      console.log(`[CSV Parse] Row range: ${offset} to ${offset + limit - 1}, actual rows: ${currentRow}`);
+      
+      // If we're at the end of the file and offset is beyond available rows, return empty
+      if (offset >= currentRow) {
+        console.log(`[CSV Parse] Offset ${offset} is beyond available rows (${currentRow}), returning empty array`);
+        resolve([]);
+        return;
+      }
+      
       resolve(rows);
     });
     parser.write(buffer);
@@ -322,12 +331,20 @@ export async function POST(request: NextRequest) {
 
     if (chunkRows.length === 0) {
       console.log(`[Commit Chunk] No rows in chunk - offset: ${offset}, limit: ${limit}, file size: ${buffer.length} bytes`);
+      console.log(`[Commit Chunk] This suggests the offset ${offset} is beyond the available data rows`);
+      
+      // If this is the first chunk and we get no rows, something is wrong
+      if (offset === 0) {
+        return NextResponse.json({ error: 'Failed to parse any rows from file' }, { status: 500 });
+      }
+      
+      // If this is a later chunk with no rows, we're done
       return NextResponse.json({
         processedRows: offset,
         added: 0,
         duplicates: 0,
         errors: 0,
-        message: 'No rows in chunk'
+        message: 'No more rows to process - import complete'
       });
     }
 

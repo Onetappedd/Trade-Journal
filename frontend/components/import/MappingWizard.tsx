@@ -357,8 +357,8 @@ export function MappingWizard({
         totalDuplicates += chunkResult.duplicates || 0;
         totalErrors += chunkResult.errors || 0;
 
-        // Check if we've processed all rows
-        if (processedRows >= totalRows) {
+        // Check if we've processed all rows or if the chunk indicates completion
+        if (processedRows >= totalRows || chunkResult.message === 'No more rows to process - import complete') {
           // All rows processed, check final progress
           const progressResponse = await fetch(`/api/import/csv/progress?jobId=${startResult.runId}`);
           if (progressResponse.ok) {
