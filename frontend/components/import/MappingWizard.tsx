@@ -320,6 +320,9 @@ export function MappingWizard({
       // Step 2: Process all rows in one go (simplified approach)
       setImportProgress(prev => ({ ...prev, message: 'Processing all rows...' }));
       
+      console.log('Sending mapping to backend:', mapping);
+      console.log('Sample row data:', sampleRows[0]);
+      
       const chunkResponse = await fetch('/api/import/csv/commit-chunk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -332,7 +335,8 @@ export function MappingWizard({
 
       if (!chunkResponse.ok) {
         const error = await chunkResponse.json();
-        throw new Error(error.error || 'Failed to process rows');
+        console.error('Commit chunk error response:', error);
+        throw new Error(error.error || error.message || 'Failed to process rows');
       }
 
       const chunkResult = await chunkResponse.json();

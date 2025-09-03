@@ -354,24 +354,29 @@ export async function POST(request: NextRequest) {
     let errors = 0;
     const errorDetails: any[] = [];
     
-    // Get the mapping from the import run summary
-    const mapping: Record<string, string> = importRun.summary?.mapping || {};
-    
-    // Process each row individually
-    for (let i = 0; i < chunkRows.length; i++) {
-         const row: Record<string, any> = chunkRows[i];
-         const lineNumber = offset + i + 1; // +1 for 1-based line numbers
-
-        try {
-          // Map row to canonical fields using the user's mapping
-          const mappedData: any = {};
+              // Get the mapping from the import run summary
+          const mapping: Record<string, string> = importRun.summary?.mapping || {};
           
-          // Apply the user's field mapping
-          for (const [canonicalField, csvHeader] of Object.entries(mapping)) {
-            if (csvHeader && row[csvHeader] !== undefined) {
-              mappedData[canonicalField] = row[csvHeader];
-            }
-          }
+          console.log(`[Commit Chunk] Using mapping:`, mapping);
+          console.log(`[Commit Chunk] First row sample:`, chunkRows[0]);
+          
+          // Process each row individually
+          for (let i = 0; i < chunkRows.length; i++) {
+               const row: Record<string, any> = chunkRows[i];
+               const lineNumber = offset + i + 1; // +1 for 1-based line numbers
+
+              try {
+                // Map row to canonical fields using the user's mapping
+                const mappedData: any = {};
+                
+                // Apply the user's field mapping
+                for (const [canonicalField, csvHeader] of Object.entries(mapping)) {
+                  if (csvHeader && row[csvHeader] !== undefined) {
+                    mappedData[canonicalField] = row[csvHeader];
+                  }
+                }
+                
+                console.log(`[Commit Chunk] Row ${lineNumber} mapped data:`, mappedData);
           
           // Handle special cases for Webull options
           if (mapping.symbol === 'Name' && row.Name) {
