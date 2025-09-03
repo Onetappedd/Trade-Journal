@@ -375,21 +375,39 @@ export async function POST(request: NextRequest) {
           
           // Handle special cases for Webull options
           if (mapping.symbol === 'Name' && row.Name) {
-            // Extract options data from the Name column
-            const nameParts = row.Name.split(' ');
-            if (nameParts.length >= 4) {
-              // Format: "SPY 240315C00500000" or similar
-              const underlying = nameParts[0];
-              const expiryStr = nameParts[1];
-              const optionType = nameParts[2].charAt(0).toUpperCase(); // C or P
-              const strikeStr = nameParts[2].substring(1);
+            // Parse Webull options format: QQQ2508, AMD25082, TSLA25082, etc.
+            // Format: SYMBOL + YYMM (year/month) + optional suffix
+            const nameStr = row.Name.toString();
+            
+            // Extract underlying symbol (everything before the numbers)
+            const symbolMatch = nameStr.match(/^([A-Z]+)/);
+            if (symbolMatch) {
+              const underlying = symbolMatch[1];
               
-              mappedData.underlying = underlying;
-              mappedData.expiry = expiryStr;
-              mappedData.option_type = optionType === 'C' ? 'call' : 'put';
-              mappedData.strike = strikeStr;
-              mappedData.instrument_type = 'option';
-              mappedData.multiplier = '100';
+              // Extract expiry (YYMM format)
+              const expiryMatch = nameStr.match(/(\d{4})/);
+              if (expiryMatch) {
+                const expiryStr = expiryMatch[1];
+                const year = '20' + expiryStr.substring(0, 2);
+                const month = expiryStr.substring(2, 4);
+                
+                // Convert to YYYY-MM-DD format (last day of month)
+                const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+                const expiry = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+                
+                mappedData.underlying = underlying;
+                mappedData.expiry = expiry;
+                mappedData.instrument_type = 'option';
+                mappedData.multiplier = '100';
+                
+                // Since this CSV doesn't contain strike prices or option type (C/P),
+                // we'll need to infer them or let the user provide additional mapping
+                // For now, use placeholders that can be updated later
+                mappedData.strike = '0'; // Placeholder - needs user input
+                mappedData.option_type = 'call'; // Default - needs user input
+                
+                console.log(`[Webull Options] Parsed ${nameStr} -> Underlying: ${underlying}, Expiry: ${expiry}`);
+              }
             }
           }
 
@@ -459,7 +477,7 @@ export async function POST(request: NextRequest) {
               .from('executions_normalized')
               .insert({
                 user_id: user.id,
-                                 import_run_id: jobId,
+                                 source_import_run_id: importRun.id,
                 unique_hash: uniqueHash,
                 instrument_id: instrumentId,
                 timestamp: normalizedData.timestamp,
@@ -523,6 +541,19 @@ export async function POST(request: NextRequest) {
         }
       })
       .eq('id', importRun.id);
+
+    // Fail-safe: If all trades in this chunk failed, return an error
+    if (errors === chunkRows.length && added === 0) {
+      console.error(`[Commit Chunk] All ${chunkRows.length} trades failed validation. Import cannot proceed.`);
+      return NextResponse.json({
+        processedRows: newProcessedRows,
+        added: 0,
+        duplicates: 0,
+        errors: errors,
+        message: `All ${chunkRows.length} trades failed validation. Import cannot proceed.`,
+        errorDetails: errorDetails
+      }, { status: 400 });
+    }
 
     return NextResponse.json({
       processedRows: newProcessedRows,
