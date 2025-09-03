@@ -354,31 +354,37 @@ export function MappingWizard({
         totalDuplicates += chunkResult.duplicates || 0;
         totalErrors += chunkResult.errors || 0;
 
-        // Check progress
-        const progressResponse = await fetch(`/api/import/csv/progress?jobId=${startResult.runId}`);
-        if (progressResponse.ok) {
-          const progress = await progressResponse.json();
-          
-          if (progress.status === 'completed') {
-            // Import is complete
-            setImportProgress(prev => ({ 
-              ...prev, 
-              current: totalRows,
-              status: 'completed',
-              message: 'Import completed successfully!',
-              summary: progress.summary
-            }));
+        // Check if we've processed all rows
+        if (processedRows >= totalRows) {
+          // All rows processed, check final progress
+          const progressResponse = await fetch(`/api/import/csv/progress?jobId=${startResult.runId}`);
+          if (progressResponse.ok) {
+            const progress = await progressResponse.json();
             
-            toast.success(`Import completed: ${progress.summary.added} added, ${progress.summary.duplicates} duplicates, ${progress.summary.errors} errors`);
-            
-            // Wait a moment to show completion, then close
-            setTimeout(() => {
-              onSuccess(startResult.runId, progress.summary);
-              onClose();
-            }, 2000);
-            
-            return;
+            if (progress.status === 'completed') {
+              // Import is complete
+              setImportProgress(prev => ({ 
+                ...prev, 
+                current: totalRows,
+                status: 'completed',
+                message: 'Import completed successfully!',
+                summary: progress.summary
+              }));
+              
+              toast.success(`Import completed: ${progress.summary.added} added, ${progress.summary.duplicates} duplicates, ${progress.summary.errors} errors`);
+              
+              // Wait a moment to show completion, then close
+              setTimeout(() => {
+                onSuccess(startResult.runId, progress.summary);
+                onClose();
+              }, 2000);
+              
+              return;
+            }
           }
+          
+          // If progress check failed or not completed, break out of loop
+          break;
         }
 
         // Small delay to prevent overwhelming the server

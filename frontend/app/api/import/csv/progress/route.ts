@@ -37,13 +37,13 @@ export async function GET(request: NextRequest) {
 
     // Create a progress object from the import run
     const jobProgress = {
-      processed_rows: importRun.summary?.added || 0,
+      processed_rows: (importRun.summary?.added || 0) + (importRun.summary?.duplicates || 0) + (importRun.summary?.errors || 0),
       total_rows: importRun.summary?.total || 0,
       status: importRun.status,
       import_run_id: importRun.id
     };
 
-    // Check if job is completed
+    // Check if job is completed - consider all processed rows (added + duplicates + errors)
     if (jobProgress.processed_rows >= jobProgress.total_rows && importRun.status === 'processing') {
       // Get final summary from import run (already have it)
       const summary = importRun.summary || {};
