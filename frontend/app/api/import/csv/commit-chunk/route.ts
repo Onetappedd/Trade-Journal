@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 // Validation schema
 const CommitChunkSchema = z.object({
-  jobId: z.string().uuid(),
+  jobId: z.string(), // Accept any string (upload token)
   offset: z.number().int().min(0),
   limit: z.number().int().min(1).max(5000), // Max 5000 rows per chunk
 });
