@@ -352,7 +352,21 @@ export function MappingWizard({
         }
 
         const chunkResult = await chunkResponse.json();
-        processedRows = chunkResult.processedRows;
+        
+        // Validate chunk result structure
+        if (!chunkResult || typeof chunkResult !== 'object') {
+          throw new Error('Invalid chunk response format');
+        }
+        
+        // Handle completion message
+        if (chunkResult.message === 'No more rows to process - import complete') {
+          console.log('Import completed - no more rows to process');
+          processedRows = totalRows; // Mark as complete
+          break; // Exit the loop
+        }
+        
+        // Handle normal chunk result
+        processedRows = chunkResult.processedRows || processedRows;
         totalAdded += chunkResult.added || 0;
         totalDuplicates += chunkResult.duplicates || 0;
         totalErrors += chunkResult.errors || 0;
