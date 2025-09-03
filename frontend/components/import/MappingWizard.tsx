@@ -358,18 +358,22 @@ export function MappingWizard({
           throw new Error('Invalid chunk response format');
         }
         
-        // Handle completion message
-        if (chunkResult.message === 'No more rows to process - import complete') {
-          console.log('Import completed - no more rows to process');
-          processedRows = totalRows; // Mark as complete
-          break; // Exit the loop
-        }
-        
-        // Handle normal chunk result
-        processedRows = chunkResult.processedRows || processedRows;
-        totalAdded += chunkResult.added || 0;
-        totalDuplicates += chunkResult.duplicates || 0;
-        totalErrors += chunkResult.errors || 0;
+                 // Handle completion message
+         if (chunkResult.message === 'No more rows to process - import complete') {
+           console.log('Import completed - no more rows to process');
+           processedRows = totalRows; // Mark as complete
+           break; // Exit the loop
+         }
+         
+         // Handle normal chunk result - only if we have the expected properties
+         if (chunkResult.processedRows !== undefined) {
+           processedRows = chunkResult.processedRows;
+           totalAdded += chunkResult.added || 0;
+           totalDuplicates += chunkResult.duplicates || 0;
+           totalErrors += chunkResult.errors || 0;
+         } else {
+           console.warn('Unexpected chunk result structure:', chunkResult);
+         }
 
         // Check if we've processed all rows or if the chunk indicates completion
         if (processedRows >= totalRows || chunkResult.message === 'No more rows to process - import complete') {
