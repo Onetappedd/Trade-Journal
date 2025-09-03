@@ -380,8 +380,8 @@ export async function POST(request: NextRequest) {
           
           // Handle special cases for Webull options
           if (mapping.symbol === 'Name' && row.Name) {
-            // Parse Webull options format: QQQ2508, AMD25082, TSLA25082, etc.
-            // Format: SYMBOL + YYMM (year/month) + optional suffix
+            // Parse Webull options format: QQQ250822P00563000
+            // Format: SYMBOL + YYMMDD + OPTION_TYPE + STRIKE
             const nameStr = row.Name.toString();
             
             // Extract underlying symbol (everything before the numbers)
@@ -389,29 +389,45 @@ export async function POST(request: NextRequest) {
             if (symbolMatch) {
               const underlying = symbolMatch[1];
               
-              // Extract expiry (YYMM format)
-              const expiryMatch = nameStr.match(/(\d{4})/);
+              // Extract expiry (YYMMDD format)
+              const expiryMatch = nameStr.match(/(\d{6})/);
               if (expiryMatch) {
                 const expiryStr = expiryMatch[1];
                 const year = '20' + expiryStr.substring(0, 2);
                 const month = expiryStr.substring(2, 4);
+                const day = expiryStr.substring(4, 6);
                 
-                // Convert to YYYY-MM-DD format (last day of month)
-                const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-                const expiry = `${year}-${month.padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+                // Convert to YYYY-MM-DD format
+                const expiry = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                 
-                mappedData.underlying = underlying;
-                mappedData.expiry = expiry;
-                mappedData.instrument_type = 'option';
-                mappedData.multiplier = '100';
-                
-                // Since this CSV doesn't contain strike prices or option type (C/P),
-                // we'll need to infer them or let the user provide additional mapping
-                // For now, use placeholders that can be updated later
-                mappedData.strike = '0'; // Placeholder - needs user input
-                mappedData.option_type = 'call'; // Default - needs user input
-                
-                console.log(`[Webull Options] Parsed ${nameStr} -> Underlying: ${underlying}, Expiry: ${expiry}`);
+                // Extract option type (C or P) - look for it after the date
+                const optionTypeMatch = nameStr.match(/([CP])(\d+)/);
+                if (optionTypeMatch) {
+                  const optionType = optionTypeMatch[1];
+                  const strikeStr = optionTypeMatch[2];
+                  
+                  // Convert strike from integer format (e.g., 00563000 -> 56.30)
+                  const strike = (parseInt(strikeStr) / 1000).toString();
+                  
+                  mappedData.underlying = underlying;
+                  mappedData.expiry = expiry;
+                  mappedData.instrument_type = 'option';
+                  mappedData.multiplier = '100';
+                  mappedData.strike = strike;
+                  mappedData.option_type = optionType === 'C' ? 'call' : 'put';
+                  
+                  console.log(`[Webull Options] Parsed ${nameStr} -> Underlying: ${underlying}, Expiry: ${expiry}, Type: ${optionType}, Strike: ${strike}`);
+                } else {
+                  // Fallback if we can't parse the full format
+                  mappedData.underlying = underlying;
+                  mappedData.expiry = expiry;
+                  mappedData.instrument_type = 'option';
+                  mappedData.multiplier = '100';
+                  mappedData.strike = '0';
+                  mappedData.option_type = 'call';
+                  
+                  console.log(`[Webull Options] Parsed ${nameStr} -> Underlying: ${underlying}, Expiry: ${expiry} (fallback mode)`);
+                }
               }
             }
           }
