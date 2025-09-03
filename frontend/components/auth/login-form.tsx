@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { config } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -120,10 +121,7 @@ export default function LoginForm() {
         password: signupPassword,
         options: {
           data: { full_name: signupFullName, username: v },
-          emailRedirectTo:
-            process.env.NODE_ENV === 'production'
-              ? 'https://v0-modern-trading-dashboard-liard.vercel.app/auth/callback'
-              : 'http://localhost:3000/auth/callback',
+          emailRedirectTo: config.auth.redirectUrl,
         },
       });
 
@@ -186,10 +184,7 @@ export default function LoginForm() {
     setIsOAuthLoading(true);
     setMessage(null);
     try {
-      const redirectTo =
-        process.env.NODE_ENV === 'production'
-          ? 'https://v0-modern-trading-dashboard-liard.vercel.app/auth/callback'
-          : 'http://localhost:3000/auth/callback';
+      const redirectTo = config.auth.redirectUrl;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

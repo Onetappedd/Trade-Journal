@@ -329,23 +329,19 @@ export async function POST(request: NextRequest) {
     let duplicates = 0;
     let errors = 0;
     const errorDetails: any[] = [];
-
-    // Use transaction for batch processing
-    const { data: result, error: transactionError } = await supabase.rpc('process_import_chunk', {
-      p_job_id: jobId,
-      p_import_run_id: jobId, // jobId is the upload token, we'll need to handle this in the RPC
-      p_user_id: user.id,
-      p_chunk_rows: JSON.stringify(chunkRows),
-      p_mapping: JSON.stringify({}), // We'll need to get this from somewhere else
-      p_offset: offset,
-      p_limit: limit
-    } as any);
-
-    if (transactionError) {
-      console.error('Transaction error:', transactionError);
-      
-             // Fallback to individual processing
-       for (let i = 0; i < chunkRows.length; i++) {
+    
+    // Get the mapping from temp_uploads (we need to store this when creating the import run)
+    const { data: tempUploadWithMapping } = await supabase
+      .from('temp_uploads')
+      .select('mapping')
+      .eq('token', jobId)
+      .eq('user_id', user.id)
+      .single();
+    
+    const mapping = tempUploadWithMapping?.mapping || {};
+    
+    // Process each row individually
+    for (let i = 0; i < chunkRows.length; i++) {
          const row: Record<string, any> = chunkRows[i];
          const lineNumber = offset + i + 1; // +1 for 1-based line numbers
 
@@ -481,12 +477,6 @@ export async function POST(request: NextRequest) {
           });
         }
       }
-    } else {
-      // Use transaction results
-      added = result.added || 0;
-      duplicates = result.duplicates || 0;
-      errors = result.errors || 0;
-    }
 
     // Update job progress
     const newProcessedRows = Math.min(offset + chunkRows.length, importRun.summary?.total || 0);
