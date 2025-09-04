@@ -1068,6 +1068,25 @@ export function AnalyticsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* New Analytics Components */}
+        
+        {/* Tag and Symbol Analytics Tables */}
+        <div className="space-y-6">
+          <AnalyticsTables />
+        </div>
+
+        {/* Expectancy Chart */}
+        <ExpectancyChart />
+
+        {/* Calendar Heatmap */}
+        <CalendarHeatmap 
+          data={[]} 
+          isLoading={false}
+        />
+
+        {/* Drawdown Recovery Table */}
+        <DrawdownRecoveryTable />
       </div>
     </div>
   );

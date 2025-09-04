@@ -55,3 +55,71 @@ export function useEquityCurve() {
     refetchOnWindowFocus: false,
   });
 }
+
+// C6: Tag-level P&L aggregates
+export function usePnlByTag() {
+  return useQuery({
+    queryKey: ['analytics', 'pnlByTag'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_pnl_by_tag');
+      if (error) throw error;
+      return data as Array<{ tag: string; trades: number; pnl: number; win_rate: number; profit_factor: number }>;
+    },
+    refetchOnWindowFocus: false,
+  });
+}
+
+// C6: Symbol-level P&L aggregates
+export function usePnlBySymbol(limit: number = 20) {
+  return useQuery({
+    queryKey: ['analytics', 'pnlBySymbol', limit],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_pnl_by_symbol', { limit_count: limit });
+      if (error) throw error;
+      return data as Array<{ symbol: string; trades: number; pnl: number; win_rate: number; profit_factor: number; avg_trade_size: number }>;
+    },
+    refetchOnWindowFocus: false,
+  });
+}
+
+// C7: Expectancy by bucket (R-multiple)
+export function useExpectancyByBucket() {
+  return useQuery({
+    queryKey: ['analytics', 'expectancyByBucket'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_expectancy_by_bucket');
+      if (error) throw error;
+      return data as Array<{ bucket: string; trades: number; avg_r_multiple: number; expectancy: number; win_rate: number }>;
+    },
+    refetchOnWindowFocus: false,
+  });
+}
+
+// C8: Daily P&L for calendar heatmap
+export function useDailyPnl(startDate?: string, endDate?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'dailyPnl', startDate, endDate],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_daily_pnl', { 
+        start_date: startDate, 
+        end_date: endDate 
+      });
+      if (error) throw error;
+      return data as Array<{ day: string; pnl: number; trades: number }>;
+    },
+    refetchOnWindowFocus: false,
+  });
+}
+
+// C9: Drawdown recovery analysis
+export function useDrawdownRecovery() {
+  return useQuery({
+    queryKey: ['analytics', 'drawdownRecovery'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_drawdown_recovery');
+      if (error) throw error;
+      return data as Array<{ start_date: string; trough_date: string; recovered_on: string; duration_days: number; depth: number; peak_value: number }>;
+    },
+    refetchOnWindowFocus: false,
+  });
+}
