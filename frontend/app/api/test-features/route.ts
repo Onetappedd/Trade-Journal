@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FEATURE_FLAGS, isFeatureEnabled, getAllFeatureFlags, validateFeatureFlags } from '../../../lib/config/flags';
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Set a test encryption key for this test

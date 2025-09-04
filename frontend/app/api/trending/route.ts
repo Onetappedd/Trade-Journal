@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 interface PolygonTicker {
   ticker: string;
   name?: string;

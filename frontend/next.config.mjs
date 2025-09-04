@@ -10,7 +10,17 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+    serverComponentsExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
+  },
+  // Webpack configuration for better Vercel compatibility
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push({
+        '@supabase/supabase-js': '@supabase/supabase-js',
+      })
+    }
+    return config
   },
   // Force all API routes to be dynamic
   async headers() {
