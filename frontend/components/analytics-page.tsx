@@ -37,6 +37,13 @@ import { useAuth } from '@/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import AnalyticsPnl from '@/components/charts/AnalyticsPnl';
 
+// Import new analytics components
+import { AnalyticsTables } from '@/components/analytics/AnalyticsTables';
+import { ExpectancyChart } from '@/components/analytics/ExpectancyChart';
+import { CalendarHeatmap } from '@/components/analytics/CalendarHeatmap';
+import { DrawdownRecoveryTable } from '@/components/analytics/DrawdownRecoveryTable';
+import { useDailyPnl } from '@/hooks/useAnalytics';
+
 // --- THEME ---
 const COLORS = {
   bgDark: '#1E1E1E',
