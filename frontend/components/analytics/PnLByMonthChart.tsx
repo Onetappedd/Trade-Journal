@@ -14,24 +14,28 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { useMonthlyPnl } from '@/hooks/useAnalytics';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface PnLByMonthChartProps {
-  data: Array<{
-    month: string;
-    pnl: number;
-  }>;
-}
+export function PnLByMonthChart() {
+  const { data, isLoading, error } = useMonthlyPnl();
 
-export function PnLByMonthChart({ data }: PnLByMonthChartProps) {
-  // Use placeholder data if no real data
-  const chartData =
-    data.length > 0
-      ? data
-      : [
-          { month: 'Jan', pnl: 0 },
-          { month: 'Feb', pnl: 0 },
-          { month: 'Mar', pnl: 0 },
-        ];
+  // Transform data to match expected format and handle loading/error states
+  const chartData = useMemo(() => {
+    if (isLoading || error || !data?.length) {
+      return [
+        { month: 'Jan', pnl: 0 },
+        { month: 'Feb', pnl: 0 },
+        { month: 'Mar', pnl: 0 },
+      ];
+    }
+
+    // Transform the data from the hook to match the expected format
+    return data.map((item) => ({
+      month: new Date(item.month).toLocaleDateString('en-US', { month: 'short' }),
+      pnl: item.pnl,
+    }));
+  }, [data, isLoading, error]);
 
   // Calculate summary stats
   const stats = useMemo(() => {
@@ -95,6 +99,42 @@ export function PnLByMonthChart({ data }: PnLByMonthChartProps) {
       </g>
     );
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>P&L by Month</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="w-full h-64" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>P&L by Month</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 flex items-center justify-center text-muted-foreground">
+            Failed to load monthly P&L data
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

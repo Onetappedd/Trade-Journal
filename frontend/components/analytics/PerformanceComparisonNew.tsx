@@ -27,9 +27,11 @@ import {
   Line,
   CartesianGrid,
   Cell,
+  ComposedChart,
 } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, Percent, Calendar, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Percent, Calendar, Activity, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDrawdownSeries } from '@/hooks/useAnalytics';
 
 interface PerformanceData {
   date: string;
@@ -72,7 +74,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div key={index} className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
           <span className="text-sm">
-            {entry.name}: {entry.value.toFixed(2)}%
+            {entry.name}: {entry.value.toFixed(2)}
+            {entry.dataKey === 'drawdown' ? 'k' : '%'}
           </span>
         </div>
       ))}
@@ -88,6 +91,10 @@ export function PerformanceComparisonNew({
   const [selectedPeriod, setSelectedPeriod] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [selectedBenchmark, setSelectedBenchmark] = useState<'SPY' | 'QQQ' | 'DIA'>('SPY');
   const [viewMode, setViewMode] = useState<'percent' | 'dollar'>('percent');
+  const [showDrawdown, setShowDrawdown] = useState(false);
+  
+  // Get drawdown data
+  const { data: drawdownData, isLoading: drawdownLoading } = useDrawdownSeries();
 
   // Generate benchmark data (simulated for now - in production, fetch real data)
   const benchmarkData = useMemo(() => {
@@ -140,6 +147,8 @@ export function PerformanceComparisonNew({
 
     return benchmarkData.filter((d) => new Date(d.date) >= cutoffDate);
   }, [benchmarkData, selectedPeriod]);
+
+
 
   // Calculate performance metrics
   const performanceMetrics = useMemo(() => {
@@ -202,17 +211,40 @@ export function PerformanceComparisonNew({
     return periods;
   }, [closedTrades, initialCapital]);
 
-  // Get chart data based on view mode
+  // Get chart data based on view mode and merge with drawdown data
   const chartData = useMemo(() => {
+    let data = filteredData;
+    
+    // Apply view mode transformation
     if (viewMode === 'percent') {
-      return filteredData.map((d) => ({
+      data = data.map((d) => ({
         ...d,
         portfolio: d.portfolioReturn,
         benchmark: d.benchmarkReturn,
       }));
     }
-    return filteredData;
-  }, [filteredData, viewMode]);
+    
+    // Merge drawdown data when overlay is enabled
+    if (showDrawdown && drawdownData?.length) {
+      // Create a map of drawdown values by date
+      const drawdownMap = new Map();
+      drawdownData.forEach((item) => {
+        const dateKey = new Date(item.t).toISOString().split('T')[0];
+        drawdownMap.set(dateKey, item.drawdown);
+      });
+
+      // Merge drawdown data with filtered data
+      data = data.map((item) => {
+        const dateKey = new Date(item.date).toISOString().split('T')[0];
+        return {
+          ...item,
+          drawdown: drawdownMap.get(dateKey) || 0,
+        };
+      });
+    }
+    
+    return data;
+  }, [filteredData, viewMode, showDrawdown, drawdownData]);
 
   // Generate first-of-month ticks for X axis to avoid repeated month labels
   const xTicks = useMemo(() => {
@@ -347,92 +379,197 @@ export function PerformanceComparisonNew({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Performance Chart</CardTitle>
-                <ToggleGroup
-                  type="single"
-                  value={viewMode}
-                  onValueChange={(v) => v && setViewMode(v as 'percent' | 'dollar')}
-                  className="bg-muted/50 rounded-lg p-1"
-                >
-                  <ToggleGroupItem
-                    value="percent"
-                    aria-label="Percent view"
-                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                <div className="flex items-center gap-2">
+                  <ToggleGroup
+                    type="single"
+                    value={viewMode}
+                    onValueChange={(v) => v && setViewMode(v as 'percent' | 'dollar')}
+                    className="bg-muted/50 rounded-lg p-1"
                   >
-                    <Percent className="h-4 w-4" />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="dollar"
-                    aria-label="Dollar view"
-                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    <ToggleGroupItem
+                      value="percent"
+                      aria-label="Percent view"
+                      className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    >
+                      <Percent className="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="dollar"
+                      aria-label="Dollar view"
+                      className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    >
+                      <DollarSign className="h-4 w-4" />
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                  
+                  <ToggleGroup
+                    type="single"
+                    value={showDrawdown ? 'drawdown' : 'none'}
+                    onValueChange={(v) => setShowDrawdown(v === 'drawdown')}
+                    className="bg-muted/50 rounded-lg p-1"
                   >
-                    <DollarSign className="h-4 w-4" />
-                  </ToggleGroupItem>
-                </ToggleGroup>
+                    <ToggleGroupItem
+                      value="drawdown"
+                      aria-label="Show drawdown overlay"
+                      className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="benchmarkGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
+                {showDrawdown && drawdownData?.length ? (
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="benchmarkGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
 
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: '#888' }}
-                    tickFormatter={(date) =>
-                      new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                    }
-                    ticks={xTicks}
-                    interval={0}
-                    minTickGap={30}
-                  />
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#888' }}
+                      tickFormatter={(date) =>
+                        new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      }
+                      ticks={xTicks}
+                      interval={0}
+                      minTickGap={30}
+                    />
 
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: '#888' }}
-                    tickFormatter={(value) =>
-                      viewMode === 'percent' ? `${value}%` : `$${(value / 1000).toFixed(0)}k`
-                    }
-                  />
+                    <YAxis
+                      yAxisId="left"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#888' }}
+                      tickFormatter={(value) =>
+                        viewMode === 'percent' ? `${value}%` : `$${(value / 1000).toFixed(0)}k`
+                      }
+                    />
 
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.1} />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#ef4444' }}
+                      tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                    />
 
-                  <Tooltip content={<CustomTooltip />} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.1} />
 
-                  <ReferenceLine y={0} stroke="#888" strokeDasharray="3 3" strokeOpacity={0.3} />
+                    <Tooltip content={<CustomTooltip />} />
 
-                  <Line
-                    type="monotone"
-                    dataKey="portfolio"
-                    name="Your Portfolio"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
+                    <ReferenceLine y={0} stroke="#888" strokeDasharray="3 3" strokeOpacity={0.3} />
 
-                  <Line
-                    type="monotone"
-                    dataKey="benchmark"
-                    name={selectedBenchmark}
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={false}
-                    strokeDasharray="5 5"
-                    activeDot={{ r: 4 }}
-                  />
-                </LineChart>
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="portfolio"
+                      name="Your Portfolio"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="benchmark"
+                      name={selectedBenchmark}
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={false}
+                      strokeDasharray="5 5"
+                      activeDot={{ r: 4 }}
+                    />
+
+                    <Area
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="drawdown"
+                      name="Drawdown"
+                      fill="#ef4444"
+                      fillOpacity={0.2}
+                      stroke="#ef4444"
+                      strokeWidth={1}
+                      dot={false}
+                    />
+                  </ComposedChart>
+                ) : (
+                  <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="benchmarkGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#888' }}
+                      tickFormatter={(date) =>
+                        new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      }
+                      ticks={xTicks}
+                      interval={0}
+                      minTickGap={30}
+                    />
+
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#888' }}
+                      tickFormatter={(value) =>
+                        viewMode === 'percent' ? `${value}%` : `$${(value / 1000).toFixed(0)}k`
+                      }
+                    />
+
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" opacity={0.1} />
+
+                    <Tooltip content={<CustomTooltip />} />
+
+                    <ReferenceLine y={0} stroke="#888" strokeDasharray="3 3" strokeOpacity={0.3} />
+
+                    <Line
+                      type="monotone"
+                      dataKey="portfolio"
+                      name="Your Portfolio"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+
+                    <Line
+                      type="monotone"
+                      dataKey="benchmark"
+                      name={selectedBenchmark}
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={false}
+                      strokeDasharray="5 5"
+                      activeDot={{ r: 4 }}
+                    />
+                  </LineChart>
+                )}
               </ResponsiveContainer>
             </CardContent>
           </Card>

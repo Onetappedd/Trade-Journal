@@ -156,6 +156,7 @@ interface MappingWizardProps {
   headers: string[];
   guess: Record<string, string | undefined>;
   uploadToken: string;
+  filename?: string;
   onSuccess: (runId: string, summary: any) => void;
 }
 
@@ -166,6 +167,7 @@ export function MappingWizard({
   headers, 
   guess, 
   uploadToken,
+  filename,
   onSuccess 
 }: MappingWizardProps) {
   const [mapping, setMapping] = useState<Record<string, string>>(
@@ -175,15 +177,38 @@ export function MappingWizard({
         .map(([key, value]) => [key, value as string])
     )
   );
+  const [selectedBroker, setSelectedBroker] = useState<string>('');
   const [isCommitting, setIsCommitting] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [chunkSize, setChunkSize] = useState(1000);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [importProgress, setImportProgress] = useState({
     current: 0,
     total: 0,
     status: 'idle' as 'idle' | 'processing' | 'completed' | 'error',
     message: '',
-    summary: null as any
+    summary: null as any,
+    isValidation: false
   });
+  
+  // Preset management
+  const [presets, setPresets] = useState<any[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
+  const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [newPresetBrokerHint, setNewPresetBrokerHint] = useState('');
+  const [newPresetFileGlob, setNewPresetFileGlob] = useState('');
+  
+  // Resume functionality
+  const [resumeInfo, setResumeInfo] = useState<any>(null);
+  const [isCheckingResume, setIsCheckingResume] = useState(false);
+
+  // Load presets on component mount
+  useMemo(() => {
+    loadPresets();
+    checkForResumableImports();
+  }, []);
 
   // Auto-detect and apply Webull preset if applicable
   useMemo(() => {
@@ -218,6 +243,106 @@ export function MappingWizard({
       console.log('Auto-applied comprehensive Webull options preset');
     }
   }, [headers]);
+
+  // Load presets from API
+  const loadPresets = async () => {
+    setIsLoadingPresets(true);
+    try {
+      const params = new URLSearchParams();
+      if (filename) params.append('filename', filename);
+      
+      const response = await fetch(`/api/import/presets?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPresets(data.presets || []);
+        
+        // Auto-select best match if available
+        if (data.bestMatch && data.bestMatch.matchScore > 0) {
+          setSelectedPreset(data.bestMatch.id);
+          // Don't auto-apply, just suggest
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load presets:', error);
+    } finally {
+      setIsLoadingPresets(false);
+    }
+  };
+
+  // Check for resumable imports
+  const checkForResumableImports = async () => {
+    setIsCheckingResume(true);
+    try {
+      // Look for any import runs that are in 'processing' status
+      const response = await fetch('/api/import/runs?status=processing');
+      if (response.ok) {
+        const data = await response.json();
+        const processingRuns = data.runs || [];
+        
+        // Check each processing run to see if it can be resumed
+        for (const run of processingRuns) {
+          const resumeResponse = await fetch(`/api/import/resume?importRunId=${run.id}`);
+          if (resumeResponse.ok) {
+            const resumeData = await resumeResponse.json();
+            if (resumeData.canResume) {
+              setResumeInfo(resumeData);
+              break; // Found a resumable import
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check for resumable imports:', error);
+    } finally {
+      setIsCheckingResume(false);
+    }
+  };
+
+  // Load a selected preset
+  const loadPreset = (presetId: string) => {
+    const preset = presets.find(p => p.id === presetId);
+    if (preset) {
+      setMapping(preset.fields);
+      setSelectedPreset(presetId);
+      toast.success(`Loaded preset: ${preset.name}`);
+    }
+  };
+
+  // Save current mapping as a preset
+  const savePreset = async () => {
+    if (!newPresetName.trim()) {
+      toast.error('Please enter a preset name');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/import/presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newPresetName.trim(),
+          broker_hint: newPresetBrokerHint.trim() || undefined,
+          file_glob: newPresetFileGlob.trim() || undefined,
+          fields: mapping
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Preset saved successfully!');
+        setShowSavePresetDialog(false);
+        setNewPresetName('');
+        setNewPresetBrokerHint('');
+        setNewPresetFileGlob('');
+        await loadPresets(); // Refresh presets list
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to save preset');
+      }
+    } catch (error) {
+      console.error('Failed to save preset:', error);
+      toast.error('Failed to save preset');
+    }
+  };
 
   // Validate mapping
   const validation = useMemo(() => {
@@ -274,6 +399,194 @@ export function MappingWizard({
     });
   }, [sampleRows, mapping]);
 
+  // Validate only function
+  const handleValidate = async () => {
+    if (!validation) {
+      toast.error('Please fix validation errors before validating');
+      return;
+    }
+
+    setIsValidating(true);
+    setImportProgress({
+      current: 0,
+      total: sampleRows.length,
+      status: 'processing',
+      message: 'Validating data...',
+      summary: null,
+      isValidation: true
+    });
+    
+    try {
+      // Step 1: Start the import job with dryRun flag
+      setImportProgress(prev => ({ ...prev, message: 'Initializing validation...' }));
+      
+      const startResponse = await fetch('/api/import/csv/commit-start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uploadToken,
+          mapping: {
+            ...mapping,
+            broker: selectedBroker, // Include broker for adapter selection
+          },
+          options: {
+            currency: 'USD',
+            dryRun: true,
+            chunkSize,
+          },
+        }),
+      });
+
+      if (!startResponse.ok) {
+        const error = await startResponse.json();
+        throw new Error(error.error || 'Failed to start validation');
+      }
+
+      const startResult = await startResponse.json();
+      const { jobId, totalRows } = startResult;
+      
+      setImportProgress(prev => ({ ...prev, total: totalRows, message: `Validating ${totalRows} rows...` }));
+      toast.success(`Validation started: ${totalRows} rows to check`);
+
+      // Step 2: Process all rows for validation
+      setImportProgress(prev => ({ ...prev, message: 'Validating all rows...' }));
+      
+      const chunkResponse = await fetch('/api/import/csv/commit-chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId,
+          offset: 0,
+          limit: totalRows,
+          dryRun: true,
+        }),
+      });
+
+      if (!chunkResponse.ok) {
+        const error = await chunkResponse.json();
+        console.error('Validation chunk error response:', error);
+        throw new Error(error.error || error.message || 'Failed to validate rows');
+      }
+
+      const chunkResult = await chunkResponse.json();
+      
+      // Handle validation result
+      setImportProgress(prev => ({ 
+        ...prev, 
+        current: totalRows,
+        status: 'completed',
+        message: 'Validation completed successfully!',
+        summary: { 
+          added: chunkResult.added || 0, 
+          duplicates: chunkResult.duplicates || 0, 
+          errors: chunkResult.errors || 0,
+          total: totalRows,
+          errorsCsvUrl: chunkResult.errorsCsvUrl,
+          errorCount: chunkResult.errorCount
+        },
+        isValidation: true
+      }));
+      
+      toast.success(`Validation completed: ${chunkResult.added || 0} valid, ${chunkResult.duplicates || 0} duplicates, ${chunkResult.errors || 0} errors`);
+      
+    } catch (error) {
+      console.error('Validation error:', error);
+      
+      setImportProgress(prev => ({
+        ...prev,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to validate data',
+        isValidation: true
+      }));
+      
+      toast.error(error instanceof Error ? error.message : 'Failed to validate data');
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  // Resume import function
+  const handleResume = async () => {
+    if (!resumeInfo) {
+      toast.error('No resumable import found');
+      return;
+    }
+
+    setIsCommitting(true);
+    setImportProgress({
+      current: resumeInfo.lastRowIndex + 1,
+      total: resumeInfo.totalRows,
+      status: 'processing',
+      message: 'Resuming import...',
+      summary: null,
+      isValidation: false
+    });
+
+    try {
+      // Resume from the last processed row + 1
+      const startResponse = await fetch('/api/import/csv/commit-chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: uploadToken,
+          offset: resumeInfo.lastRowIndex + 1,
+          limit: resumeInfo.totalRows - resumeInfo.lastRowIndex - 1,
+          startAtRow: resumeInfo.lastRowIndex + 1,
+        }),
+      });
+
+      if (!startResponse.ok) {
+        const error = await startResponse.json();
+        throw new Error(error.error || 'Failed to resume import');
+      }
+
+      const result = await startResponse.json();
+      
+      setImportProgress(prev => ({ 
+        ...prev, 
+        current: resumeInfo.totalRows,
+        status: 'completed',
+        message: 'Import resumed and completed successfully!',
+        summary: { 
+          added: result.added || 0, 
+          duplicates: result.duplicates || 0, 
+          errors: result.errors || 0,
+          total: resumeInfo.totalRows,
+          errorsCsvUrl: result.errorsCsvUrl,
+          errorCount: result.errorCount
+        }
+      }));
+      
+      toast.success(`Import resumed and completed: ${result.added || 0} added, ${result.duplicates || 0} duplicates, ${result.errors || 0} errors`);
+      
+      // Clear resume info since import is now complete
+      setResumeInfo(null);
+      
+      setTimeout(() => {
+        onSuccess('resumed', { 
+          added: result.added || 0, 
+          duplicates: result.duplicates || 0, 
+          errors: result.errors || 0,
+          total: resumeInfo.totalRows
+        });
+        onClose();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Resume error:', error);
+      
+      setImportProgress(prev => ({
+        ...prev,
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to resume import'
+      }));
+      
+      toast.error(error instanceof Error ? error.message : 'Failed to resume import');
+    } finally {
+      setIsCommitting(false);
+    }
+  };
+
   // Simplified commit function based on working implementation
   const handleCommit = async () => {
     if (!validation) {
@@ -287,7 +600,8 @@ export function MappingWizard({
       total: sampleRows.length,
       status: 'processing',
       message: 'Starting import...',
-      summary: null
+      summary: null,
+      isValidation: false
     });
     
     try {
@@ -299,9 +613,13 @@ export function MappingWizard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           uploadToken,
-          mapping,
+          mapping: {
+            ...mapping,
+            broker: selectedBroker, // Include broker for adapter selection
+          },
           options: {
             currency: 'USD',
+            chunkSize,
           },
         }),
       });
@@ -353,7 +671,9 @@ export function MappingWizard({
             added: chunkResult.added || 0, 
             duplicates: chunkResult.duplicates || 0, 
             errors: chunkResult.errors || 0,
-            total: totalRows
+            total: totalRows,
+            errorsCsvUrl: chunkResult.errorsCsvUrl,
+            errorCount: chunkResult.errorCount
           }
         }));
         
@@ -379,7 +699,9 @@ export function MappingWizard({
             added: chunkResult.added || 0, 
             duplicates: chunkResult.duplicates || 0, 
             errors: chunkResult.errors || 0,
-            total: totalRows
+            total: totalRows,
+            errorsCsvUrl: chunkResult.errorsCsvUrl,
+            errorCount: chunkResult.errorCount
           }
         }));
         
@@ -428,7 +750,94 @@ export function MappingWizard({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel - Mapping */}
           <div className="space-y-6">
-            {/* Presets */}
+            {/* Mapping Presets */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Mapping Presets</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSavePresetDialog(true)}
+                  disabled={Object.keys(mapping).length === 0}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Save Preset
+                </Button>
+              </div>
+              
+              {/* Preset Selection */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Select value={selectedPreset} onValueChange={loadPreset}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a preset..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No preset</SelectItem>
+                      {presets.map((preset) => (
+                        <SelectItem key={preset.id} value={preset.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{preset.name}</span>
+                            {preset.isUserPreset && (
+                              <Badge variant="secondary" className="text-xs">Custom</Badge>
+                            )}
+                            {preset.matchScore > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {preset.matchScore > 50 ? '🎯' : '✨'} Match
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Best Match Suggestion */}
+                {presets.find(p => p.id === selectedPreset)?.matchScore > 0 && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                    <p className="font-medium">🎯 Suggested preset based on your file!</p>
+                    <p>This preset was automatically matched to your upload.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Broker Selection */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Broker Selection</h3>
+              
+              <div className="space-y-3">
+                <Select value={selectedBroker} onValueChange={setSelectedBroker}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your broker (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No specific broker</SelectItem>
+                    <SelectItem value="webull">Webull</SelectItem>
+                    <SelectItem value="ibkr">Interactive Brokers</SelectItem>
+                    <SelectItem value="robinhood">Robinhood</SelectItem>
+                    <SelectItem value="fidelity">Fidelity</SelectItem>
+                    <SelectItem value="schwab">Schwab/TOS</SelectItem>
+                    <SelectItem value="etrade">E*TRADE</SelectItem>
+                    <SelectItem value="tasty">TastyTrade</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {selectedBroker && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                    <p className="font-medium">✨ Broker-specific optimizations enabled!</p>
+                    <p>Advanced parsing will be applied for {BROKER_PRESETS[selectedBroker as keyof typeof BROKER_PRESETS]?.name || selectedBroker} files.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Broker Presets */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Broker Presets</h3>
               
@@ -543,7 +952,9 @@ export function MappingWizard({
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 text-blue-800 mb-3">
                     <Clock className="h-5 w-5 animate-spin" />
-                    <span className="font-medium">Importing Your Data...</span>
+                    <span className="font-medium">
+                      {importProgress.isValidation ? 'Validating Your Data...' : 'Importing Your Data...'}
+                    </span>
                   </div>
                   
                   {/* Progress Details */}
@@ -555,16 +966,15 @@ export function MappingWizard({
                       </span>
                     </div>
                     
-                    {/* Main Progress Bar */}
-                    <Progress 
-                      value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} 
-                      className="w-full h-3"
-                    />
+                    {/* Indeterminate Progress Bar */}
+                    <div className="w-full h-3 bg-blue-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{ width: '100%' }} />
+                    </div>
                     
-                    {/* Progress Percentage */}
+                    {/* Progress Message */}
                     <div className="text-center">
                       <span className="text-sm font-medium text-blue-800">
-                        {importProgress.total > 0 ? Math.round((importProgress.current / importProgress.total) * 100) : 0}% Complete
+                        {importProgress.isValidation ? 'Validating data...' : 'Processing data...'}
                       </span>
                     </div>
                   </div>
@@ -577,12 +987,58 @@ export function MappingWizard({
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
                 <div className="flex items-center gap-2 text-green-800">
                   <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">Import Completed!</span>
+                  <span className="font-medium">
+                    {importProgress.isValidation ? 'Validation Completed!' : 'Import Completed!'}
+                  </span>
                 </div>
                 <div className="text-sm text-green-700 mt-2 space-y-1">
-                  <p>• {importProgress.summary.added || 0} trades imported</p>
+                  <p>• {importProgress.summary.added || 0} {importProgress.isValidation ? 'valid rows' : 'trades imported'}</p>
                   <p>• {importProgress.summary.duplicates || 0} duplicates skipped</p>
                   <p>• {importProgress.summary.errors || 0} errors encountered</p>
+                  {importProgress.summary.errorsCsvUrl && (
+                    <p className="text-amber-700">• {importProgress.summary.errorCount || importProgress.summary.errors || 0} rows had errors - download CSV to fix and re-import</p>
+                  )}
+                </div>
+                
+                {/* Action buttons for completion */}
+                <div className="mt-4 flex gap-2">
+                  {!importProgress.isValidation && importProgress.summary.added > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // Generate date range for filtering (last 30 days as default)
+                        const endDate = new Date().toISOString().split('T')[0];
+                        const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                        const filterUrl = `/dashboard/trades?startDate=${startDate}&endDate=${endDate}`;
+                        window.open(filterUrl, '_blank');
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Imported Trades
+                    </Button>
+                  )}
+                  {!importProgress.isValidation && importProgress.summary.errorsCsvUrl && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        window.open(importProgress.summary.errorsCsvUrl, '_blank');
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Download errors.csv ({importProgress.summary.errorCount || importProgress.summary.errors || 0} rows)
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setImportProgress(prev => ({ ...prev, status: 'idle', message: '', summary: null }));
+                    }}
+                  >
+                    {importProgress.isValidation ? 'Validate Again' : 'Import More'}
+                  </Button>
                 </div>
               </div>
             )}
@@ -616,28 +1072,101 @@ export function MappingWizard({
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-2 pt-4">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleCommit} 
-                disabled={!validation || isCommitting}
-                className="flex-1"
-              >
-                {isCommitting ? (
-                  <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Import Data
-                  </>
-                )}
-              </Button>
+            {/* Resume Import Alert */}
+            {resumeInfo && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-amber-800 mb-3">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="font-medium">Resumable Import Found! 🔄</span>
+                </div>
+                <div className="text-sm text-amber-700 space-y-2">
+                  <p>• Previous import was interrupted at row {resumeInfo.lastRowIndex + 1}</p>
+                  <p>• {resumeInfo.progressPercentage}% of file was processed</p>
+                  <p>• You can resume from where you left off</p>
+                </div>
+                <div className="mt-3">
+                  <Button 
+                    onClick={handleResume}
+                    disabled={isCommitting}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isCommitting ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        Resuming...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        Resume Import from Row {resumeInfo.lastRowIndex + 1}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Import Controls */}
+            <div className="space-y-4 pt-4">
+              {/* Chunk Size Select */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">Chunk Size:</label>
+                <Select value={chunkSize.toString()} onValueChange={(value) => setChunkSize(Number(value))}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="500">500</SelectItem>
+                    <SelectItem value="1000">1000</SelectItem>
+                    <SelectItem value="2500">2500</SelectItem>
+                    <SelectItem value="5000">5000</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-gray-500">rows per batch</span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleValidate} 
+                  disabled={!validation || isValidating}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  {isValidating ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Validating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Validate Only
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={handleCommit} 
+                  disabled={!validation || isCommitting}
+                  className="flex-1"
+                >
+                  {isCommitting ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Import Data
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -691,6 +1220,76 @@ export function MappingWizard({
             </div>
           </div>
         </div>
+
+        {/* Save Preset Dialog */}
+        {showSavePresetDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-96 max-w-[90vw]">
+              <h3 className="text-lg font-semibold mb-4">Save Mapping Preset</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Preset Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={newPresetName}
+                    onChange={(e) => setNewPresetName(e.target.value)}
+                    placeholder="e.g., My Robinhood Setup"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Broker Hint (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newPresetBrokerHint}
+                    onChange={(e) => setNewPresetBrokerHint(e.target.value)}
+                    placeholder="e.g., robinhood, fidelity, webull"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    File Pattern (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newPresetFileGlob}
+                    onChange={(e) => setNewPresetFileGlob(e.target.value)}
+                    placeholder="e.g., *.csv, *options*.csv"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use * for wildcards. This helps auto-suggest presets for similar files.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSavePresetDialog(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={savePreset}
+                  disabled={!newPresetName.trim()}
+                  className="flex-1"
+                >
+                  Save Preset
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

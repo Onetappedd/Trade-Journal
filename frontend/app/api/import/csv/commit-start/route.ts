@@ -16,6 +16,8 @@ const CommitStartSchema = z.object({
   options: z.object({
     tz: z.string().optional(),
     currency: z.string().optional(),
+    dryRun: z.boolean().optional(),
+    chunkSize: z.number().min(100).max(10000).optional(),
   }).optional(),
 });
 

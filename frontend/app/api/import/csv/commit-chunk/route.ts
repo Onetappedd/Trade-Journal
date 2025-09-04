@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
 import { resolveInstrument } from '@/lib/instruments/resolve';
+import { applyBrokerAdapter } from '@/lib/import/adapters';
 
 // Force Node.js runtime for file processing
 export const runtime = 'nodejs';
@@ -15,6 +16,7 @@ const CommitChunkSchema = z.object({
   jobId: z.string(), // Accept any string (upload token)
   offset: z.number().int().min(0),
   limit: z.number().int().min(1).max(5000), // Max 5000 rows per chunk
+  startAtRow: z.number().int().min(0).optional(), // Resume from specific row index
 });
 
 // Canonical field types
@@ -100,8 +102,67 @@ function generateUniqueHash(row: any, brokerAccountId?: string): string {
   return components.join('|');
 }
 
-// Parse CSV chunk
-async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, delimiter: string = ','): Promise<any[]> {
+// Generate errors CSV and upload to storage
+async function generateErrorsCsv(errorDetails: any[], userId: string, runId: string): Promise<string | null> {
+  try {
+    if (errorDetails.length === 0) {
+      return null;
+    }
+
+    // Create CSV content
+    const csvHeaders = ['Line Number', 'Reason', 'Symbol', 'Timestamp', 'Side', 'Quantity', 'Price', 'Raw Data'];
+    const csvRows = [csvHeaders];
+    
+    for (const error of errorDetails) {
+      csvRows.push([
+        error.lineNumber.toString(),
+        error.reason,
+        error.symbol,
+        error.timestamp,
+        error.side,
+        error.quantity,
+        error.price,
+        error.raw
+      ]);
+    }
+
+    // Convert to CSV string
+    const csvContent = csvRows.map(row => 
+      row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+
+    // Upload to storage
+    const supabase = getServerSupabase();
+    const fileName = `errors/${runId}.csv`;
+    const filePath = `temp-uploads/${userId}/${fileName}`;
+    
+    const { data, error: uploadError } = await supabase.storage
+      .from('imports')
+      .upload(filePath, csvContent, {
+        contentType: 'text/csv',
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Failed to upload errors CSV:', uploadError);
+      return null;
+    }
+
+    // Generate signed URL for download
+    const { data: signedUrl } = await supabase.storage
+      .from('imports')
+      .createSignedUrl(filePath, 60 * 60 * 24 * 7); // 7 days
+
+    return signedUrl?.signedUrl || null;
+  } catch (error) {
+    console.error('Failed to generate errors CSV:', error);
+    return null;
+  }
+}
+
+// Parse CSV chunk with resume support
+async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, delimiter: string = ',', startAtRow?: number): Promise<any[]> {
   return new Promise((resolve, reject) => {
     const parser = parse({
       delimiter,
@@ -112,12 +173,13 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
 
     const rows: any[] = [];
     let currentRow = 0;
+    const effectiveOffset = startAtRow !== undefined ? startAtRow : offset;
     
     parser.on('readable', () => {
       let record;
       while ((record = parser.read()) && rows.length < limit) {
-        // Include rows from offset onwards (0-based indexing)
-        if (currentRow >= offset) {
+        // Include rows from effective offset onwards (0-based indexing)
+        if (currentRow >= effectiveOffset) {
           rows.push(record);
         }
         currentRow++;
@@ -126,12 +188,12 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
 
     parser.on('error', reject);
     parser.on('end', () => {
-      console.log(`[CSV Parse] Parsed ${currentRow} total rows, returning ${rows.length} rows from offset ${offset} with limit ${limit}`);
-      console.log(`[CSV Parse] Row range: ${offset} to ${offset + limit - 1}, actual rows: ${currentRow}`);
+      console.log(`[CSV Parse] Parsed ${currentRow} total rows, returning ${rows.length} rows from effective offset ${effectiveOffset} with limit ${limit}`);
+      console.log(`[CSV Parse] Row range: ${effectiveOffset} to ${effectiveOffset + limit - 1}, actual rows: ${currentRow}`);
       
-      // If we're at the end of the file and offset is beyond available rows, return empty
-      if (offset >= currentRow) {
-        console.log(`[CSV Parse] Offset ${offset} is beyond available rows (${currentRow}), returning empty array`);
+      // If we're at the end of the file and effective offset is beyond available rows, return empty
+      if (effectiveOffset >= currentRow) {
+        console.log(`[CSV Parse] Effective offset ${effectiveOffset} is beyond available rows (${currentRow}), returning empty array`);
         resolve([]);
         return;
       }
@@ -143,8 +205,8 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
   });
 }
 
-// Parse Excel chunk
-function parseExcelChunk(buffer: Buffer, offset: number, limit: number): any[] {
+// Parse Excel chunk with resume support
+function parseExcelChunk(buffer: Buffer, offset: number, limit: number, startAtRow?: number): any[] {
   const workbook = XLSX.read(buffer, { type: 'buffer' });
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
@@ -156,10 +218,10 @@ function parseExcelChunk(buffer: Buffer, offset: number, limit: number): any[] {
   }
 
   const headers = jsonData[0] as string[];
-  const startRow = offset + 1; // Skip header
-  const endRow = Math.min(startRow + limit, jsonData.length);
+  const effectiveStartRow = startAtRow !== undefined ? startAtRow + 1 : offset + 1; // Skip header
+  const endRow = Math.min(effectiveStartRow + limit, jsonData.length);
   
-  return jsonData.slice(startRow, endRow).map((row: any) => {
+  return jsonData.slice(effectiveStartRow, endRow).map((row: any) => {
     const obj: any = {};
     headers.forEach((header, index) => {
       obj[header] = row[index];
@@ -168,8 +230,8 @@ function parseExcelChunk(buffer: Buffer, offset: number, limit: number): any[] {
   });
 }
 
-// Parse IBKR Flex XML chunk
-function parseFlexXmlChunk(buffer: Buffer, offset: number, limit: number): any[] {
+// Parse IBKR Flex XML chunk with resume support
+function parseFlexXmlChunk(buffer: Buffer, offset: number, limit: number, startAtRow?: number): any[] {
   const xmlString = buffer.toString('utf-8');
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -186,10 +248,10 @@ function parseFlexXmlChunk(buffer: Buffer, offset: number, limit: number): any[]
       ? parsed.FlexQueryResponse.Trades.Trade 
       : [parsed.FlexQueryResponse.Trades.Trade];
     
-    const startIndex = offset;
-    const endIndex = Math.min(startIndex + limit, tradeArray.length);
+    const effectiveStartIndex = startAtRow !== undefined ? startAtRow : offset;
+    const endIndex = Math.min(effectiveStartIndex + limit, tradeArray.length);
     
-    tradeArray.slice(startIndex, endIndex).forEach((trade: any) => {
+    tradeArray.slice(effectiveStartIndex, endIndex).forEach((trade: any) => {
       trades.push({
         dateTime: trade.dateTime || trade['@_dateTime'],
         symbol: trade.symbol,
@@ -227,7 +289,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    const { jobId, offset, limit } = validation.data;
+    const { jobId, offset, limit, startAtRow } = validation.data;
 
     // Get import run details - jobId is the upload token, so we need to find the import run
     // by looking for the most recent import run for this user
@@ -314,16 +376,16 @@ export async function POST(request: NextRequest) {
       case 'csv':
       case 'tsv':
         const delimiter = fileType === 'tsv' ? '\t' : ',';
-        console.log(`[Commit Chunk] Parsing CSV with offset: ${offset}, limit: ${limit}, delimiter: ${delimiter}`);
-        chunkRows = await parseCsvChunk(buffer, offset, limit, delimiter);
+        console.log(`[Commit Chunk] Parsing CSV with offset: ${offset}, limit: ${limit}, startAtRow: ${startAtRow}, delimiter: ${delimiter}`);
+        chunkRows = await parseCsvChunk(buffer, offset, limit, delimiter, startAtRow);
         console.log(`[Commit Chunk] CSV parsing result: ${chunkRows.length} rows`);
         break;
       case 'xlsx':
       case 'xls':
-        chunkRows = parseExcelChunk(buffer, offset, limit);
+        chunkRows = parseExcelChunk(buffer, offset, limit, startAtRow);
         break;
       case 'xml':
-        chunkRows = parseFlexXmlChunk(buffer, offset, limit);
+        chunkRows = parseFlexXmlChunk(buffer, offset, limit, startAtRow);
         break;
       default:
         return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
@@ -348,193 +410,188 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Process chunk
+    // Process chunk with vectorized upserts
     let added = 0;
     let duplicates = 0;
     let errors = 0;
     const errorDetails: any[] = [];
     
-              // Get the mapping from the import run summary
-          const mapping: Record<string, string> = importRun.summary?.mapping || {};
-          
-          console.log(`[Commit Chunk] Using mapping:`, mapping);
-          console.log(`[Commit Chunk] First row sample:`, chunkRows[0]);
-          
-          // Process each row individually
-          for (let i = 0; i < chunkRows.length; i++) {
-               const row: Record<string, any> = chunkRows[i];
-               const lineNumber = offset + i + 1; // +1 for 1-based line numbers
+    // Get the mapping from the import run summary
+    const mapping: Record<string, string> = importRun.summary?.mapping || {};
+    
+    console.log(`[Commit Chunk] Using mapping:`, mapping);
+    console.log(`[Commit Chunk] First row sample:`, chunkRows[0]);
+    
+    // Prepare normalized rows for bulk upsert
+    const normalizedRows: any[] = [];
+    
+    for (let i = 0; i < chunkRows.length; i++) {
+      const row: Record<string, any> = chunkRows[i];
+      const lineNumber = offset + i + 1; // +1 for 1-based line numbers
 
-              try {
-                // Map row to canonical fields using the user's mapping
-                const mappedData: any = {};
-                
-                // Apply the user's field mapping
-                for (const [canonicalField, csvHeader] of Object.entries(mapping)) {
-                  if (csvHeader && row[csvHeader] !== undefined) {
-                    mappedData[canonicalField] = row[csvHeader];
-                  }
-                }
-                
-                console.log(`[Commit Chunk] Row ${lineNumber} mapped data:`, mappedData);
-          
-          // Handle special cases for Webull options
-          if (mapping.symbol === 'Name' && row.Name) {
-            // Parse Webull options format: QQQ250822P00563000
-            // Format: SYMBOL + YYMMDD + OPTION_TYPE + STRIKE
-            const nameStr = row.Name.toString();
-            
-            // Extract underlying symbol (everything before the numbers)
-            const symbolMatch = nameStr.match(/^([A-Z]+)/);
-            if (symbolMatch) {
-              const underlying = symbolMatch[1];
-              
-              // Extract expiry (YYMMDD format)
-              const expiryMatch = nameStr.match(/(\d{6})/);
-              if (expiryMatch) {
-                const expiryStr = expiryMatch[1];
-                const year = '20' + expiryStr.substring(0, 2);
-                const month = expiryStr.substring(2, 4);
-                const day = expiryStr.substring(4, 6);
-                
-                // Convert to YYYY-MM-DD format
-                const expiry = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                
-                // Extract option type (C or P) - look for it after the date
-                const optionTypeMatch = nameStr.match(/([CP])(\d+)/);
-                if (optionTypeMatch) {
-                  const optionType = optionTypeMatch[1];
-                  const strikeStr = optionTypeMatch[2];
-                  
-                  // Convert strike from integer format (e.g., 00563000 -> 56.30)
-                  const strike = (parseInt(strikeStr) / 1000).toString();
-                  
-                  mappedData.underlying = underlying;
-                  mappedData.expiry = expiry;
-                  mappedData.instrument_type = 'option';
-                  mappedData.multiplier = '100';
-                  mappedData.strike = strike;
-                  mappedData.option_type = optionType === 'C' ? 'call' : 'put';
-                  
-                  console.log(`[Webull Options] Parsed ${nameStr} -> Underlying: ${underlying}, Expiry: ${expiry}, Type: ${optionType}, Strike: ${strike}`);
-                } else {
-                  // Fallback if we can't parse the full format
-                  mappedData.underlying = underlying;
-                  mappedData.expiry = expiry;
-                  mappedData.instrument_type = 'option';
-                  mappedData.multiplier = '100';
-                  mappedData.strike = '0';
-                  mappedData.option_type = 'call';
-                  
-                  console.log(`[Webull Options] Parsed ${nameStr} -> Underlying: ${underlying}, Expiry: ${expiry} (fallback mode)`);
-                }
-              }
-            }
+      try {
+        // Map row to canonical fields using the user's mapping
+        const mappedData: any = {};
+        
+        // Apply the user's field mapping
+        for (const [canonicalField, csvHeader] of Object.entries(mapping)) {
+          if (csvHeader && row[csvHeader] !== undefined) {
+            mappedData[canonicalField] = row[csvHeader];
           }
-
-          // Validate required fields
-          const requiredFields: CanonicalField[] = ['timestamp', 'symbol', 'side', 'quantity', 'price'];
-          for (const field of requiredFields) {
-            if (!mappedData[field]) {
-              throw new Error(`Missing required field: ${field}`);
-            }
-          }
-
-          // Normalize data
-          const normalizedData = {
-                         timestamp: parseTimestamp(mappedData.timestamp, undefined),
-            symbol: normalizeSymbol(mappedData.symbol),
-            side: normalizeSide(mappedData.side),
-            quantity: parseNumber(mappedData.quantity),
-            price: parseNumber(mappedData.price),
-            fees: parseNumber(mappedData.fees || '0'),
-            currency: (mappedData.currency || 'USD').toUpperCase(),
-            venue: (mappedData.venue || 'UNKNOWN').toUpperCase(),
-            order_id: mappedData.order_id || null,
-            exec_id: mappedData.exec_id || null,
-            instrument_type: mappedData.instrument_type || 'equity',
-            expiry: mappedData.expiry,
-            strike: mappedData.strike ? parseNumber(mappedData.strike) : undefined,
-            option_type: mappedData.option_type,
-            multiplier: mappedData.multiplier ? parseNumber(mappedData.multiplier) : undefined,
-            underlying: mappedData.underlying ? normalizeSymbol(mappedData.underlying) : undefined,
-          };
-
-          // Generate unique hash
-          const uniqueHash = generateUniqueHash(normalizedData);
-
-          // Check for existing execution
-          const { data: existing } = await supabase
-            .from('executions_normalized')
-            .select('id')
-            .eq('unique_hash', uniqueHash)
-            .eq('user_id', user.id)
-            .single();
-
-          if (existing) {
-            duplicates++;
-          } else {
-            // Resolve instrument
-            let instrumentId: string | null = null;
-            try {
-              const resolved = await resolveInstrument({
-                symbol: normalizedData.symbol,
-                occ_symbol: normalizedData.symbol,
-                futures_symbol: normalizedData.symbol,
-                expiry: normalizedData.expiry,
-                strike: normalizedData.strike,
-                option_type: normalizedData.option_type,
-                underlying: normalizedData.underlying,
-                multiplier: normalizedData.multiplier,
-                instrument_type: normalizedData.instrument_type,
-              });
-              instrumentId = resolved.instrument_id;
-            } catch (resolveError) {
-              console.warn(`Failed to resolve instrument for ${normalizedData.symbol}:`, resolveError);
-            }
-
-            // Insert new execution
-            const { error: execError } = await supabase
-              .from('executions_normalized')
-              .insert({
-                user_id: user.id,
-                                 source_import_run_id: importRun.id,
-                unique_hash: uniqueHash,
-                instrument_id: instrumentId,
-                timestamp: normalizedData.timestamp,
-                symbol: normalizedData.symbol,
-                side: normalizedData.side,
-                quantity: normalizedData.quantity,
-                price: normalizedData.price,
-                fees: normalizedData.fees,
-                currency: normalizedData.currency,
-                venue: normalizedData.venue,
-                order_id: normalizedData.order_id,
-                exec_id: normalizedData.exec_id,
-                instrument_type: normalizedData.instrument_type,
-                expiry: normalizedData.expiry,
-                strike: normalizedData.strike,
-                option_type: normalizedData.option_type,
-                multiplier: normalizedData.multiplier,
-                underlying: normalizedData.underlying,
-                status: 'new',
-              });
-
-            if (execError) {
-              throw new Error(`Failed to save execution: ${execError.message}`);
-            }
-
-            added++;
-          }
-
-        } catch (rowError) {
-          errors++;
-          errorDetails.push({
-            line: lineNumber,
-            message: rowError instanceof Error ? rowError.message : 'Unknown error'
-          });
         }
+        
+        console.log(`[Commit Chunk] Row ${lineNumber} mapped data:`, mappedData);
+        
+        // Apply broker-specific adapter if mapping.broker is specified
+        if (mapping.broker) {
+          try {
+            const adaptedData = applyBrokerAdapter(row, mapping);
+            // Merge adapted data with mapped data (adapted data takes precedence)
+            Object.assign(mappedData, adaptedData);
+            console.log(`[Commit Chunk] Applied ${mapping.broker} adapter for row ${lineNumber}:`, adaptedData);
+          } catch (adapterError) {
+            console.warn(`[Commit Chunk] Adapter failed for row ${lineNumber}:`, adapterError);
+            // Continue with original mapped data if adapter fails
+          }
+        }
+
+        // Validate required fields
+        const requiredFields: CanonicalField[] = ['timestamp', 'symbol', 'side', 'quantity', 'price'];
+        for (const field of requiredFields) {
+          if (!mappedData[field]) {
+            throw new Error(`Missing required field: ${field}`);
+          }
+        }
+
+        // Normalize data
+        const normalizedData = {
+          timestamp: parseTimestamp(mappedData.timestamp, undefined),
+          symbol: normalizeSymbol(mappedData.symbol),
+          side: normalizeSide(mappedData.side),
+          quantity: parseNumber(mappedData.quantity),
+          price: parseNumber(mappedData.price),
+          fees: parseNumber(mappedData.fees || '0'),
+          currency: (mappedData.currency || 'USD').toUpperCase(),
+          venue: (mappedData.venue || 'UNKNOWN').toUpperCase(),
+          order_id: mappedData.order_id || null,
+          exec_id: mappedData.exec_id || null,
+          instrument_type: mappedData.instrument_type || 'equity',
+          expiry: mappedData.expiry,
+          strike: mappedData.strike ? parseNumber(mappedData.strike) : undefined,
+          option_type: mappedData.option_type,
+          multiplier: mappedData.multiplier ? parseNumber(mappedData.multiplier) : undefined,
+          underlying: mappedData.underlying ? normalizeSymbol(mappedData.underlying) : undefined,
+        };
+
+        // Resolve instrument
+        let instrumentId: string | null = null;
+        try {
+          const resolved = await resolveInstrument({
+            symbol: normalizedData.symbol,
+            occ_symbol: normalizedData.symbol,
+            futures_symbol: normalizedData.symbol,
+            expiry: normalizedData.expiry,
+            strike: normalizedData.strike,
+            option_type: normalizedData.option_type,
+            underlying: normalizedData.underlying,
+            multiplier: normalizedData.multiplier,
+            instrument_type: normalizedData.instrument_type,
+          });
+          instrumentId = resolved.instrument_id;
+        } catch (resolveError) {
+          console.warn(`Failed to resolve instrument for ${normalizedData.symbol}:`, resolveError);
+        }
+
+        // Prepare row for bulk upsert
+        // Note: dedupe_hash is required by schema, unique_hash will be computed by trigger
+        normalizedRows.push({
+          user_id: user.id,
+          import_run_id: importRun.id, // Use import_run_id as per schema
+          dedupe_hash: generateUniqueHash(normalizedData), // Generate dedupe_hash for schema compatibility
+          instrument_id: instrumentId,
+          timestamp: normalizedData.timestamp,
+          symbol: normalizedData.symbol,
+          side: normalizedData.side,
+          quantity: normalizedData.quantity,
+          price: normalizedData.price,
+          fees: normalizedData.fees,
+          currency: normalizedData.currency,
+          venue: normalizedData.venue,
+          order_id: normalizedData.order_id,
+          exec_id: normalizedData.exec_id,
+          instrument_type: normalizedData.instrument_type,
+          expiry: normalizedData.expiry,
+          strike: normalizedData.strike,
+          option_type: normalizedData.option_type,
+          multiplier: normalizedData.multiplier,
+          underlying: normalizedData.underlying,
+          status: 'new',
+        });
+
+      } catch (rowError) {
+        errors++;
+        errorDetails.push({
+          lineNumber: lineNumber,
+          reason: rowError instanceof Error ? rowError.message : 'Unknown error',
+          raw: JSON.stringify(row),
+          symbol: row[mapping.symbol] || 'N/A',
+          timestamp: row[mapping.timestamp] || 'N/A',
+          side: row[mapping.side] || 'N/A',
+          quantity: row[mapping.quantity] || 'N/A',
+          price: row[mapping.price] || 'N/A'
+        });
       }
+    }
+
+    // Fail-safe: If all trades in this chunk failed validation, return an error
+    if (errors === chunkRows.length && normalizedRows.length === 0) {
+      console.error(`[Commit Chunk] All ${chunkRows.length} trades failed validation. Import cannot proceed.`);
+      return NextResponse.json({
+        processedRows: offset,
+        added: 0,
+        duplicates: 0,
+        errors: errors,
+        message: `All ${chunkRows.length} trades failed validation. Import cannot proceed.`,
+        errorDetails: errorDetails
+      }, { status: 400 });
+    }
+
+    // Bulk upsert normalized rows using vectorized operations
+    if (normalizedRows.length > 0) {
+      const BATCH_SIZE = Number(process.env.IMPORT_CHUNK_SIZE_DEFAULT ?? 1000);
+      
+      for (let i = 0; i < normalizedRows.length; i += BATCH_SIZE) {
+        const batch = normalizedRows.slice(i, i + BATCH_SIZE);
+        
+        console.log(`[Commit Chunk] Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(normalizedRows.length / BATCH_SIZE)}, size: ${batch.length}`);
+
+        // Insert batch and let database handle conflicts naturally
+        const { data, error } = await supabase
+          .from('executions_normalized')
+          .insert(batch)
+          .select('id'); // force returning to measure inserts count
+
+        if (error) {
+          console.error(`[Commit Chunk] Batch insert failed:`, error);
+          
+          // Check if this is a unique constraint violation (duplicates)
+          if (error.code === '23505') { // PostgreSQL unique constraint violation
+            console.log(`[Commit Chunk] Batch had duplicate conflicts, treating as duplicates`);
+            duplicates += batch.length;
+          } else {
+            // Other errors - accumulate as failures
+            errors += batch.length;
+          }
+          continue;
+        }
+
+        // All rows in batch were inserted successfully
+        const insertedCount = data?.length ?? 0;
+        added += insertedCount;
+        
+        console.log(`[Commit Chunk] Batch result: ${insertedCount} inserted successfully`);
+      }
+    }
 
     // Update job progress
     const newProcessedRows = Math.min(offset + chunkRows.length, importRun.summary?.total || 0);
@@ -563,6 +620,43 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', importRun.id);
 
+    // Update resume information for this import run
+    const lastProcessedRowIndex = offset + chunkRows.length - 1;
+    const processedBytes = Math.floor((lastProcessedRowIndex / (importRun.summary?.total || 1)) * fileData.size);
+    
+    await supabase
+      .from('import_runs')
+      .update({
+        last_row_index: lastProcessedRowIndex,
+        processed_bytes: processedBytes,
+        total_bytes: fileData.size,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', importRun.id);
+
+    // Generate errors CSV if there are errors
+    let errorsCsvUrl: string | null = null;
+    if (errorDetails.length > 0) {
+      errorsCsvUrl = await generateErrorsCsv(errorDetails, user.id, importRun.id);
+      
+      // Update import run summary to include errors CSV URL
+      if (errorsCsvUrl) {
+        await supabase
+          .from('import_runs')
+          .update({
+            summary: {
+              total: importRun.summary?.total || 0,
+              added: (importRun.summary?.added || 0) + added,
+              duplicates: (importRun.summary?.duplicates || 0) + duplicates,
+              errors: (importRun.summary?.errors || 0) + errors,
+              errorsCsvUrl: errorsCsvUrl,
+              errorCount: errorDetails.length
+            }
+          })
+          .eq('id', importRun.id);
+      }
+    }
+
     // Fail-safe: If all trades in this chunk failed, return an error
     if (errors === chunkRows.length && added === 0) {
       console.error(`[Commit Chunk] All ${chunkRows.length} trades failed validation. Import cannot proceed.`);
@@ -581,7 +675,9 @@ export async function POST(request: NextRequest) {
       added,
       duplicates,
       errors,
-      message: `Processed ${chunkRows.length} rows`
+      message: `Processed ${chunkRows.length} rows`,
+      errorsCsvUrl: errorsCsvUrl,
+      errorCount: errorDetails.length
     });
 
   } catch (error) {

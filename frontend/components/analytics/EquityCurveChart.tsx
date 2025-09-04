@@ -11,19 +11,48 @@ import {
 } from 'recharts';
 import { chartTheme } from '@/lib/chart-theme';
 import { useAnalyticsFiltersStore } from '@/store/analytics-filters';
+import { useEquityCurve } from '@/hooks/useAnalytics';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Example data shape: [{ t: '2024-01-01', equity: 10000 }, ...]
-export function EquityCurveChart({ data }: { data: { t: string; equity: number }[] }) {
+export function EquityCurveChart() {
   const [percent, setPercent] = useState(false);
   const theme = chartTheme();
   const filters = useAnalyticsFiltersStore();
+  const { data, isLoading, error } = useEquityCurve();
 
   // Transform data for percent toggle
   const chartData = useMemo(() => {
-    if (!percent || !data.length) return data;
+    if (!percent || !data?.length) return data || [];
     const base = data[0]?.equity || 1;
     return data.map((d) => ({ ...d, equity: ((d.equity - base) / base) * 100 }));
   }, [percent, data]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-full">
+        <div className="flex items-center mb-2">
+          <span className="tk-heading text-base mr-4">Equity Curve</span>
+          <Skeleton className="h-6 w-12 ml-auto" />
+        </div>
+        <Skeleton className="w-full h-60" />
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !data?.length) {
+    return (
+      <div className="w-full">
+        <div className="flex items-center mb-2">
+          <span className="tk-heading text-base mr-4">Equity Curve</span>
+        </div>
+        <div className="h-60 flex items-center justify-center text-muted-foreground">
+          {error ? 'Failed to load equity data' : 'No equity data available'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

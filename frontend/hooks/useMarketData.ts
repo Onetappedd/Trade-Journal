@@ -160,7 +160,7 @@ export function useStockSearch() {
 }
 
 // Hook for watchlist with real-time prices
-export function useWatchlist(symbols: string[], refreshInterval: number = 15000) {
+export function useWatchlistPrices(symbols: string[], refreshInterval: number = 15000) {
   const { quotes, isLoading, error, refresh } = useBatchQuotes(symbols, refreshInterval);
 
   const [watchlist, setWatchlist] = useState<string[]>(symbols);

@@ -24,6 +24,7 @@ interface MappingWizardData {
   headers: string[];
   guess: Record<string, string | undefined>;
   uploadToken: string;
+  filename: string;
 }
 
 export function CsvImportCard() {
@@ -93,6 +94,7 @@ export function CsvImportCard() {
         headers: result.headers,
         guess: result.guess,
         uploadToken: result.uploadToken,
+        filename: file.name,
       });
 
       toast.success('File processed successfully', {
@@ -327,6 +329,7 @@ export function CsvImportCard() {
           headers={mappingWizardData.headers}
           guess={mappingWizardData.guess}
           uploadToken={mappingWizardData.uploadToken}
+          filename={mappingWizardData.filename}
           onSuccess={handleMappingSuccess}
         />
       )}

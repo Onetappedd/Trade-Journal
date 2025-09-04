@@ -4,6 +4,7 @@ import { QuickActions } from '@/components/dashboard/QuickActions';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
 import { PositionsTable } from '@/components/dashboard/PositionsTable';
 import { ExpiredOptionsAlert } from '@/components/dashboard/ExpiredOptionsAlert';
+import { MetricsStrip } from '@/components/dashboard/MetricsStrip';
 import { getPortfolioStats } from '@/lib/metrics';
 import { getDashboardMetrics } from '@/lib/dashboard-metrics';
 import { createServerClient } from '@supabase/ssr';
@@ -86,6 +87,9 @@ export default async function DashboardPage() {
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <p className="text-muted-foreground">Welcome back! Here's your trading overview.</p>
       </div>
+
+      {/* User Metrics Strip */}
+      <MetricsStrip />
 
       {/* Expired Options Alert */}
       <ExpiredOptionsAlert />
