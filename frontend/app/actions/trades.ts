@@ -100,7 +100,7 @@ export async function addTradeAction(formData: FormData) {
           tag = newTag;
         }
 
-        const { error: tradeTagError } = await supabase.from('trade_tags').insert({
+        const { error: tradeTagError } = await (supabase as any).from('trade_tags').insert({
           trade_id: newTrade.id,
           tag_id: tag.id,
         });
@@ -118,7 +118,7 @@ export async function addTradeAction(formData: FormData) {
 
 export async function deleteTradeAction(tradeId: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from('trades').delete().eq('id', tradeId);
+  const { error } = await (supabase as any).from('trades').delete().eq('id', tradeId);
 
   if (error) {
     return { error: `Failed to delete trade: ${error.message}` };

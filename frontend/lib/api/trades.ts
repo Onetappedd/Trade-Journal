@@ -7,7 +7,7 @@ type TradeUpdate = Database['public']['Tables']['trades']['Update'];
 
 export async function createTrade(trade: TradeInsert) {
   const supabase = createClient();
-  const { data, error } = await supabase.from('trades').insert([trade]).select().single();
+  const { data, error } = await (supabase as any).from('trades').insert([trade]).select().single();
 
   if (error) {
     throw new Error(error.message);
@@ -49,7 +49,7 @@ export async function updateTrade(id: string, updates: TradeUpdate) {
 
 export async function deleteTrade(id: string) {
   const supabase = createClient();
-  const { error } = await supabase.from('trades').delete().eq('id', id);
+  const { error } = await (supabase as any).from('trades').delete().eq('id', id);
 
   if (error) {
     throw new Error(error.message);

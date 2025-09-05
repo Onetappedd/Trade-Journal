@@ -384,7 +384,7 @@ async function csvInitHandlerInternal(request: NextRequest): Promise<NextRespons
     const dbStartTime = Date.now();
     console.log(`[CSV Init] Starting database insert`);
     
-         const { error: dbError } = await supabase.from('temp_uploads').insert({
+         const { error: dbError } = await (supabase as any).from('temp_uploads').insert({
        token: uploadToken,
        user_id: user.id,
        filename: file.name,

@@ -49,7 +49,7 @@ export function TradingSettings() {
       const supabase = createClient();
 
       // Delete all trades for the current user
-      const { error, count } = await supabase.from('trades').delete().eq('user_id', user.id);
+      const { error, count } = await (supabase as any).from('trades').delete().eq('user_id', user.id);
 
       if (error) {
         throw error;
