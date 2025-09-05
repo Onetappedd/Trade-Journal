@@ -38,7 +38,7 @@ export default function PortfolioSettingsPage() {
 
       // If no settings exist, create default settings
       if (error && error.code === 'PGRST116') {
-        const { data: newSettings, error: insertError } = await supabase
+        const { data: newSettings, error: insertError } = await (supabase as any)
           .from('user_settings')
           .insert({
             user_id: user.id,
@@ -79,7 +79,7 @@ export default function PortfolioSettingsPage() {
     const supabase = createClient();
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_settings')
         .upsert({
           user_id: user.id,
