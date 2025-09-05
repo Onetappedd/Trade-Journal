@@ -79,7 +79,7 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', profile.id);
