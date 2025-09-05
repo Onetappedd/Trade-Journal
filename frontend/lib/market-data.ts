@@ -291,7 +291,7 @@ class MarketDataService {
       }
 
       // Get unique symbols
-      const symbols = [...new Set(trades.map((trade) => trade.symbol))];
+      const symbols = [...new Set((trades as any).map((trade: any) => trade.symbol))];
 
       // Get current prices
       const quotes = await this.getBatchQuotes(symbols);
@@ -300,7 +300,7 @@ class MarketDataService {
       // Calculate positions
       const positionMap = new Map();
 
-      trades.forEach((trade) => {
+      (trades as any).forEach((trade: any) => {
         const key = trade.symbol;
         const existing = positionMap.get(key) || {
           symbol: trade.symbol,
