@@ -35,7 +35,7 @@ const supabase = createClient()
 // Broker Accounts
 export const brokerAccountsService = {
   async create(data: BrokerAccountInsert): Promise<BrokerAccount> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.BROKER_ACCOUNTS)
       .insert(data)
       .select()
@@ -68,7 +68,7 @@ export const brokerAccountsService = {
   },
 
   async update(id: string, data: BrokerAccountUpdate): Promise<BrokerAccount> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.BROKER_ACCOUNTS)
       .update(data)
       .eq('id', id)
@@ -80,7 +80,7 @@ export const brokerAccountsService = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from(TABLES.BROKER_ACCOUNTS)
       .delete()
       .eq('id', id)
@@ -92,7 +92,7 @@ export const brokerAccountsService = {
 // Import Runs
 export const importRunsService = {
   async create(data: ImportRunInsert): Promise<ImportRun> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.IMPORT_RUNS)
       .insert(data)
       .select()
@@ -137,7 +137,7 @@ export const importRunsService = {
   },
 
   async update(id: string, data: ImportRunUpdate): Promise<ImportRun> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.IMPORT_RUNS)
       .update(data)
       .eq('id', id)
@@ -149,7 +149,7 @@ export const importRunsService = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from(TABLES.IMPORT_RUNS)
       .delete()
       .eq('id', id)
@@ -161,7 +161,7 @@ export const importRunsService = {
 // Raw Import Items
 export const rawImportItemsService = {
   async create(data: RawImportItemInsert): Promise<RawImportItem> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.RAW_IMPORT_ITEMS)
       .insert(data)
       .select()
@@ -172,7 +172,7 @@ export const rawImportItemsService = {
   },
 
   async createMany(items: RawImportItemInsert[]): Promise<RawImportItem[]> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from(TABLES.RAW_IMPORT_ITEMS)
       .insert(items)
       .select()
@@ -193,7 +193,7 @@ export const rawImportItemsService = {
   },
 
   async update(id: string, data: RawImportItemUpdate): Promise<RawImportItem> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.RAW_IMPORT_ITEMS)
       .update(data)
       .eq('id', id)
@@ -208,7 +208,7 @@ export const rawImportItemsService = {
 // Executions Normalized
 export const executionsService = {
   async create(data: ExecutionNormalizedInsert): Promise<ExecutionNormalized> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.EXECUTIONS_NORMALIZED)
       .insert(data)
       .select()
@@ -219,7 +219,7 @@ export const executionsService = {
   },
 
   async createMany(executions: ExecutionNormalizedInsert[]): Promise<ExecutionNormalized[]> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from(TABLES.EXECUTIONS_NORMALIZED)
       .insert(executions)
       .select()
@@ -276,7 +276,7 @@ export const executionsService = {
   },
 
   async update(id: string, data: ExecutionNormalizedUpdate): Promise<ExecutionNormalized> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.EXECUTIONS_NORMALIZED)
       .update(data)
       .eq('id', id)
@@ -288,7 +288,7 @@ export const executionsService = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from(TABLES.EXECUTIONS_NORMALIZED)
       .delete()
       .eq('id', id)
@@ -300,7 +300,7 @@ export const executionsService = {
 // Trades
 export const tradesService = {
   async create(data: TradeInsert): Promise<Trade> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.TRADES)
       .insert(data)
       .select()
@@ -351,7 +351,7 @@ export const tradesService = {
   },
 
   async update(id: string, data: TradeUpdate): Promise<Trade> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.TRADES)
       .update(data)
       .eq('id', id)
@@ -363,7 +363,7 @@ export const tradesService = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from(TABLES.TRADES)
       .delete()
       .eq('id', id)
@@ -375,7 +375,7 @@ export const tradesService = {
 // Instruments
 export const instrumentsService = {
   async create(data: InstrumentInsert): Promise<Instrument> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.INSTRUMENTS)
       .insert(data)
       .select()
@@ -413,7 +413,7 @@ export const instrumentsService = {
   },
 
   async update(id: string, data: InstrumentUpdate): Promise<Instrument> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.INSTRUMENTS)
       .update(data)
       .eq('id', id)
@@ -428,7 +428,7 @@ export const instrumentsService = {
 // Instrument Aliases
 export const instrumentAliasesService = {
   async create(data: InstrumentAliasInsert): Promise<InstrumentAlias> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.INSTRUMENT_ALIASES)
       .insert(data)
       .select()
@@ -449,7 +449,7 @@ export const instrumentAliasesService = {
   },
 
   async update(id: string, data: InstrumentAliasUpdate): Promise<InstrumentAlias> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.INSTRUMENT_ALIASES)
       .update(data)
       .eq('id', id)
@@ -464,7 +464,7 @@ export const instrumentAliasesService = {
 // Corporate Actions
 export const corporateActionsService = {
   async create(data: CorporateActionInsert): Promise<CorporateAction> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.CORPORATE_ACTIONS)
       .insert(data)
       .select()
@@ -486,7 +486,7 @@ export const corporateActionsService = {
   },
 
   async update(id: string, data: CorporateActionUpdate): Promise<CorporateAction> {
-    const { data: result, error } = await supabase
+    const { data: result, error } = await (supabase as any)
       .from(TABLES.CORPORATE_ACTIONS)
       .update(data)
       .eq('id', id)
