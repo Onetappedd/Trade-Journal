@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUserMetrics } from '@/hooks/useAnalytics';
+import { useUserMetrics, type UserMetrics } from '@/hooks/useAnalytics';
 
 function MetricsStrip() {
   const { data, isLoading } = useUserMetrics();

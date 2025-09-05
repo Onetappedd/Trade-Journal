@@ -6,10 +6,19 @@ import { createClient } from '@/lib/supabase/client';
 
 const supabase = createClient();
 
+// Define the type for user metrics
+export interface UserMetrics {
+  win_rate: number | null;
+  profit_factor: number | null;
+  expectancy: number | null;
+  max_drawdown_abs: number | null;
+  sharpe: number | null;
+}
+
 export function useUserMetrics() {
   return useQuery({
     queryKey: ['analytics','metrics'],
-    queryFn: async () => {
+    queryFn: async (): Promise<UserMetrics | null> => {
       const { data, error } = await supabase.rpc('get_user_metrics');
       if (error) throw error;
       // returns single row or null
