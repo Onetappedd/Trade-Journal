@@ -35,18 +35,18 @@ export async function getSimplifiedCalendarData(userId: string) {
   for (const trade of trades) {
     // Only process closed trades with exit data
     if (
-      trade.status === 'closed' &&
-      trade.exit_date &&
-      trade.exit_price !== null &&
-      trade.exit_price !== undefined
+      (trade as any).status === 'closed' &&
+      (trade as any).exit_date &&
+      (trade as any).exit_price !== null &&
+      (trade as any).exit_price !== undefined
     ) {
       closedTradesCount++;
 
       // Use exit date as the key
-      const dateKey = trade.exit_date.split('T')[0];
+      const dateKey = (trade as any).exit_date.split('T')[0];
 
       // Check if it's an option
-      const isOption = trade.asset_type === 'option' || trade.asset_type === 'Option';
+      const isOption = (trade as any).asset_type === 'option' || (trade as any).asset_type === 'Option';
 
       // For options: 1 contract = 100 shares
       // Prices are typically per share, so multiply by 100
@@ -55,14 +55,14 @@ export async function getSimplifiedCalendarData(userId: string) {
       let pnl = 0;
 
       // Handle different case variations of side
-      const side = trade.side?.toLowerCase();
+      const side = (trade as any).side?.toLowerCase();
 
       if (side === 'buy') {
         // Long position: profit when price goes up
-        pnl = (trade.exit_price - trade.entry_price) * trade.quantity * multiplier;
+        pnl = ((trade as any).exit_price - (trade as any).entry_price) * (trade as any).quantity * multiplier;
       } else if (side === 'sell') {
         // Short position: profit when price goes down
-        pnl = (trade.entry_price - trade.exit_price) * trade.quantity * multiplier;
+        pnl = ((trade as any).entry_price - (trade as any).exit_price) * (trade as any).quantity * multiplier;
       }
 
       // Add to daily total
@@ -70,25 +70,25 @@ export async function getSimplifiedCalendarData(userId: string) {
       totalPnL += pnl;
 
       console.log(`[Calendar] ${isOption ? 'Option' : 'Stock'} Trade:`, {
-        symbol: trade.symbol,
+        symbol: (trade as any).symbol,
         date: dateKey,
-        side: trade.side,
-        quantity: trade.quantity,
-        entry: trade.entry_price,
-        exit: trade.exit_price,
+        side: (trade as any).side,
+        quantity: (trade as any).quantity,
+        entry: (trade as any).entry_price,
+        exit: (trade as any).exit_price,
         multiplier: multiplier,
         pnl: pnl.toFixed(2),
       });
     } else {
       // Log why trade was skipped
-      if (trade.status !== 'closed') {
+      if ((trade as any).status !== 'closed') {
         console.log(
-          `[Calendar] Skipping ${trade.symbol}: status is '${trade.status}' (not closed)`,
+          `[Calendar] Skipping ${(trade as any).symbol}: status is '${(trade as any).status}' (not closed)`,
         );
-      } else if (!trade.exit_date) {
-        console.log(`[Calendar] Skipping ${trade.symbol}: no exit date`);
-      } else if (trade.exit_price === null || trade.exit_price === undefined) {
-        console.log(`[Calendar] Skipping ${trade.symbol}: no exit price`);
+      } else if (!(trade as any).exit_date) {
+        console.log(`[Calendar] Skipping ${(trade as any).symbol}: no exit date`);
+      } else if ((trade as any).exit_price === null || (trade as any).exit_price === undefined) {
+        console.log(`[Calendar] Skipping ${(trade as any).symbol}: no exit price`);
       }
     }
   }
