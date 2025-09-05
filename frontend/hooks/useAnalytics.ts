@@ -83,9 +83,11 @@ export function usePnlBySymbol(limit: number = 20) {
   return useQuery({
     queryKey: ['analytics', 'pnlBySymbol', limit],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_pnl_by_symbol', { limit_count: limit });
+      const { data, error } = await supabase.rpc('get_pnl_by_symbol');
       if (error) throw error;
-      return data as Array<{ symbol: string; trades: number; pnl: number; win_rate: number; profit_factor: number; avg_trade_size: number }>;
+      // Apply limit on the client side if the RPC doesn't support it
+      const results = data as Array<{ symbol: string; trades: number; pnl: number; win_rate: number; profit_factor: number; avg_trade_size: number }>;
+      return results.slice(0, limit);
     },
     refetchOnWindowFocus: false,
   });
