@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -205,13 +205,13 @@ export function MappingWizard({
   const [isCheckingResume, setIsCheckingResume] = useState(false);
 
   // Load presets on component mount
-  useMemo(() => {
+  useEffect(() => {
     loadPresets();
     checkForResumableImports();
   }, []);
 
   // Auto-detect and apply Webull preset if applicable
-  useMemo(() => {
+  useEffect(() => {
     // Check if this looks like Webull options data
     if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
         headers.includes('Filled') && headers.includes('Avg Price')) {
