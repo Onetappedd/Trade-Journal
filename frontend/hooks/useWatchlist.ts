@@ -33,7 +33,7 @@ export function useWatchlist() {
         return
       }
 
-      const symbols = data?.map(item => item.symbol) || []
+      const symbols = (data as any)?.map((item: any) => item.symbol) || []
       setWatchlist(symbols)
     } catch (error) {
       console.error('Error loading watchlist:', error)
@@ -46,7 +46,7 @@ export function useWatchlist() {
     if (!user) return false
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('watchlist_items')
         .insert({
           user_id: user.id,
@@ -71,7 +71,7 @@ export function useWatchlist() {
     if (!user) return false
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('watchlist_items')
         .delete()
         .eq('user_id', user.id)
