@@ -64,9 +64,9 @@ export default function AccountPage() {
       usernameForm.setError('username', { message: 'Username is already taken' });
       return;
     }
-    // Update in users table
+    // Update in profiles table
     const { error } = await supabase
-      .from('users')
+      .from('profiles')
       .update({ username: data.username })
       .eq('id', user?.id);
     if (error) {
