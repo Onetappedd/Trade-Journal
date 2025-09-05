@@ -66,8 +66,8 @@ export async function getDashboardStats(userId: string) {
     throw new Error(error.message);
   }
 
-  const totalTrades = trades.length;
-  const totalPnL = trades.reduce((sum, trade) => {
+  const totalTrades = (trades as any).length;
+  const totalPnL = (trades as any).reduce((sum: number, trade: any) => {
     // Calculate P&L if not stored
     if (trade.exit_price && trade.entry_price) {
       const pnl =
@@ -76,7 +76,7 @@ export async function getDashboardStats(userId: string) {
     }
     return sum;
   }, 0);
-  const winningTrades = trades.filter((trade) => {
+  const winningTrades = (trades as any).filter((trade: any) => {
     if (trade.exit_price && trade.entry_price) {
       const pnl =
         (trade.exit_price - trade.entry_price) * trade.quantity * (trade.side === 'buy' ? 1 : -1);
@@ -93,7 +93,7 @@ export async function getDashboardStats(userId: string) {
       totalPnL,
       winRate,
       avgPnL,
-      recentTrades: trades.slice(0, 5),
+      recentTrades: (trades as any).slice(0, 5),
     },
     error: null,
   };
