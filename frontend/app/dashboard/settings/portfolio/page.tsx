@@ -59,7 +59,7 @@ export default function PortfolioSettingsPage() {
       }
 
       if (settings) {
-        setInitialCapital(settings.initial_capital?.toString() || '10000');
+        setInitialCapital((settings as any).initial_capital?.toString() || '10000');
       }
     } finally {
       setIsLoading(false);
