@@ -409,7 +409,7 @@ export const instrumentsService = {
     const { data, error } = await query.single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data?.instrument ? (data.instrument as unknown as Instrument) : null
+    return (data as any)?.instrument ? ((data as any).instrument as unknown as Instrument) : null
   },
 
   async update(id: string, data: InstrumentUpdate): Promise<Instrument> {
