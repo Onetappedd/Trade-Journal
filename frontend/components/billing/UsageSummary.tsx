@@ -110,7 +110,7 @@ export function UsageSummary() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {usage && usage.length > 0 ? (
+        {usage && (usage as any).length > 0 ? (
           <div className="space-y-4">
             {/* Summary Stats */}
             <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
@@ -126,7 +126,7 @@ export function UsageSummary() {
 
             {/* Usage Breakdown */}
             <div className="space-y-3">
-              {usage.map((item: any) => (
+              {(usage as any).map((item: any) => (
                 <div key={item.kind} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     {getEventIcon(item.kind)}
