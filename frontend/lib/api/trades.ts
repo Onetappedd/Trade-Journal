@@ -33,7 +33,7 @@ export async function getTrades(userId: string) {
 
 export async function updateTrade(id: string, updates: TradeUpdate) {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('trades')
     .update(updates)
     .eq('id', id)
