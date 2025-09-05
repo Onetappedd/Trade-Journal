@@ -98,8 +98,8 @@ export function UsageSummary() {
     );
   }
 
-  const totalEvents = usage?.reduce((sum: number, item: any) => sum + item.count, 0) || 0;
-  const totalCost = usage?.reduce((sum: number, item: any) => sum + item.total_cost_estimate, 0) || 0;
+  const totalEvents = (usage as any)?.reduce((sum: number, item: any) => sum + item.count, 0) || 0;
+  const totalCost = (usage as any)?.reduce((sum: number, item: any) => sum + item.total_cost_estimate, 0) || 0;
 
   return (
     <Card>

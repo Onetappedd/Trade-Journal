@@ -1,0 +1,5 @@
+[33mdc29fc1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix TypeScript error in app-sidebar: add type assertion for data object spread operation
+[33m2d0dfcd[m Fix TypeScript error in profile page: cast Supabase client as any for profiles table update operation
+[33m5105cc0[m Fix TypeScript error in portfolio settings: add type assertion for settings object property access
+[33m2b31bf2[m Fix TypeScript error in portfolio settings page: cast Supabase client as any for user_settings operations
+[33m9e57b8b[m Fix TypeScript error in account page: cast entire Supabase client as any to bypass type inference issue
