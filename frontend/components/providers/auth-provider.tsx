@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { createClient, Session, SupabaseClient, User } from "@supabase/supabase-js";
+import { Session, SupabaseClient, User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 type AuthCtx = {
   supabase: SupabaseClient;
@@ -12,14 +13,8 @@ type AuthCtx = {
 
 const AuthContext = createContext<AuthCtx | null>(null);
 
-function makeClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(url, key);
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => makeClient());
+  const [supabase] = useState(() => createClient());
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
