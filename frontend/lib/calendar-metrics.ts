@@ -102,9 +102,9 @@ export async function getUserTradesGroupedByDay(
   for (const trade of trades) {
     // For closed trades, use exit date; for open trades, use entry date
     const dateKey =
-      trade.status === 'closed' && trade.exit_date
-        ? trade.exit_date.split('T')[0]
-        : trade.entry_date.split('T')[0];
+      (trade as any).status === 'closed' && (trade as any).exit_date
+        ? (trade as any).exit_date.split('T')[0]
+        : (trade as any).entry_date.split('T')[0];
 
     // Initialize daily data if not exists
     if (!dailyData[dateKey]) {
@@ -123,31 +123,31 @@ export async function getUserTradesGroupedByDay(
 
     // For options, the multiplier is 100 (each contract represents 100 shares)
     // IMPORTANT: Check if prices are already per contract or per share
-    const isOption = trade.asset_type === 'option' || trade.asset_type === 'Option';
+    const isOption = (trade as any).asset_type === 'option' || (trade as any).asset_type === 'Option';
     const multiplier = isOption ? 100 : 1;
 
-    if (trade.status === 'closed' && trade.exit_price !== null && trade.exit_price !== undefined) {
+    if ((trade as any).status === 'closed' && (trade as any).exit_price !== null && (trade as any).exit_price !== undefined) {
       // Log the trade details for debugging
-      console.log(`[Calendar] Processing closed ${trade.asset_type} trade:`, {
-        symbol: trade.symbol,
-        side: trade.side,
-        quantity: trade.quantity,
-        entry: trade.entry_price,
-        exit: trade.exit_price,
+      console.log(`[Calendar] Processing closed ${(trade as any).asset_type} trade:`, {
+        symbol: (trade as any).symbol,
+        side: (trade as any).side,
+        quantity: (trade as any).quantity,
+        entry: (trade as any).entry_price,
+        exit: (trade as any).exit_price,
         multiplier: multiplier,
       });
 
       // Calculate realized P&L
       // For options, prices are typically quoted per share, so we multiply by 100
-      if (trade.side === 'buy' || trade.side === 'Buy' || trade.side === 'BUY') {
+      if ((trade as any).side === 'buy' || (trade as any).side === 'Buy' || (trade as any).side === 'BUY') {
         // Long position: profit when exit > entry
-        tradePnL = (trade.exit_price - trade.entry_price) * trade.quantity * multiplier;
-      } else if (trade.side === 'sell' || trade.side === 'Sell' || trade.side === 'SELL') {
+        tradePnL = ((trade as any).exit_price - (trade as any).entry_price) * (trade as any).quantity * multiplier;
+      } else if ((trade as any).side === 'sell' || (trade as any).side === 'Sell' || (trade as any).side === 'SELL') {
         // Short position: profit when exit < entry
-        tradePnL = (trade.entry_price - trade.exit_price) * trade.quantity * multiplier;
+        tradePnL = ((trade as any).entry_price - (trade as any).exit_price) * (trade as any).quantity * multiplier;
       }
 
-      console.log(`[Calendar] Calculated P&L for ${trade.symbol}: ${tradePnL.toFixed(2)}`);
+      console.log(`[Calendar] Calculated P&L for ${(trade as any).symbol}: ${tradePnL.toFixed(2)}`);
 
       dailyData[dateKey].realizedPnL += tradePnL;
       dailyData[dateKey].totalPnL += tradePnL;
@@ -155,37 +155,37 @@ export async function getUserTradesGroupedByDay(
 
       // Add trade detail
       dailyData[dateKey].trades.push({
-        id: trade.id,
-        symbol: trade.symbol,
-        side: trade.side,
-        quantity: trade.quantity,
-        entryPrice: trade.entry_price,
-        exitPrice: trade.exit_price,
+        id: (trade as any).id,
+        symbol: (trade as any).symbol,
+        side: (trade as any).side,
+        quantity: (trade as any).quantity,
+        entryPrice: (trade as any).entry_price,
+        exitPrice: (trade as any).exit_price,
         pnl: tradePnL,
-        status: trade.status || 'closed',
-        assetType: trade.asset_type,
+        status: (trade as any).status || 'closed',
+        assetType: (trade as any).asset_type,
       });
 
       dailyData[dateKey].tradeCount++;
     } else if (
-      trade.status === 'open' ||
-      trade.status === null ||
-      trade.status === undefined ||
-      trade.status === ''
+      (trade as any).status === 'open' ||
+      (trade as any).status === null ||
+      (trade as any).status === undefined ||
+      (trade as any).status === ''
     ) {
       // Track open trades (no P&L yet)
-      console.log(`[Calendar] Skipping open trade: ${trade.symbol} (no exit price)`);
+      console.log(`[Calendar] Skipping open trade: ${(trade as any).symbol} (no exit price)`);
 
       dailyData[dateKey].trades.push({
-        id: trade.id,
-        symbol: trade.symbol,
-        side: trade.side,
-        quantity: trade.quantity,
-        entryPrice: trade.entry_price,
-        exitPrice: trade.exit_price,
+        id: (trade as any).id,
+        symbol: (trade as any).symbol,
+        side: (trade as any).side,
+        quantity: (trade as any).quantity,
+        entryPrice: (trade as any).entry_price,
+        exitPrice: (trade as any).exit_price,
         pnl: 0,
         status: 'open',
-        assetType: trade.asset_type,
+        assetType: (trade as any).asset_type,
       });
 
       dailyData[dateKey].tradeCount++;
