@@ -56,17 +56,17 @@ export function useSymbolStats(symbol: string) {
       }
 
       // Calculate stats
-      const realizedTrades = trades.filter(trade => trade.status === 'closed')
-      const totalPnl = realizedTrades.reduce((sum, trade) => sum + (trade.realized_pnl || 0), 0)
-      const winningTrades = realizedTrades.filter(trade => (trade.realized_pnl || 0) > 0)
+      const realizedTrades = (trades as any).filter((trade: any) => trade.status === 'closed')
+      const totalPnl = realizedTrades.reduce((sum: number, trade: any) => sum + (trade.realized_pnl || 0), 0)
+      const winningTrades = realizedTrades.filter((trade: any) => (trade.realized_pnl || 0) > 0)
       const winRate = realizedTrades.length > 0 ? winningTrades.length / realizedTrades.length : 0
       const avgPnl = realizedTrades.length > 0 ? totalPnl / realizedTrades.length : 0
       const tradesCount = realizedTrades.length
-      const lastTraded = trades[0]?.entry_date || ''
+      const lastTraded = (trades as any)[0]?.entry_date || ''
 
       // Get top tags
       const tagCounts: Record<string, number> = {}
-      trades.forEach(trade => {
+      ;(trades as any).forEach((trade: any) => {
         if (trade.tags) {
           const tags = Array.isArray(trade.tags) ? trade.tags : [trade.tags]
           tags.forEach((tag: string) => {
