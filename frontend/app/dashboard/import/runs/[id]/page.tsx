@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { ImportRunDetails } from '@/components/import/ImportRunDetails';
 
 export const metadata = {
-  title: 'Import Run Details - Trade Journal',
+  title: 'Import Run Details - Riskr',
   description: 'View detailed results of an import run',
 };
 

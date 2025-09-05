@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Documentation - Trade Journal',
-  description: 'Documentation and help for Trade Journal',
+  title: 'Documentation - Riskr',
+  description: 'Documentation and help for Riskr',
 };
 
 export default function DocsLayout({

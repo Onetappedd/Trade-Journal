@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { createWrappedApi } from '@/lib/errors';
 
 export type UserRole = 'free' | 'pro' | 'admin';
 export type SubscriptionStatus = 'trial' | 'active' | 'cancelled' | 'expired';

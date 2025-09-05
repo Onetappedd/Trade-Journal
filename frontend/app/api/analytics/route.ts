@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { requireProAccess, createSubscriptionRequiredResponse } from '@/lib/server-access-control';
+import { emitUsageEvent } from '@/lib/usage-tracking';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,19 +51,43 @@ const mockAnalytics = {
 };
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const period = searchParams.get('period') || 'all';
-  const userId = searchParams.get('user_id');
+  try {
+    // Check Pro access for analytics
+    const { userId } = await requireProAccess(request);
+    
+    const { searchParams } = new URL(request.url);
+    const period = searchParams.get('period') || 'all';
+    const userParam = searchParams.get('user_id');
 
-  // In a real app, you would filter by user_id and period
-  // For now, return mock data
+    // Track usage for Pro feature
+    try {
+      await emitUsageEvent(userId, 'analytics_query', {
+        query_type: 'analytics_summary',
+        period,
+        timestamp: new Date().toISOString()
+      });
+    } catch (usageError) {
+      console.error('Failed to track usage:', usageError);
+      // Don't fail the request if usage tracking fails
+    }
 
-  return NextResponse.json({
-    data: mockAnalytics,
-    meta: {
-      period,
-      user_id: userId || 'user-1',
-      generated_at: new Date().toISOString(),
-    },
-  });
+    // In a real app, you would filter by user_id and period
+    // For now, return mock data
+
+    return NextResponse.json({
+      data: mockAnalytics,
+      meta: {
+        period,
+        user_id: userParam || userId,
+        generated_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Pro access required')) {
+      return createSubscriptionRequiredResponse();
+    }
+    
+    console.error('Analytics API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

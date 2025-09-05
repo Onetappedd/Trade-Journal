@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { CommandPalette } from '@/components/command/CommandPalette';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -67,7 +68,7 @@ export function AppShell({ children }: AppShellProps) {
           {/* Logo */}
           <div className="mr-4 flex">
             <Link href="/dashboard" className="mr-6 flex items-center space-x-2">
-              <span className="font-bold text-xl">Trade Journal</span>
+              <span className="font-bold text-xl">Riskr</span>
             </Link>
           </div>
 
@@ -136,7 +137,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
             <div className="fixed inset-y-0 left-0 z-50 w-64 bg-background border-r">
               <div className="flex h-14 items-center justify-between px-4 border-b">
-                <span className="font-bold text-lg">Trade Journal</span>
+                <span className="font-bold text-lg">Riskr</span>
                 <Button
                   variant="ghost"
                   size="sm"

@@ -6,6 +6,11 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from 'zod';
 import { matchUserTrades } from '@/lib/matching/engine';
 import { resolveInstrument } from '@/lib/instruments/resolve';
+import { requireProAccess, createSubscriptionRequiredResponse } from '@/lib/server-access-control';
+import { emitUsageEvent } from '@/lib/usage-tracking';
+
+// Initialize Sentry monitoring for API routes
+import '@/lib/monitoring';
 
 // Force Node.js runtime for file processing
 export const runtime = 'nodejs';
@@ -231,6 +236,9 @@ function parseFlexXmlFile(buffer: Buffer): any[] {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check Pro access for CSV import
+    const { userId } = await requireProAccess(request);
+    
     const supabase = getServerSupabase();
     
     // Get authenticated user
@@ -523,6 +531,20 @@ export async function POST(request: NextRequest) {
        } catch (matchError) {
          console.error('Error in matching engine:', matchError);
          // Don't fail the import if matching fails
+       }
+
+       // Track usage for Pro feature
+       try {
+         await emitUsageEvent(user.id, 'csv_import', {
+           import_run_id: runId,
+           row_count: added + duplicates + errors,
+           successful_rows: added,
+           file_type: tempUpload.file_type,
+           timestamp: new Date().toISOString()
+         });
+       } catch (usageError) {
+         console.error('Failed to track usage:', usageError);
+         // Don't fail the import if usage tracking fails
        }
 
        return NextResponse.json({

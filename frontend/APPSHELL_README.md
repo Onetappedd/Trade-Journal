@@ -32,7 +32,7 @@ The sidebar includes these main sections:
 ### 3. Features
 
 #### Header
-- **Logo**: Clickable "Trade Journal" text that links to dashboard
+- **Logo**: Clickable "Riskr" text that links to dashboard
 - **Search**: Placeholder input (functionality to be added later)
 - **Theme Toggle**: Light/dark mode switch with smooth transitions
 

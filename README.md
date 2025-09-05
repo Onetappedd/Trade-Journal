@@ -1,4 +1,4 @@
-# Trade Journal
+# Riskr
 
 This is a trade journaling application built with Next.js and Supabase.
 

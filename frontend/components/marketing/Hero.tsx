@@ -29,7 +29,7 @@ export function Hero() {
               transition={shouldAnimate ? { duration: 0.6 } : {}}
             >
               <Badge variant="secondary" className="bg-[--pp-accent]/10 text-[--pp-accent] border-[--pp-accent]/20">
-                Multi-asset trade journal
+                Trade Journaling & Analytics
               </Badge>
             </motion.div>
 

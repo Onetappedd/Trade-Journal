@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
 import { matchUserTrades } from '@/lib/matching/engine';
 import { resolveInstrument } from '@/lib/instruments/resolve';
+import { requireProAccess, createSubscriptionRequiredResponse } from '@/lib/server-access-control';
+import { emitUsageEvent } from '@/lib/usage-tracking';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check Pro access for manual import
+    const { userId } = await requireProAccess(request);
+    
     const supabase = getServerSupabase();
     
     // Get authenticated user
@@ -179,6 +184,20 @@ export async function POST(request: NextRequest) {
         }
       })
       .eq('id', importRun.id);
+
+    // Track usage for Pro feature
+    try {
+      await emitUsageEvent(user.id, 'csv_import', {
+        import_run_id: importRun.id,
+        row_count: 1,
+        successful_rows: 1,
+        source: 'manual',
+        timestamp: new Date().toISOString()
+      });
+    } catch (usageError) {
+      console.error('Failed to track usage:', usageError);
+      // Don't fail the import if usage tracking fails
+    }
 
     return NextResponse.json({
       runId: importRun.id,

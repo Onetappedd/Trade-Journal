@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
 import { Crown, Clock, Check, AlertTriangle, CreditCard } from 'lucide-react';
+import { UsageSummary } from '@/components/billing/UsageSummary';
+import { createWrappedApi } from '@/lib/errors';
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -20,66 +21,78 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (user) {
-      loadSubscription();
+      handleLoadSubscription();
     }
   }, [user]);
 
-  async function loadSubscription() {
-    if (!user) return;
-    
-    try {
+  const loadSubscription = createWrappedApi(
+    async () => {
+      if (!user) return;
+      
       setLoading(true);
       const data = await getUserSubscription(user.id);
       setSubscription(data);
-    } catch (error) {
-      console.error('Error loading subscription:', error);
-      toast.error('Failed to load subscription data');
+    },
+    'Failed to load subscription data'
+  );
+
+  async function handleLoadSubscription() {
+    try {
+      await loadSubscription();
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleUpgrade() {
-    if (!user) return;
-    
-    try {
+  const handleUpgrade = createWrappedApi(
+    async () => {
+      if (!user) return;
+      
       setUpgrading(true);
       const result = await upgradeToPro(user.id);
       
       if (result.success) {
-        toast.success('Successfully upgraded to Pro!');
-        loadSubscription(); // Reload data
+        // Success message will be handled by the wrapped API
+        handleLoadSubscription(); // Reload data
       } else {
-        toast.error(result.error || 'Failed to upgrade');
+        throw new Error(result.error || 'Failed to upgrade');
       }
-    } catch (error) {
-      console.error('Error upgrading:', error);
-      toast.error('Failed to upgrade subscription');
+    },
+    'Failed to upgrade subscription'
+  );
+
+  async function handleUpgradeClick() {
+    try {
+      await handleUpgrade();
     } finally {
       setUpgrading(false);
     }
   }
 
-  async function handleCancel() {
-    if (!user) return;
-    
-    if (!confirm('Are you sure you want to cancel your subscription? You will lose access to Pro features at the end of your current billing period.')) {
-      return;
-    }
-    
-    try {
+  const handleCancel = createWrappedApi(
+    async () => {
+      if (!user) return;
+      
+      if (!confirm('Are you sure you want to cancel your subscription? You will lose access to Pro features at the end of your current billing period.')) {
+        return;
+      }
+      
       setCancelling(true);
       const result = await cancelSubscription(user.id);
       
       if (result.success) {
-        toast.success('Subscription cancelled successfully');
-        loadSubscription(); // Reload data
+        // Success message will be handled by the wrapped API
+        handleLoadSubscription(); // Reload data
       } else {
-        toast.error(result.error || 'Failed to cancel subscription');
+        throw new Error(result.error || 'Failed to cancel subscription');
       }
-    } catch (error) {
-      console.error('Error cancelling:', error);
-      toast.error('Failed to cancel subscription');
+    },
+    'Failed to cancel subscription'
+  );
+
+  async function handleCancelClick() {
+    try {
+      await handleCancel();
     } finally {
       setCancelling(false);
     }
@@ -237,7 +250,7 @@ export default function BillingPage() {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={handleCancel}
+                  onClick={handleCancelClick}
                   disabled={cancelling}
                 >
                   {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
@@ -246,7 +259,7 @@ export default function BillingPage() {
             ) : (
               <Button 
                 className="w-full"
-                onClick={handleUpgrade}
+                onClick={handleUpgradeClick}
                 disabled={upgrading}
               >
                 {upgrading ? 'Upgrading...' : 'Upgrade to Pro'}
@@ -255,6 +268,9 @@ export default function BillingPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Usage Summary */}
+      <UsageSummary />
 
       {/* Billing Information */}
       {isProActive && (

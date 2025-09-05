@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { ManualEntryForm } from '@/components/import/ManualEntryForm';
 
 export const metadata = {
-  title: 'Manual Entry - Trade Journal',
+  title: 'Manual Entry - Riskr',
   description: 'Add single executions manually',
 };
 

@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Importing Trades - Trade Journal Documentation',
-  description: 'Complete guide to importing trading data into Trade Journal',
+  title: 'Importing Trades - Riskr Documentation',
+  description: 'Complete guide to importing trading data into Riskr',
 };
 
 export default function ImportingDocsPage() {
@@ -16,7 +16,7 @@ export default function ImportingDocsPage() {
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Importing Trades</h1>
           <p className="text-muted-foreground mt-2">
-            Complete guide to importing your trading data into Trade Journal
+            Complete guide to importing your trading data into Riskr
           </p>
         </div>
         <Link href="/dashboard/import">
@@ -31,7 +31,7 @@ export default function ImportingDocsPage() {
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold">Overview: 4 Ways to Import</h2>
         <p className="text-muted-foreground">
-          Trade Journal supports multiple import methods to accommodate different workflows and data sources:
+          Riskr supports multiple import methods to accommodate different workflows and data sources:
         </p>
         
         <div className="grid gap-6 md:grid-cols-2">
@@ -89,7 +89,7 @@ export default function ImportingDocsPage() {
               <li>2. Go to <strong>Account</strong> → <strong>History</strong></li>
               <li>3. Click <strong>Export</strong> → <strong>Download CSV</strong></li>
               <li>4. Select date range and download</li>
-              <li>5. Upload to Trade Journal using CSV Import</li>
+              <li>5. Upload to Riskr using CSV Import</li>
             </ol>
           </div>
           
@@ -100,7 +100,7 @@ export default function ImportingDocsPage() {
               <li>2. Go to <strong>Reports</strong> → <strong>Activity</strong> → <strong>Trades</strong></li>
               <li>3. Set date range and click <strong>Generate Report</strong></li>
               <li>4. Download as CSV or Flex XML</li>
-              <li>5. Upload to Trade Journal using CSV Import</li>
+              <li>5. Upload to Riskr using CSV Import</li>
             </ol>
           </div>
           
@@ -111,7 +111,7 @@ export default function ImportingDocsPage() {
               <li>2. Go to <strong>Accounts & Trade</strong> → <strong>Account Positions</strong></li>
               <li>3. Click <strong>History</strong> → <strong>Download</strong></li>
               <li>4. Select CSV format and date range</li>
-              <li>5. Upload to Trade Journal using CSV Import</li>
+              <li>5. Upload to Riskr using CSV Import</li>
             </ol>
           </div>
           
@@ -122,7 +122,7 @@ export default function ImportingDocsPage() {
               <li>2. Go to <strong>Accounts</strong> → <strong>Trade</strong> → <strong>Order Status</strong></li>
               <li>3. Click <strong>Export</strong> → <strong>CSV</strong></li>
               <li>4. Select date range and download</li>
-              <li>5. Upload to Trade Journal using CSV Import</li>
+              <li>5. Upload to Riskr using CSV Import</li>
             </ol>
           </div>
           
@@ -133,7 +133,7 @@ export default function ImportingDocsPage() {
               <li>2. Go to <strong>Accounts</strong> → <strong>History</strong></li>
               <li>3. Click <strong>Export</strong> → <strong>CSV</strong></li>
               <li>4. Select date range and download</li>
-              <li>5. Upload to Trade Journal using CSV Import</li>
+              <li>5. Upload to Riskr using CSV Import</li>
             </ol>
           </div>
           
@@ -144,7 +144,7 @@ export default function ImportingDocsPage() {
               <li>2. Go to <strong>Account</strong> → <strong>History</strong></li>
               <li>3. Click <strong>Export</strong> → <strong>CSV</strong></li>
               <li>4. Select date range and download</li>
-              <li>5. Upload to Trade Journal using CSV Import</li>
+              <li>5. Upload to Riskr using CSV Import</li>
             </ol>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function ImportingDocsPage() {
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold">Mapping Wizard Tips</h2>
         <p className="text-muted-foreground">
-          The Mapping Wizard helps you connect your broker's column names to Trade Journal's standardized fields.
+          The Mapping Wizard helps you connect your broker's column names to Riskr's standardized fields.
         </p>
         
         <div className="space-y-6">
@@ -171,7 +171,7 @@ export default function ImportingDocsPage() {
           
           <div>
             <h3 className="text-lg font-medium mb-3">Date Formats</h3>
-            <p className="text-sm mb-2">Trade Journal accepts most common date formats:</p>
+            <p className="text-sm mb-2">Riskr accepts most common date formats:</p>
             <ul className="space-y-1 text-sm">
               <li>• <code>MM/DD/YYYY</code> (e.g., 12/25/2024)</li>
               <li>• <code>YYYY-MM-DD</code> (e.g., 2024-12-25)</li>
@@ -204,7 +204,7 @@ export default function ImportingDocsPage() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-2 font-medium">Trade Journal Field</th>
+                    <th className="text-left p-2 font-medium">Riskr Field</th>
                     <th className="text-left p-2 font-medium">Common Broker Names</th>
                   </tr>
                 </thead>

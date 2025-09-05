@@ -1076,12 +1076,12 @@ export function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* New Analytics Components */}
-        
+      </div>
+
+      {/* New Analytics Components */}
+      <div className="space-y-6 mt-6">
         {/* Tag and Symbol Analytics Tables */}
-        <div className="space-y-6">
-          <AnalyticsTables />
-        </div>
+        <AnalyticsTables />
 
         {/* Expectancy Chart */}
         <ExpectancyChart />

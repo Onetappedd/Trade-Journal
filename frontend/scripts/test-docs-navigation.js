@@ -39,7 +39,7 @@ function testHelpLinks() {
   // Test documentation page structure
   const docsPage = {
     route: '/docs/importing',
-    title: 'Importing Trades - Trade Journal Documentation',
+    title: 'Importing Trades - Riskr Documentation',
     sections: [
       'Overview: 4 Ways to Import',
       'How to Export from Common Brokers',

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { requireProAccess, createSubscriptionRequiredResponse } from '@/lib/server-access-control';
+import { emitUsageEvent } from '@/lib/usage-tracking';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -8,21 +10,31 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
-  // Create Supabase server client with cookies
-  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get: (key) => req.cookies.get(key)?.value,
-      set: () => {},
-      remove: () => {},
-    },
-  });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  const subpath = params.path.join('/');
+  try {
+    // Check Pro access for analytics
+    const { userId } = await requireProAccess(req);
+    
+    // Create Supabase server client with cookies
+    const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      cookies: {
+        get: (key) => req.cookies.get(key)?.value,
+        set: () => {},
+        remove: () => {},
+      },
+    });
+    
+    const subpath = params.path.join('/');
+    
+    // Track usage for Pro feature
+    try {
+      await emitUsageEvent(userId, 'analytics_query', {
+        query_type: subpath,
+        timestamp: new Date().toISOString()
+      });
+    } catch (usageError) {
+      console.error('Failed to track usage:', usageError);
+      // Don't fail the request if usage tracking fails
+    }
   // Handle /api/analytics/cards with a stub response for now
   if (subpath === 'cards') {
     return NextResponse.json({
@@ -40,25 +52,33 @@ export async function POST(req: NextRequest, { params }: { params: { path: strin
       sortino: 1.5,
     });
   }
-  // Fallback: proxy to Edge Function or remote HTTP analytics endpoint
-  const url = `${SUPABASE_URL}/functions/v1/${subpath}`;
-  const body = await req.text();
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      apikey: SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json',
-    },
-    body,
-  });
-  const proxyRes = new NextResponse(res.body, {
-    status: res.status,
-    headers: {
-      'Content-Type': res.headers.get('Content-Type') || 'application/json',
-    },
-  });
-  return proxyRes;
+    // Fallback: proxy to Edge Function or remote HTTP analytics endpoint
+    const url = `${SUPABASE_URL}/functions/v1/${subpath}`;
+    const body = await req.text();
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${userId}`, // Use userId from access control
+        apikey: SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body,
+    });
+    const proxyRes = new NextResponse(res.body, {
+      status: res.status,
+      headers: {
+        'Content-Type': res.headers.get('Content-Type') || 'application/json',
+      },
+    });
+    return proxyRes;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Pro access required')) {
+      return createSubscriptionRequiredResponse();
+    }
+    
+    console.error('Analytics API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 export async function OPTIONS() {
