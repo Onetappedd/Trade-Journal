@@ -67,7 +67,7 @@ export default function AccountPage() {
     // Update in profiles table
     const { error } = await supabase
       .from('profiles')
-      .update({ username: data.username })
+      .update({ username: data.username } as any)
       .eq('id', user?.id);
     if (error) {
       toast.error('Failed to update username', {
