@@ -57,7 +57,7 @@ export function useSavedScans() {
     try {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('saved_scans')
         .insert({
           user_id: user.id,
@@ -106,7 +106,7 @@ export function useSavedScans() {
     if (!user) return false
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('saved_scans')
         .delete()
         .eq('id', scanId)
