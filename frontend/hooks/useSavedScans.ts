@@ -95,7 +95,7 @@ export function useSavedScans() {
         return null
       }
 
-      return data?.params || null
+      return (data as any)?.params || null
     } catch (error) {
       console.error('Error loading scan:', error)
       return null
