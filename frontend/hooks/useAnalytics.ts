@@ -111,12 +111,19 @@ export function useDailyPnl(startDate?: string, endDate?: string) {
   return useQuery({
     queryKey: ['analytics', 'dailyPnl', startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_daily_pnl', { 
-        start_date: startDate, 
-        end_date: endDate 
-      });
+      const { data, error } = await supabase.rpc('get_daily_pnl');
       if (error) throw error;
-      return data as Array<{ day: string; pnl: number; trades: number }>;
+      // Apply date filtering on the client side if the RPC doesn't support it
+      const results = data as Array<{ day: string; pnl: number; trades: number }>;
+      if (startDate || endDate) {
+        return results.filter(item => {
+          const itemDate = new Date(item.day);
+          if (startDate && itemDate < new Date(startDate)) return false;
+          if (endDate && itemDate > new Date(endDate)) return false;
+          return true;
+        });
+      }
+      return results;
     },
     refetchOnWindowFocus: false,
   });
