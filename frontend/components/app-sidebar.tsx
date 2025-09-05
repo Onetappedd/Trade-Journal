@@ -134,7 +134,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           .select('username')
           .eq('id', user.id)
           .single();
-        if (data) setDbUser({ ...data, email: user.email || '' });
+        if (data) setDbUser({ ...(data as any), email: user.email || '' });
       }
     }
     fetchDbUser();
