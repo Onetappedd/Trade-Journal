@@ -31,6 +31,9 @@ export const brokerAdapters: Record<string, AdapterFunction> = {
 
 // Webull options adapter - handles the complex Name field parsing
 export function webullOptionsAdapter(row: any, mapping: any): MappedRow {
+  console.log('[Webull Adapter] Input row:', row);
+  console.log('[Webull Adapter] Input mapping:', mapping);
+  
   const baseRow = {
     timestamp: row[mapping.timestamp] || '',
     symbol: row[mapping.symbol] || '',
@@ -43,10 +46,14 @@ export function webullOptionsAdapter(row: any, mapping: any): MappedRow {
     instrument_type: 'option' as const,
     multiplier: 100,
   };
+  
+  console.log('[Webull Adapter] Base row:', baseRow);
 
   // Parse Webull options symbol format: QQQ250822P00563000
   // Format: UNDERLYING + EXPIRY + OPTION_TYPE + STRIKE
   const symbol = row[mapping.symbol] || '';
+  console.log('[Webull Adapter] Parsing symbol:', symbol);
+  
   if (symbol && symbol.length > 8) {
     try {
       // Extract underlying (everything before the expiry)
@@ -57,6 +64,8 @@ export function webullOptionsAdapter(row: any, mapping: any): MappedRow {
 
       // Find the expiry pattern (6 digits: YYMMDD)
       const expiryMatch = symbol.match(/(\d{6})([CP])(\d+)/);
+      console.log('[Webull Adapter] Expiry match:', expiryMatch);
+      
       if (expiryMatch) {
         const [, expiryStr, optionTypeStr, strikeStr] = expiryMatch;
         
@@ -71,7 +80,7 @@ export function webullOptionsAdapter(row: any, mapping: any): MappedRow {
       }
 
       if (underlying && expiry && optionType && strike) {
-        return {
+        const result = {
           ...baseRow,
           underlying,
           expiry: `20${expiry.substring(0, 2)}-${expiry.substring(2, 4)}-${expiry.substring(4, 6)}`,
@@ -79,12 +88,15 @@ export function webullOptionsAdapter(row: any, mapping: any): MappedRow {
           strike: parseFloat(strike),
           symbol: `${underlying} ${expiry.substring(2, 4)}/${expiry.substring(4, 6)}/${expiry.substring(0, 2)} ${optionType.toUpperCase()} ${strike}`,
         };
+        console.log('[Webull Adapter] Parsed options result:', result);
+        return result;
       }
     } catch (error) {
       console.warn('Failed to parse Webull options symbol:', symbol, error);
     }
   }
 
+  console.log('[Webull Adapter] Returning base row (no options parsing):', baseRow);
   return baseRow;
 }
 

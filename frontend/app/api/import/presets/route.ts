@@ -23,18 +23,25 @@ const GetPresetsSchema = z.object({
 function matchesGlob(filename: string, glob: string): boolean {
   if (!glob) return false;
   
-  // Simple glob matching - convert glob to regex
-  const regexPattern = glob
-    .replace(/\./g, '\\.')  // Escape dots
-    .replace(/\*/g, '.*')   // Convert * to .*
-    .replace(/\?/g, '.')    // Convert ? to .
-    .replace(/\[/g, '\\[')  // Escape [
-    .replace(/\]/g, '\\]')  // Escape ]
-    .replace(/\(/g, '\\(')  // Escape (
-    .replace(/\)/g, '\\)');  // Escape )
-  
-  const regex = new RegExp(`^${regexPattern}$`, 'i');
-  return regex.test(filename);
+  try {
+    // Simple glob matching - convert glob to regex
+    const regexPattern = glob
+      .replace(/\./g, '\\.')  // Escape dots
+      .replace(/\*/g, '.*')   // Convert * to .*
+      .replace(/\?/g, '.')    // Convert ? to .
+      .replace(/\[/g, '\\[')  // Escape [
+      .replace(/\]/g, '\\]')  // Escape ]
+      .replace(/\(/g, '\\(')  // Escape (
+      .replace(/\)/g, '\\)');  // Escape )
+    
+    const regex = new RegExp(`^${regexPattern}$`, 'i');
+    const result = regex.test(filename);
+    console.log(`[Glob Match] Testing "${filename}" against glob "${glob}" (regex: ${regexPattern}) = ${result}`);
+    return result;
+  } catch (error) {
+    console.error(`[Glob Match] Error matching "${filename}" against glob "${glob}":`, error);
+    return false;
+  }
 }
 
 // Helper function to calculate preset match score
@@ -69,25 +76,43 @@ function calculateMatchScore(preset: any, filename?: string, brokerHint?: string
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Presets API] Starting request');
+    console.log('[Presets API] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing');
+    console.log('[Presets API] Supabase Anon Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
     const supabase = getServerSupabase();
     
     // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
+    console.log('[Presets API] Getting user authentication');
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.error('[Presets API] Auth error:', authError);
+      return NextResponse.json({ error: 'Authentication error' }, { status: 401 });
+    }
+    
     if (!user) {
+      console.log('[Presets API] No user found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    console.log('[Presets API] User authenticated:', user.id);
 
     const { searchParams } = new URL(request.url);
     const filename = searchParams.get('filename');
     const brokerHint = searchParams.get('broker_hint');
 
+    console.log('[Presets API] Raw filename:', filename);
+    console.log('[Presets API] Raw broker_hint:', brokerHint);
+
     // Validate query parameters
     const validation = GetPresetsSchema.safeParse({ filename, broker_hint: brokerHint });
     if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 });
+      console.error('[Presets API] Validation failed:', validation.error);
+      return NextResponse.json({ error: 'Invalid query parameters', details: validation.error }, { status: 400 });
     }
 
     // Get user's presets
+    console.log('[Presets API] Fetching user presets for user:', user.id);
     const { data: userPresets, error: userError } = await supabase
       .from('import_mapping_presets')
       .select('*')
@@ -99,7 +124,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch presets' }, { status: 500 });
     }
 
+    console.log('[Presets API] User presets found:', userPresets?.length || 0);
+
     // Get system presets (with dummy user_id)
+    console.log('[Presets API] Fetching system presets');
     const { data: systemPresets, error: systemError } = await supabase
       .from('import_mapping_presets')
       .select('*')
@@ -110,6 +138,8 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching system presets:', systemError);
       // Continue without system presets
     }
+
+    console.log('[Presets API] System presets found:', systemPresets?.length || 0);
 
     // Combine and score presets
     const allPresets = [

@@ -241,8 +241,9 @@ export function MappingWizard({
         Object.entries(newMapping).filter(([_, value]) => value !== undefined) as [string, string][]
       );
       
-      // Set the mapping
+      // Set the mapping and broker
       setMapping(filteredMapping);
+      setSelectedBroker('webull'); // CRITICAL: Set the selected broker to trigger the adapter
       console.log('Auto-applied comprehensive Webull options preset');
     }
   }, [headers]);
@@ -253,8 +254,9 @@ export function MappingWizard({
     try {
       const params = new URLSearchParams();
       if (filename) {
-        // Properly encode the filename to handle special characters like +, (, )
-        params.append('filename', encodeURIComponent(filename));
+        // Don't double-encode - just append the filename directly
+        // URLSearchParams will handle the encoding properly
+        params.append('filename', filename);
       }
       
       const response = await fetch(`/api/import/presets?${params.toString()}`);

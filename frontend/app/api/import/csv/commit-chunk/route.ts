@@ -429,6 +429,8 @@ export async function POST(request: NextRequest) {
     const mapping: Record<string, string> = importRun.summary?.mapping || {};
     
     console.log(`[Commit Chunk] Using mapping:`, mapping);
+    console.log(`[Commit Chunk] Mapping has broker field:`, !!mapping.broker);
+    console.log(`[Commit Chunk] Broker value:`, mapping.broker);
     console.log(`[Commit Chunk] First row sample:`, chunkRows[0]);
     
     // Prepare normalized rows for bulk upsert
@@ -465,6 +467,7 @@ export async function POST(request: NextRequest) {
         
         // Apply broker-specific adapter if mapping.broker is specified
         if (mapping.broker) {
+          console.log(`[Commit Chunk] Applying ${mapping.broker} adapter for row ${lineNumber}`);
           try {
             const adaptedData = applyBrokerAdapter(row, mapping);
             // Merge adapted data with mapped data (adapted data takes precedence)
@@ -474,12 +477,16 @@ export async function POST(request: NextRequest) {
             console.warn(`[Commit Chunk] Adapter failed for row ${lineNumber}:`, adapterError);
             // Continue with original mapped data if adapter fails
           }
+        } else {
+          console.log(`[Commit Chunk] No broker specified in mapping for row ${lineNumber}`);
         }
 
         // Validate required fields
         const requiredFields: CanonicalField[] = ['timestamp', 'symbol', 'side', 'quantity', 'price'];
         for (const field of requiredFields) {
           if (!mappedData[field]) {
+            console.error(`[Commit Chunk] Row ${lineNumber} missing required field: ${field}`);
+            console.error(`[Commit Chunk] Row ${lineNumber} mappedData:`, mappedData);
             throw new Error(`Missing required field: ${field}`);
           }
         }
