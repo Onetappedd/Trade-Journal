@@ -97,11 +97,13 @@ const BROKER_PRESETS = {
       quantity: 'Filled',
       price: 'Avg Price',
       fees: 'Fees',
-      instrument_type: 'instrument_type', // Will be auto-detected as 'option'
-      expiry: 'expiry', // Will be extracted from Symbol column
-      strike: 'strike', // Will be extracted from Symbol column
-      option_type: 'option_type', // Will be extracted from Symbol column
-      underlying: 'underlying', // Will be extracted from Symbol column
+      currency: 'USD',
+      venue: 'NASDAQ',
+      instrument_type: 'option',
+      multiplier: '100',
+      broker: 'webull', // CRITICAL: This triggers the Webull adapter
+      // Note: expiry, strike, option_type, and underlying will be extracted from the Symbol column
+      // during the actual import process, so we don't map them here to avoid duplicates
     },
   },
   etrade: {
@@ -229,6 +231,7 @@ export function MappingWizard({
         exec_id: headers.includes('Exec ID') ? 'Exec ID' : undefined,
         instrument_type: 'option', // Always options for Webull
         multiplier: '100', // Standard options multiplier
+        broker: 'webull', // CRITICAL: This triggers the Webull adapter
         // Note: expiry, strike, option_type, and underlying will be extracted from the Symbol column
         // during the actual import process, so we don't map them here to avoid duplicates
       };
