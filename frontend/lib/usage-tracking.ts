@@ -25,7 +25,7 @@ export const emitUsageEvent = createWrappedApi(
     const supabase = createClient();
     
     // This function should be called from API routes with service role
-    const { data, error } = await supabase.rpc('emit_usage_event', {
+    const { data, error } = await (supabase as any).rpc('emit_usage_event', {
       p_user_id: userId,
       p_kind: kind,
       p_payload: payload
@@ -65,7 +65,7 @@ export const getUserUsagePeriod = createWrappedApi(
   async (startDate: string, endDate: string) => {
     const supabase = createClient();
     
-    const { data, error } = await supabase.rpc('get_user_usage_period', {
+    const { data, error } = await (supabase as any).rpc('get_user_usage_period', {
       p_start_date: startDate,
       p_end_date: endDate
     });
