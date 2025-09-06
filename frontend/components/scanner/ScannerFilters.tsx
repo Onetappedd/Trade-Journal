@@ -519,7 +519,7 @@ export function ScannerFilters({
                       <SelectValue placeholder="All sessions" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All sessions</SelectItem>
+                      <SelectItem value="all">All sessions</SelectItem>
                       <SelectItem value="rth">Regular Trading Hours</SelectItem>
                       <SelectItem value="premarket">Pre-market</SelectItem>
                       <SelectItem value="afterhours">After Hours</SelectItem>

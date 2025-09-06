@@ -193,7 +193,7 @@ export function MappingWizard({
   
   // Preset management
   const [presets, setPresets] = useState<any[]>([]);
-  const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [selectedPreset, setSelectedPreset] = useState<string>('none');
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
@@ -300,6 +300,11 @@ export function MappingWizard({
 
   // Load a selected preset
   const loadPreset = (presetId: string) => {
+    if (presetId === 'none') {
+      setSelectedPreset('none');
+      return;
+    }
+    
     const preset = presets.find(p => p.id === presetId);
     if (preset) {
       setMapping(preset.fields);
@@ -773,7 +778,7 @@ export function MappingWizard({
                       <SelectValue placeholder="Select a preset..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No preset</SelectItem>
+                      <SelectItem value="none">No preset</SelectItem>
                       {presets.map((preset) => (
                         <SelectItem key={preset.id} value={preset.id}>
                           <div className="flex items-center gap-2">
@@ -815,7 +820,7 @@ export function MappingWizard({
                     <SelectValue placeholder="Select your broker (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No specific broker</SelectItem>
+                    <SelectItem value="none">No specific broker</SelectItem>
                     <SelectItem value="webull">Webull</SelectItem>
                     <SelectItem value="ibkr">Interactive Brokers</SelectItem>
                     <SelectItem value="robinhood">Robinhood</SelectItem>
