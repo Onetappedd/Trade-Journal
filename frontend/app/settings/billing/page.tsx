@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getBillingState } from '@/lib/entitlements'
+import { redirect } from 'next/navigation'
 
 async function getUser() {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -20,16 +21,14 @@ export default async function BillingPage() {
       body: JSON.stringify({ priceId }),
     })
     const { url } = await res.json()
-    if (url) { return { redirect: url } }
-    return {}
+    if (url) { redirect(url) }
   }
 
   async function openPortal() {
     'use server'
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/portal`, { method: 'POST' })
     const { url } = await res.json()
-    if (url) { return { redirect: url } }
-    return {}
+    if (url) { redirect(url) }
   }
 
   return (
