@@ -433,10 +433,22 @@ export async function POST(request: NextRequest) {
         // Map row to canonical fields using the user's mapping
         const mappedData: any = {};
         
-        // Apply the user's field mapping
+        // Apply the user's field mapping with case-insensitive lookup
         for (const [canonicalField, csvHeader] of Object.entries(mapping)) {
-          if (csvHeader && row[csvHeader] !== undefined) {
-            mappedData[canonicalField] = row[csvHeader];
+          if (csvHeader) {
+            // Try exact match first
+            if (row[csvHeader] !== undefined) {
+              mappedData[canonicalField] = row[csvHeader];
+            } else {
+              // Try case-insensitive match
+              const csvHeaders = Object.keys(row);
+              const matchingHeader = csvHeaders.find(header => 
+                header.toLowerCase() === csvHeader.toLowerCase()
+              );
+              if (matchingHeader && row[matchingHeader] !== undefined) {
+                mappedData[canonicalField] = row[matchingHeader];
+              }
+            }
           }
         }
         
