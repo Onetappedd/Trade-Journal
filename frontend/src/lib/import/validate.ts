@@ -115,6 +115,9 @@ export function normalizeRow(raw: Record<string, unknown>):
   const errors: string[] = [];
   const normalized: Record<string, unknown> = {};
 
+  // Debug logging
+  console.log('Raw row data:', raw);
+
   // Helper function to add errors
   const addError = (field: string, message: string) => {
     errors.push(`${field}: ${message}`);
@@ -342,6 +345,10 @@ export function normalizeRow(raw: Record<string, unknown>):
       addError('option_type', 'is required for options');
     }
   }
+
+  // Debug logging
+  console.log('Normalized data:', normalized);
+  console.log('Validation errors:', errors);
 
   if (errors.length > 0) {
     return { ok: false, errors };
