@@ -294,7 +294,7 @@ class MarketDataService {
       const symbols = [...new Set((trades as any).map((trade: any) => trade.symbol))];
 
       // Get current prices
-      const quotes = await this.getBatchQuotes(symbols);
+      const quotes = await this.getBatchQuotes(symbols as string[]);
       const priceMap = new Map(quotes.map((quote) => [quote.symbol, quote]));
 
       // Calculate positions
