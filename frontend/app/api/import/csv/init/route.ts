@@ -30,10 +30,11 @@ async function parseCsvSample(buffer: Buffer, fileType: string): Promise<{ heade
     const rows: any[] = [];
     let headers: string[] = [];
     let rowCount = 0;
+    let isFirstRow = true;
     
     const parser = parse({
       delimiter,
-      columns: true,
+      columns: false, // Don't auto-convert to objects, we'll handle headers manually
       skip_empty_lines: true,
       max_record_size: 1024 * 1024,
     });
@@ -41,10 +42,37 @@ async function parseCsvSample(buffer: Buffer, fileType: string): Promise<{ heade
     parser.on('readable', () => {
       let record;
       while ((record = parser.read()) && rowCount < 1000) {
-        if (rowCount === 0) {
-          headers = Object.keys(record);
+        if (isFirstRow) {
+          // First row contains headers
+          headers = record;
+          isFirstRow = false;
+          
+          // Handle duplicate column names by appending numbers
+          const processedHeaders: string[] = [];
+          const headerCounts: Record<string, number> = {};
+          
+          for (const header of headers) {
+            const cleanHeader = header.trim();
+            if (headerCounts[cleanHeader]) {
+              headerCounts[cleanHeader]++;
+              processedHeaders.push(`${cleanHeader}_${headerCounts[cleanHeader]}`);
+            } else {
+              headerCounts[cleanHeader] = 1;
+              processedHeaders.push(cleanHeader);
+            }
+          }
+          
+          headers = processedHeaders;
+          return;
         }
-        rows.push(record);
+        
+        // Convert array to object using processed headers
+        const rowObj: Record<string, any> = {};
+        for (let i = 0; i < headers.length && i < record.length; i++) {
+          rowObj[headers[i]] = record[i];
+        }
+        
+        rows.push(rowObj);
         rowCount++;
       }
     });

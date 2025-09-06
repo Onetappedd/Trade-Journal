@@ -184,10 +184,12 @@ export default function AddTradePage() {
   const form = useForm<TradeFormValues>({
     resolver: zodResolver(tradeSchema),
     defaultValues: getDefaultValues(assetType),
+    mode: 'onChange', // Enable real-time validation
   });
 
   // Handle asset type change
   const handleAssetTypeChange = (newType: AssetType) => {
+    console.log('Changing asset type to:', newType);
     setAssetType(newType);
     
     // Get current entry_date to preserve it
@@ -197,6 +199,7 @@ export default function AddTradePage() {
     const newDefaults = getDefaultValues(newType);
     newDefaults.entry_date = currentEntryDate;
     
+    console.log('New defaults:', newDefaults);
     form.reset(newDefaults);
   };
 
@@ -233,6 +236,8 @@ export default function AddTradePage() {
   const onSubmit = async (data: TradeFormValues) => {
     setIsSubmitting(true);
     try {
+      console.log('Form data:', data);
+      
       // Map form data to server action input format based on asset type
       let serverData: any = {
         asset_type: data.asset_type,
@@ -258,12 +263,15 @@ export default function AddTradePage() {
           serverData = {
             ...serverData,
             symbol: data.symbol,
+            side: 'side' in data ? data.side : 'buy',
             quantity: 'quantity' in data ? data.quantity : 0,
           };
           break;
         case 'option':
           serverData = {
             ...serverData,
+            symbol: data.underlying, // Use underlying as symbol for options
+            side: data.action?.includes('buy') ? 'buy' : 'sell', // Map action to side
             underlying: data.underlying,
             optionType: data.optionType,
             action: data.action,
@@ -277,6 +285,7 @@ export default function AddTradePage() {
           serverData = {
             ...serverData,
             symbol: data.symbol,
+            side: 'buy', // Default to buy for futures (could be made configurable)
             contractCode: data.symbol,
             expiration: data.expiration_date || '',
             multiplier: data.multiplier || 1,
@@ -288,9 +297,12 @@ export default function AddTradePage() {
           break;
       }
 
+      console.log('Server data:', serverData);
       const result = await addTradeAction(serverData);
+      console.log('Server result:', result);
 
       if (!result.ok) {
+        console.error('Server action failed:', result.errors);
         // Handle validation errors
         if (result.errors.fieldErrors) {
           Object.entries(result.errors.fieldErrors).forEach(([field, messages]) => {
@@ -328,23 +340,24 @@ export default function AddTradePage() {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Add Trade</h1>
-          <p className="text-muted-foreground">
-            Record a new trade in your journal
-          </p>
+  try {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Add Trade</h1>
+            <p className="text-muted-foreground">
+              Record a new trade in your journal
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/dashboard/trades')}
+          >
+            View Trades
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push('/dashboard/trades')}
-        >
-          View Trades
-        </Button>
-      </div>
 
       <Card>
         <CardHeader>
@@ -367,27 +380,30 @@ export default function AddTradePage() {
 
                 {/* Common Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                  <FormField
-                    control={form.control}
-                    name="side"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Side *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select side" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                          <SelectItem value="buy">Buy</SelectItem>
-                          <SelectItem value="sell">Sell</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Only show side field for stock and crypto */}
+                  {(assetType === 'stock' || assetType === 'crypto') && (
+                    <FormField
+                      control={form.control}
+                      name="side"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Side *</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select side" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="buy">Buy</SelectItem>
+                            <SelectItem value="sell">Sell</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -969,4 +985,35 @@ export default function AddTradePage() {
       </Card>
     </div>
   );
+  } catch (error) {
+    console.error('Add trade page error:', error);
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Add Trade</h1>
+            <p className="text-muted-foreground">
+              Record a new trade in your journal
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-lg font-semibold text-red-600">Error Loading Form</h2>
+              <p className="text-muted-foreground mt-2">
+                There was an error loading the trade form. Please try refreshing the page.
+              </p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="mt-4"
+              >
+                Refresh Page
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 }

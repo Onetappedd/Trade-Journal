@@ -117,17 +117,49 @@ async function parseCsvFile(buffer: Buffer, delimiter: string = ','): Promise<an
   return new Promise((resolve, reject) => {
     const parser = parse({
       delimiter,
-      columns: true,
+      columns: false, // Don't auto-convert to objects, we'll handle headers manually
       skip_empty_lines: true,
       max_record_size: 1024 * 1024,
     });
 
     const rows: any[] = [];
+    let headers: string[] = [];
+    let isFirstRow = true;
     
     parser.on('readable', () => {
       let record;
       while ((record = parser.read())) {
-        rows.push(record);
+        if (isFirstRow) {
+          // First row contains headers
+          headers = record;
+          isFirstRow = false;
+          
+          // Handle duplicate column names by appending numbers
+          const processedHeaders: string[] = [];
+          const headerCounts: Record<string, number> = {};
+          
+          for (const header of headers) {
+            const cleanHeader = header.trim();
+            if (headerCounts[cleanHeader]) {
+              headerCounts[cleanHeader]++;
+              processedHeaders.push(`${cleanHeader}_${headerCounts[cleanHeader]}`);
+            } else {
+              headerCounts[cleanHeader] = 1;
+              processedHeaders.push(cleanHeader);
+            }
+          }
+          
+          headers = processedHeaders;
+          return;
+        }
+        
+        // Convert array to object using processed headers
+        const rowObj: Record<string, any> = {};
+        for (let i = 0; i < headers.length && i < record.length; i++) {
+          rowObj[headers[i]] = record[i];
+        }
+        
+        rows.push(rowObj);
       }
     });
 

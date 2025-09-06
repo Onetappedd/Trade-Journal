@@ -166,21 +166,55 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
   return new Promise((resolve, reject) => {
     const parser = parse({
       delimiter,
-      columns: true,
+      columns: false, // Don't auto-convert to objects, we'll handle headers manually
       skip_empty_lines: true,
       max_record_size: 1024 * 1024,
     });
 
     const rows: any[] = [];
     let currentRow = 0;
+    let headers: string[] = [];
+    let isFirstRow = true;
     const effectiveOffset = startAtRow !== undefined ? startAtRow : offset;
     
     parser.on('readable', () => {
       let record;
       while ((record = parser.read()) && rows.length < limit) {
+        if (isFirstRow) {
+          // First row contains headers
+          headers = record;
+          isFirstRow = false;
+          console.log(`[CSV Parse] Headers:`, headers);
+          
+          // Handle duplicate column names by appending numbers
+          const processedHeaders: string[] = [];
+          const headerCounts: Record<string, number> = {};
+          
+          for (const header of headers) {
+            const cleanHeader = header.trim();
+            if (headerCounts[cleanHeader]) {
+              headerCounts[cleanHeader]++;
+              processedHeaders.push(`${cleanHeader}_${headerCounts[cleanHeader]}`);
+            } else {
+              headerCounts[cleanHeader] = 1;
+              processedHeaders.push(cleanHeader);
+            }
+          }
+          
+          headers = processedHeaders;
+          console.log(`[CSV Parse] Processed headers (duplicates handled):`, headers);
+          return;
+        }
+        
+        // Convert array to object using processed headers
+        const rowObj: Record<string, any> = {};
+        for (let i = 0; i < headers.length && i < record.length; i++) {
+          rowObj[headers[i]] = record[i];
+        }
+        
         // Include rows from effective offset onwards (0-based indexing)
         if (currentRow >= effectiveOffset) {
-          rows.push(record);
+          rows.push(rowObj);
         }
         currentRow++;
       }
@@ -453,11 +487,23 @@ export async function POST(request: NextRequest) {
             } else {
               // Try case-insensitive match
               const csvHeaders = Object.keys(row);
-              const matchingHeader = csvHeaders.find(header => 
+              const matchingHeaders = csvHeaders.filter(header => 
                 header.toLowerCase() === csvHeader.toLowerCase()
               );
-              if (matchingHeader && row[matchingHeader] !== undefined) {
-                mappedData[canonicalField] = row[matchingHeader];
+              
+              if (matchingHeaders.length > 0) {
+                // If multiple matches (e.g., "Filled Time" and "Filled Time_2"), prefer the first non-empty one
+                let selectedValue = null;
+                for (const header of matchingHeaders) {
+                  const value = row[header];
+                  if (value !== undefined && value !== null && value !== '') {
+                    selectedValue = value;
+                    break; // Use the first non-empty value
+                  }
+                }
+                if (selectedValue !== null) {
+                  mappedData[canonicalField] = selectedValue;
+                }
               }
             }
           }

@@ -17,7 +17,12 @@ export async function addTradeAction(input: AnyTradeInput) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } },
+    { 
+      cookies: { 
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {} // No-op for server actions
+      } 
+    },
   );
 
   const { data: userRes, error: authErr } = await supabase.auth.getUser();

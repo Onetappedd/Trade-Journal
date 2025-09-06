@@ -29,18 +29,37 @@ export const brokerAdapters: Record<string, AdapterFunction> = {
   ibkr: ibkrFlexAdapter,
 };
 
+// Helper function to get the first non-empty value from multiple possible headers
+function getFirstNonEmptyValue(row: any, possibleHeaders: string[]): string {
+  for (const header of possibleHeaders) {
+    const value = row[header];
+    if (value !== undefined && value !== null && value !== '') {
+      return value;
+    }
+  }
+  return '';
+}
+
 // Webull options adapter - handles the complex Name field parsing
 export function webullOptionsAdapter(row: any, mapping: any): MappedRow {
   console.log('[Webull Adapter] Input row:', row);
   console.log('[Webull Adapter] Input mapping:', mapping);
   
+  // Get all possible headers for each field (handles duplicates like "Filled Time" and "Filled Time_2")
+  const timestampHeaders = Object.keys(row).filter(key => key.toLowerCase().includes('filled time'));
+  const symbolHeaders = Object.keys(row).filter(key => key.toLowerCase().includes('name') || key.toLowerCase().includes('symbol'));
+  const sideHeaders = Object.keys(row).filter(key => key.toLowerCase().includes('side'));
+  const quantityHeaders = Object.keys(row).filter(key => key.toLowerCase().includes('filled') || key.toLowerCase().includes('quantity'));
+  const priceHeaders = Object.keys(row).filter(key => key.toLowerCase().includes('price'));
+  const feesHeaders = Object.keys(row).filter(key => key.toLowerCase().includes('fee'));
+  
   const baseRow = {
-    timestamp: row[mapping.timestamp] || '',
-    symbol: row[mapping.symbol] || '',
-    side: (row[mapping.side] || '').toLowerCase() as 'buy' | 'sell',
-    quantity: parseFloat(row[mapping.quantity] || '0'),
-    price: parseFloat(row[mapping.price] || '0'),
-    fees: parseFloat(row[mapping.fees] || '0'),
+    timestamp: getFirstNonEmptyValue(row, timestampHeaders),
+    symbol: getFirstNonEmptyValue(row, symbolHeaders),
+    side: (getFirstNonEmptyValue(row, sideHeaders) || '').toLowerCase() as 'buy' | 'sell',
+    quantity: parseFloat(getFirstNonEmptyValue(row, quantityHeaders) || '0'),
+    price: parseFloat(getFirstNonEmptyValue(row, priceHeaders) || '0'),
+    fees: parseFloat(getFirstNonEmptyValue(row, feesHeaders) || '0'),
     currency: row[mapping.currency] || 'USD',
     venue: row[mapping.venue] || 'NASDAQ',
     instrument_type: 'option' as const,
