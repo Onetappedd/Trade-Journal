@@ -1,9 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getBillingState } from '@/lib/entitlements'
 
 async function getUser() {
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-  const { data } = await supabase.auth.getUser()
+  const { data } = await supabaseAdmin.auth.getUser()
   return data.user
 }
 
