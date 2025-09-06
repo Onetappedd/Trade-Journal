@@ -92,16 +92,16 @@ const BROKER_PRESETS = {
     name: 'Webull Options',
     mapping: {
       timestamp: 'Filled Time',
-      symbol: 'Name',
+      symbol: 'Symbol',
       side: 'Side',
       quantity: 'Filled',
       price: 'Avg Price',
       fees: 'Fees',
       instrument_type: 'instrument_type', // Will be auto-detected as 'option'
-      expiry: 'expiry', // Will be extracted from Name column
-      strike: 'strike', // Will be extracted from Name column
-      option_type: 'option_type', // Will be extracted from Name column
-      underlying: 'underlying', // Will be extracted from Name column
+      expiry: 'expiry', // Will be extracted from Symbol column
+      strike: 'strike', // Will be extracted from Symbol column
+      option_type: 'option_type', // Will be extracted from Symbol column
+      underlying: 'underlying', // Will be extracted from Symbol column
     },
   },
   etrade: {
@@ -213,12 +213,12 @@ export function MappingWizard({
   // Auto-detect and apply Webull preset if applicable
   useEffect(() => {
     // Check if this looks like Webull options data
-    if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+    if (headers.includes('Symbol') && headers.includes('Filled Time') && headers.includes('Side') && 
         headers.includes('Filled') && headers.includes('Avg Price')) {
       // Auto-apply comprehensive Webull options mapping
       const newMapping: Record<string, string | undefined> = {
         timestamp: 'Filled Time',
-        symbol: 'Name', // Will extract underlying from options contract
+        symbol: 'Symbol', // Will extract underlying from options contract
         side: 'Side',
         quantity: 'Filled',
         price: 'Avg Price',
@@ -229,7 +229,7 @@ export function MappingWizard({
         exec_id: headers.includes('Exec ID') ? 'Exec ID' : undefined,
         instrument_type: 'option', // Always options for Webull
         multiplier: '100', // Standard options multiplier
-        // Note: expiry, strike, option_type, and underlying will be extracted from the Name column
+        // Note: expiry, strike, option_type, and underlying will be extracted from the Symbol column
         // during the actual import process, so we don't map them here to avoid duplicates
       };
       
@@ -847,7 +847,7 @@ export function MappingWizard({
               <h3 className="text-lg font-semibold mb-3">Broker Presets</h3>
               
               {/* Auto-detection indicator */}
-              {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+              {headers.includes('Symbol') && headers.includes('Filled Time') && headers.includes('Side') && 
                headers.includes('Filled') && headers.includes('Avg Price') && (
                 <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2 text-green-800">
@@ -858,13 +858,13 @@ export function MappingWizard({
                   <div className="mt-2 p-2 bg-green-100 rounded text-xs text-green-800">
                     <p className="font-medium">Auto-configured Fields:</p>
                     <p>• <strong>Timestamp:</strong> Filled Time</p>
-                    <p>• <strong>Symbol:</strong> Name (will extract underlying from options contract)</p>
+                    <p>• <strong>Symbol:</strong> Symbol (will extract underlying from options contract)</p>
                     <p>• <strong>Side:</strong> Side (Buy/Sell)</p>
                     <p>• <strong>Quantity:</strong> Filled</p>
                     <p>• <strong>Price:</strong> Avg Price</p>
                     <p>• <strong>Instrument Type:</strong> Option (auto-set)</p>
                     <p>• <strong>Multiplier:</strong> 100 (standard options)</p>
-                    <p className="mt-1 text-green-700">• <strong>Options Data:</strong> Expiry, Strike, Type will be parsed from Name column during import</p>
+                    <p className="mt-1 text-green-700">• <strong>Options Data:</strong> Expiry, Strike, Type will be parsed from Symbol column during import</p>
                     <p className="mt-2 font-medium text-green-900">✅ Ready to import - click "Import Data" below!</p>
                   </div>
                 </div>
@@ -1214,11 +1214,11 @@ export function MappingWizard({
                 <p>• {sampleRows.length} total rows detected</p>
                 <p>• {Object.keys(mapping).filter(k => mapping[k]).length} fields mapped</p>
                 <p>• {CANONICAL_FIELDS.filter(f => f.required && mapping[f.key]).length}/{CANONICAL_FIELDS.filter(f => f.required).length} required fields</p>
-                {headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
+                {headers.includes('Symbol') && headers.includes('Filled Time') && headers.includes('Side') && 
                  headers.includes('Filled') && headers.includes('Avg Price') && (
                   <div className="mt-3 p-2 bg-green-100 rounded border border-green-200">
                     <p className="text-xs text-green-800 font-medium">🎯 Webull Options Import</p>
-                    <p className="text-xs text-green-700">Core fields mapped, options data will be parsed from Name column</p>
+                    <p className="text-xs text-green-700">Core fields mapped, options data will be parsed from Symbol column</p>
                   </div>
                 )}
               </div>
