@@ -8,6 +8,42 @@ import { parseISO, isValid, format } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 /**
+ * Parse Webull options symbol (e.g., TSLA250822C00325000)
+ * Format: SYMBOL + YYMMDD + C/P + STRIKE (padded to 8 digits)
+ */
+function parseWebullOptionsSymbol(symbol: string): {
+  underlying: string;
+  expiry: string;
+  option_type: 'CALL' | 'PUT';
+  strike: number;
+} | null {
+  // Match pattern: SYMBOL + YYMMDD + C/P + STRIKE
+  const match = symbol.match(/^([A-Z]+)(\d{6})([CP])(\d{8})$/);
+  if (!match) return null;
+
+  const [, underlying, dateStr, typeStr, strikeStr] = match;
+  
+  // Parse date: YYMMDD -> YYYY-MM-DD
+  const year = 2000 + parseInt(dateStr.substring(0, 2));
+  const month = dateStr.substring(2, 4);
+  const day = dateStr.substring(4, 6);
+  const expiry = `${year}-${month}-${day}`;
+  
+  // Parse option type
+  const option_type = typeStr === 'C' ? 'CALL' : 'PUT';
+  
+  // Parse strike (remove leading zeros and convert to decimal)
+  const strike = parseFloat(strikeStr) / 1000;
+  
+  return {
+    underlying,
+    expiry,
+    option_type,
+    strike
+  };
+}
+
+/**
  * Convert various date/time formats to UTC ISO string
  * @param input Date string in various broker formats
  * @returns ISO UTC string
@@ -126,7 +162,18 @@ export function normalizeRow(raw: Record<string, unknown>):
       case 'symbol':
         const symbol = trimString(value);
         if (symbol) {
-          normalized.symbol = symbol.toUpperCase();
+          const upperSymbol = symbol.toUpperCase();
+          normalized.symbol = upperSymbol;
+          
+          // Try to parse as Webull options symbol
+          const optionsData = parseWebullOptionsSymbol(upperSymbol);
+          if (optionsData) {
+            normalized.underlying = optionsData.underlying;
+            normalized.expiry = optionsData.expiry;
+            normalized.option_type = optionsData.option_type;
+            normalized.strike = optionsData.strike;
+            normalized.asset_type = 'option';
+          }
         }
         break;
         
@@ -275,8 +322,13 @@ export function normalizeRow(raw: Record<string, unknown>):
     addError('trade_time_utc', 'is required');
   }
 
+  // Set default asset type if not set
+  if (!normalized.asset_type) {
+    normalized.asset_type = 'equity';
+  }
+
   // Validate options-specific fields
-  if (normalized.option_type || normalized.strike || normalized.expiry) {
+  if (normalized.asset_type === 'option' || normalized.option_type || normalized.strike || normalized.expiry) {
     if (!normalized.underlying) {
       addError('underlying', 'is required for options');
     }

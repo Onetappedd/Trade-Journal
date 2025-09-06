@@ -4,11 +4,11 @@
  */
 
 export const HEADER_SYNONYMS: Record<string, string[]> = {
-  symbol: ['symbol', 'ticker', 'underlying', 'occ_symbol'],
-  side: ['side', 'action', 'buy/sell', 'b/s'],
-  quantity: ['qty', 'quantity', 'contracts', 'shares'],
-  price: ['price', 'fill price', 'avg price', 'execution price'],
-  trade_time_utc: ['date', 'time', 'datetime', 'timestamp', 'filled at', 'trade date'],
+  symbol: ['symbol', 'ticker', 'underlying', 'occ_symbol', 'Name'],
+  side: ['side', 'action', 'buy/sell', 'b/s', 'Side'],
+  quantity: ['qty', 'quantity', 'contracts', 'shares', 'Filled'],
+  price: ['price', 'fill price', 'avg price', 'execution price', 'Avg Price'],
+  trade_time_utc: ['date', 'time', 'datetime', 'timestamp', 'filled at', 'trade date', 'Filled Time'],
   expiry: ['expiration', 'exp', 'expiry'],
   strike: ['strike', 'strike price'],
   option_type: ['type', 'call/put', 'cp'],

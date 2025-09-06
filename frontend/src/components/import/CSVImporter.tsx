@@ -141,7 +141,7 @@ export function CSVImporter() {
               // Build canonical trade object
               const canonical: CanonicalTrade = {
                 user_id: session.user.id,
-                asset_type: 'equity', // Default, could be detected
+                asset_type: (normalized.value.asset_type as any) || 'equity',
                 symbol: normalized.value.symbol as string,
                 underlying: normalized.value.underlying as string,
                 expiry: normalized.value.expiry as string,
