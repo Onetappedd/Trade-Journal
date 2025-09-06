@@ -20,16 +20,20 @@ export default async function BillingPage() {
       body: JSON.stringify({ priceId }),
     })
     const { url } = await res.json()
-    if (url) { return { redirect: url } }
-    return {}
+    if (url) { 
+      const { redirect } = await import('next/navigation')
+      redirect(url)
+    }
   }
 
   async function openPortal() {
     'use server'
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/portal`, { method: 'POST' })
     const { url } = await res.json()
-    if (url) { return { redirect: url } }
-    return {}
+    if (url) { 
+      const { redirect } = await import('next/navigation')
+      redirect(url)
+    }
   }
 
   return (
