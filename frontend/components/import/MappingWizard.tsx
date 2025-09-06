@@ -92,7 +92,7 @@ const BROKER_PRESETS = {
     name: 'Webull Options',
     mapping: {
       timestamp: 'Filled Time',
-      symbol: 'Symbol',
+      symbol: 'Name', // Use 'Name' column for Webull options symbols
       side: 'Side',
       quantity: 'Filled',
       price: 'Avg Price',
@@ -102,7 +102,7 @@ const BROKER_PRESETS = {
       instrument_type: 'option',
       multiplier: '100',
       broker: 'webull', // CRITICAL: This triggers the Webull adapter
-      // Note: expiry, strike, option_type, and underlying will be extracted from the Symbol column
+      // Note: expiry, strike, option_type, and underlying will be extracted from the Name column
       // during the actual import process, so we don't map them here to avoid duplicates
     },
   },
@@ -215,12 +215,12 @@ export function MappingWizard({
   // Auto-detect and apply Webull preset if applicable
   useEffect(() => {
     // Check if this looks like Webull options data
-    if (headers.includes('Symbol') && headers.includes('Filled Time') && headers.includes('Side') && 
+    if (headers.includes('Name') && headers.includes('Filled Time') && headers.includes('Side') && 
         headers.includes('Filled') && headers.includes('Avg Price')) {
       // Auto-apply comprehensive Webull options mapping
       const newMapping: Record<string, string | undefined> = {
         timestamp: 'Filled Time',
-        symbol: 'Symbol', // Will extract underlying from options contract
+        symbol: 'Name', // Will extract underlying from options contract
         side: 'Side',
         quantity: 'Filled',
         price: 'Avg Price',
@@ -252,7 +252,10 @@ export function MappingWizard({
     setIsLoadingPresets(true);
     try {
       const params = new URLSearchParams();
-      if (filename) params.append('filename', filename);
+      if (filename) {
+        // Properly encode the filename to handle special characters like +, (, )
+        params.append('filename', encodeURIComponent(filename));
+      }
       
       const response = await fetch(`/api/import/presets?${params.toString()}`);
       if (response.ok) {
