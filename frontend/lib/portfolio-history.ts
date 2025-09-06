@@ -66,24 +66,24 @@ export async function calculatePortfolioHistory(
   // Process all trades to calculate daily P&L
   for (const trade of trades) {
     // Only count closed trades for realized P&L
-    if (trade.exit_date && trade.exit_price) {
-      const exitDate = trade.exit_date.split('T')[0];
+    if ((trade as any).exit_date && (trade as any).exit_price) {
+      const exitDate = (trade as any).exit_date.split('T')[0];
       const multiplier =
         (trade as any).multiplier != null
           ? Number((trade as any).multiplier)
-          : trade.asset_type === 'option'
+          : (trade as any).asset_type === 'option'
             ? 100
-            : trade.asset_type === 'futures'
-              ? getFuturesPointValue(trade.symbol)
+            : (trade as any).asset_type === 'futures'
+              ? getFuturesPointValue((trade as any).symbol)
               : 1;
-      const side = String(trade.side || '').toLowerCase();
+      const side = String((trade as any).side || '').toLowerCase();
       const fees = (trade as any).fees || 0;
       
       let pnl = 0;
       if (side === 'buy') {
-        pnl = (trade.exit_price - trade.entry_price) * trade.quantity * multiplier - fees;
+        pnl = ((trade as any).exit_price - (trade as any).entry_price) * (trade as any).quantity * multiplier - fees;
       } else {
-        pnl = (trade.entry_price - trade.exit_price) * trade.quantity * multiplier - fees;
+        pnl = ((trade as any).entry_price - (trade as any).exit_price) * (trade as any).quantity * multiplier - fees;
       }
 
       const currentPnL = dailyPnL.get(exitDate) || 0;
