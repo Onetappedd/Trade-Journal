@@ -379,6 +379,15 @@ export async function POST(request: NextRequest) {
         console.log(`[Commit Chunk] Parsing CSV with offset: ${offset}, limit: ${limit}, startAtRow: ${startAtRow}, delimiter: ${delimiter}`);
         chunkRows = await parseCsvChunk(buffer, offset, limit, delimiter, startAtRow);
         console.log(`[Commit Chunk] CSV parsing result: ${chunkRows.length} rows`);
+        
+        // Log first few rows to debug column alignment
+        if (chunkRows.length > 0) {
+          console.log(`[Commit Chunk] First row sample:`, chunkRows[0]);
+          console.log(`[Commit Chunk] First row keys:`, Object.keys(chunkRows[0]));
+          if (chunkRows.length > 1) {
+            console.log(`[Commit Chunk] Second row sample:`, chunkRows[1]);
+          }
+        }
         break;
       case 'xlsx':
       case 'xls':
@@ -542,6 +551,9 @@ export async function POST(request: NextRequest) {
 
       } catch (rowError) {
         errors++;
+        console.error(`[Commit Chunk] Row ${lineNumber} validation error:`, rowError);
+        console.error(`[Commit Chunk] Row ${lineNumber} raw data:`, row);
+        console.error(`[Commit Chunk] Row ${lineNumber} mapping:`, mapping);
         errorDetails.push({
           lineNumber: lineNumber,
           reason: rowError instanceof Error ? rowError.message : 'Unknown error',
