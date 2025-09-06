@@ -357,7 +357,7 @@ export async function compareStrategies(
 
   for (const trade of trades) {
     // Use asset_type as strategy proxy (can be enhanced with actual strategy field)
-    const strategy = trade.asset_type || 'unknown';
+    const strategy = (trade as any).asset_type || 'unknown';
 
     if (!strategyMap.has(strategy)) {
       strategyMap.set(strategy, {
@@ -371,13 +371,13 @@ export async function compareStrategies(
 
     const stats = strategyMap.get(strategy)!;
 
-    if (trade.exit_price && trade.exit_date) {
-      const multiplier = trade.asset_type === 'option' ? 100 : 1;
+    if ((trade as any).exit_price && (trade as any).exit_date) {
+      const multiplier = (trade as any).asset_type === 'option' ? 100 : 1;
       const pnl =
-        (trade.exit_price - trade.entry_price) *
-        trade.quantity *
+        ((trade as any).exit_price - (trade as any).entry_price) *
+        (trade as any).quantity *
         multiplier *
-        (trade.side === 'buy' ? 1 : -1);
+        ((trade as any).side === 'buy' ? 1 : -1);
 
       stats.totalPnL += pnl;
       stats.trades++;
