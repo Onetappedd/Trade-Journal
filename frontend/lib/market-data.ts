@@ -301,9 +301,9 @@ class MarketDataService {
       const positionMap = new Map();
 
       (trades as any).forEach((trade: any) => {
-        const key = trade.symbol;
+        const key = (trade as any).symbol;
         const existing = positionMap.get(key) || {
-          symbol: trade.symbol,
+          symbol: (trade as any).symbol,
           quantity: 0,
           avgCost: 0,
           totalCost: 0,
@@ -313,10 +313,10 @@ class MarketDataService {
           unrealizedPnLPercent: 0,
         };
 
-        const tradeValue = trade.quantity * trade.entry_price;
+        const tradeValue = (trade as any).quantity * (trade as any).entry_price;
         const newQuantity =
-          existing.quantity + (trade.side === 'buy' ? trade.quantity : -trade.quantity);
-        const newTotalCost = existing.totalCost + (trade.side === 'buy' ? tradeValue : -tradeValue);
+          existing.quantity + ((trade as any).side === 'buy' ? (trade as any).quantity : -(trade as any).quantity);
+        const newTotalCost = existing.totalCost + ((trade as any).side === 'buy' ? tradeValue : -tradeValue);
 
         existing.quantity = newQuantity;
         existing.totalCost = newTotalCost;

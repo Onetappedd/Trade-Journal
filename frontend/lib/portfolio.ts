@@ -63,22 +63,22 @@ export async function calculateRealPortfolioValue(userId: string): Promise<Portf
   >();
 
   for (const trade of trades) {
-    const symbol = trade.symbol;
+    const symbol = (trade as any).symbol;
     const existing = positionMap.get(symbol) || {
       symbol,
       totalQuantity: 0,
       totalCost: 0,
       trades: [] as TradeRow[],
-      assetType: trade.asset_type || 'stock',
+      assetType: (trade as any).asset_type || 'stock',
     };
 
-    if (trade.side === 'buy') {
-      existing.totalQuantity += trade.quantity;
-      existing.totalCost += trade.quantity * trade.entry_price;
-    } else if (trade.side === 'sell') {
+    if ((trade as any).side === 'buy') {
+      existing.totalQuantity += (trade as any).quantity;
+      existing.totalCost += (trade as any).quantity * (trade as any).entry_price;
+    } else if ((trade as any).side === 'sell') {
       // For open sell positions (short positions)
-      existing.totalQuantity -= trade.quantity;
-      existing.totalCost -= trade.quantity * trade.entry_price;
+      existing.totalQuantity -= (trade as any).quantity;
+      existing.totalCost -= (trade as any).quantity * (trade as any).entry_price;
     }
 
     existing.trades.push(trade as TradeRow);
