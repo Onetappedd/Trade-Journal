@@ -27,6 +27,7 @@ import {
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from "@/providers/auth-provider";
+import { IMPORT_V2 } from '@/src/lib/flags';
 
 const data = {
   teams: [
@@ -56,10 +57,10 @@ const data = {
           title: 'Add Trade',
           url: '/dashboard/import/manual',
         },
-        {
+        ...(IMPORT_V2 ? [{
           title: 'Import Hub',
           url: '/dashboard/import',
-        },
+        }] : []),
         {
           title: 'Manual Entry',
           url: '/dashboard/import/manual',

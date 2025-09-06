@@ -26,11 +26,13 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+import { IMPORT_V2 } from '@/src/lib/flags';
+
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Trades', href: '/dashboard/trades', icon: FileText },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Import', href: '/dashboard/import', icon: Upload },
+  ...(IMPORT_V2 ? [{ name: 'Import', href: '/dashboard/import', icon: Upload }] : []),
   { name: 'Portfolio', href: '/dashboard/portfolio', icon: TrendingUp },
 ];
 

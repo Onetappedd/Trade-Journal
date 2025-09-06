@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { IMPORT_V2 } from '@/src/lib/flags';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -31,7 +32,7 @@ const navigation = [
 
 const quickActions = [
   { name: 'Add Trade', href: '/dashboard/import/manual', icon: Plus },
-  { name: 'Import Hub', href: '/dashboard/import', icon: Upload },
+  ...(IMPORT_V2 ? [{ name: 'Import Hub', href: '/dashboard/import', icon: Upload }] : []),
   { name: 'Manual Entry', href: '/dashboard/import/manual', icon: FileText },
 ];
 
