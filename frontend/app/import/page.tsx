@@ -1,10 +1,6 @@
-import { Suspense } from 'react';
-import ImportTradesPage from '@/components/import-trades-page';
+import { redirect } from 'next/navigation';
 
 export default function ImportPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ImportTradesPage />
-    </Suspense>
-  );
+  // Redirect to the new import system
+  redirect('/dashboard/import');
 }

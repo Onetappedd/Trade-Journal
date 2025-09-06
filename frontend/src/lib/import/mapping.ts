@@ -25,9 +25,6 @@ export const HEADER_SYNONYMS: Record<string, string[]> = {
 export function autoMap(headers: string[]): Record<string, string | null> {
   const mapping: Record<string, string | null> = {};
   
-  // Debug logging
-  console.log('Auto-mapping headers:', headers);
-  
   // Initialize all canonical fields as null
   for (const canonicalField of Object.keys(HEADER_SYNONYMS)) {
     mapping[canonicalField] = null;
@@ -48,13 +45,11 @@ export function autoMap(headers: string[]): Record<string, string | null> {
       if (matches && !mapping[canonicalField]) {
         // Only map if we haven't already found a match for this canonical field
         mapping[canonicalField] = header;
-        console.log(`Auto-mapped: ${header} -> ${canonicalField}`);
         break;
       }
     }
   }
   
-  console.log('Final mapping:', mapping);
   return mapping;
 }
 
@@ -70,17 +65,11 @@ export function applyMapping(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   
-  // Debug logging
-  console.log('Applying mapping:', map);
-  console.log('Row data:', row);
-  
   for (const [canonicalField, headerName] of Object.entries(map)) {
     if (headerName && row.hasOwnProperty(headerName)) {
       result[canonicalField] = row[headerName];
-      console.log(`Mapped ${headerName} -> ${canonicalField}:`, row[headerName]);
     }
   }
   
-  console.log('Mapped result:', result);
   return result;
 }
