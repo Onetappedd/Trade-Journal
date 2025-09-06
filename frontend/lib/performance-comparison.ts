@@ -231,13 +231,13 @@ export async function calculatePeriodPerformance(
   const tradePnLs: number[] = [];
 
   for (const trade of trades) {
-    if (trade.exit_price && trade.exit_date) {
-      const multiplier = trade.asset_type === 'option' ? 100 : 1;
+    if ((trade as any).exit_price && (trade as any).exit_date) {
+      const multiplier = (trade as any).asset_type === 'option' ? 100 : 1;
       const pnl =
-        (trade.exit_price - trade.entry_price) *
-        trade.quantity *
+        ((trade as any).exit_price - (trade as any).entry_price) *
+        (trade as any).quantity *
         multiplier *
-        (trade.side === 'buy' ? 1 : -1);
+        ((trade as any).side === 'buy' ? 1 : -1);
 
       totalPnL += pnl;
       tradePnLs.push(pnl);
