@@ -129,17 +129,17 @@ export async function calculateUserPerformance(
 
   // Group trades by date and calculate daily P&L
   for (const trade of trades) {
-    const dateKey = trade.entry_date.split('T')[0];
+    const dateKey = (trade as any).entry_date.split('T')[0];
 
     // Calculate P&L for closed trades
-    if (trade.exit_price && trade.exit_date) {
-      const exitDateKey = trade.exit_date.split('T')[0];
-      const multiplier = trade.asset_type === 'option' ? 100 : 1;
+    if ((trade as any).exit_price && (trade as any).exit_date) {
+      const exitDateKey = (trade as any).exit_date.split('T')[0];
+      const multiplier = (trade as any).asset_type === 'option' ? 100 : 1;
       const pnl =
-        (trade.exit_price - trade.entry_price) *
-        trade.quantity *
+        ((trade as any).exit_price - (trade as any).entry_price) *
+        (trade as any).quantity *
         multiplier *
-        (trade.side === 'buy' ? 1 : -1);
+        ((trade as any).side === 'buy' ? 1 : -1);
 
       dailyPnL[exitDateKey] = (dailyPnL[exitDateKey] || 0) + pnl;
     }
