@@ -31,12 +31,29 @@ export const brokerAdapters: Record<string, AdapterFunction> = {
 
 // Helper function to get the first non-empty value from multiple possible headers
 function getFirstNonEmptyValue(row: any, possibleHeaders: string[]): string {
+  // First try exact matches from mapping
   for (const header of possibleHeaders) {
     const value = row[header];
     if (value !== undefined && value !== null && value !== '') {
       return value;
     }
   }
+  
+  // Fallback: try case-insensitive partial matches
+  const rowKeys = Object.keys(row);
+  for (const header of possibleHeaders) {
+    const matchingKey = rowKeys.find(key => 
+      key.toLowerCase().includes(header.toLowerCase()) || 
+      header.toLowerCase().includes(key.toLowerCase())
+    );
+    if (matchingKey) {
+      const value = row[matchingKey];
+      if (value !== undefined && value !== null && value !== '') {
+        return value;
+      }
+    }
+  }
+  
   return '';
 }
 

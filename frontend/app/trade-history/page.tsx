@@ -86,7 +86,7 @@ export default function TradeHistoryPage() {
           <p className="text-muted-foreground">View and manage all your trades</p>
         </div>
         <Button asChild>
-          <Link href="/dashboard/add-trade">
+          <Link href="/dashboard/import/manual">
             <Plus className="mr-2 h-4 w-4" />
             Add Trade
           </Link>

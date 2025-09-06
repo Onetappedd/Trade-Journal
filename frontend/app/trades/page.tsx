@@ -205,7 +205,7 @@ export default function TradesPage() {
           <h1 className="text-3xl font-bold">Trade History</h1>
           <p className="text-muted-foreground">Track and analyze your trading performance</p>
         </div>
-        <Link href="/trades/add">
+        <Link href="/dashboard/import/manual">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Add Trade

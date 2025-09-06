@@ -54,7 +54,7 @@ const data = {
         },
         {
           title: 'Add Trade',
-          url: '/dashboard/add-trade',
+          url: '/dashboard/import/manual',
         },
         {
           title: 'Import Hub',

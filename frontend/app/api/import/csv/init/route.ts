@@ -9,6 +9,7 @@ import { withTelemetry } from '@/lib/observability/withTelemetry';
 // Force Node.js runtime for file processing
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30; // 30 seconds max duration for Vercel
 
 // File type detection
 function detectFileType(filename: string, contentType: string): 'csv' | 'tsv' | 'xlsx' | 'xls' | 'xml' {
@@ -41,24 +42,30 @@ async function parseCsvSample(buffer: Buffer, fileType: string): Promise<{ heade
     
     parser.on('readable', () => {
       let record;
-      while ((record = parser.read()) && rowCount < 1000) {
+      while ((record = parser.read()) && rowCount < 20) { // Further reduced to 20 for faster processing
         if (isFirstRow) {
           // First row contains headers
           headers = record;
           isFirstRow = false;
           
-          // Handle duplicate column names by appending numbers
+          // Handle duplicate column names by appending numbers (simplified)
           const processedHeaders: string[] = [];
-          const headerCounts: Record<string, number> = {};
+          const seenHeaders = new Set<string>();
           
           for (const header of headers) {
             const cleanHeader = header.trim();
-            if (headerCounts[cleanHeader]) {
-              headerCounts[cleanHeader]++;
-              processedHeaders.push(`${cleanHeader}_${headerCounts[cleanHeader]}`);
+            if (seenHeaders.has(cleanHeader)) {
+              // Find next available number
+              let counter = 2;
+              while (seenHeaders.has(`${cleanHeader}_${counter}`)) {
+                counter++;
+              }
+              const newHeader = `${cleanHeader}_${counter}`;
+              processedHeaders.push(newHeader);
+              seenHeaders.add(newHeader);
             } else {
-              headerCounts[cleanHeader] = 1;
               processedHeaders.push(cleanHeader);
+              seenHeaders.add(cleanHeader);
             }
           }
           

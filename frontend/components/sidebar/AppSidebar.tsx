@@ -30,7 +30,7 @@ const navigation = [
 ];
 
 const quickActions = [
-  { name: 'Add Trade', href: '/dashboard/add-trade', icon: Plus },
+  { name: 'Add Trade', href: '/dashboard/import/manual', icon: Plus },
   { name: 'Import Hub', href: '/dashboard/import', icon: Upload },
   { name: 'Manual Entry', href: '/dashboard/import/manual', icon: FileText },
 ];

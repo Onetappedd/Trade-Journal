@@ -204,7 +204,7 @@ export function DashboardPage() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Button variant="outline" className="h-20 flex-col bg-transparent" asChild>
-              <Link href="/dashboard/add-trade">
+              <Link href="/dashboard/import/manual">
                 <PlusCircle className="h-6 w-6 mb-2" />
                 Add New Trade
               </Link>

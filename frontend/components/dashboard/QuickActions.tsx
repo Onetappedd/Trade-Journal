@@ -10,7 +10,7 @@ export function QuickActions() {
       title: 'Add Trade',
       description: 'Record a new trade',
       icon: Plus,
-      href: '/dashboard/add-trade',
+      href: '/dashboard/import/manual',
       color: 'text-green-600',
     },
     {

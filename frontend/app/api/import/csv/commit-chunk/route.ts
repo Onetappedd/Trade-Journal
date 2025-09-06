@@ -10,6 +10,7 @@ import { applyBrokerAdapter } from '@/lib/import/adapters';
 // Force Node.js runtime for file processing
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30; // 30 seconds max duration for Vercel
 
 // Validation schema
 const CommitChunkSchema = z.object({
@@ -186,18 +187,24 @@ async function parseCsvChunk(buffer: Buffer, offset: number, limit: number, deli
           isFirstRow = false;
           console.log(`[CSV Parse] Headers:`, headers);
           
-          // Handle duplicate column names by appending numbers
+          // Handle duplicate column names by appending numbers (optimized)
           const processedHeaders: string[] = [];
-          const headerCounts: Record<string, number> = {};
+          const seenHeaders = new Set<string>();
           
           for (const header of headers) {
             const cleanHeader = header.trim();
-            if (headerCounts[cleanHeader]) {
-              headerCounts[cleanHeader]++;
-              processedHeaders.push(`${cleanHeader}_${headerCounts[cleanHeader]}`);
+            if (seenHeaders.has(cleanHeader)) {
+              // Find next available number
+              let counter = 2;
+              while (seenHeaders.has(`${cleanHeader}_${counter}`)) {
+                counter++;
+              }
+              const newHeader = `${cleanHeader}_${counter}`;
+              processedHeaders.push(newHeader);
+              seenHeaders.add(newHeader);
             } else {
-              headerCounts[cleanHeader] = 1;
               processedHeaders.push(cleanHeader);
+              seenHeaders.add(cleanHeader);
             }
           }
           
