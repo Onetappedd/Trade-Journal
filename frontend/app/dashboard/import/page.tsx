@@ -1,6 +1,6 @@
 'use client';
 
-import { Metadata } from 'next';
+import { useEffect } from 'react';
 import CSVImporter from '@/src/components/import/CSVImporter';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -13,15 +13,18 @@ try {
   IMPORT_V2 = process.env.NEXT_PUBLIC_IMPORT_V2_ENABLED === 'true' || true; // Temporarily enabled for testing
 }
 
-export const metadata: Metadata = {
-  title: 'Import Trades',
-};
-
 export default function ImportPage() {
   const { user, loading } = useAuth();
   
-  // Debug logging
-  console.log('ImportPage - Auth state:', { user: !!user, loading, userId: user?.id });
+  // Set page title
+  useEffect(() => {
+    document.title = 'Import Trades - Riskr';
+  }, []);
+  
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('ImportPage - Auth state:', { user: !!user, loading, userId: user?.id });
+  }
 
   if (loading) {
     return (

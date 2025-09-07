@@ -41,8 +41,10 @@ export function CSVImporter() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Debug logging
-  console.log('CSVImporter - Auth state:', { user: !!user, loading, userId: user?.id });
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('CSVImporter - Auth state:', { user: !!user, loading, userId: user?.id });
+  }
   const [importState, setImportState] = useState<ImportState>({
     stage: 'idle',
     progress: 0,
