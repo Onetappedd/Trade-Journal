@@ -149,15 +149,12 @@ export default function ProfilePage() {
         </div>
 
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="general" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               General
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              Notifications
-            </TabsTrigger>
+            {/* Notifications tab removed due to database schema mismatch */}
             <TabsTrigger value="security" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Security
@@ -219,35 +216,9 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      name="bio"
-                      defaultValue={profile.bio || ''}
-                      placeholder="Tell us about yourself..."
-                      rows={3}
-                    />
-                  </div>
+                  {/* Bio field removed - not in database schema */}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="timezone">Timezone</Label>
-                    <Select name="timezone" defaultValue={profile.timezone || ''}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                        <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                        <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                        <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                        <SelectItem value="Europe/London">London (GMT)</SelectItem>
-                        <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                        <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Timezone field removed - not in database schema */}
 
                   <div className="flex justify-end">
                     <Button type="submit" disabled={saving}>
@@ -259,65 +230,7 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
 
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Choose how you want to be notified about trading activities
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Email Notifications</Label>
-                      <p className="text-sm text-gray-600">
-                        Receive email updates about your trades and account
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profile.email_notifications}
-                      onCheckedChange={(checked) => updateProfile({ email_notifications: checked })}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Push Notifications</Label>
-                      <p className="text-sm text-gray-600">
-                        Get push notifications for important trading alerts
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profile.push_notifications}
-                      onCheckedChange={(checked) => updateProfile({ push_notifications: checked })}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>All Notifications</Label>
-                      <p className="text-sm text-gray-600">
-                        Master toggle for all notification types
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profile.notifications_enabled}
-                      onCheckedChange={(checked) =>
-                        updateProfile({ notifications_enabled: checked })
-                      }
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* Notifications Tab - removed due to database schema mismatch */}
 
           {/* Security Tab */}
           <TabsContent value="security" className="space-y-6">

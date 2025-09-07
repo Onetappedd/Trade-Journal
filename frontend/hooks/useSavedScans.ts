@@ -43,7 +43,12 @@ export function useSavedScans() {
         return
       }
 
-      setSavedScans(data || [])
+      setSavedScans((data || []).map(scan => ({
+        ...scan,
+        created_at: scan.created_at || '',
+        updated_at: scan.updated_at || '',
+        params: scan.params as unknown as ScannerState
+      })))
     } catch (error) {
       console.error('Error loading saved scans:', error)
     } finally {

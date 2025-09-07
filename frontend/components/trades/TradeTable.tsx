@@ -9,7 +9,7 @@ export default function TradeTable() {
   const [status, setStatus] = React.useState<string | undefined>();
 
   const { data: trades, error, isLoading, authLoading } = useUserTrades({
-    filters: { symbol: symbol || undefined, asset_type: assetType as any, status: status as any },
+    filters: { symbol: symbol || undefined, instrument_type: assetType as any, status: status as any },
   });
 
   if (authLoading || isLoading) {

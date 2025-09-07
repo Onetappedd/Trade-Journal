@@ -24,7 +24,7 @@ function MetricsStrip() {
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
       <Metric label="Win Rate"       value={fmt(data?.win_rate, 'pct')} />
       <Metric label="Profit Factor"  value={fmt(data?.profit_factor)} />
-      <Metric label="Expectancy"     value={fmt(data?.expectancy)} />
+      <Metric label="Expectancy"     value="N/A" />
       <Metric label="Max Drawdown"   value={fmt(data?.max_drawdown_abs)} />
       <Metric label="Sharpe"         value={fmt(data?.sharpe)} />
     </div>

@@ -17,18 +17,23 @@ import { format } from 'date-fns';
 interface Trade {
   id: string;
   symbol: string;
-  side: 'buy' | 'sell';
-  quantity: number;
-  entry_price: number;
-  exit_price: number | null;
-  entry_date: string;
-  exit_date: string | null;
-  asset_type: 'stock' | 'option' | 'crypto' | 'forex';
-  strategy: string | null;
-  notes: string | null;
+  instrument_type: string;
+  qty_opened: number;
+  qty_closed: number | null;
+  avg_open_price: number;
+  avg_close_price: number | null;
+  opened_at: string;
+  closed_at: string | null;
+  status: string;
   fees: number | null;
-  pnl: number | null;
-  created_at: string;
+  realized_pnl: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  user_id: string;
+  group_key: string;
+  ingestion_run_id: string | null;
+  row_hash: string | null;
+  legs: any | null;
 }
 
 interface TradeListProps {
@@ -75,11 +80,8 @@ export default function TradeList({ limit, showHeader = true }: TradeListProps) 
   };
 
   const calculatePnL = (trade: Trade) => {
-    if (!trade.exit_price) return null;
-    const pnl =
-      trade.side === 'buy'
-        ? (trade.exit_price - trade.entry_price) * trade.quantity
-        : (trade.entry_price - trade.exit_price) * trade.quantity;
+    if (!trade.avg_close_price) return null;
+    const pnl = (trade.avg_close_price - trade.avg_open_price) * trade.qty_opened;
     return pnl - (trade.fees || 0);
   };
 
@@ -137,13 +139,13 @@ export default function TradeList({ limit, showHeader = true }: TradeListProps) 
                     <TableRow key={trade.id}>
                       <TableCell className="font-medium">{trade.symbol}</TableCell>
                       <TableCell>
-                        <Badge variant={trade.side === 'buy' ? 'default' : 'secondary'}>
-                          {trade.side.toUpperCase()}
+                        <Badge variant={trade.instrument_type === 'stock' ? 'default' : 'secondary'}>
+                          {trade.instrument_type.toUpperCase()}
                         </Badge>
                       </TableCell>
-                      <TableCell>{trade.quantity.toLocaleString()}</TableCell>
-                      <TableCell>{formatCurrency(trade.entry_price)}</TableCell>
-                      <TableCell>{format(new Date(trade.entry_date), 'MMM dd')}</TableCell>
+                      <TableCell>{trade.qty_opened.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(trade.avg_open_price)}</TableCell>
+                      <TableCell>{format(new Date(trade.opened_at), 'MMM dd')}</TableCell>
                       <TableCell>
                         {pnl !== null ? (
                           <span className={pnl >= 0 ? 'text-green-600' : 'text-red-600'}>
@@ -154,8 +156,8 @@ export default function TradeList({ limit, showHeader = true }: TradeListProps) 
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={trade.exit_price ? 'default' : 'secondary'}>
-                          {trade.exit_price ? 'Closed' : 'Open'}
+                        <Badge variant={trade.status === 'closed' ? 'default' : 'secondary'}>
+                          {trade.status === 'closed' ? 'Closed' : 'Open'}
                         </Badge>
                       </TableCell>
                     </TableRow>

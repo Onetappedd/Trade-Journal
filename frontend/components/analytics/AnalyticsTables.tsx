@@ -113,7 +113,7 @@ export function AnalyticsTables() {
                     </TableCell>
                     <TableCell className="text-right">{formatPercent(symbol.win_rate)}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {formatCurrency(symbol.avg_trade_size)}
+                      N/A
                     </TableCell>
                   </TableRow>
                 ))}
