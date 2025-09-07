@@ -53,11 +53,13 @@ export function CSVImporter() {
     runId: null,
     error: null
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!user) return;
 
+    setSelectedFile(file);
     setImportState(prev => ({ ...prev, stage: 'parsing', error: null }));
 
     try {
@@ -83,8 +85,18 @@ export function CSVImporter() {
     }
   }, [user]);
 
-  const handleStartImport = useCallback(async (file: File) => {
-    if (!user || !importState.mapping) return;
+  const handleStartImport = useCallback(async () => {
+    if (!user || !importState.mapping || !selectedFile) {
+      console.error('Missing requirements for import:', { user: !!user, mapping: !!importState.mapping, file: !!selectedFile });
+      return;
+    }
+
+    console.log('Starting import with:', { 
+      fileName: selectedFile.name, 
+      fileSize: selectedFile.size,
+      mapping: importState.mapping,
+      userId: user.id 
+    });
 
     setImportState(prev => ({ ...prev, stage: 'importing', progress: 0 }));
 
@@ -95,7 +107,7 @@ export function CSVImporter() {
         .insert({
           user_id: user.id,
           source: 'csv-generic',
-          file_name: file.name,
+          file_name: selectedFile.name,
           row_count: 0
         })
         .select('id')
@@ -111,7 +123,7 @@ export function CSVImporter() {
       // Step B: Stream and process rows
       await new Promise<void>((resolve, reject) => {
         streamRows(
-          file,
+          selectedFile,
           async (row, rowNo) => {
             try {
               totalRows++;
@@ -233,7 +245,7 @@ export function CSVImporter() {
         error: `Import error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
     }
-  }, [user, importState.mapping, importState.inserted, importState.failed, supabase]);
+  }, [user, importState.mapping, importState.inserted, importState.failed, selectedFile, supabase]);
 
   const downloadFailedRows = useCallback(() => {
     if (importState.badRows.length === 0) return;
@@ -285,7 +297,7 @@ export function CSVImporter() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">CSV Import</h1>
+      <h1 className="text-3xl font-bold text-foreground">CSV Import</h1>
 
       {importState.error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -314,8 +326,8 @@ export function CSVImporter() {
                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <p className="text-lg font-medium text-gray-900 mb-2">Upload CSV File</p>
-            <p className="text-gray-600">Drag and drop or click to select a CSV file</p>
+            <p className="text-lg font-medium text-foreground mb-2">Upload CSV File</p>
+            <p className="text-muted-foreground">Drag and drop or click to select a CSV file</p>
           </label>
         </div>
       )}
@@ -323,7 +335,7 @@ export function CSVImporter() {
       {importState.stage === 'parsing' && (
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Parsing CSV file...</p>
+          <p className="text-muted-foreground">Parsing CSV file...</p>
         </div>
       )}
 
@@ -336,7 +348,7 @@ export function CSVImporter() {
           />
 
           <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Preview (First 50 Rows)</h3>
+            <h3 className="text-lg font-medium text-foreground mb-4">Preview (First 50 Rows)</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -364,11 +376,7 @@ export function CSVImporter() {
           </div>
 
           <button
-            onClick={() => {
-              const fileInput = document.getElementById('csv-file-input') as HTMLInputElement;
-              const file = fileInput?.files?.[0];
-              if (file) handleStartImport(file);
-            }}
+            onClick={handleStartImport}
             className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
           >
             Start Import
@@ -379,9 +387,9 @@ export function CSVImporter() {
       {importState.stage === 'importing' && (
         <div className="space-y-4">
           <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Importing Trades</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">Importing Trades</h3>
             <ProgressBar value={importState.progress} />
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Inserted: {importState.inserted} | Failed: {importState.failed} | Duplicates: {importState.duplicates}
             </p>
           </div>
@@ -399,7 +407,7 @@ export function CSVImporter() {
           {importState.badRows.length > 0 && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Failed Rows</h3>
+                <h3 className="text-lg font-medium text-foreground">Failed Rows</h3>
                 <button
                   onClick={downloadFailedRows}
                   className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
@@ -412,19 +420,22 @@ export function CSVImporter() {
           )}
 
           <button
-            onClick={() => setImportState({
-              stage: 'idle',
-              progress: 0,
-              headers: [],
-              sampleRows: [],
-              mapping: {},
-              inserted: 0,
-              failed: 0,
-              duplicates: 0,
-              badRows: [],
-              runId: null,
-              error: null
-            })}
+            onClick={() => {
+              setImportState({
+                stage: 'idle',
+                progress: 0,
+                headers: [],
+                sampleRows: [],
+                mapping: {},
+                inserted: 0,
+                failed: 0,
+                duplicates: 0,
+                badRows: [],
+                runId: null,
+                error: null
+              });
+              setSelectedFile(null);
+            }}
             className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
           >
             Import Another File

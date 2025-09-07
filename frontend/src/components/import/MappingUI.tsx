@@ -36,15 +36,15 @@ export function MappingUI({ headers, mapping, onChange }: MappingUIProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900">Map CSV Columns</h3>
-      <p className="text-sm text-gray-600">
+      <h3 className="text-lg font-medium text-foreground">Map CSV Columns</h3>
+      <p className="text-sm text-muted-foreground">
         Select which CSV column corresponds to each required field.
       </p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {CANONICAL_FIELDS.map((field) => (
           <div key={field.key} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               {field.label}
             </label>
             <select
