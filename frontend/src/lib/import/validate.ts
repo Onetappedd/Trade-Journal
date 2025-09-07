@@ -56,6 +56,25 @@ export function toUTC(input: string): string {
     throw new Error('Date is required');
   }
 
+  // Handle Webull timestamp format like "08/09:ED1" or "08/12:!"
+  // This appears to be MM/DD:HH format (truncated)
+  if (trimmed.match(/^\d{2}\/\d{2}:/)) {
+    // For now, use current date with estimated time
+    // In production, you might want to parse this more accurately
+    const today = new Date();
+    const [month, day] = trimmed.split('/');
+    const currentYear = today.getFullYear();
+    
+    try {
+      const date = new Date(currentYear, parseInt(month) - 1, parseInt(day));
+      if (isValid(date)) {
+        return date.toISOString();
+      }
+    } catch {
+      // Fall through to other parsing methods
+    }
+  }
+
   // Common broker date formats
   const formats = [
     'yyyy-MM-dd HH:mm:ss',
@@ -129,7 +148,7 @@ export function normalizeRow(raw: Record<string, unknown>):
     return null;
   };
 
-  // Helper function to parse number
+  // Helper function to parse number (handles Webull format like "@3.51")
   const parseNumber = (value: unknown, field: string): number | null => {
     if (typeof value === 'number') {
       if (!isFinite(value)) {
@@ -143,7 +162,10 @@ export function normalizeRow(raw: Record<string, unknown>):
       const trimmed = value.trim();
       if (trimmed === '') return null;
       
-      const parsed = Number(trimmed);
+      // Handle Webull price format like "@3.51" or "3.51"
+      const cleanValue = trimmed.replace(/^@/, '');
+      
+      const parsed = Number(cleanValue);
       if (!isFinite(parsed)) {
         addError(field, 'must be a valid number');
         return null;
