@@ -1,11 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 
 type AuthCtx = {
-  supabase: ReturnType<typeof createBrowserClient>;
+  supabase: ReturnType<typeof createClient>;
   session: Session | null;
   user: Session['user'] | null;
   userId: string | null;
@@ -33,12 +33,10 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (process.env.NODE_ENV === 'development') {
-      console.log('AuthProvider - Creating Supabase client:', { hasUrl: !!url, hasKey: !!key });
+      console.log('AuthProvider - Creating Supabase client using centralized client');
     }
-    return createBrowserClient(url!, key!);
+    return createClient();
   }, []);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);

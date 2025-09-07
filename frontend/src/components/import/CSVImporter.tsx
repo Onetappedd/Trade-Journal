@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@/providers/auth-provider';
 import { sniffHeaders, streamRows } from '@/src/lib/import/parser';
 import { autoMap, applyMapping } from '@/src/lib/import/mapping';
@@ -35,11 +34,7 @@ interface ImportState {
 }
 
 export function CSVImporter() {
-  const { user, loading } = useAuth();
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const { user, loading, supabase } = useAuth();
 
   // Debug logging (remove in production)
   if (process.env.NODE_ENV === 'development') {
@@ -260,7 +255,7 @@ export function CSVImporter() {
   }, [importState.badRows]);
 
   // Auth guard
-  if (loading) {
+  if (loading || !supabase) {
     return (
       <div className="max-w-2xl mx-auto p-6">
         <div className="text-center">
