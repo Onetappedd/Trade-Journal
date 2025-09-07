@@ -20,7 +20,7 @@ export async function sniffHeaders(
     let headers: string[] = [];
 
     Papa.parse(file, {
-      worker: true,
+      worker: false, // Disable worker to avoid CSP issues
       header: true,
       skipEmptyLines: true,
       step: (result, parser) => {
@@ -70,7 +70,7 @@ export function streamRows(
   let currentRowNo = 0;
 
   Papa.parse(file, {
-    worker: true,
+    worker: false, // Disable worker to avoid CSP issues
     header: true,
     skipEmptyLines: true,
     chunkSize: 1024 * 1024, // 1MB chunks

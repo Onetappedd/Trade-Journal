@@ -12,6 +12,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://s3.tradingview.com https://www.tradingview.com https://s.tradingview.com",
+              "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline' https://s3.tradingview.com https://www.tradingview.com https://s.tradingview.com",
               "img-src 'self' data: https: https://s3.tradingview.com https://www.tradingview.com https://s.tradingview.com",
               "frame-src 'self' https://s3.tradingview.com https://www.tradingview.com https://s.tradingview.com",

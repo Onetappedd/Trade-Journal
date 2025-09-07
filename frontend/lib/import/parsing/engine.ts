@@ -212,7 +212,7 @@ export async function parseCsvSample(
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
-      worker: true,
+      worker: false, // Disable worker to avoid CSP issues
       skipEmptyLines: true,
       preview: maxRows,
       delimiter: '', // auto-detect

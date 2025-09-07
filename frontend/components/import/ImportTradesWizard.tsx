@@ -95,7 +95,7 @@ function parseCsvSample(file: File, maxRows = 200): Promise<{ headers: string[];
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
-      worker: true,
+      worker: false, // Disable worker to avoid CSP issues
       skipEmptyLines: true,
       preview: maxRows,
       complete: (res) => {
