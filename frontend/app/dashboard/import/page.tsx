@@ -1,5 +1,8 @@
+'use client';
+
 import { Metadata } from 'next';
 import CSVImporter from '@/src/components/import/CSVImporter';
+import { useAuth } from '@/providers/auth-provider';
 
 // Import feature flag with fallback
 let IMPORT_V2: boolean;
@@ -15,6 +18,22 @@ export const metadata: Metadata = {
 };
 
 export default function ImportPage() {
+  const { user, loading } = useAuth();
+  
+  // Debug logging
+  console.log('ImportPage - Auth state:', { user: !!user, loading, userId: user?.id });
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="text-muted-foreground mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!IMPORT_V2) {
     return (
       <div className="max-w-6xl mx-auto p-6 space-y-6">

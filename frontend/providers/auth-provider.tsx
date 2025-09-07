@@ -32,19 +32,24 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const supabase = useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ), []);
+  const supabase = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    console.log('AuthProvider - Creating Supabase client:', { hasUrl: !!url, hasKey: !!key });
+    return createBrowserClient(url!, key!);
+  }, []);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthProvider - Initializing auth...');
     supabase.auth.getSession().then(({ data }) => {
+      console.log('AuthProvider - Initial session:', { hasSession: !!data.session, userId: data.session?.user?.id });
       setSession(data.session ?? null);
       setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      console.log('AuthProvider - Auth state change:', { event, hasSession: !!s, userId: s?.user?.id });
       setSession(s);
       setLoading(false);
     });
