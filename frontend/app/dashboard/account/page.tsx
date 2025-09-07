@@ -55,10 +55,10 @@ export default function AccountPage() {
   async function onUsernameSubmit(data: UsernameForm) {
     // Check uniqueness
     const { data: exists } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .eq('username', data.username)
-      .neq('id', user?.id)
+      .neq('id', user?.id || '')
       .maybeSingle();
     if (exists) {
       usernameForm.setError('username', { message: 'Username is already taken' });

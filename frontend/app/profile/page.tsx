@@ -27,17 +27,18 @@ import { User, Bell, Shield, CreditCard, Activity } from 'lucide-react';
 
 interface Profile {
   id: string;
-  user_id: string;
-  full_name: string | null;
   email: string;
+  username: string | null;
+  full_name: string | null;
   avatar_url: string | null;
-  bio: string | null;
-  timezone: string | null;
-  notifications_enabled: boolean;
-  email_notifications: boolean;
-  push_notifications: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
+  role: 'free' | 'pro' | 'admin' | null;
+  subscription_status: 'trial' | 'active' | 'cancelled' | 'expired' | null;
+  trial_ends_at: string | null;
+  subscription_ends_at: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
 }
 
 export default function ProfilePage() {
@@ -61,7 +62,7 @@ export default function ProfilePage() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single();
 
       if (error) throw error;

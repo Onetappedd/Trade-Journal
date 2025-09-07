@@ -31,18 +31,18 @@ export default function PortfolioSettingsPage() {
     try {
       // First, try to get existing settings
       let { data: settings, error } = await supabase
-        .from('user_settings')
-        .select('initial_capital')
+        .from('user_prefs')
+        .select('prefs')
         .eq('user_id', user.id)
         .single();
 
       // If no settings exist, create default settings
       if (error && error.code === 'PGRST116') {
-        const { data: newSettings, error: insertError } = await (supabase as any)
-          .from('user_settings')
+        const { data: newSettings, error: insertError } = await supabase
+          .from('user_prefs')
           .insert({
             user_id: user.id,
-            initial_capital: 10000,
+            prefs: { initial_capital: 10000 },
           })
           .select()
           .single();
@@ -59,7 +59,7 @@ export default function PortfolioSettingsPage() {
       }
 
       if (settings) {
-        setInitialCapital((settings as any).initial_capital?.toString() || '10000');
+        setInitialCapital((settings.prefs as any)?.initial_capital?.toString() || '10000');
       }
     } finally {
       setIsLoading(false);
@@ -79,11 +79,11 @@ export default function PortfolioSettingsPage() {
     const supabase = createClient();
 
     try {
-      const { error } = await (supabase as any)
-        .from('user_settings')
+      const { error } = await supabase
+        .from('user_prefs')
         .upsert({
           user_id: user.id,
-          initial_capital: value,
+          prefs: { initial_capital: value },
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id);

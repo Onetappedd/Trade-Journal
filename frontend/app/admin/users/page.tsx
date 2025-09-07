@@ -194,7 +194,7 @@ export default function AdminUsersPage() {
                         <Badge variant="default">{user.role}</Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(user.created_at).toLocaleDateString()}
+                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -266,7 +266,7 @@ export default function AdminUsersPage() {
                           'destructive'
                         }
                       >
-                        {user.access_status.replace('_', ' ')}
+                        {user.access_status?.replace('_', ' ') || 'Unknown'}
                       </Badge>
                     </TableCell>
                     <TableCell>
