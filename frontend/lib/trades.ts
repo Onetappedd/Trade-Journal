@@ -39,30 +39,34 @@ export async function getTrades(params: TradeListParams): Promise<TradesResponse
 }
 
 export function computeRealizedPnl(trade: TradeRow): { pnl: number; pnlPct: number } {
-  if (trade.status !== 'closed' || trade.exit_price == null) return { pnl: 0, pnlPct: 0 };
+  if (trade.status !== 'closed' || trade.avg_close_price == null) return { pnl: 0, pnlPct: 0 };
   let pnl = 0, denom = 0;
-  switch (trade.asset_type) {
-    case 'stock': {
-      const side = (trade.side ?? 'buy').toLowerCase();
-      pnl = ((side === 'buy' ? 1 : -1) * ((trade.exit_price ?? 0) - (trade.entry_price ?? 0)) * Math.abs(trade.quantity)) - (trade.fees || 0);
-      denom = Math.abs((trade.entry_price ?? 0) * trade.quantity);
+  switch (trade.instrument_type) {
+    case 'equity': {
+      // For equity, positive quantity is buy, negative is sell
+      const isBuy = trade.qty_opened > 0;
+      pnl = ((isBuy ? 1 : -1) * ((trade.avg_close_price ?? 0) - (trade.avg_open_price ?? 0)) * Math.abs(trade.qty_opened)) - (trade.fees || 0);
+      denom = Math.abs((trade.avg_open_price ?? 0) * trade.qty_opened);
       break;
     }
     case 'option': {
-      const multiplier = (trade as any).multiplier ?? 100;
-      pnl = ((trade.exit_price ?? 0) - (trade.entry_price ?? 0)) * Math.abs(trade.quantity) * multiplier - (trade.fees || 0);
-      denom = Math.abs((trade.entry_price ?? 0) * trade.quantity * multiplier);
+      const multiplier = 100; // Default option multiplier
+      const isBuy = trade.qty_opened > 0;
+      pnl = ((isBuy ? 1 : -1) * ((trade.avg_close_price ?? 0) - (trade.avg_open_price ?? 0)) * Math.abs(trade.qty_opened) * multiplier) - (trade.fees || 0);
+      denom = Math.abs((trade.avg_open_price ?? 0) * trade.qty_opened * multiplier);
       break;
     }
     case 'futures': {
-      const pointValue = (trade as any).pointValue ?? 1;
-      pnl = ((trade.exit_price ?? 0) - (trade.entry_price ?? 0)) * pointValue * Math.abs(trade.quantity) - (trade.fees || 0);
-      denom = Math.abs((trade.entry_price ?? 0) * pointValue * trade.quantity);
+      const pointValue = 1; // Default point value
+      const isBuy = trade.qty_opened > 0;
+      pnl = ((isBuy ? 1 : -1) * ((trade.avg_close_price ?? 0) - (trade.avg_open_price ?? 0)) * pointValue * Math.abs(trade.qty_opened)) - (trade.fees || 0);
+      denom = Math.abs((trade.avg_open_price ?? 0) * pointValue * trade.qty_opened);
       break;
     }
     case 'crypto': {
-      pnl = ((trade.exit_price ?? 0) - (trade.entry_price ?? 0)) * Math.abs(trade.quantity) - (trade.fees || 0);
-      denom = Math.abs((trade.entry_price ?? 0) * trade.quantity);
+      const isBuy = trade.qty_opened > 0;
+      pnl = ((isBuy ? 1 : -1) * ((trade.avg_close_price ?? 0) - (trade.avg_open_price ?? 0)) * Math.abs(trade.qty_opened)) - (trade.fees || 0);
+      denom = Math.abs((trade.avg_open_price ?? 0) * trade.qty_opened);
       break;
     }
     default: {

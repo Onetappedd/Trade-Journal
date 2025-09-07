@@ -44,14 +44,13 @@ export interface PnlDataResult {
 export interface GenericTrade {
   id: string;
   symbol: string;
-  side: string;
-  quantity: number;
-  entry_price: number | null;
-  entry_date: string;
-  exit_price?: number | null;
-  exit_date?: string | null;
-  status?: string;
-  asset_type?: string;
+  status: string;
+  qty_opened: number;
+  avg_open_price: number;
+  opened_at: string;
+  avg_close_price?: number | null;
+  closed_at?: string | null;
+  instrument_type?: string;
   multiplier?: number | null;
   underlying?: string | null;
   option_type?: string | null;

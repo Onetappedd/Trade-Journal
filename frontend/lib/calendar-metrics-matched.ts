@@ -91,8 +91,8 @@ export async function getUserTradesGroupedByDay(
 
   // Process closed trades (these have calculated P&L from position matching)
   for (const trade of closedTrades) {
-    // Use exit_date if available, otherwise use entry_date
-    const dateKey = (trade.exit_date || trade.entry_date).split('T')[0];
+    // Use closed_at if available, otherwise use opened_at
+    const dateKey = (trade.closed_at || trade.opened_at).split('T')[0];
 
     // Initialize daily data if not exists
     if (!dailyData[dateKey]) {
@@ -115,19 +115,19 @@ export async function getUserTradesGroupedByDay(
     dailyData[dateKey].trades.push({
       id: trade.id,
       symbol: trade.symbol,
-      side: trade.side,
-      quantity: trade.quantity,
-      entryPrice: trade.entry_price,
-      exitPrice: trade.exit_price || trade.entry_price, // For sells, entry_price is the exit
+      side: 'closed', // Simplified since we don't have side field
+      quantity: trade.qty_closed || trade.qty_opened,
+      entryPrice: trade.avg_open_price,
+      exitPrice: trade.avg_close_price || trade.avg_open_price,
       pnl: trade.pnl,
       status: 'closed',
-      assetType: trade.asset_type,
+      assetType: trade.instrument_type,
     });
 
     dailyData[dateKey].tradeCount++;
 
     console.log(
-      `[Calendar Matched] ${dateKey}: ${trade.symbol} ${trade.side} - P&L: $${trade.pnl.toFixed(2)}`,
+      `[Calendar Matched] ${dateKey}: ${trade.symbol} closed - P&L: $${trade.pnl.toFixed(2)}`,
     );
   }
 
@@ -136,7 +136,7 @@ export async function getUserTradesGroupedByDay(
     if (position.openQuantity > 0) {
       // Find the most recent trade date for this position
       const lastTrade = position.trades[position.trades.length - 1];
-      const dateKey = lastTrade.entry_date.split('T')[0];
+      const dateKey = lastTrade.opened_at.split('T')[0];
 
       if (!dailyData[dateKey]) {
         dailyData[dateKey] = {
@@ -159,7 +159,7 @@ export async function getUserTradesGroupedByDay(
         exitPrice: undefined,
         pnl: 0,
         status: 'open',
-        assetType: lastTrade.asset_type,
+        assetType: lastTrade.instrument_type,
       });
     }
   }

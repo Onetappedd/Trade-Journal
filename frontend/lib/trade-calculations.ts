@@ -38,41 +38,42 @@ function getFuturesPointValue(symbol: string): number {
 }
 
 function calculatePnLForTrade(trade: TradeRow): number {
-  if (!trade.entry_price || !trade.exit_price) return 0;
+  if (!trade.avg_open_price || !trade.avg_close_price) return 0;
   
-  const quantity = trade.quantity;
-  const entryPrice = trade.entry_price;
-  const exitPrice = trade.exit_price;
+  const quantity = trade.qty_opened;
+  const entryPrice = trade.avg_open_price;
+  const exitPrice = trade.avg_close_price;
   const fees = trade.fees || 0;
   
   let pnl = 0;
   
-  switch (trade.asset_type) {
+  switch (trade.instrument_type) {
     case 'option':
-      const multiplier = trade.multiplier || 100;
-      if (trade.side === 'buy') {
+      const multiplier = 100; // Default option multiplier
+      // For options, assume positive quantity is buy, negative is sell
+      if (quantity > 0) {
         pnl = (exitPrice - entryPrice) * quantity * multiplier - fees;
       } else {
-        pnl = (entryPrice - exitPrice) * quantity * multiplier - fees;
+        pnl = (entryPrice - exitPrice) * Math.abs(quantity) * multiplier - fees;
       }
       break;
       
     case 'futures':
       const pointValue = getFuturesPointValue(trade.symbol);
-      if (trade.side === 'buy') {
+      if (quantity > 0) {
         pnl = (exitPrice - entryPrice) * quantity * pointValue - fees;
       } else {
-        pnl = (entryPrice - exitPrice) * quantity * pointValue - fees;
+        pnl = (entryPrice - exitPrice) * Math.abs(quantity) * pointValue - fees;
       }
       break;
       
     case 'stock':
     case 'crypto':
     default:
-      if (trade.side === 'buy') {
+      if (quantity > 0) {
         pnl = (exitPrice - entryPrice) * quantity - fees;
       } else {
-        pnl = (entryPrice - exitPrice) * quantity - fees;
+        pnl = (entryPrice - exitPrice) * Math.abs(quantity) - fees;
       }
       break;
   }
@@ -87,9 +88,9 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
   trades.forEach(trade => {
     let key = trade.symbol;
     
-    // For options, include strike, expiration, and option type in the key
-    if (trade.asset_type === 'option') {
-      key = `${trade.underlying || trade.symbol}_${trade.strike_price}_${trade.expiration_date}_${trade.option_type}`;
+    // For options, use symbol as key (strike/expiration info not available in current schema)
+    if (trade.instrument_type === 'option') {
+      key = `${trade.symbol}_option`;
     }
     
     if (!groups.has(key)) {
@@ -101,7 +102,7 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
   // Calculate position metrics for each group
   return Array.from(groups.entries()).map(([key, groupTrades]) => {
     const sortedTrades = groupTrades.sort((a, b) => 
-      new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime()
+      new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime()
     );
     
     let totalQuantity = 0;
@@ -112,27 +113,27 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
     
     // Calculate position metrics using FIFO logic
     sortedTrades.forEach(trade => {
-      const quantity = trade.quantity;
+      const quantity = trade.qty_opened;
       const fees = trade.fees || 0;
       totalFees += fees;
       
-      if (trade.side === 'buy') {
+      if (quantity > 0) {
         totalQuantity += quantity;
-        totalEntryValue += (trade.entry_price || 0) * quantity;
+        totalEntryValue += (trade.avg_open_price || 0) * quantity;
       } else {
         // Sell trade - reduce position using FIFO
-        const sellQuantity = Math.min(quantity, totalQuantity);
+        const sellQuantity = Math.min(Math.abs(quantity), totalQuantity);
         if (sellQuantity > 0) {
           const avgEntryPrice = totalEntryValue / totalQuantity;
-          const exitPrice = trade.exit_price || 0;
+          const exitPrice = trade.avg_close_price || 0;
           totalExitValue += exitPrice * sellQuantity;
           
           // Calculate P&L based on asset type
           let tradePnL = 0;
-          const assetType = sortedTrades[0].asset_type;
+          const assetType = sortedTrades[0].instrument_type;
           
           if (assetType === 'option') {
-            const multiplier = sortedTrades[0].multiplier || 100;
+            const multiplier = 100; // Default option multiplier
             tradePnL = (exitPrice - avgEntryPrice) * sellQuantity * multiplier - fees;
           } else if (assetType === 'futures') {
             const pointValue = getFuturesPointValue(sortedTrades[0].symbol);
@@ -155,8 +156,8 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
     if (totalQuantity === 0 && totalExitValue > 0) {
       // For closed positions, calculate the total quantity sold
       const totalSoldQuantity = sortedTrades
-        .filter(t => t.side === 'sell')
-        .reduce((sum, t) => sum + t.quantity, 0);
+        .filter(t => t.qty_opened < 0)
+        .reduce((sum, t) => sum + Math.abs(t.qty_opened), 0);
       averageExitPrice = totalSoldQuantity > 0 ? totalExitValue / totalSoldQuantity : null;
     }
     
@@ -164,7 +165,7 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
     let status: 'Open' | 'Closed' | 'Partial' = 'Open';
     if (totalQuantity === 0) {
       status = 'Closed';
-    } else if (totalQuantity < sortedTrades.reduce((sum, t) => sum + (t.side === 'buy' ? t.quantity : 0), 0)) {
+    } else if (totalQuantity < sortedTrades.reduce((sum, t) => sum + (t.qty_opened > 0 ? t.qty_opened : 0), 0)) {
       status = 'Partial';
     }
     
@@ -174,11 +175,11 @@ function groupTradesByPosition(trades: TradeRow[]): TradeGroup[] {
     
     return {
       symbol: sortedTrades[0].symbol,
-      asset_type: sortedTrades[0].asset_type,
-      strike_price: sortedTrades[0].strike_price,
-      expiration_date: sortedTrades[0].expiration_date,
-      option_type: sortedTrades[0].option_type,
-      underlying: sortedTrades[0].underlying,
+      asset_type: sortedTrades[0].instrument_type,
+      strike_price: null, // Not available in current schema
+      expiration_date: null, // Not available in current schema
+      option_type: null, // Not available in current schema
+      underlying: sortedTrades[0].symbol, // Use symbol as underlying for now
       trades: sortedTrades,
       totalQuantity,
       remainingQuantity: totalQuantity,
@@ -208,7 +209,7 @@ export function calculateTradeMetrics(trades: TradeRow[]): {
   // Calculate P&L for individual trades
   const individualTrades = trades.map(trade => ({
     ...trade,
-    pnl: trade.exit_price ? calculatePnLForTrade(trade) : null,
+    pnl: trade.avg_close_price ? calculatePnLForTrade(trade) : null,
   }));
   
   // Group into positions
@@ -232,7 +233,7 @@ export function calculateTradeMetrics(trades: TradeRow[]): {
 }
 
 export function getTradeStatus(trade: TradeRow): 'Open' | 'Closed' | 'Partial' {
-  if (trade.exit_price && trade.exit_date) {
+  if (trade.avg_close_price && trade.closed_at) {
     return 'Closed';
   }
   return 'Open';

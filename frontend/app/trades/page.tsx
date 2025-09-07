@@ -164,30 +164,30 @@ export default function TradesPage() {
           <TableBody>
             {rows.map((row) => {
               const duration = formatDuration(
-                new Date(row.exit_date ?? Date.now()).getTime() - new Date(row.entry_date).getTime()
+                new Date(row.closed_at ?? Date.now()).getTime() - new Date(row.opened_at).getTime()
               );
               return (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium">{row.symbol}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">
-                      {row.asset_type}
+                      {row.instrument_type}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={row.side === 'buy' ? 'default' : 'secondary'}>
-                      {row.side.toUpperCase()}
+                    <Badge variant={row.status === 'closed' ? 'default' : 'secondary'}>
+                      {row.status.toUpperCase()}
                     </Badge>
                   </TableCell>
-                  <TableCell>{row.quantity.toLocaleString()}</TableCell>
-                  <TableCell>{formatCurrency(row.entry_price)}</TableCell>
-                  <TableCell>{formatCurrency(row.exit_price)}</TableCell>
-                  <TableCell>{format(new Date(row.entry_date), 'MMM dd, yyyy')}</TableCell>
-                  <TableCell>{row.exit_date ? format(new Date(row.exit_date), 'MMM dd, yyyy') : '-'}</TableCell>
+                  <TableCell>{row.qty_opened.toLocaleString()}</TableCell>
+                  <TableCell>{formatCurrency(row.avg_open_price)}</TableCell>
+                  <TableCell>{formatCurrency(row.avg_close_price)}</TableCell>
+                  <TableCell>{format(new Date(row.opened_at), 'MMM dd, yyyy')}</TableCell>
+                  <TableCell>{row.closed_at ? format(new Date(row.closed_at), 'MMM dd, yyyy') : '-'}</TableCell>
                   <TableCell>{duration}</TableCell>
                   <TableCell>{formatCurrency(row.fees)}</TableCell>
-                  <TableCell className={pnlColor(row.pnl)}>
-                    {formatCurrency(row.pnl ?? 0)}
+                  <TableCell className={pnlColor(row.realized_pnl)}>
+                    {formatCurrency(row.realized_pnl ?? 0)}
                   </TableCell>
                 </TableRow>
               );

@@ -1,9 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
+import { getServerSupabase } from '@/lib/supabase/server'
 import { getBillingState } from '@/lib/entitlements'
 import { redirect } from 'next/navigation'
 
+// Force dynamic rendering to avoid build-time database access
+export const dynamic = 'force-dynamic'
+
 async function getUser() {
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const supabase = getServerSupabase()
   const { data } = await supabase.auth.getUser()
   return data.user
 }

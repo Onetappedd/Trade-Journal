@@ -37,11 +37,19 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
     .eq('id', userId)
     .single();
     
-  if (error || !data) {
+  if (error || !data || !data.id || !data.email) {
     return null;
   }
   
-  return data;
+  return {
+    id: data.id,
+    email: data.email,
+    role: data.role || 'free',
+    subscription_status: data.subscription_status || 'expired',
+    trial_ends_at: data.trial_ends_at,
+    subscription_ends_at: data.subscription_ends_at,
+    access_status: (data.access_status as AccessStatus) || 'trial_active',
+  };
 }
 
 export async function checkUserAccess(userId: string, requiredRole: UserRole = 'free'): Promise<SubscriptionCheck> {

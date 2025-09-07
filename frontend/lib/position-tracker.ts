@@ -4,14 +4,23 @@ export interface Trade {
   id: string;
   symbol: string;
   underlying?: string;
-  side: string;
-  quantity: number;
-  entry_price: number;
-  entry_date: string;
-  exit_price?: number | null;
-  exit_date?: string | null;
-  status?: string;
-  asset_type: string;
+  instrument_type: string;
+  qty_opened: number;
+  qty_closed: number | null;
+  avg_open_price: number;
+  avg_close_price: number | null;
+  opened_at: string;
+  closed_at: string | null;
+  status: string;
+  fees: number | null;
+  realized_pnl: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  user_id: string;
+  group_key: string;
+  ingestion_run_id: string | null;
+  row_hash: string | null;
+  legs: any | null;
   option_type?: string;
   strike_price?: number;
   expiration_date?: string;
@@ -53,13 +62,13 @@ export function calculatePositions(trades: Trade[]): {
 
   // Sort trades by date to process in chronological order
   const sortedTrades = [...trades].sort(
-    (a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime(),
+    (a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime(),
   );
 
   for (const trade of sortedTrades) {
     // Create a unique key for the position (symbol + option details if applicable)
     const positionKey =
-      trade.asset_type === 'option'
+      trade.instrument_type === 'option'
         ? `${trade.underlying || trade.symbol}_${trade.option_type}_${trade.strike_price}_${trade.expiration_date}`
         : trade.symbol;
 
@@ -85,24 +94,26 @@ export function calculatePositions(trades: Trade[]): {
 
     position.trades.push(trade);
 
-    if (trade.side === 'buy') {
+    if (trade.qty_opened > 0) {
       // Opening or adding to position
-      const newTotalCost = position.totalCost + trade.quantity * trade.entry_price;
-      const newQuantity = position.openQuantity + trade.quantity;
+      const newTotalCost = position.totalCost + trade.qty_opened * trade.avg_open_price;
+      const newQuantity = position.openQuantity + trade.qty_opened;
 
       position.avgEntryPrice = newQuantity > 0 ? newTotalCost / newQuantity : 0;
       position.totalCost = newTotalCost;
       position.openQuantity = newQuantity;
       position.quantity = newQuantity;
-    } else if (trade.side === 'sell') {
+    }
+    
+    if (trade.qty_closed && trade.qty_closed > 0) {
       // Closing or reducing position
-      const closedQuantity = Math.min(trade.quantity, position.openQuantity);
+      const closedQuantity = Math.min(trade.qty_closed, position.openQuantity);
 
       if (closedQuantity > 0) {
         // Calculate P&L for the closed portion
         // For options, multiply by 100 (contract multiplier)
-        const multiplier = trade.asset_type === 'option' ? 100 : 1;
-        const pnl = (trade.entry_price - position.avgEntryPrice) * closedQuantity * multiplier;
+        const multiplier = trade.instrument_type === 'option' ? 100 : 1;
+        const pnl = (trade.avg_close_price! - position.avgEntryPrice) * closedQuantity * multiplier;
 
         position.closedPnL += pnl;
         position.openQuantity -= closedQuantity;
@@ -118,9 +129,6 @@ export function calculatePositions(trades: Trade[]): {
         closedTrades.push({
           ...trade,
           pnl,
-          exit_price: trade.entry_price, // For sells, entry_price is actually the exit price
-          exit_date: trade.entry_date,
-          status: 'closed',
         });
       }
     }

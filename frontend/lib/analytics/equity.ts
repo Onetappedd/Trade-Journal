@@ -26,22 +26,22 @@ export async function getEquitySeries(userId: string, range: EquityRange): Promi
   // Pull all trades for user in the range (+ buffer for prior trades)
   const startFrom = (range === 'ALL') ? undefined : from;
   const res = await getTrades({ userId, dateFrom: startFrom, dateTo: to, page: 1, pageSize: 2000 });
-  const trades = res.items.sort((a, b) => (a.entry_date || '').localeCompare(b.entry_date || ''));
+  const trades = res.items.sort((a, b) => (a.opened_at || '').localeCompare(b.opened_at || ''));
   // Assume initial account value of 10,000 (or pull from user profile if available)
   let equity = 10000;
   const dateMap: Record<string, number> = {};
   for (const t of trades) {
     // Only apply realized PnL from closed trades
-    if (t.status === 'closed' && t.exit_date) {
-      const pnl = (typeof t.pnl === 'number') ? t.pnl : 0;
+    if (t.status === 'closed' && t.closed_at) {
+      const pnl = (typeof t.realized_pnl === 'number') ? t.realized_pnl : 0;
       equity += pnl;
-      const dt = t.exit_date.slice(0, 10);
+      const dt = t.closed_at.slice(0, 10);
       dateMap[dt] = equity;
     }
   }
   // Build a series of daily points
   const points: EquityPoint[] = [];
-  const pointer = new Date(startFrom || trades[0]?.entry_date || to);
+  const pointer = new Date(startFrom || trades[0]?.opened_at || to);
   const end = new Date(to);
   let eq = 10000;
   while (pointer <= end) {

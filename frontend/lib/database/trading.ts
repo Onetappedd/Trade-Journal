@@ -53,7 +53,7 @@ export const brokerAccountsService = {
       .single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data
+    return data as Instrument | null as BrokerAccount | null
   },
 
   async getByUserId(userId: string): Promise<BrokerAccount[]> {
@@ -64,7 +64,7 @@ export const brokerAccountsService = {
       .order('created_at', { ascending: false })
     
     if (error) throw error
-    return data || []
+    return (data || []) as BrokerAccount[]
   },
 
   async update(id: string, data: BrokerAccountUpdate): Promise<BrokerAccount> {
@@ -113,7 +113,7 @@ export const importRunsService = {
       .single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data
+    return data as Instrument | null as ImportRun | null
   },
 
   async getByUserId(userId: string, filters?: ImportRunFilters): Promise<ImportRun[]> {
@@ -133,7 +133,7 @@ export const importRunsService = {
     const { data, error } = await query.order('started_at', { ascending: false })
     
     if (error) throw error
-    return data || []
+    return (data || []) as ImportRun[]
   },
 
   async update(id: string, data: ImportRunUpdate): Promise<ImportRun> {
@@ -178,7 +178,7 @@ export const rawImportItemsService = {
       .select()
     
     if (error) throw error
-    return data || []
+    return (data || []) as RawImportItem[]
   },
 
   async getByImportRunId(importRunId: string): Promise<RawImportItem[]> {
@@ -189,7 +189,7 @@ export const rawImportItemsService = {
       .order('source_line', { ascending: true })
     
     if (error) throw error
-    return data || []
+    return (data || []) as RawImportItem[]
   },
 
   async update(id: string, data: RawImportItemUpdate): Promise<RawImportItem> {
@@ -225,7 +225,7 @@ export const executionsService = {
       .select()
     
     if (error) throw error
-    return data || []
+    return (data || []) as ExecutionNormalized[]
   },
 
   async getById(id: string): Promise<ExecutionNormalized | null> {
@@ -239,7 +239,7 @@ export const executionsService = {
       .single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data
+    return data as ExecutionNormalized | null
   },
 
   async getByUserId(userId: string, filters?: ExecutionFilters): Promise<ExecutionNormalized[]> {
@@ -261,7 +261,7 @@ export const executionsService = {
     const { data, error } = await query.order('timestamp', { ascending: false })
     
     if (error) throw error
-    return data || []
+    return (data || []) as ExecutionNormalized[]
   },
 
   async getByUniqueHash(hash: string): Promise<ExecutionNormalized | null> {
@@ -272,7 +272,7 @@ export const executionsService = {
       .single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data
+    return data as ExecutionNormalized | null
   },
 
   async update(id: string, data: ExecutionNormalizedUpdate): Promise<ExecutionNormalized> {
@@ -318,7 +318,7 @@ export const tradesService = {
       .single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data
+    return data as Trade | null
   },
 
   async getByUserId(userId: string, filters?: TradeFilters): Promise<Trade[]> {
@@ -336,7 +336,7 @@ export const tradesService = {
     const { data, error } = await query.order('opened_at', { ascending: false })
     
     if (error) throw error
-    return data || []
+    return (data || []) as Trade[]
   },
 
   async getByGroupKey(groupKey: string): Promise<Trade[]> {
@@ -347,7 +347,7 @@ export const tradesService = {
       .order('opened_at', { ascending: true })
     
     if (error) throw error
-    return data || []
+    return (data || []) as Trade[]
   },
 
   async update(id: string, data: TradeUpdate): Promise<Trade> {
@@ -393,7 +393,7 @@ export const instrumentsService = {
       .single()
     
     if (error && error.code !== 'PGRST116') throw error
-    return data
+    return data as Instrument | null
   },
 
   async getByAlias(alias: string, source?: string): Promise<Instrument | null> {
@@ -445,7 +445,7 @@ export const instrumentAliasesService = {
       .eq('instrument_id', instrumentId)
     
     if (error) throw error
-    return data || []
+    return (data || []) as InstrumentAlias[]
   },
 
   async update(id: string, data: InstrumentAliasUpdate): Promise<InstrumentAlias> {
@@ -482,7 +482,7 @@ export const corporateActionsService = {
       .order('effective_date', { ascending: false })
     
     if (error) throw error
-    return data || []
+    return (data || []) as CorporateAction[]
   },
 
   async update(id: string, data: CorporateActionUpdate): Promise<CorporateAction> {

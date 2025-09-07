@@ -15,14 +15,14 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
   const [tab, setTab] = useState("Overview");
   const [editingTags, setEditingTags] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
-  const [notes, setNotes] = useState(trade?.notes || "");
+  const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
 
   useEffect(() => {
     if (trade) {
       setTab("Overview");
       setTags([]);
-      setNotes(trade.notes || "");
+      setNotes("");
     }
   }, [trade]);
 
@@ -38,9 +38,9 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
   const rMultiple = calcRMultiple(trade);
   // Derived Fills table - not available with current TradeRow structure
   const fills: any[] = [];
-  const totalQty = trade.quantity || 0;
-  const avgFill = trade.entry_price || 0;
-  const realizedPnl = trade.pnl || 0;
+  const totalQty = trade.qty_opened || 0;
+  const avgFill = trade.avg_open_price || 0;
+  const realizedPnl = trade.realized_pnl || 0;
 
 
   // Tags: editable as chips
@@ -53,7 +53,7 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
 
   // Notes: autosave on blur
   const handleNotesBlur = async () => {
-    if (notes === trade.notes) return;
+    if (notes === "") return;
     setSavingNotes(true);
     try {
       // TODO: Persist note via API (replace with fetch in real impl)
@@ -80,10 +80,10 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
         <div>
           <div className="font-bold text-lg tracking-tight">{trade.symbol}</div>
           <div className="flex gap-2 items-center mt-1">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize bg-muted text-muted-foreground border`}>{trade.asset_type}</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize bg-muted text-muted-foreground border`}>{trade.side}</span>
-            {typeof trade.pnl === 'number' && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ml-2 ${pnlChipColor(trade.pnl)}`}>{fmtCurrency(trade.pnl)}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize bg-muted text-muted-foreground border`}>{trade.instrument_type}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize bg-muted text-muted-foreground border`}>{trade.status}</span>
+            {typeof trade.realized_pnl === 'number' && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ml-2 ${pnlChipColor(trade.realized_pnl)}`}>{fmtCurrency(trade.realized_pnl)}</span>
             )}
           </div>
         </div>
@@ -111,9 +111,9 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
         {tab === "Overview" && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div><span className="font-medium">Opened:</span> {compactDate(trade.entry_date)}</div>
-              <div><span className="font-medium">Closed:</span> {trade.exit_date ? compactDate(trade.exit_date) : '—'}</div>
-              <div><span className="font-medium">Quantity:</span> {trade.quantity}</div>
+              <div><span className="font-medium">Opened:</span> {compactDate(trade.opened_at)}</div>
+              <div><span className="font-medium">Closed:</span> {trade.closed_at ? compactDate(trade.closed_at) : '—'}</div>
+              <div><span className="font-medium">Quantity:</span> {trade.qty_opened}</div>
               <div><span className="font-medium">Fees:</span> {fmtCurrency(trade.fees)}</div>
               <div><span className="font-medium">Strategy:</span> <span className="text-muted-foreground">—</span></div>
               <div><span className="font-medium">Duration:</span> <span className="text-muted-foreground">—</span></div>

@@ -47,13 +47,14 @@ export const getUserUsageSummary = createWrappedApi(
   async () => {
     const supabase = createClient();
     
-    const { data, error } = await supabase.rpc('get_user_usage_summary');
-    
-    if (error) {
-      throw error;
-    }
-
-    return data || [];
+    // TODO: Implement get_user_usage_summary RPC function
+    // For now, return a stub response
+    return {
+      total_trades: 0,
+      total_imports: 0,
+      storage_used_mb: 0,
+      last_activity: null
+    };
   },
   'Failed to get usage summary'
 );
