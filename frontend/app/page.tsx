@@ -1,5 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
+import { OAuthCallbackHandler } from '@/components/auth/OAuthCallbackHandler';
 import { SiteHeader } from '@/components/marketing/SiteHeader';
 import { SiteFooter } from '@/components/marketing/SiteFooter';
 import { Hero } from '@/components/marketing/Hero';
@@ -16,6 +20,29 @@ import { FAQAccordion } from '@/components/marketing/FAQAccordion';
 import { FinalCTA } from '@/components/marketing/FinalCTA';
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect authenticated users to dashboard
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
+  // Show loading while checking auth status
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  // Don't render landing page if user is authenticated (will redirect)
+  if (user) {
+    return null;
+  }
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -49,6 +76,7 @@ export default function HomePage() {
 
   return (
     <div className="font-sans min-h-screen bg-[--pp-bg] text-[--pp-text]">
+      <OAuthCallbackHandler />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

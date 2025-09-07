@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { useAuth } from '@/providers/auth-provider';
 import { sniffHeaders, streamRows } from '@/src/lib/import/parser';
 import { autoMap, applyMapping } from '@/src/lib/import/mapping';
 import { normalizeRow } from '@/src/lib/import/validate';
@@ -34,11 +35,11 @@ interface ImportState {
 }
 
 export function CSVImporter() {
+  const { user, loading } = useAuth();
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-  const [session, setSession] = useState<any>(null);
   const [importState, setImportState] = useState<ImportState>({
     stage: 'idle',
     progress: 0,
@@ -53,17 +54,9 @@ export function CSVImporter() {
     error: null
   });
 
-  // Auth guard
-  React.useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-    };
-    getSession();
-  }, [supabase.auth]);
 
   const handleFileSelect = useCallback(async (file: File) => {
-    if (!session) return;
+    if (!user) return;
 
     setImportState(prev => ({ ...prev, stage: 'parsing', error: null }));
 
@@ -88,10 +81,10 @@ export function CSVImporter() {
         error: `File parsing error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
     }
-  }, [session]);
+  }, [user]);
 
   const handleStartImport = useCallback(async (file: File) => {
-    if (!session || !importState.mapping) return;
+    if (!user || !importState.mapping) return;
 
     setImportState(prev => ({ ...prev, stage: 'importing', progress: 0 }));
 
@@ -100,7 +93,7 @@ export function CSVImporter() {
       const { data: runData, error: runError } = await supabase
         .from('ingestion_runs')
         .insert({
-          user_id: session.user.id,
+          user_id: user.id,
           source: 'csv-generic',
           file_name: file.name,
           row_count: 0
@@ -140,7 +133,7 @@ export function CSVImporter() {
 
               // Build canonical trade object
               const canonical: CanonicalTrade = {
-                user_id: session.user.id,
+                user_id: user.id,
                 asset_type: (normalized.value.asset_type as any) || 'equity',
                 symbol: normalized.value.symbol as string,
                 underlying: normalized.value.underlying as string,
@@ -240,7 +233,7 @@ export function CSVImporter() {
         error: `Import error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
     }
-  }, [session, importState.mapping, importState.inserted, importState.failed, supabase]);
+  }, [user, importState.mapping, importState.inserted, importState.failed, supabase]);
 
   const downloadFailedRows = useCallback(() => {
     if (importState.badRows.length === 0) return;
@@ -262,7 +255,18 @@ export function CSVImporter() {
   }, [importState.badRows]);
 
   // Auth guard
-  if (!session) {
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="max-w-2xl mx-auto p-6">
         <div className="text-center">

@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react';
+import { useAuth } from '@/providers/auth-provider';
 
 const navigation = [
   { name: 'Features', href: '#features' },
@@ -15,6 +17,8 @@ const navigation = [
 export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +28,11 @@ export function SiteHeader() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
 
   return (
     <header
@@ -57,16 +66,37 @@ export function SiteHeader() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/login">
-              <Button variant="ghost" className="text-[--pp-text] hover:text-[--pp-text]">
-                Login
-              </Button>
-            </Link>
-            <Link href="/login?intent=signup">
-              <Button className="bg-[--pp-accent] hover:bg-[--pp-accent]/90 text-white">
-                Start Free
-              </Button>
-            </Link>
+            {user ? (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="ghost" className="text-[--pp-text] hover:text-[--pp-text]">
+                    <User className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  onClick={handleSignOut}
+                  className="text-[--pp-text] hover:text-[--pp-text]"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" className="text-[--pp-text] hover:text-[--pp-text]">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/login?intent=signup">
+                  <Button className="bg-[--pp-accent] hover:bg-[--pp-accent]/90 text-white">
+                    Start Free
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -96,16 +126,37 @@ export function SiteHeader() {
                     </Link>
                   ))}
                   <div className="pt-4 border-t border-[--pp-border] space-y-4">
-                    <Link href="/login">
-                      <Button variant="ghost" className="w-full text-[--pp-text] hover:text-[--pp-text]">
-                        Login
-                      </Button>
-                    </Link>
-                    <Link href="/login?intent=signup">
-                      <Button className="w-full bg-[--pp-accent] hover:bg-[--pp-accent]/90 text-white">
-                        Start Free
-                      </Button>
-                    </Link>
+                    {user ? (
+                      <>
+                        <Link href="/dashboard">
+                          <Button variant="ghost" className="w-full text-[--pp-text] hover:text-[--pp-text]">
+                            <User className="h-4 w-4 mr-2" />
+                            Dashboard
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          onClick={handleSignOut}
+                          className="w-full text-[--pp-text] hover:text-[--pp-text]"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Sign Out
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/login">
+                          <Button variant="ghost" className="w-full text-[--pp-text] hover:text-[--pp-text]">
+                            Login
+                          </Button>
+                        </Link>
+                        <Link href="/login?intent=signup">
+                          <Button className="w-full bg-[--pp-accent] hover:bg-[--pp-accent]/90 text-white">
+                            Start Free
+                          </Button>
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               </SheetContent>
