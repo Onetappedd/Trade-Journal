@@ -66,17 +66,17 @@ export function RealizedTradesTable() {
         const { data, error } = await supabase
           .from('trades')
           .select(
-            'id, symbol, side, quantity, entry_price, exit_price, entry_date, exit_date, status, pnl',
+            'id, symbol, qty_opened, avg_open_price, avg_close_price, opened_at, closed_at, status, realized_pnl',
           )
           .eq('user_id', user.id)
           .eq('status', 'closed')
-          .order('exit_date', { ascending: false });
+          .order('closed_at', { ascending: false });
 
         if (error) throw error;
 
         const mapped: Trade[] = (data as DbTrade[]).map((t) => {
-          const entryDate = t.entry_date ? new Date(t.entry_date) : null;
-          const exitDate = t.exit_date ? new Date(t.exit_date) : null;
+          const entryDate = t.opened_at ? new Date(t.opened_at) : null;
+          const exitDate = t.closed_at ? new Date(t.closed_at) : null;
           const holdingDays =
             entryDate && exitDate
               ? Math.max(
@@ -87,18 +87,18 @@ export function RealizedTradesTable() {
 
           // Prefer stored pnl if present; otherwise compute
           const computedPnL =
-            t.exit_price != null && t.entry_price != null && t.quantity != null
-              ? (t.exit_price - t.entry_price) * t.quantity * (t.side === 'buy' ? 1 : -1)
+            t.avg_close_price != null && t.avg_open_price != null && t.qty_opened != null
+              ? (t.avg_close_price - t.avg_open_price) * t.qty_opened
               : 0;
 
           return {
             id: t.id,
-            date: t.exit_date || t.entry_date,
+            date: t.closed_at || t.opened_at,
             symbol: t.symbol,
-            type: (t.side === 'buy' ? 'BUY' : 'SELL') as Trade['type'],
-            quantity: t.quantity,
-            price: t.exit_price ?? t.entry_price ?? 0,
-            pnl: t.pnl ?? computedPnL,
+            type: 'SELL' as Trade['type'], // All realized trades are sells
+            quantity: t.qty_opened,
+            price: t.avg_close_price ?? t.avg_open_price ?? 0,
+            pnl: t.realized_pnl ?? computedPnL,
             holdingPeriod: holdingDays,
             taxType: holdingDays > 365 ? 'LONG' : 'SHORT',
           };

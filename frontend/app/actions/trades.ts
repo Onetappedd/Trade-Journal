@@ -57,19 +57,16 @@ export async function addTradeAction(formData: FormData) {
     const tradeData: Database['public']['Tables']['trades']['Insert'] = {
       user_id: user.id,
       symbol: data.symbol,
-      asset_type: assetType,
-      broker: (data as any).broker ?? 'Manual',
-      side: data.side,
-      quantity: data.quantity,
-      entry_price: data.entry_price,
-      exit_price: data.exit_price,
-      entry_date: new Date(data.entry_date).toISOString(),
-      exit_date: data.exit_date ? new Date(data.exit_date).toISOString() : undefined,
-      notes: data.notes,
-      strike_price: data.strike_price,
-      expiration_date: (data as any).expiration_date ?? (data as any).expiry_date ?? null,
-      option_type: data.option_type,
+      instrument_type: assetType,
+      group_key: `${data.symbol}-${Date.now()}`,
+      opened_at: new Date(data.entry_date).toISOString(),
+      qty_opened: data.quantity,
+      avg_open_price: data.entry_price,
+      closed_at: data.exit_date ? new Date(data.exit_date).toISOString() : null,
+      qty_closed: data.exit_price ? data.quantity : 0,
+      avg_close_price: data.exit_price || null,
       status: data.exit_price ? 'closed' : 'open',
+      fees: 0, // Default to 0 for manual entries
     };
 
     const { data: newTrade, error: tradeError } = await supabase
