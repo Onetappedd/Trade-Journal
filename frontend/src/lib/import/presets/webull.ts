@@ -93,6 +93,7 @@ export const webullPreset: Preset = {
 
     const symCell = get(['SYMBOLS','SYMBOL','Ticker','Name']);
     console.log('Webull transform: symbol cell', { symCell, availableKeys: Object.keys(raw) });
+    console.log('Webull transform: raw row data', raw);
     if (!symCell) {
       console.log('Webull transform: SKIP - no symbol cell');
       return { ok: false, skip: true };
@@ -114,9 +115,48 @@ export const webullPreset: Preset = {
     }
 
     const qty = nnum(get(['QTY','Quantity','Filled']));
-    const price = moneyToNumber(get(['PRICE','Price','Avg Price','Filled Price']));
+    
+    // Try to get price from various possible column names
+    let price = moneyToNumber(get(['PRICE','Price','Avg Price','Filled Price']));
+    
+    // If no price found, try to extract from "quantity @price" format (Column 6)
+    if (!price) {
+      const qtyAtPrice = get(['QTY_AT_PRICE', 'Filled_At_Price', 'Quantity_At_Price']);
+      if (qtyAtPrice && qtyAtPrice.includes('@')) {
+        const pricePart = qtyAtPrice.split('@')[1]?.trim();
+        price = moneyToNumber(pricePart);
+      }
+    }
+    
+    // If still no price, try to get from unlabeled columns (likely Column 7)
+    if (!price) {
+      // Try common unlabeled column patterns
+      const possiblePriceKeys = Object.keys(raw).filter(key => 
+        !['Name', 'Symbol', 'Side', 'Status', 'Filled'].includes(key) &&
+        typeof raw[key] === 'string' && 
+        /^\d+\.?\d*$/.test(String(raw[key]).trim())
+      );
+      if (possiblePriceKeys.length > 0) {
+        price = moneyToNumber(raw[possiblePriceKeys[0]]);
+      }
+    }
+    
     const fee = moneyToNumber(get(['FEE','Fees','Fee']));
-    const when = get(['TRADE TIME','Trade Time','Filled Time','Time','Execute Time','Created Time']);
+    
+    // Try to get timestamp from various possible column names
+    let when = get(['TRADE TIME','Trade Time','Filled Time','Time','Execute Time','Created Time']);
+    
+    // If no timestamp found, try to get from unlabeled columns (likely Column 9)
+    if (!when) {
+      const possibleTimeKeys = Object.keys(raw).filter(key => 
+        !['Name', 'Symbol', 'Side', 'Status', 'Filled'].includes(key) &&
+        typeof raw[key] === 'string' && 
+        /^\d{2}\/\d{2}\/\d{4}/.test(String(raw[key]).trim())
+      );
+      if (possibleTimeKeys.length > 0) {
+        when = String(raw[possibleTimeKeys[0]]).trim();
+      }
+    }
     
     console.log('Webull transform: required fields', { qty, price, fee, when });
     
