@@ -130,11 +130,11 @@ export const webullPreset: Preset = {
     
     // If still no price, try to get from unlabeled columns (likely Column 7)
     if (!price) {
-      // Try common unlabeled column patterns
+      // Try common unlabeled column patterns - look for decimal numbers that could be prices
       const possiblePriceKeys = Object.keys(raw).filter(key => 
         !['Name', 'Symbol', 'Side', 'Status', 'Filled'].includes(key) &&
         typeof raw[key] === 'string' && 
-        /^\d+\.?\d*$/.test(String(raw[key]).trim())
+        /^\d+\.\d+$/.test(String(raw[key]).trim()) // Must have decimal point for price
       );
       if (possiblePriceKeys.length > 0) {
         price = moneyToNumber(raw[possiblePriceKeys[0]]);
@@ -159,6 +159,7 @@ export const webullPreset: Preset = {
     }
     
     console.log('Webull transform: required fields', { qty, price, fee, when });
+    console.log('Webull transform: all column values', Object.entries(raw).map(([k, v]) => `${k}: "${v}"`).join(', '));
     
     if (!qty || !price || !when) {
       console.log('Webull transform: SKIP - missing required fields', { 
