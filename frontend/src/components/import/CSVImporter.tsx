@@ -282,9 +282,11 @@ export function CSVImporter() {
                 };
                 
                 batch.push(execution);
+                console.log('Added execution to batch. Batch length:', batch.length);
 
                 // Insert batch when it reaches 1000 rows
                 if (batch.length >= 1000) {
+                  console.log('Flushing batch of 1000 rows');
                   const result = await insertBatch(supabase, batch);
                   
                   setImportState(prev => ({
@@ -295,6 +297,7 @@ export function CSVImporter() {
                   }));
 
                   batch = [];
+                  console.log('Batch cleared. New batch length:', batch.length);
                 }
               }
 
@@ -324,9 +327,10 @@ export function CSVImporter() {
 
               // Step C: Flush remaining batch
               let finalInserted = importState.inserted;
+              console.log('Final batch flush check - batch length:', batch.length);
               if (batch.length > 0) {
                 console.log('Flushing remaining batch:', batch.length);
-                console.log('Sample canonical trade:', batch[0]);
+                console.log('Sample execution record:', batch[0]);
                 const result = await insertBatch(supabase, batch);
                 console.log('Batch insert result:', result);
                 
@@ -337,6 +341,8 @@ export function CSVImporter() {
                   failed: prev.failed + result.failed.length,
                   duplicates: prev.duplicates + result.duplicates
                 }));
+              } else {
+                console.log('No batch to flush - batch length is 0');
               }
 
               // Step D: Run matching engine to convert executions to trades
