@@ -31,7 +31,10 @@ export async function bisectInsert(
     
     if (result.error) {
       // Check if it's a unique violation (duplicate)
-      if (result.error.code === '23505' && result.error.message.includes('unique_hash')) {
+      if (result.error.code === '23505' && (
+        result.error.message.includes('unique_hash') || 
+        result.error.message.includes('executions_normalized_unique_hash_key')
+      )) {
         return { inserted: 0, duplicates: 1, failed: [] };
       }
       // Other error - mark as failed
@@ -118,6 +121,15 @@ export async function insertBatch(
   console.log('Attempting to insert batch of', rows.length, 'rows');
   const result = await insertWithRetry(rows);
   console.log('Insert result:', result);
+  
+  if (result.error) {
+    console.log('Insert error details:', {
+      code: result.error.code,
+      message: result.error.message,
+      details: result.error.details,
+      hint: result.error.hint
+    });
+  }
 
   if (!result.error) {
     // Success - all rows inserted
@@ -126,7 +138,10 @@ export async function insertBatch(
   }
 
   // Handle specific error types
-  if (result.error.code === '23505' && result.error.message.includes('unique_hash')) {
+  if (result.error.code === '23505' && (
+    result.error.message.includes('unique_hash') || 
+    result.error.message.includes('executions_normalized_unique_hash_key')
+  )) {
     // Unique violation - use bisection to count duplicates
     return await bisectInsert(rows, insertWithRetry);
   }

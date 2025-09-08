@@ -3,6 +3,45 @@
  * Normalizes data before hashing to ensure consistent results
  */
 
+/**
+ * Generate execution hash that matches the database function
+ * This should produce the same hash as the compute_execution_hash function
+ */
+export async function executionHash(execution: {
+  timestamp: string;
+  symbol: string;
+  side: string;
+  quantity: number;
+  price: number;
+  broker_account_id?: string | null;
+}): Promise<string> {
+  // Create the same concatenation as the database function
+  const hashInput = [
+    execution.timestamp,
+    execution.symbol,
+    execution.side,
+    Math.abs(execution.quantity).toString(),
+    execution.price.toString(),
+    execution.broker_account_id || ''
+  ].join('|');
+  
+  // Use Web Crypto in browser, Node's crypto on server
+  if (typeof window !== 'undefined' && window.crypto?.subtle) {
+    // Browser environment
+    const encoder = new TextEncoder();
+    const data = encoder.encode(hashInput);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } else {
+    // Node.js environment
+    const crypto = await import('crypto');
+    const hash = crypto.createHash('sha256');
+    hash.update(hashInput);
+    return hash.digest('hex');
+  }
+}
+
 export async function rowHash(obj: Record<string, unknown>): Promise<string> {
   const normalized = normalizeForHashing(obj);
   const jsonString = JSON.stringify(normalized);
