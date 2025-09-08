@@ -105,7 +105,7 @@ export const webullPreset: Preset = {
       return { ok: false, skip: true }; // skip cancels
     }
 
-    const sideCell = get(['SIDE','Action']);
+    const sideCell = get(['SIDE','Side','Action']);
     console.log('Webull transform: side cell', { sideCell });
     const side = /buy/i.test(sideCell) ? 'BUY' : /sell/i.test(sideCell) ? 'SELL' : undefined;
     if (!side) {
@@ -114,9 +114,9 @@ export const webullPreset: Preset = {
     }
 
     const qty = nnum(get(['QTY','Quantity','Filled']));
-    const price = moneyToNumber(get(['PRICE','Avg Price','Filled Price']));
-    const fee = moneyToNumber(get(['FEE','Fees']));
-    const when = get(['TRADE TIME','Filled Time','Time','Execute Time','Created Time']);
+    const price = moneyToNumber(get(['PRICE','Price','Avg Price','Filled Price']));
+    const fee = moneyToNumber(get(['FEE','Fees','Fee']));
+    const when = get(['TRADE TIME','Trade Time','Filled Time','Time','Execute Time','Created Time']);
     
     console.log('Webull transform: required fields', { qty, price, fee, when });
     
