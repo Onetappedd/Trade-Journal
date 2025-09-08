@@ -116,8 +116,8 @@ export const webullPreset: Preset = {
 
     const qty = nnum(get(['QTY','Quantity','Filled']));
     
-    // Try to get price from various possible column names
-    let price = moneyToNumber(get(['PRICE','Price','Avg Price','Filled Price']));
+    // Try to get price from various possible column names - prioritize Avg Price
+    let price = moneyToNumber(get(['Avg Price','PRICE','Price','Filled Price']));
     
     // If no price found, try to extract from "quantity @price" format (Column 6)
     if (!price) {
@@ -143,8 +143,8 @@ export const webullPreset: Preset = {
     
     const fee = moneyToNumber(get(['FEE','Fees','Fee']));
     
-    // Try to get timestamp from various possible column names
-    let when = get(['TRADE TIME','Trade Time','Filled Time','Time','Execute Time','Created Time']);
+    // Try to get timestamp from various possible column names - prioritize Filled Time
+    let when = get(['Filled Time','TRADE TIME','Trade Time','Time','Execute Time','Created Time']);
     
     // If no timestamp found, try to get from unlabeled columns (likely Column 9)
     if (!when) {
