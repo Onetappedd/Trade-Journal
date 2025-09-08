@@ -79,11 +79,24 @@ export function CSVImporter() {
       const detection = bestPreset(ALL_PRESETS, headers, rows);
       const detected = detection.preset;
       
+      console.log('Preset detection result:', { 
+        headers, 
+        sampleRows: rows.slice(0, 3), 
+        detection, 
+        detected: detected?.id 
+      });
+      
       // Step 3: Auto-map headers (fallback)
       const mapping = autoMap(headers);
       
       // Step 4: Determine default mode
       const usePreset = Boolean(detection.score >= 0.9 && detected?.transform);
+      
+      console.log('Import mode decision:', { 
+        score: detection.score, 
+        hasTransform: !!detected?.transform, 
+        usePreset 
+      });
 
       setImportState(prev => ({
         ...prev,
@@ -125,6 +138,7 @@ export function CSVImporter() {
       fileSize: selectedFile.size,
       usePreset: importState.usePreset,
       preset: importState.detectedPreset?.id,
+      hasTransform: !!importState.detectedPreset?.transform,
       mapping: importState.mapping,
       userId: user.id 
     });
@@ -164,12 +178,16 @@ export function CSVImporter() {
 
               if (importState.usePreset && importState.detectedPreset?.transform) {
                 // Use preset transformation
+                console.log('Processing row with preset:', { rowNo, row, preset: importState.detectedPreset.id });
+                
                 const res = importState.detectedPreset.transform(row, {
                   userId: user.id,
                   runId,
                   source: importState.detectedPreset.id,
                   tz: importState.timezoneOverride
                 });
+
+                console.log('Preset transform result:', { rowNo, res });
 
                 if (res.ok) {
                   canonical = {
@@ -180,11 +198,14 @@ export function CSVImporter() {
                     row_hash: '',
                     raw_json: row
                   } as CanonicalTrade;
+                  console.log('Created canonical trade:', { rowNo, canonical });
                 } else if (res.skip) {
                   // Skip this row (e.g., fees, interest, cancels)
+                  console.log('Skipping row:', { rowNo, reason: res.error || 'skip flag' });
                   return;
                 } else {
                   // Validation error
+                  console.log('Preset validation error:', { rowNo, error: res.error });
                   badRows.push({
                     rowNo,
                     errors: [res.error || 'Invalid row'],

@@ -64,14 +64,25 @@ export const webullPreset: Preset = {
   id: 'webull',
   label: 'Webull',
   detect(headers, samples): PresetDetectResult {
-    if (!hasWebullHeaders(headers)) return { confidence: 0 };
+    console.log('Webull preset detection:', { headers, sampleCount: samples.length });
+    
+    if (!hasWebullHeaders(headers)) {
+      console.log('Webull preset: headers do not match expected pattern');
+      return { confidence: 0 };
+    }
+    
     // Status/Filled hint
     const low = samples.slice(0, 50).map(r => String(r['STATUS'] ?? r['Status'] ?? r['status'] ?? ''));
     const hit = low.some(v => /filled/i.test(v) || /cancel/i.test(v));
+    
+    console.log('Webull preset: status check', { low: low.slice(0, 5), hit });
+    
     return { confidence: hit ? 0.95 : 0.75, reason: 'Typical Webull headers + status markers' };
   },
 
   transform(raw, ctx) {
+    console.log('Webull transform called with:', { raw, ctx });
+    
     const get = (keys: string[]) => {
       for (const k of keys) {
         const v = raw[k] ?? raw[k.toUpperCase()] ?? raw[k.toLowerCase()];
@@ -81,6 +92,7 @@ export const webullPreset: Preset = {
     };
 
     const symCell = get(['SYMBOLS','SYMBOL','Ticker','Name']);
+    console.log('Webull transform: symbol cell', { symCell, availableKeys: Object.keys(raw) });
     if (!symCell) return { ok: false, skip: true };
 
     const status = get(['STATUS','Status']);
