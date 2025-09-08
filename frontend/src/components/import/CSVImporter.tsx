@@ -7,6 +7,7 @@ import { autoMap, applyMapping } from '@/src/lib/import/mapping';
 import { normalizeRow } from '@/src/lib/import/validate';
 import { rowHash } from '@/src/lib/import/hash';
 import { insertBatch } from '@/src/lib/import/insertBatch';
+import { ALL_PRESETS, bestPreset } from '@/src/lib/import/presets';
 import { ProgressBar } from './ProgressBar';
 import { ErrorTable } from './ErrorTable';
 import { MappingUI } from './MappingUI';
@@ -31,6 +32,10 @@ interface ImportState {
   badRows: BadRow[];
   runId: string | null;
   error: string | null;
+  detectedPreset: any | null;
+  detectionScore: number;
+  usePreset: boolean;
+  timezoneOverride: string;
 }
 
 export function CSVImporter() {
@@ -51,7 +56,11 @@ export function CSVImporter() {
     duplicates: 0,
     badRows: [],
     runId: null,
-    error: null
+    error: null,
+    detectedPreset: null,
+    detectionScore: 0,
+    usePreset: false,
+    timezoneOverride: 'local'
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -66,15 +75,25 @@ export function CSVImporter() {
       // Step 1: Sniff headers and get sample rows
       const { headers, rows } = await sniffHeaders(file, 50);
       
-      // Step 2: Auto-map headers
+      // Step 2: Detect preset
+      const detection = bestPreset(ALL_PRESETS, headers, rows);
+      const detected = detection.preset;
+      
+      // Step 3: Auto-map headers (fallback)
       const mapping = autoMap(headers);
+      
+      // Step 4: Determine default mode
+      const usePreset = Boolean(detection.score >= 0.9 && detected?.transform);
 
       setImportState(prev => ({
         ...prev,
         stage: 'mapping',
         headers,
         sampleRows: rows,
-        mapping
+        mapping,
+        detectedPreset: detected,
+        detectionScore: detection.score,
+        usePreset
       }));
     } catch (error) {
       setImportState(prev => ({
@@ -86,14 +105,26 @@ export function CSVImporter() {
   }, [user]);
 
   const handleStartImport = useCallback(async () => {
-    if (!user || !importState.mapping || !selectedFile) {
-      console.error('Missing requirements for import:', { user: !!user, mapping: !!importState.mapping, file: !!selectedFile });
+    if (!user || !selectedFile) {
+      console.error('Missing requirements for import:', { user: !!user, file: !!selectedFile });
+      return;
+    }
+
+    // Check if we have either preset or manual mapping
+    if (importState.usePreset && !importState.detectedPreset?.transform) {
+      console.error('Preset mode selected but no transform available');
+      return;
+    }
+    if (!importState.usePreset && !importState.mapping) {
+      console.error('Manual mode selected but no mapping available');
       return;
     }
 
     console.log('Starting import with:', { 
       fileName: selectedFile.name, 
       fileSize: selectedFile.size,
+      usePreset: importState.usePreset,
+      preset: importState.detectedPreset?.id,
       mapping: importState.mapping,
       userId: user.id 
     });
@@ -102,11 +133,12 @@ export function CSVImporter() {
 
     try {
       // Step A: Create ingestion run
+      const source = importState.usePreset ? importState.detectedPreset?.id || 'csv-generic' : 'csv-generic';
       const { data: runData, error: runError } = await supabase
         .from('ingestion_runs')
         .insert({
           user_id: user.id,
-          source: 'csv-generic',
+          source,
           file_name: selectedFile.name,
           row_count: 0
         })
@@ -128,60 +160,92 @@ export function CSVImporter() {
             try {
               totalRows++;
               
-              // Apply mapping
-              const mappedRow = applyMapping(row, importState.mapping);
-              
-              // Normalize and validate
-              const normalized = normalizeRow(mappedRow);
-              
-              if (!normalized.ok) {
-                badRows.push({
-                  rowNo,
-                  errors: normalized.errors,
-                  data: row
+              let canonical: CanonicalTrade | null = null;
+
+              if (importState.usePreset && importState.detectedPreset?.transform) {
+                // Use preset transformation
+                const res = importState.detectedPreset.transform(row, {
+                  userId: user.id,
+                  runId,
+                  source: importState.detectedPreset.id,
+                  tz: importState.timezoneOverride
                 });
-                return;
+
+                if (res.ok) {
+                  canonical = {
+                    ...res.value,
+                    user_id: user.id,
+                    ingestion_run_id: runId,
+                    source: importState.detectedPreset.id,
+                    row_hash: '',
+                    raw_json: row
+                  } as CanonicalTrade;
+                } else if (res.skip) {
+                  // Skip this row (e.g., fees, interest, cancels)
+                  return;
+                } else {
+                  // Validation error
+                  badRows.push({
+                    rowNo,
+                    errors: [res.error || 'Invalid row'],
+                    data: row
+                  });
+                  return;
+                }
+              } else {
+                // Use manual mapping
+                const mappedRow = applyMapping(row, importState.mapping);
+                const normalized = normalizeRow(mappedRow);
+                
+                if (!normalized.ok) {
+                  badRows.push({
+                    rowNo,
+                    errors: normalized.errors,
+                    data: row
+                  });
+                  return;
+                }
+
+                canonical = {
+                  user_id: user.id,
+                  asset_type: (normalized.value.asset_type as any) || 'equity',
+                  symbol: normalized.value.symbol as string,
+                  underlying: normalized.value.underlying as string,
+                  expiry: normalized.value.expiry as string,
+                  strike: normalized.value.strike as number,
+                  option_type: normalized.value.option_type as 'CALL' | 'PUT',
+                  side: normalized.value.side as 'BUY' | 'SELL',
+                  open_close: normalized.value.open_close as 'OPEN' | 'CLOSE',
+                  quantity: normalized.value.quantity as number,
+                  price: normalized.value.price as number,
+                  fees: normalized.value.fees as number,
+                  trade_time_utc: normalized.value.trade_time_utc as string,
+                  venue: normalized.value.venue as string,
+                  source: normalized.value.source as string,
+                  ingestion_run_id: runId,
+                  row_hash: '',
+                  raw_json: row
+                };
               }
 
-              // Build canonical trade object
-              const canonical: CanonicalTrade = {
-                user_id: user.id,
-                asset_type: (normalized.value.asset_type as any) || 'equity',
-                symbol: normalized.value.symbol as string,
-                underlying: normalized.value.underlying as string,
-                expiry: normalized.value.expiry as string,
-                strike: normalized.value.strike as number,
-                option_type: normalized.value.option_type as 'CALL' | 'PUT',
-                side: normalized.value.side as 'BUY' | 'SELL',
-                open_close: normalized.value.open_close as 'OPEN' | 'CLOSE',
-                quantity: normalized.value.quantity as number,
-                price: normalized.value.price as number,
-                fees: normalized.value.fees as number,
-                trade_time_utc: normalized.value.trade_time_utc as string,
-                venue: normalized.value.venue as string,
-                source: normalized.value.source as string,
-                ingestion_run_id: runId,
-                row_hash: '',
-                raw_json: row
-              };
+              if (canonical) {
+                // Generate row hash
+                canonical.row_hash = await rowHash(canonical);
+                batch.push(canonical);
 
-              // Generate row hash
-              canonical.row_hash = await rowHash(canonical);
+                // Insert batch when it reaches 1000 rows
+                if (batch.length >= 1000) {
+                  const result = await insertBatch(supabase, batch);
+                  
+                  setImportState(prev => ({
+                    ...prev,
+                    inserted: prev.inserted + result.inserted,
+                    failed: prev.failed + result.failed.length,
+                    duplicates: prev.duplicates + result.duplicates
+                  }));
 
-              batch.push(canonical);
-
-              // Insert batch when it reaches 1000 rows
-              if (batch.length >= 1000) {
-                const result = await insertBatch(supabase, batch);
-                
-                setImportState(prev => ({
-                  ...prev,
-                  inserted: prev.inserted + result.inserted,
-                  failed: prev.failed + result.failed.length,
-                  duplicates: prev.duplicates + result.duplicates
-                }));
-
-                batch = [];
+                  batch = [];
+                }
               }
 
               // Update progress
@@ -245,7 +309,7 @@ export function CSVImporter() {
         error: `Import error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
     }
-  }, [user, importState.mapping, importState.inserted, importState.failed, selectedFile, supabase]);
+  }, [user, importState.mapping, importState.inserted, importState.failed, importState.usePreset, importState.detectedPreset, importState.timezoneOverride, selectedFile, supabase]);
 
   const downloadFailedRows = useCallback(() => {
     if (importState.badRows.length === 0) return;
@@ -341,12 +405,75 @@ export function CSVImporter() {
 
       {importState.stage === 'mapping' && (
         <div className="space-y-6">
-          <MappingUI
-            headers={importState.headers}
-            mapping={importState.mapping}
-            onChange={(mapping) => setImportState(prev => ({ ...prev, mapping }))}
-          />
+          {/* Preset Detection */}
+          {importState.detectedPreset && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium text-blue-900">Preset Detected</h3>
+                  <p className="text-sm text-blue-700">
+                    Detected: {importState.detectedPreset.label} (confidence {Math.round(importState.detectionScore * 100)}%)
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setImportState(prev => ({ ...prev, usePreset: true }))}
+                    className={`px-4 py-2 rounded-md text-sm font-medium ${
+                      importState.usePreset
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    Use detected preset
+                  </button>
+                  <button
+                    onClick={() => setImportState(prev => ({ ...prev, usePreset: false }))}
+                    className={`px-4 py-2 rounded-md text-sm font-medium ${
+                      !importState.usePreset
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-blue-600 border border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    Map manually
+                  </button>
+                </div>
+              </div>
+              
+              {/* Advanced Options */}
+              <div className="border-t border-blue-200 pt-4">
+                <details className="group">
+                  <summary className="cursor-pointer text-sm text-blue-700 hover:text-blue-900">
+                    Advanced → Timezone
+                  </summary>
+                  <div className="mt-2">
+                    <select
+                      value={importState.timezoneOverride}
+                      onChange={(e) => setImportState(prev => ({ ...prev, timezoneOverride: e.target.value }))}
+                      className="block w-full px-3 py-2 border border-blue-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="local">Local timezone</option>
+                      <option value="America/New_York">Eastern Time</option>
+                      <option value="America/Chicago">Central Time</option>
+                      <option value="America/Denver">Mountain Time</option>
+                      <option value="America/Los_Angeles">Pacific Time</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </div>
+                </details>
+              </div>
+            </div>
+          )}
 
+          {/* Manual Mapping UI */}
+          {!importState.usePreset && (
+            <MappingUI
+              headers={importState.headers}
+              mapping={importState.mapping}
+              onChange={(mapping) => setImportState(prev => ({ ...prev, mapping }))}
+            />
+          )}
+
+          {/* Preview Table */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-lg font-medium text-foreground mb-4">Preview (First 50 Rows)</h3>
             <div className="overflow-x-auto">
@@ -432,7 +559,11 @@ export function CSVImporter() {
                 duplicates: 0,
                 badRows: [],
                 runId: null,
-                error: null
+                error: null,
+                detectedPreset: null,
+                detectionScore: 0,
+                usePreset: false,
+                timezoneOverride: 'local'
               });
               setSelectedFile(null);
             }}
