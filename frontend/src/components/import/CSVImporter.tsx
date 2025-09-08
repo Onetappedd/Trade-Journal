@@ -435,6 +435,9 @@ export function CSVImporter() {
                   <p className="text-sm text-blue-700">
                     Detected: {importState.detectedPreset.label} (confidence {Math.round(importState.detectionScore * 100)}%)
                   </p>
+                  <p className="text-sm font-medium text-green-700">
+                    {importState.usePreset ? '✓ Using preset transformation' : '⚠ Using manual mapping'}
+                  </p>
                 </div>
                 <div className="flex space-x-2">
                   <button
@@ -527,7 +530,7 @@ export function CSVImporter() {
             onClick={handleStartImport}
             className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
           >
-            Start Import
+            Start Import {importState.usePreset ? `(${importState.detectedPreset?.label} preset)` : '(manual mapping)'}
           </button>
         </div>
       )}
