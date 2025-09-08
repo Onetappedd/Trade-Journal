@@ -163,7 +163,7 @@ export function CSVImporter() {
 
       const runId = runData.id;
       let totalRows = 0;
-      let batch: CanonicalTrade[] = [];
+      let batch: any[] = []; // Will contain executions_normalized records
       const badRows: BadRow[] = [];
 
       // Step B: Stream and process rows
@@ -253,7 +253,35 @@ export function CSVImporter() {
               if (canonical) {
                 // Generate row hash
                 canonical.row_hash = await rowHash(canonical);
-                batch.push(canonical);
+                
+                // Map canonical trade to executions_normalized schema
+                const execution = {
+                  user_id: canonical.user_id,
+                  broker_account_id: null,
+                  source_import_run_id: canonical.ingestion_run_id,
+                  instrument_type: canonical.asset_type === 'option' ? 'option' : 'equity',
+                  symbol: canonical.symbol,
+                  occ_symbol: canonical.asset_type === 'option' ? canonical.symbol : null,
+                  futures_symbol: null,
+                  side: canonical.side.toLowerCase(),
+                  quantity: canonical.quantity,
+                  price: canonical.price,
+                  fees: canonical.fees || 0,
+                  currency: 'USD',
+                  timestamp: canonical.trade_time_utc,
+                  venue: canonical.venue || 'Unknown',
+                  order_id: null,
+                  exec_id: null,
+                  multiplier: 1,
+                  expiry: canonical.expiry ? new Date(canonical.expiry).toISOString().split('T')[0] : null,
+                  strike: canonical.strike || null,
+                  option_type: canonical.option_type === 'CALL' ? 'C' : canonical.option_type === 'PUT' ? 'P' : null,
+                  underlying: canonical.underlying || null,
+                  notes: null,
+                  unique_hash: canonical.row_hash
+                };
+                
+                batch.push(execution);
 
                 // Insert batch when it reaches 1000 rows
                 if (batch.length >= 1000) {
@@ -295,16 +323,44 @@ export function CSVImporter() {
               });
 
               // Step C: Flush remaining batch
+              let finalInserted = importState.inserted;
               if (batch.length > 0) {
                 console.log('Flushing remaining batch:', batch.length);
+                console.log('Sample canonical trade:', batch[0]);
                 const result = await insertBatch(supabase, batch);
+                console.log('Batch insert result:', result);
                 
+                finalInserted += result.inserted;
                 setImportState(prev => ({
                   ...prev,
                   inserted: prev.inserted + result.inserted,
                   failed: prev.failed + result.failed.length,
                   duplicates: prev.duplicates + result.duplicates
                 }));
+              }
+
+              // Step D: Run matching engine to convert executions to trades
+              if (finalInserted > 0) {
+                console.log('Running matching engine for', finalInserted, 'imported executions');
+                try {
+                  const response = await fetch('/api/matching/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id })
+                  });
+                  
+                  if (response.ok) {
+                    const matchResult = await response.json();
+                    console.log('Matching engine result:', matchResult);
+                  } else {
+                    console.error('Matching engine API error:', response.status, response.statusText);
+                  }
+                } catch (matchError) {
+                  console.error('Matching engine error:', matchError);
+                  // Don't fail the import if matching fails
+                }
+              } else {
+                console.log('No executions were inserted, skipping matching engine');
               }
 
               // Update ingestion run with final counts

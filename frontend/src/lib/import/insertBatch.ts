@@ -31,7 +31,7 @@ export async function bisectInsert(
     
     if (result.error) {
       // Check if it's a unique violation (duplicate)
-      if (result.error.code === '23505' && result.error.message.includes('trades_user_rowhash_uidx')) {
+      if (result.error.code === '23505' && result.error.message.includes('unique_hash')) {
         return { inserted: 0, duplicates: 1, failed: [] };
       }
       // Other error - mark as failed
@@ -70,7 +70,9 @@ export async function insertBatch(
   supabase: SupabaseClient,
   rows: any[]
 ): Promise<InsertResult> {
+  console.log('insertBatch called with', rows.length, 'rows');
   if (rows.length === 0) {
+    console.log('insertBatch: No rows to insert');
     return { inserted: 0, duplicates: 0, failed: [] };
   }
 
@@ -81,7 +83,7 @@ export async function insertBatch(
     for (let attempt = 0; attempt < retryDelays.length; attempt++) {
       try {
         const result = await supabase
-          .from('trades')
+          .from('executions_normalized')
           .insert(batch)
           .select('id')
           .limit(1); // Use minimal data for performance
@@ -113,15 +115,18 @@ export async function insertBatch(
   };
 
   // Try to insert the entire batch first
+  console.log('Attempting to insert batch of', rows.length, 'rows');
   const result = await insertWithRetry(rows);
+  console.log('Insert result:', result);
 
   if (!result.error) {
     // Success - all rows inserted
+    console.log('Batch insert successful:', rows.length, 'rows inserted');
     return { inserted: rows.length, duplicates: 0, failed: [] };
   }
 
   // Handle specific error types
-  if (result.error.code === '23505' && result.error.message.includes('trades_user_rowhash_uidx')) {
+  if (result.error.code === '23505' && result.error.message.includes('unique_hash')) {
     // Unique violation - use bisection to count duplicates
     return await bisectInsert(rows, insertWithRetry);
   }
