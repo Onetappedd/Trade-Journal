@@ -173,6 +173,7 @@ export function CSVImporter() {
           async (row, rowNo) => {
             try {
               totalRows++;
+              console.log(`Processing row ${rowNo}:`, row);
               
               let canonical: CanonicalTrade | null = null;
 
@@ -284,8 +285,18 @@ export function CSVImporter() {
           },
           async () => {
             try {
+              console.log('Streaming completed. Final stats:', { 
+                totalRows, 
+                batchLength: batch.length, 
+                badRowsLength: badRows.length,
+                currentInserted: importState.inserted,
+                currentFailed: importState.failed,
+                currentDuplicates: importState.duplicates
+              });
+
               // Step C: Flush remaining batch
               if (batch.length > 0) {
+                console.log('Flushing remaining batch:', batch.length);
                 const result = await insertBatch(supabase, batch);
                 
                 setImportState(prev => ({
@@ -315,6 +326,7 @@ export function CSVImporter() {
 
               resolve();
             } catch (error) {
+              console.error('Error in completion callback:', error);
               reject(error);
             }
           },

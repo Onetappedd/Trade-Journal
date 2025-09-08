@@ -93,20 +93,41 @@ export const webullPreset: Preset = {
 
     const symCell = get(['SYMBOLS','SYMBOL','Ticker','Name']);
     console.log('Webull transform: symbol cell', { symCell, availableKeys: Object.keys(raw) });
-    if (!symCell) return { ok: false, skip: true };
+    if (!symCell) {
+      console.log('Webull transform: SKIP - no symbol cell');
+      return { ok: false, skip: true };
+    }
 
     const status = get(['STATUS','Status']);
-    if (status && /cancel/i.test(status)) return { ok: false, skip: true }; // skip cancels
+    console.log('Webull transform: status', { status });
+    if (status && /cancel/i.test(status)) {
+      console.log('Webull transform: SKIP - cancelled order');
+      return { ok: false, skip: true }; // skip cancels
+    }
 
     const sideCell = get(['SIDE','Action']);
+    console.log('Webull transform: side cell', { sideCell });
     const side = /buy/i.test(sideCell) ? 'BUY' : /sell/i.test(sideCell) ? 'SELL' : undefined;
-    if (!side) return { ok: false, skip: true };
+    if (!side) {
+      console.log('Webull transform: SKIP - no valid side');
+      return { ok: false, skip: true };
+    }
 
     const qty = nnum(get(['QTY','Quantity','Filled']));
     const price = moneyToNumber(get(['PRICE','Avg Price','Filled Price']));
     const fee = moneyToNumber(get(['FEE','Fees']));
     const when = get(['TRADE TIME','Filled Time','Time','Execute Time','Created Time']);
-    if (!qty || !price || !when) return { ok: false, skip: true };
+    
+    console.log('Webull transform: required fields', { qty, price, fee, when });
+    
+    if (!qty || !price || !when) {
+      console.log('Webull transform: SKIP - missing required fields', { 
+        hasQty: !!qty, 
+        hasPrice: !!price, 
+        hasWhen: !!when 
+      });
+      return { ok: false, skip: true };
+    }
 
     // Asset inference
     let asset_type: 'equity' | 'option' = 'equity';
