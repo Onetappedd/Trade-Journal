@@ -148,6 +148,15 @@ export function CSVImporter() {
     try {
       // Step A: Create import run
       const source = importState.usePreset ? importState.detectedPreset?.id || 'csv' : 'csv';
+      
+      // Debug: Check session before making database call
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('CSV Import - Session check:', { 
+        hasSession: !!session, 
+        userId: session?.user?.id, 
+        accessToken: session?.access_token ? 'present' : 'missing' 
+      });
+      
       const { data: runData, error: runError } = await supabase
         .from('import_runs')
         .insert({

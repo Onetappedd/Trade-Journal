@@ -32,8 +32,21 @@ export function createClient() {
       persistSession: true,
       storageKey: 'riskr-supabase-auth-v1', // Match the actual storage key being used
       autoRefreshToken: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      flowType: 'pkce'
     } 
+  });
+  
+  // Initialize the session from localStorage
+  _client.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      console.log('[supabase] Session restored from localStorage:', { 
+        userId: session.user?.id, 
+        email: session.user?.email 
+      });
+    } else {
+      console.log('[supabase] No session found in localStorage');
+    }
   });
   
   return _client;
