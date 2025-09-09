@@ -30,7 +30,7 @@ export function createClient() {
   _client = createSupabaseClient<Database>(url, key, { 
     auth: { 
       persistSession: true,
-      storageKey: 'sb-localhost-auth-token', // Match the expected storage key
+      storageKey: 'riskr-supabase-auth-v1', // Match the actual storage key being used
       autoRefreshToken: true,
       detectSessionInUrl: true
     } 

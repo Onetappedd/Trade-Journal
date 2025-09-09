@@ -17,10 +17,10 @@ interface Profile {
   username: string | null;
   full_name: string | null;
   avatar_url: string | null;
-  role: 'free' | 'pro' | 'admin';
-  subscription_status: 'trial' | 'active' | 'cancelled' | 'expired';
-  created_at: string;
-  updated_at: string;
+  role: 'free' | 'pro' | 'admin' | null;
+  subscription_status: 'trial' | 'active' | 'cancelled' | 'expired' | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export default function ProfilePage() {
@@ -155,7 +155,7 @@ export default function ProfilePage() {
                   <h3 className="font-semibold">{profile.full_name || 'No name set'}</h3>
                   <p className="text-sm text-gray-600">{profile.email}</p>
                   <Badge variant="outline" className="mt-1">
-                    {profile.subscription_status}
+                    {profile.subscription_status || 'free'}
                   </Badge>
                 </div>
               </div>
@@ -229,7 +229,7 @@ export default function ProfilePage() {
                   <div>
                     <p className="text-sm font-medium">Member Since</p>
                     <p className="text-sm text-gray-600">
-                      {new Date(profile.created_at).toLocaleDateString()}
+                      {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unknown'}
                     </p>
                   </div>
                 </div>
@@ -257,11 +257,11 @@ export default function ProfilePage() {
                     'destructive'
                   }
                 >
-                  {profile.subscription_status}
+                  {profile.subscription_status || 'free'}
                 </Badge>
               </div>
 
-              {profile.role === 'free' && (
+              {(profile.role === 'free' || !profile.role) && (
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Upgrade to Pro</h4>
                   <p className="text-sm text-blue-700 mb-3">
