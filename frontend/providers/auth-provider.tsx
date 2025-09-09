@@ -56,10 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 supabase.auth.setSession(data.session).then(() => {
                   console.log('AuthProvider - Session set for database requests');
                   
-                  // Set the Authorization header for all requests
-                  if (data.session?.access_token) {
-                    supabase.rest.headers['Authorization'] = `Bearer ${data.session.access_token}`;
-                  }
+                  // The session is now properly set, which should include the JWT token in all requests
+                  console.log('AuthProvider - JWT token should now be included in all database requests');
                 });
               }
       
@@ -76,10 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 supabase.auth.setSession(s).then(() => {
                   console.log('AuthProvider - Session updated for database requests');
                   
-                  // Set the Authorization header for all requests
-                  if (s.access_token) {
-                    supabase.rest.headers['Authorization'] = `Bearer ${s.access_token}`;
-                  }
+                  // The session is now properly set, which should include the JWT token in all requests
+                  console.log('AuthProvider - JWT token should now be included in all database requests');
                 });
               }
       
