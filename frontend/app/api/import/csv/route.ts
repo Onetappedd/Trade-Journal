@@ -36,8 +36,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if auth.uid() works in server context
-    const { data: authCheck } = await supabase.rpc('get_current_user_id');
-    console.log('Server-side auth.uid():', authCheck);
+    const { data: authCheck, error: authError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+    
+    console.log('Server-side auth check:', { authCheck, authError });
 
     const body = await request.json();
     const { fileName, fileSize, usePreset, detectedPreset, timezone } = body;
@@ -61,7 +66,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       runId: runData.id,
-      authCheck 
+      authCheck: !!authCheck,
+      user: { id: user.id, email: user.email }
     });
 
   } catch (error) {

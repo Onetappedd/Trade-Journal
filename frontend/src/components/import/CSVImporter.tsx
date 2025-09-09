@@ -149,36 +149,28 @@ export function CSVImporter() {
       // Step A: Create import run
       const source = importState.usePreset ? importState.detectedPreset?.id || 'csv' : 'csv';
       
-      // Debug: Check session before making database call
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('CSV Import - Session check:', { 
-        hasSession: !!session, 
-        userId: session?.user?.id, 
-        accessToken: session?.access_token ? 'present' : 'missing' 
-      });
-      
-      // Ensure the session is properly set for database requests
-      if (session) {
-        await supabase.auth.setSession(session);
-        console.log('CSV Import - Session set for database requests');
-        
-        // The session is now properly set, which should include the JWT token in all requests
-        console.log('CSV Import - JWT token should now be included in all database requests');
-      }
-      
-      const { data: runData, error: runError } = await supabase
-        .from('import_runs')
-        .insert({
-          user_id: user.id,
-          source,
-          status: 'processing'
+      // Use server-side API route for import run creation
+      const response = await fetch('/api/import/csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          usePreset: importState.usePreset,
+          detectedPreset: importState.detectedPreset,
+          timezone: importState.timezone
         })
-        .select('id')
-        .single();
+      });
 
-      if (runError) throw runError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create import run');
+      }
 
-      const runId = runData.id;
+      const { runId, authCheck, user: serverUser } = await response.json();
+      console.log('CSV Import - Server response:', { runId, authCheck, serverUser });
       let totalRows = 0;
       let batch: any[] = []; // Will contain executions_normalized records
       const badRows: BadRow[] = [];
