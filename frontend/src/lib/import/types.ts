@@ -18,7 +18,7 @@ export interface CanonicalTrade {
   trade_time_utc: string;
   venue?: string;
   source?: string;
-  ingestion_run_id: string;
+  import_run_id: string;
   row_hash: string;
   raw_json?: unknown;
   [key: string]: unknown;

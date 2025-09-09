@@ -65,7 +65,7 @@ export async function processRow(
       trade_time_utc: normalized.value.trade_time_utc as string,
       venue: normalized.value.venue as string,
       source: normalized.value.source as string,
-      ingestion_run_id: runId,
+      import_run_id: runId,
       row_hash: '',
       raw_json: row
     };
