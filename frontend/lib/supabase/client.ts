@@ -34,16 +34,25 @@ export function createClient() {
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce'
-    } 
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'supabase-js-web'
+      }
+    }
   });
   
-  // Initialize the session from localStorage
+  // Initialize the session from localStorage and ensure it's properly set
   _client.auth.getSession().then(({ data: { session } }) => {
     if (session) {
       console.log('[supabase] Session restored from localStorage:', { 
         userId: session.user?.id, 
-        email: session.user?.email 
+        email: session.user?.email,
+        hasAccessToken: !!session.access_token
       });
+      
+      // Ensure the session is properly set for database requests
+      _client.auth.setSession(session);
     } else {
       console.log('[supabase] No session found in localStorage');
     }

@@ -50,6 +50,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('AuthProvider - Initial session:', { hasSession: !!data.session, userId: data.session?.user?.id });
       }
       setSession(data.session ?? null);
+      
+      // Ensure the session is properly set for database requests
+      if (data.session) {
+        supabase.auth.setSession(data.session).then(() => {
+          console.log('AuthProvider - Session set for database requests');
+        });
+      }
+      
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
@@ -57,6 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('AuthProvider - Auth state change:', { event, hasSession: !!s, userId: s?.user?.id });
       }
       setSession(s);
+      
+      // Ensure the session is properly set for database requests
+      if (s) {
+        supabase.auth.setSession(s).then(() => {
+          console.log('AuthProvider - Session updated for database requests');
+        });
+      }
+      
       setLoading(false);
     });
     return () => subscription?.unsubscribe();
