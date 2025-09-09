@@ -292,13 +292,15 @@ export function CSVImporter() {
                   side: execution.side,
                   quantity: execution.quantity,
                   price: execution.price,
-                  timestamp: execution.timestamp
+                  timestamp: execution.timestamp,
+                  unique_hash: execution.unique_hash
                 });
 
-                // Insert batch when it reaches 1000 rows
-                if (batch.length >= 1000) {
-                  console.log('Flushing batch of 1000 rows');
+                // Insert batch when it reaches 100 rows (reduced from 1000 for smaller files)
+                if (batch.length >= 100) {
+                  console.log('Flushing batch of 100 rows');
                   const result = await insertBatch(supabase, batch);
+                  console.log('Batch insert result:', result);
                   
                   setImportState(prev => ({
                     ...prev,
@@ -339,11 +341,26 @@ export function CSVImporter() {
               // Step C: Flush remaining batch
               let finalInserted = importState.inserted;
               console.log('Final batch flush check - batch length:', batch.length);
+              console.log('Current import state:', {
+                inserted: importState.inserted,
+                failed: importState.failed,
+                duplicates: importState.duplicates
+              });
+              
               if (batch.length > 0) {
                 console.log('Flushing remaining batch:', batch.length);
                 console.log('Sample execution record:', batch[0]);
+                console.log('All batch records:', batch.map((exec, i) => ({
+                  index: i,
+                  symbol: exec.symbol,
+                  side: exec.side,
+                  quantity: exec.quantity,
+                  price: exec.price,
+                  unique_hash: exec.unique_hash
+                })));
+                
                 const result = await insertBatch(supabase, batch);
-                console.log('Batch insert result:', result);
+                console.log('Final batch insert result:', result);
                 
                 finalInserted += result.inserted;
                 setImportState(prev => ({
@@ -352,6 +369,12 @@ export function CSVImporter() {
                   failed: prev.failed + result.failed.length,
                   duplicates: prev.duplicates + result.duplicates
                 }));
+                
+                console.log('Updated import state after final batch:', {
+                  inserted: importState.inserted + result.inserted,
+                  failed: importState.failed + result.failed.length,
+                  duplicates: importState.duplicates + result.duplicates
+                });
               } else {
                 console.log('No batch to flush - batch length is 0');
               }
