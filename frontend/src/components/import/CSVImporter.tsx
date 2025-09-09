@@ -348,9 +348,9 @@ export function CSVImporter() {
               });
               
               if (batch.length > 0) {
-                console.log('Flushing remaining batch:', batch.length);
-                console.log('Sample execution record:', batch[0]);
-                console.log('All batch records:', batch.map((exec, i) => ({
+                console.log('🔄 Flushing remaining batch:', batch.length);
+                console.log('📊 Sample execution record:', batch[0]);
+                console.log('📋 All batch records:', batch.map((exec, i) => ({
                   index: i,
                   symbol: exec.symbol,
                   side: exec.side,
@@ -359,8 +359,14 @@ export function CSVImporter() {
                   unique_hash: exec.unique_hash
                 })));
                 
+                // Check Supabase client and auth before insert
+                console.log('🔍 Pre-insert checks:');
+                console.log('  - Supabase client:', !!supabase);
+                console.log('  - User:', !!user);
+                console.log('  - User ID:', user?.id);
+                
                 const result = await insertBatch(supabase, batch);
-                console.log('Final batch insert result:', result);
+                console.log('✅ Final batch insert result:', result);
                 
                 finalInserted += result.inserted;
                 setImportState(prev => ({

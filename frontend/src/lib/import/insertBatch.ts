@@ -73,11 +73,38 @@ export async function insertBatch(
   supabase: SupabaseClient,
   rows: any[]
 ): Promise<InsertResult> {
-  console.log('insertBatch called with', rows.length, 'rows');
+  console.log('🔧 insertBatch called with', rows.length, 'rows');
+  
+  // Check authentication context
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log('🔐 Auth context check:', { 
+      hasUser: !!user, 
+      userId: user?.id, 
+      authError: authError?.message 
+    });
+    
+    if (authError) {
+      console.error('❌ Authentication error:', authError);
+      return { inserted: 0, duplicates: 0, failed: rows };
+    }
+    
+    if (!user) {
+      console.error('❌ No authenticated user found');
+      return { inserted: 0, duplicates: 0, failed: rows };
+    }
+  } catch (error) {
+    console.error('❌ Failed to check auth context:', error);
+    return { inserted: 0, duplicates: 0, failed: rows };
+  }
+  
   if (rows.length === 0) {
-    console.log('insertBatch: No rows to insert');
+    console.log('⚠️ insertBatch: No rows to insert');
     return { inserted: 0, duplicates: 0, failed: [] };
   }
+  
+  // Log sample data structure
+  console.log('📊 Sample execution data:', JSON.stringify(rows[0], null, 2));
 
   // Create insert function with retry logic
   const insertWithRetry = async (batch: any[]): Promise<{ data: any; error: any }> => {
@@ -118,17 +145,29 @@ export async function insertBatch(
   };
 
   // Try to insert the entire batch first
-  console.log('Attempting to insert batch of', rows.length, 'rows');
+  console.log('💾 Attempting to insert batch of', rows.length, 'rows into executions_normalized table');
   const result = await insertWithRetry(rows);
-  console.log('Insert result:', result);
+  console.log('📋 Insert result:', result);
   
   if (result.error) {
-    console.log('Insert error details:', {
+    console.error('❌ Insert error details:', {
       code: result.error.code,
       message: result.error.message,
       details: result.error.details,
-      hint: result.error.hint
+      hint: result.error.hint,
+      fullError: result.error
     });
+    
+    // Check for specific error types
+    if (result.error.code === 'PGRST301') {
+      console.error('🚫 RLS Policy Error: Row Level Security is blocking the insert');
+    } else if (result.error.code === '23505') {
+      console.error('🔄 Duplicate Error: Unique constraint violation');
+    } else if (result.error.code === '42501') {
+      console.error('🔒 Permission Error: Insufficient privileges');
+    } else if (result.error.message?.includes('JWT')) {
+      console.error('🔑 JWT Error: Authentication token issue');
+    }
   }
 
   if (!result.error) {
