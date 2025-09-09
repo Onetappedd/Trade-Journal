@@ -298,6 +298,18 @@ export default function BillingPage() {
               
               <Separator />
               
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  // Open Stripe customer portal
+                  window.open('https://billing.stripe.com/p/login/test_7sI8wA0cF8sA0cF8sA', '_blank');
+                }}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Manage Billing in Stripe
+              </Button>
+              
               <p className="text-xs text-[--pp-muted]">
                 You can cancel your subscription at any time. You'll continue to have access to Pro features until the end of your current billing period.
               </p>

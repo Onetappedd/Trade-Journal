@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Calendar, Shield, Activity } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Activity, Upload, Camera } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -28,6 +28,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user && supabase) {
@@ -73,12 +75,74 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !supabase || !user?.id) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        alert('Failed to upload avatar. Please try again.');
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update profile with new avatar URL
+      if (profile) {
+        setProfile({ ...profile, avatar_url: publicUrl });
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      alert('Failed to upload avatar. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!profile || !supabase || !user?.id) return;
     
-    // Require username
+    // Require username with validation
     if (!profile.username || profile.username.trim() === '') {
       alert('Username is required. Please enter a username.');
+      return;
+    }
+    
+    // Validate username length (2-15 characters)
+    const trimmedUsername = profile.username.trim();
+    if (trimmedUsername.length < 2 || trimmedUsername.length > 15) {
+      alert('Username must be between 2 and 15 characters long.');
+      return;
+    }
+    
+    // Validate username format (alphanumeric and underscores only)
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+      alert('Username can only contain letters, numbers, and underscores.');
       return;
     }
     
@@ -90,7 +154,7 @@ export default function ProfilePage() {
           id: user.id,
           email: user.email || '',
           full_name: profile.full_name,
-          username: profile.username,
+          username: trimmedUsername,
           avatar_url: profile.avatar_url,
           role: profile.role || 'free',
           subscription_status: profile.subscription_status || 'trial',
@@ -170,12 +234,34 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={profile.avatar_url || ''} />
-                  <AvatarFallback>
-                    {profile.full_name?.charAt(0) || profile.email?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={profile.avatar_url || ''} />
+                    <AvatarFallback>
+                      {profile.full_name?.charAt(0) || profile.email?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full p-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </div>
                 <div>
                   <h3 className="font-semibold">{profile.full_name || 'No name set'}</h3>
                   <p className="text-sm text-gray-600">{profile.email}</p>

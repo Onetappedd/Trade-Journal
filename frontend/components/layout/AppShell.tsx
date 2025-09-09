@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Menu, 
-  X, 
-  Search, 
-  Sun, 
-  Moon, 
+import {
+  Menu,
+  X,
+  Search,
+  Sun,
+  Moon,
   Monitor,
   BarChart3,
   FileText,
@@ -18,11 +18,13 @@ import {
   Home,
   TrendingUp,
   Settings,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { CommandPalette } from '@/components/command/CommandPalette';
+import { useAuth } from '@/providers/auth-provider';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -36,14 +38,17 @@ const navigation = [
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   ...(IMPORT_V2 ? [{ name: 'Import', href: '/dashboard/import', icon: Upload }] : []),
   { name: 'Portfolio', href: '/dashboard/portfolio', icon: TrendingUp },
+];
+
+const bottomNavigation = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-  { name: 'Profile', href: '/dashboard/profile', icon: User },
 ];
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { signOut } = useAuth();
 
   const toggleTheme = () => {
     if (theme === 'light') {
@@ -59,7 +64,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
+        <div className="container flex h-14 items-center justify-between">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
@@ -79,7 +84,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
 
           {/* Search placeholder - centered */}
-          <div className="flex-1 flex justify-center">
+          <div className="flex-1 flex justify-center px-4">
             <div className="relative max-w-md w-full">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -90,8 +95,8 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
 
-          {/* Theme toggle - moved to top right */}
-          <div className="ml-auto">
+          {/* Theme toggle and Sign out - moved to top right */}
+          <div className="ml-auto flex items-center space-x-2">
             <Button
               variant="ghost"
               size="sm"
@@ -100,6 +105,15 @@ export function AppShell({ children }: AppShellProps) {
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              title="Sign out"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="sr-only">Sign out</span>
             </Button>
           </div>
         </div>
@@ -110,30 +124,57 @@ export function AppShell({ children }: AppShellProps) {
         {/* Desktop sidebar */}
         <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:pt-16">
           <div className="flex flex-col flex-grow border-r bg-background pt-5 overflow-y-auto">
-            <nav className="flex-1 px-2 space-y-1">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    )}
-                  >
-                    <item.icon
+            <nav className="flex flex-col flex-1 px-2 space-y-1">
+              <div className="flex-1 space-y-1">
+                {navigation.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
                       className={cn(
-                        'mr-3 h-5 w-5 flex-shrink-0',
-                        isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                        'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                       )}
-                    />
-                    {item.name}
-                  </Link>
-                );
-              })}
+                    >
+                      <item.icon
+                        className={cn(
+                          'mr-3 h-5 w-5 flex-shrink-0',
+                          isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                        )}
+                      />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+              <div className="space-y-1">
+                {bottomNavigation.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          'mr-3 h-5 w-5 flex-shrink-0',
+                          isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                        )}
+                      />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
             </nav>
           </div>
         </aside>
@@ -153,31 +194,59 @@ export function AppShell({ children }: AppShellProps) {
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              <nav className="flex-1 px-2 py-4 space-y-1">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                      )}
-                      onClick={() => setSidebarOpen(false)}
-                    >
-                      <item.icon
+              <nav className="flex flex-col flex-1 px-2 py-4 space-y-1">
+                <div className="flex-1 space-y-1">
+                  {navigation.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
                         className={cn(
-                          'mr-3 h-5 w-5 flex-shrink-0',
-                          isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                          'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                         )}
-                      />
-                      {item.name}
-                    </Link>
-                  );
-                })}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <item.icon
+                          className={cn(
+                            'mr-3 h-5 w-5 flex-shrink-0',
+                            isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                          )}
+                        />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="space-y-1">
+                  {bottomNavigation.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={cn(
+                          'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        )}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <item.icon
+                          className={cn(
+                            'mr-3 h-5 w-5 flex-shrink-0',
+                            isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                          )}
+                        />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
               </nav>
             </div>
           </div>
