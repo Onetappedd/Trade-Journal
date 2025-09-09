@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     console.log('Server-side auth check:', { authCheck, authError });
 
     const body = await request.json();
-    const { fileName, fileSize, usePreset, detectedPreset, timezone } = body;
+    const { fileName, fileSize, usePreset, detectedPreset } = body;
 
     // Create import run
     const { data: runData, error: runError } = await supabase

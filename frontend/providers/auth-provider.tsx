@@ -51,14 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setSession(data.session ?? null);
       
-              // Ensure the session is properly set for database requests
+              // Session is already properly set by Supabase client
               if (data.session) {
-                supabase.auth.setSession(data.session).then(() => {
-                  console.log('AuthProvider - Session set for database requests');
-                  
-                  // The session is now properly set, which should include the JWT token in all requests
-                  console.log('AuthProvider - JWT token should now be included in all database requests');
-                });
+                console.log('AuthProvider - Session available for database requests');
               }
       
       setLoading(false);
@@ -69,14 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setSession(s);
       
-              // Ensure the session is properly set for database requests
+              // Session is already properly set by Supabase client
               if (s) {
-                supabase.auth.setSession(s).then(() => {
-                  console.log('AuthProvider - Session updated for database requests');
-                  
-                  // The session is now properly set, which should include the JWT token in all requests
-                  console.log('AuthProvider - JWT token should now be included in all database requests');
-                });
+                console.log('AuthProvider - Session updated for database requests');
               }
       
       setLoading(false);

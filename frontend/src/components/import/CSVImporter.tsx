@@ -159,8 +159,7 @@ export function CSVImporter() {
           fileName: selectedFile.name,
           fileSize: selectedFile.size,
           usePreset: importState.usePreset,
-          detectedPreset: importState.detectedPreset,
-          timezone: importState.timezone
+          detectedPreset: importState.detectedPreset
         })
       });
 

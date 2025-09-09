@@ -54,11 +54,8 @@ export function createClient() {
         hasAccessToken: !!session.access_token
       });
       
-      // Ensure the session is properly set for database requests
-      _client?.auth.setSession(session);
-      
-      // The session is now properly set, which should include the JWT token in all requests
-      console.log('[supabase] JWT token should now be included in all database requests');
+      // Session is already properly set by Supabase client
+      console.log('[supabase] Session available for database requests');
     } else {
       console.log('[supabase] No session found in localStorage');
     }
