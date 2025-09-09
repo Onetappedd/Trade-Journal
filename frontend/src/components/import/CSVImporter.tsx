@@ -161,6 +161,11 @@ export function CSVImporter() {
       if (session) {
         await supabase.auth.setSession(session);
         console.log('CSV Import - Session set for database requests');
+        
+        // Set the Authorization header for all requests
+        if (session.access_token) {
+          supabase.rest.headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
       }
       
       const { data: runData, error: runError } = await supabase

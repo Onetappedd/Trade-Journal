@@ -39,6 +39,9 @@ export function createClient() {
       headers: {
         'X-Client-Info': 'supabase-js-web'
       }
+    },
+    db: {
+      schema: 'public'
     }
   });
   
@@ -53,6 +56,11 @@ export function createClient() {
       
       // Ensure the session is properly set for database requests
       _client?.auth.setSession(session);
+      
+      // Set the Authorization header for all requests
+      if (session.access_token) {
+        _client?.rest.headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
     } else {
       console.log('[supabase] No session found in localStorage');
     }

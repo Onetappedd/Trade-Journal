@@ -51,12 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setSession(data.session ?? null);
       
-      // Ensure the session is properly set for database requests
-      if (data.session) {
-        supabase.auth.setSession(data.session).then(() => {
-          console.log('AuthProvider - Session set for database requests');
-        });
-      }
+              // Ensure the session is properly set for database requests
+              if (data.session) {
+                supabase.auth.setSession(data.session).then(() => {
+                  console.log('AuthProvider - Session set for database requests');
+                  
+                  // Set the Authorization header for all requests
+                  if (data.session?.access_token) {
+                    supabase.rest.headers['Authorization'] = `Bearer ${data.session.access_token}`;
+                  }
+                });
+              }
       
       setLoading(false);
     });
@@ -66,12 +71,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setSession(s);
       
-      // Ensure the session is properly set for database requests
-      if (s) {
-        supabase.auth.setSession(s).then(() => {
-          console.log('AuthProvider - Session updated for database requests');
-        });
-      }
+              // Ensure the session is properly set for database requests
+              if (s) {
+                supabase.auth.setSession(s).then(() => {
+                  console.log('AuthProvider - Session updated for database requests');
+                  
+                  // Set the Authorization header for all requests
+                  if (s.access_token) {
+                    supabase.rest.headers['Authorization'] = `Bearer ${s.access_token}`;
+                  }
+                });
+              }
       
       setLoading(false);
     });
