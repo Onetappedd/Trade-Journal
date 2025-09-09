@@ -59,7 +59,7 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
-    if (!profile || !supabase) return;
+    if (!profile || !supabase || !user?.id) return;
     
     setSaving(true);
     try {
@@ -70,7 +70,7 @@ export default function ProfilePage() {
           username: profile.username,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (error) {
         console.error('Error updating profile:', error);
