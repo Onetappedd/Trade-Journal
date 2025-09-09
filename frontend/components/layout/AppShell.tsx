@@ -16,7 +16,9 @@ import {
   FileText,
   Upload,
   Home,
-  TrendingUp
+  TrendingUp,
+  Settings,
+  User
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -34,6 +36,8 @@ const navigation = [
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   ...(IMPORT_V2 ? [{ name: 'Import', href: '/dashboard/import', icon: Upload }] : []),
   { name: 'Portfolio', href: '/dashboard/portfolio', icon: TrendingUp },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Profile', href: '/dashboard/profile', icon: User },
 ];
 
 export function AppShell({ children }: AppShellProps) {
@@ -74,9 +78,9 @@ export function AppShell({ children }: AppShellProps) {
             </Link>
           </div>
 
-          {/* Search placeholder */}
-          <div className="flex-1 max-w-md mx-4">
-            <div className="relative">
+          {/* Search placeholder - centered */}
+          <div className="flex-1 flex justify-center">
+            <div className="relative max-w-md w-full">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search trades, symbols..."
@@ -86,17 +90,18 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </div>
 
-          {/* Theme toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleTheme}
-            className="ml-auto"
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span className="sr-only">Toggle theme</span>
-          </Button>
+          {/* Theme toggle - moved to top right */}
+          <div className="ml-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </div>
         </div>
       </header>
 

@@ -3,132 +3,92 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { CreditCard, Download, Calendar } from 'lucide-react';
-
-const billingHistory = [
-  { id: 'INV-001', date: '2024-01-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
-  { id: 'INV-002', date: '2023-12-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
-  { id: 'INV-003', date: '2023-11-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
-  { id: 'INV-004', date: '2023-10-01', amount: '$29.99', status: 'Paid', downloadUrl: '#' },
-];
+import { CreditCard } from 'lucide-react';
 
 export function BillingSettings() {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Current Subscription</CardTitle>
-          <CardDescription>Manage your subscription and billing information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          Billing & Subscription
+        </CardTitle>
+        <CardDescription>
+          Manage your subscription and billing information
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold text-lg">Pro Plan</span>
-                <Badge>Active</Badge>
-              </div>
-              <p className="text-muted-foreground">
-                Advanced trading analytics and unlimited trades
+              <h3 className="font-medium">Current Plan</h3>
+              <p className="text-sm text-muted-foreground">
+                Free Plan - 100 trades per month
               </p>
-              <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>Next billing: February 1, 2024</span>
-                </div>
-              </div>
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold">$29.99</div>
-              <div className="text-sm text-muted-foreground">per month</div>
-            </div>
+            <Badge variant="secondary">Free</Badge>
           </div>
 
-          <div className="flex space-x-2">
-            <Button variant="outline">Change Plan</Button>
-            <Button variant="outline">Cancel Subscription</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Method</CardTitle>
-          <CardDescription>Manage your payment methods</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="font-medium">•••• •••• •••• 4242</div>
-                <div className="text-sm text-muted-foreground">Expires 12/25</div>
-              </div>
+            <div>
+              <h3 className="font-medium">Usage This Month</h3>
+              <p className="text-sm text-muted-foreground">
+                0 / 100 trades used
+              </p>
             </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
-                Edit
-              </Button>
-              <Button variant="outline" size="sm">
-                Remove
-              </Button>
+            <div className="w-32 bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '0%' }}></div>
             </div>
           </div>
+        </div>
 
-          <Button variant="outline">
-            <CreditCard className="w-4 h-4 mr-2" />
+        <div className="space-y-4">
+          <h4 className="font-medium">Available Plans</h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-medium">Pro Plan</h5>
+                <Badge variant="default">Popular</Badge>
+              </div>
+              <p className="text-2xl font-bold">$20<span className="text-sm font-normal">/month</span></p>
+              <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                <li>• Unlimited trades</li>
+                <li>• Advanced analytics</li>
+                <li>• Priority support</li>
+                <li>• API access</li>
+              </ul>
+              <Button className="w-full mt-4">Upgrade to Pro</Button>
+            </div>
+
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-medium">Annual Pro</h5>
+                <Badge variant="secondary">Save 20%</Badge>
+              </div>
+              <p className="text-2xl font-bold">$16<span className="text-sm font-normal">/month</span></p>
+              <p className="text-sm text-muted-foreground">Billed annually ($192/year)</p>
+              <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                <li>• All Pro features</li>
+                <li>• 20% savings</li>
+                <li>• Priority support</li>
+                <li>• Early access to features</li>
+              </ul>
+              <Button className="w-full mt-4">Upgrade to Annual</Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-gray-50 rounded-lg">
+          <h4 className="font-medium mb-2">Payment Method</h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            No payment method on file. Add a payment method to upgrade your plan.
+          </p>
+          <Button size="sm" variant="outline">
             Add Payment Method
           </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Billing History</CardTitle>
-          <CardDescription>Download your invoices and view payment history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {billingHistory.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{invoice.date}</TableCell>
-                  <TableCell>{invoice.amount}</TableCell>
-                  <TableCell>
-                    <Badge variant="default" className="bg-green-100 text-green-800">
-                      {invoice.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      <Download className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -146,15 +146,14 @@ export function CSVImporter() {
     setImportState(prev => ({ ...prev, stage: 'importing', progress: 0 }));
 
     try {
-      // Step A: Create ingestion run
-      const source = importState.usePreset ? importState.detectedPreset?.id || 'csv-generic' : 'csv-generic';
+      // Step A: Create import run
+      const source = importState.usePreset ? importState.detectedPreset?.id || 'csv' : 'csv';
       const { data: runData, error: runError } = await supabase
-        .from('ingestion_runs')
+        .from('import_runs')
         .insert({
           user_id: user.id,
           source,
-          file_name: selectedFile.name,
-          row_count: 0
+          status: 'processing'
         })
         .select('id')
         .single();
@@ -194,7 +193,7 @@ export function CSVImporter() {
                   canonical = {
                     ...res.value,
                     user_id: user.id,
-                    ingestion_run_id: runId,
+                    import_run_id: runId,
                     source: importState.detectedPreset.id,
                     row_hash: '',
                     raw_json: row
@@ -244,7 +243,7 @@ export function CSVImporter() {
                   trade_time_utc: normalized.value.trade_time_utc as string,
                   venue: normalized.value.venue as string,
                   source: normalized.value.source as string,
-                  ingestion_run_id: runId,
+                  import_run_id: runId,
                   row_hash: '',
                   raw_json: row
                 };
@@ -255,7 +254,7 @@ export function CSVImporter() {
                 const execution = {
                   user_id: canonical.user_id,
                   broker_account_id: null,
-                  source_import_run_id: canonical.ingestion_run_id,
+                  source_import_run_id: canonical.import_run_id,
                   instrument_type: canonical.asset_type === 'option' ? 'option' : 'equity',
                   symbol: canonical.symbol,
                   occ_symbol: canonical.asset_type === 'option' ? canonical.symbol : null,

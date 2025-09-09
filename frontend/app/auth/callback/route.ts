@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
       if (userError || !user) {
         errorMsg = 'Could not fetch user profile after OAuth login.';
       } else {
-        // Upsert user record in 'users' table (id, email, username, full_name)
-        const { error: upsertError } = await supabase.from('users').upsert({
+        // Upsert user record in 'profiles' table (id, email, username, full_name)
+        const { error: upsertError } = await supabase.from('profiles').upsert({
           id: user.id,
           email: user.email,
           username: (user.user_metadata as any)?.username || null,
