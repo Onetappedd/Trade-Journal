@@ -50,11 +50,14 @@ export async function GET(request: NextRequest) {
         const { error: upsertError } = await supabase.from('profiles').upsert({
           id: user.id,
           email: user.email,
-          username: (user.user_metadata as any)?.username || null,
+          username: null, // Force user to create username
           full_name:
             (user.user_metadata as any)?.full_name ||
             (user.user_metadata as any)?.name ||
             user.email,
+          avatar_url: (user.user_metadata as any)?.avatar_url || (user.user_metadata as any)?.picture || null,
+          role: 'free',
+          subscription_status: 'trial',
         });
         if (upsertError) {
           errorMsg = 'Could not update user profile.';

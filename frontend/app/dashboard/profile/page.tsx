@@ -47,6 +47,21 @@ export default function ProfilePage() {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        // If no profile exists, create one with Google data
+        if (error.code === 'PGRST116') {
+          const newProfile = {
+            id: user.id,
+            email: user.email || '',
+            username: null, // Force user to create username
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email || '',
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+            role: 'free' as const,
+            subscription_status: 'trial' as const,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          setProfile(newProfile);
+        }
         return;
       }
 
@@ -61,16 +76,26 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!profile || !supabase || !user?.id) return;
     
+    // Require username
+    if (!profile.username || profile.username.trim() === '') {
+      alert('Username is required. Please enter a username.');
+      return;
+    }
+    
     setSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: user.id,
+          email: user.email || '',
           full_name: profile.full_name,
           username: profile.username,
+          avatar_url: profile.avatar_url,
+          role: profile.role || 'free',
+          subscription_status: profile.subscription_status || 'trial',
           updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+        });
 
       if (error) {
         console.error('Error updating profile:', error);

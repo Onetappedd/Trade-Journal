@@ -52,7 +52,7 @@ export function createClient() {
       });
       
       // Ensure the session is properly set for database requests
-      _client.auth.setSession(session);
+      _client?.auth.setSession(session);
     } else {
       console.log('[supabase] No session found in localStorage');
     }
