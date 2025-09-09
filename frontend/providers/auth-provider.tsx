@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
               // Session is already properly set by Supabase client
               if (s) {
-                console.log('AuthProvider - Session updated for database requests');
+                console.log('AuthProvider - Session available for database requests');
               }
       
       setLoading(false);

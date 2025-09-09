@@ -1,5 +1,5 @@
-[33mb2c368b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix billing page server actions: Use redirect() instead of returning objects
-[33m2544a32[m Fix Webull options import: Add missing broker field to trigger adapter
-[33m5468bb8[m Add detailed error logging for CSV import validation failures
-[33mdaba33a[m Fix Webull options preset mapping: Name->Symbol and add broker field for adapter
-[33m50ffbca[m Fix billing page to use supabaseAdmin instead of creating new client
+[33ma92b3a6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m dwawad
+[33m35244ca[m Fix JWT token passing by using server-side API route
+[33mcc7a565[m Investigate JWT token passing issue
+[33m001309c[m Fix JWT token passing to database context
+[33m32cb1e6[m Fix deployment errors and enhance authentication
