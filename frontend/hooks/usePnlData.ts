@@ -86,8 +86,8 @@ function buildSeriesFromClosedTrades(closedTrades: Array<any & { pnl: number }>)
 
   // Sort by exit date
   const sortedTrades = closedTrades.sort((a, b) => {
-    const dateA = new Date(a.exit_date || a.entry_date);
-    const dateB = new Date(b.exit_date || b.entry_date);
+    const dateA = new Date(a.closed_at || a.opened_at);
+    const dateB = new Date(b.closed_at || b.opened_at);
     return dateA.getTime() - dateB.getTime();
   });
 
@@ -95,7 +95,7 @@ function buildSeriesFromClosedTrades(closedTrades: Array<any & { pnl: number }>)
   const dailyPnl = new Map<string, number>();
   
   sortedTrades.forEach(trade => {
-    const date = (trade.exit_date || trade.entry_date).split('T')[0]; // Get just the date part
+    const date = (trade.closed_at || trade.opened_at).split('T')[0]; // Get just the date part
     const pnl = trade.pnl || 0;
     const currentDailyPnl = dailyPnl.get(date) || 0;
     dailyPnl.set(date, currentDailyPnl + pnl);
@@ -125,7 +125,7 @@ function buildSeriesFromClosedTrades(closedTrades: Array<any & { pnl: number }>)
     
     if (totalRealizedPnl !== 0) {
       const lastTrade = sortedTrades[sortedTrades.length - 1];
-      const lastDate = (lastTrade.exit_date || lastTrade.entry_date).split('T')[0];
+      const lastDate = (lastTrade.closed_at || lastTrade.opened_at).split('T')[0];
       series.push({
         date: lastDate,
         value: totalRealizedPnl,

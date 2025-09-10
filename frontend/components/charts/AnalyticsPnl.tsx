@@ -7,20 +7,16 @@ import { type GenericTrade } from '@/hooks/usePnlData';
 interface LocalTradeRow {
   id: string;
   symbol: string;
-  side: string;
-  quantity: number;
-  entry_price: number;
-  entry_date: string;
-  exit_price?: number | null;
-  exit_date?: string | null;
+  instrument_type: string;
+  qty_opened: number;
+  avg_open_price: number;
+  opened_at: string;
+  avg_close_price?: number | null;
+  closed_at?: string | null;
   status?: string;
-  asset_type?: string;
-  multiplier?: number | null;
-  underlying?: string | null;
-  option_type?: string | null;
-  strike_price?: number | null;
-  expiration_date?: string | null;
+  legs?: any | null;
   fees?: number | null;
+  realized_pnl?: number | null;
 }
 
 interface AnalyticsPnlProps {
@@ -34,14 +30,14 @@ export default function AnalyticsPnl({ trades, className = '' }: AnalyticsPnlPro
     id: trade.id,
     symbol: trade.symbol,
     status: trade.status || 'open',
-    qty_opened: trade.quantity,
-    avg_open_price: trade.entry_price,
-    opened_at: trade.entry_date,
-    avg_close_price: trade.exit_price,
-    closed_at: trade.exit_date,
-    instrument_type: trade.asset_type,
+    qty_opened: trade.qty_opened,
+    avg_open_price: trade.avg_open_price,
+    opened_at: trade.opened_at,
+    avg_close_price: trade.avg_close_price,
+    closed_at: trade.closed_at,
+    instrument_type: trade.instrument_type,
     fees: trade.fees,
-    pnl: undefined, // Analytics trades don't have pre-calculated P&L
+    pnl: trade.realized_pnl, // Use realized_pnl from the database
     mark_price: undefined,
     last_price: undefined,
   }));
