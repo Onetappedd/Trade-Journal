@@ -40,7 +40,7 @@ interface Trade {
   user_id: string;
   group_key: string;
   symbol: string;
-  instrument_type: 'equity' | 'option' | 'future';
+  instrument_type: 'equity' | 'option' | 'futures';
   status: 'open' | 'closed';
   opened_at: string;
   closed_at?: string;
@@ -657,17 +657,25 @@ function groupIntoWindows(executions: Execution[]): Execution[][] {
 
 async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void> {
   
+  // Ensure all required fields are set and constraints are satisfied
+  const tradeData = {
+    ...trade,
+    qty_closed: trade.qty_closed || 0, // Ensure qty_closed is set (constraint: >= 0)
+    avg_close_price: trade.avg_close_price || 0, // Ensure avg_close_price is set
+    updated_at: new Date().toISOString(),
+  };
+  
+  console.log('Upserting trade:', tradeData);
+  
   const { error } = await supabase
     .from('trades')
-    .upsert({
-      ...trade,
-      updated_at: new Date().toISOString(),
-    }, {
+    .upsert(tradeData, {
       onConflict: 'group_key',
     });
     
   if (error) {
     console.error('Error upserting trade:', error);
+    console.error('Trade data:', tradeData);
     throw error;
   }
 }
