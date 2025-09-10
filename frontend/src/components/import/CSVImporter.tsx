@@ -154,7 +154,7 @@ export function CSVImporter() {
         .from('import_runs')
         .insert({
           user_id: user.id,
-          source: usePreset ? detectedPreset?.id || 'csv' : 'csv',
+          source: importState.usePreset ? importState.detectedPreset?.id || 'csv' : 'csv',
           status: 'processing'
         })
         .select('id')
