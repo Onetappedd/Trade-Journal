@@ -38,13 +38,22 @@ export interface PortfolioAnalytics {
   }>;
 }
 
-const fetcher = async (url: string, session: any) => {
+const fetcher = async (url: string) => {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
   
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
+  // Get session from localStorage or context
+  const sessionData = localStorage.getItem('sb-lobigrwmngwirucuklmc-auth-token');
+  if (sessionData) {
+    try {
+      const session = JSON.parse(sessionData);
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    } catch (e) {
+      console.warn('Failed to parse session data:', e);
+    }
   }
   
   const response = await fetch(url, { headers });
@@ -58,7 +67,7 @@ const fetcher = async (url: string, session: any) => {
 export function usePortfolioPositions(refreshInterval: number = 30000) {
   const { session } = useAuth();
   const { data, error, isLoading, mutate } = useSWR<Position[]>(
-    session ? ['/api/portfolio/positions', session] : null,
+    session ? '/api/portfolio/positions' : null,
     fetcher,
     {
       refreshInterval,
@@ -92,7 +101,7 @@ export function usePortfolioPositions(refreshInterval: number = 30000) {
 export function usePortfolioAnalytics(refreshInterval: number = 60000) {
   const { session } = useAuth();
   const { data, error, isLoading, mutate } = useSWR<PortfolioAnalytics>(
-    session ? ['/api/portfolio/analytics', session] : null,
+    session ? '/api/portfolio/analytics' : null,
     fetcher,
     {
       refreshInterval,
