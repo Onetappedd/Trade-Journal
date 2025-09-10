@@ -154,6 +154,7 @@ export function CSVImporter() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
           fileName: selectedFile.name,
