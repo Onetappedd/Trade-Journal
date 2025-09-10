@@ -128,7 +128,7 @@ export async function matchUserTrades({
       .order('timestamp', { ascending: true });
 
     if (sinceImportRunId) {
-      query = query.eq('import_run_id', sinceImportRunId);
+      query = query.eq('source_import_run_id', sinceImportRunId);
     }
 
     if (symbols && symbols.length > 0) {
@@ -361,7 +361,7 @@ async function matchOptions(executions: Execution[]): Promise<{ updated: number;
       let lastExecId = '';
       
       for (const exec of window) {
-        const legKey = `${exec.strike}-${exec.option_type}-${exec.side}`;
+        const legKey = `${exec.strike}-${exec.option_type === 'C' ? 'call' : 'put'}-${exec.side}`;
         const qty = exec.side === 'sell' ? -exec.quantity : exec.quantity;
         const cost = qty * exec.price * exec.multiplier;
         
@@ -401,14 +401,17 @@ async function matchOptions(executions: Execution[]): Promise<{ updated: number;
       }
       
       // Create or update trade
-      const legsArray = Array.from(legs.values()).map(leg => ({
-        side: leg.qty > 0 ? 'buy' : 'sell',
-        type: leg.symbol.includes('C') ? 'call' : 'put',
-        strike: parseFloat(leg.symbol.match(/\d+$/)?.[0] || '0'),
-        expiry,
-        qty: Math.abs(leg.qty),
-        avg_price: leg.avg_price,
-      }));
+      const legsArray = Array.from(legs.entries()).map(([legKey, leg]) => {
+        const [strike, type, side] = legKey.split('-');
+        return {
+          side: side as 'buy' | 'sell',
+          type: type as 'call' | 'put',
+          strike: parseFloat(strike),
+          expiry,
+          qty: Math.abs(leg.qty),
+          avg_price: leg.avg_price,
+        };
+      });
       
       const netPosition = Array.from(legs.values()).reduce((sum, leg) => sum + leg.qty, 0);
       const status = netPosition === 0 ? 'closed' : 'open';
