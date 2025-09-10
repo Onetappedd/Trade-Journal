@@ -50,10 +50,7 @@ interface Trade {
   avg_close_price?: number;
   realized_pnl: number;
   fees: number;
-  currency: string;
-  venue: string;
   legs?: any[]; // For options
-  notes?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -232,8 +229,6 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
            avg_open_price: avgPrice,
            realized_pnl: 0,
            fees: totalFees,
-           currency: exec.currency,
-           venue: exec.venue,
          };
         
       } else {
@@ -308,8 +303,6 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
                avg_open_price: avgPrice,
                realized_pnl: 0,
                fees: totalFees,
-               currency: exec.currency,
-               venue: exec.venue,
              };
           } else {
             openTrade = null;
@@ -450,8 +443,6 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         avg_close_price: status === 'closed' ? 0 : undefined,
         realized_pnl: realizedPnl,
         fees: totalFees,
-        currency: window[0].currency,
-        venue: window[0].venue,
         legs: legsArray,
       };
       
@@ -523,8 +514,6 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
            avg_open_price: avgPrice,
            realized_pnl: 0,
            fees: totalFees,
-           currency: exec.currency,
-           venue: exec.venue,
          };
         
       } else {
@@ -598,8 +587,6 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
                avg_open_price: avgPrice,
                realized_pnl: 0,
                fees: totalFees,
-               currency: exec.currency,
-               venue: exec.venue,
              };
           } else {
             openTrade = null;
