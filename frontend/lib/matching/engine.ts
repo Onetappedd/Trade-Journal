@@ -233,7 +233,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
-          row_hash: undefined, // Set to undefined for now
+          row_hash: null, // Set to null to avoid unique constraint violation
         };
         
       } else {
@@ -309,7 +309,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
-              row_hash: undefined, // Set to undefined for now
+              row_hash: null, // Set to null to avoid unique constraint violation
             };
           } else {
             openTrade = null;
@@ -528,7 +528,7 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
-          row_hash: undefined, // Set to undefined for now
+          row_hash: null, // Set to null to avoid unique constraint violation
         };
         
       } else {
@@ -603,7 +603,7 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
-              row_hash: undefined, // Set to undefined for now
+              row_hash: null, // Set to null to avoid unique constraint violation
             };
           } else {
             openTrade = null;
