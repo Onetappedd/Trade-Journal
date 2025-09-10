@@ -396,7 +396,10 @@ export function CSVImporter() {
                 try {
                   const response = await fetch('/api/matching/run', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${session?.access_token}`,
+                    },
                     body: JSON.stringify({ userId: user.id })
                   });
                   

@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { useAuth } from '@/providers/auth-provider';
 
 export interface Position {
   symbol: string;
@@ -37,8 +38,16 @@ export interface PortfolioAnalytics {
   }>;
 }
 
-const fetcher = async (url: string) => {
-  const response = await fetch(url);
+const fetcher = async (url: string, session: any) => {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+  
+  const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error('Failed to fetch data');
   }
@@ -47,8 +56,9 @@ const fetcher = async (url: string) => {
 
 // Hook for portfolio positions
 export function usePortfolioPositions(refreshInterval: number = 30000) {
+  const { session } = useAuth();
   const { data, error, isLoading, mutate } = useSWR<Position[]>(
-    '/api/portfolio/positions',
+    session ? ['/api/portfolio/positions', session] : null,
     fetcher,
     {
       refreshInterval,
@@ -80,8 +90,9 @@ export function usePortfolioPositions(refreshInterval: number = 30000) {
 
 // Hook for portfolio analytics
 export function usePortfolioAnalytics(refreshInterval: number = 60000) {
+  const { session } = useAuth();
   const { data, error, isLoading, mutate } = useSWR<PortfolioAnalytics>(
-    '/api/portfolio/analytics',
+    session ? ['/api/portfolio/analytics', session] : null,
     fetcher,
     {
       refreshInterval,

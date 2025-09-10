@@ -1,23 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { matchUserTrades } from '@/lib/matching/engine';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll: () => cookieStore.getAll() } },
+      {
+        auth: {
+          persistSession: false,
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
     );
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    if (userError || !user) {
+      console.error('User authentication error:', userError);
+      return NextResponse.json({ error: 'Unauthorized', details: userError?.message }, { status: 401 });
     }
 
     const body = await request.json();

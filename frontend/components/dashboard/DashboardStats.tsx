@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/providers/auth-provider';
 import {
   TrendingUp,
   TrendingDown,
@@ -37,14 +38,22 @@ interface PortfolioData {
 }
 
 export function DashboardStats({ stats }: DashboardStatsProps) {
+  const { session } = useAuth();
   const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchPortfolioValue = async () => {
+    if (!session) return;
+    
     try {
       setIsRefreshing(true);
-      const response = await fetch('/api/portfolio-value');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      };
+      
+      const response = await fetch('/api/portfolio-value', { headers });
       if (response.ok) {
         const data = await response.json();
         setPortfolioData(data);
