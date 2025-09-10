@@ -233,6 +233,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
+          row_hash: null, // Set to null for now
         };
         
       } else {
@@ -308,6 +309,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
+              row_hash: null, // Set to null for now
             };
           } else {
             openTrade = null;
@@ -454,6 +456,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         fees: totalFees,
         legs: legsArray,
         ingestion_run_id: window[0].source_import_run_id,
+        row_hash: null, // Set to null for now
       };
       
       await upsertTrade(trade, supabase);
@@ -525,6 +528,7 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
+          row_hash: null, // Set to null for now
         };
         
       } else {
@@ -599,6 +603,7 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
+              row_hash: null, // Set to null for now
             };
           } else {
             openTrade = null;
