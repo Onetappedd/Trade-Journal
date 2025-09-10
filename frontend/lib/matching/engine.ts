@@ -456,7 +456,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         fees: totalFees,
         legs: legsArray,
         ingestion_run_id: window[0].source_import_run_id,
-        row_hash: null, // Set to null for now
+        row_hash: undefined, // Set to undefined for now
       };
       
       await upsertTrade(trade, supabase);
