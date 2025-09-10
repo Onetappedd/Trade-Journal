@@ -57,15 +57,15 @@ export async function GET(req: NextRequest) {
 
     let q = supabase
       .from('trades')
-      .select('id,user_id,symbol,asset_type,broker,side,status,quantity,entry_price,exit_price,entry_date,exit_date,pnl,fees,strike_price,expiration_date,option_type,underlying,multiplier,currency,fees_currency,notes', { count: 'exact' })
+      .select('id,user_id,symbol,instrument_type,status,qty_opened,qty_closed,avg_open_price,avg_close_price,opened_at,closed_at,realized_pnl,fees,legs,created_at,updated_at', { count: 'exact' })
       .eq('user_id', user.id);
 
-    if (asset) q = q.eq('asset_type', asset);
+    if (asset) q = q.eq('instrument_type', asset);
     if (symbol) q = q.ilike('symbol', `%${symbol}%`);
-    if (from) q = q.gte('entry_date', from);
-    if (to) q = q.lte('entry_date', to);
+    if (from) q = q.gte('opened_at', from);
+    if (to) q = q.lte('opened_at', to);
 
-    q = q.order('entry_date', { ascending: false }).range(offset, offset + limit - 1);
+    q = q.order('opened_at', { ascending: false }).range(offset, offset + limit - 1);
 
     const { data: items, error, count } = await q;
 
