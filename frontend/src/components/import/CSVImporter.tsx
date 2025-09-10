@@ -39,7 +39,7 @@ interface ImportState {
 }
 
 export function CSVImporter() {
-  const { user, loading, supabase } = useAuth();
+  const { user, loading, supabase, session } = useAuth();
 
   // Debug logging (remove in production)
   if (process.env.NODE_ENV === 'development') {
