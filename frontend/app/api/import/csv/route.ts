@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -12,27 +11,13 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.replace('Bearer ', '');
     
-    // Create a custom cookie store that includes our JWT token
-    const cookieStore = await cookies();
-    
-    // Create Supabase client with custom cookie handling
-    const supabase = createServerClient(
+    // Create Supabase client with JWT token
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options),
-              );
-            } catch {
-              // Ignore cookie setting errors
-            }
-          },
+        auth: {
+          persistSession: false,
         },
         global: {
           headers: {
@@ -47,8 +32,10 @@ export async function POST(request: NextRequest) {
     
     if (userError || !user) {
       console.error('User authentication error:', userError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', details: userError?.message }, { status: 401 });
     }
+
+    console.log('Server-side user authenticated:', { userId: user.id, email: user.email });
 
     // Check if auth.uid() works in server context
     const { data: authCheck, error: authError } = await supabase
@@ -75,7 +62,11 @@ export async function POST(request: NextRequest) {
 
     if (runError) {
       console.error('Error creating import run:', runError);
-      return NextResponse.json({ error: 'Failed to create import run' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Failed to create import run', 
+        details: runError.message,
+        code: runError.code 
+      }, { status: 500 });
     }
 
     return NextResponse.json({ 
@@ -87,6 +78,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('CSV import API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
   }
 }
