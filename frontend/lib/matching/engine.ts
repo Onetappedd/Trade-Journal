@@ -1,4 +1,5 @@
 import { getServerSupabase } from '@/lib/supabase/server';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   toDec, 
   sumDec, 
@@ -86,8 +87,7 @@ interface OptionsPosition {
 }
 
 // Helper function to delete existing trades for specific symbols
-async function deleteTradesForSymbols(userId: string, symbols: string[]): Promise<number> {
-  const supabase = getServerSupabase();
+async function deleteTradesForSymbols(userId: string, symbols: string[], supabase: SupabaseClient): Promise<number> {
   
   const { data, error } = await supabase
     .from('trades')
@@ -108,20 +108,22 @@ async function deleteTradesForSymbols(userId: string, symbols: string[]): Promis
 export async function matchUserTrades({ 
   userId, 
   sinceImportRunId,
-  symbols
+  symbols,
+  supabase
 }: { 
   userId: string; 
   sinceImportRunId?: string;
   symbols?: string[];
+  supabase?: SupabaseClient;
 }): Promise<{ updatedTrades: number; createdTrades: number }> {
-  const supabase = getServerSupabase();
+  const client = supabase || getServerSupabase();
   
   let updatedTrades = 0;
   let createdTrades = 0;
 
   try {
     // Get executions to process
-    let query = supabase
+    let query = client
       .from('executions_normalized')
       .select('*')
       .eq('user_id', userId)
@@ -140,7 +142,7 @@ export async function matchUserTrades({
 
     // If rebuilding for specific symbols, delete existing trades first
     if (symbols && symbols.length > 0) {
-      await deleteTradesForSymbols(userId, symbols);
+      await deleteTradesForSymbols(userId, symbols, client);
     }
 
     if (!executions || executions.length === 0) {
@@ -153,9 +155,9 @@ export async function matchUserTrades({
     const futureExecutions = executions.filter(e => e.instrument_type === 'future');
 
     // Match each asset class
-    const equityResult = await matchEquities(equityExecutions);
-    const optionsResult = await matchOptions(optionExecutions);
-    const futuresResult = await matchFutures(futureExecutions);
+    const equityResult = await matchEquities(equityExecutions, client);
+    const optionsResult = await matchOptions(optionExecutions, client);
+    const futuresResult = await matchFutures(futureExecutions, client);
 
     updatedTrades = equityResult.updated + optionsResult.updated + futuresResult.updated;
     createdTrades = equityResult.created + optionsResult.created + futuresResult.created;
@@ -169,8 +171,7 @@ export async function matchUserTrades({
 }
 
 // Equities matching (FIFO)
-async function matchEquities(executions: Execution[]): Promise<{ updated: number; created: number }> {
-  const supabase = getServerSupabase();
+async function matchEquities(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
   let updated = 0;
   let created = 0;
 
@@ -314,12 +315,12 @@ async function matchEquities(executions: Execution[]): Promise<{ updated: number
     
     // Save trades to database
     for (const trade of trades) {
-      await upsertTrade(trade);
+      await upsertTrade(trade, supabase);
     }
     
     // Update open trade if exists
     if (openTrade) {
-      await upsertTrade(openTrade);
+      await upsertTrade(openTrade, supabase);
       updated++;
     }
   }
@@ -328,8 +329,7 @@ async function matchEquities(executions: Execution[]): Promise<{ updated: number
 }
 
 // Options matching (multi-leg within window)
-async function matchOptions(executions: Execution[]): Promise<{ updated: number; created: number }> {
-  const supabase = getServerSupabase();
+async function matchOptions(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
   let updated = 0;
   let created = 0;
 
@@ -447,7 +447,7 @@ async function matchOptions(executions: Execution[]): Promise<{ updated: number;
         legs: legsArray,
       };
       
-      await upsertTrade(trade);
+      await upsertTrade(trade, supabase);
       if (status === 'closed') {
         created++;
       } else {
@@ -460,8 +460,7 @@ async function matchOptions(executions: Execution[]): Promise<{ updated: number;
 }
 
 // Futures matching
-async function matchFutures(executions: Execution[]): Promise<{ updated: number; created: number }> {
-  const supabase = getServerSupabase();
+async function matchFutures(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
   let updated = 0;
   let created = 0;
 
@@ -603,11 +602,11 @@ async function matchFutures(executions: Execution[]): Promise<{ updated: number;
     
     // Save trades to database
     for (const trade of trades) {
-      await upsertTrade(trade);
+      await upsertTrade(trade, supabase);
     }
     
     if (openTrade) {
-      await upsertTrade(openTrade);
+      await upsertTrade(openTrade, supabase);
       updated++;
     }
   }
@@ -648,8 +647,7 @@ function groupIntoWindows(executions: Execution[]): Execution[][] {
   return windows;
 }
 
-async function upsertTrade(trade: Trade): Promise<void> {
-  const supabase = getServerSupabase();
+async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void> {
   
   const { error } = await supabase
     .from('trades')

@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
     const result = await matchUserTrades({ 
       userId, 
       sinceImportRunId, 
-      symbols 
+      symbols,
+      supabase
     });
 
     return NextResponse.json(result);
