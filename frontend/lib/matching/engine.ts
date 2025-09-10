@@ -397,7 +397,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
           const quantities = [Math.abs(leg.qty - qty), Math.abs(qty)];
           leg.avg_price = weightedAveragePrice(prices, quantities).toNumber();
         } else {
-          leg.avg_price = 0;
+          leg.avg_price = exec.price || 0.01; // Use execution price or minimum value
         }
         leg.total_cost = newCost;
         leg.total_fees = newFees;
@@ -438,7 +438,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       
       // Calculate average open price from legs
       const totalOpenValue = legsArray.reduce((sum, leg) => sum + (leg.avg_price * Math.abs(leg.qty)), 0);
-      const avgOpenPrice = legsArray.length > 0 ? totalOpenValue / legsArray.length : 1; // Default to 1 if no legs
+      const avgOpenPrice = legsArray.length > 0 ? totalOpenValue / legsArray.length : 0.01; // Default to 0.01 if no legs
       
       const trade: Trade = {
         user_id: window[0].user_id,
