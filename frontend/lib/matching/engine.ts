@@ -437,7 +437,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       }
       
       // Calculate average open price from legs
-      const totalOpenValue = legsArray.reduce((sum, leg) => sum + (leg.price * Math.abs(leg.quantity)), 0);
+      const totalOpenValue = legsArray.reduce((sum, leg) => sum + (leg.avg_price * Math.abs(leg.qty)), 0);
       const avgOpenPrice = legsArray.length > 0 ? totalOpenValue / legsArray.length : 1; // Default to 1 if no legs
       
       const trade: Trade = {
