@@ -140,12 +140,15 @@ export async function matchUserTrades({
     const { data: executions, error } = await query;
     if (error) throw error;
 
+    console.log(`Found ${executions?.length || 0} executions for user ${userId}`);
+
     // If rebuilding for specific symbols, delete existing trades first
     if (symbols && symbols.length > 0) {
       await deleteTradesForSymbols(userId, symbols, client);
     }
 
     if (!executions || executions.length === 0) {
+      console.log('No executions found, returning 0 trades');
       return { updatedTrades: 0, createdTrades: 0 };
     }
 
@@ -153,6 +156,8 @@ export async function matchUserTrades({
     const equityExecutions = executions.filter(e => e.instrument_type === 'stock' || e.instrument_type === 'equity');
     const optionExecutions = executions.filter(e => e.instrument_type === 'option');
     const futureExecutions = executions.filter(e => e.instrument_type === 'future');
+
+    console.log(`Split executions: ${equityExecutions.length} equity, ${optionExecutions.length} options, ${futureExecutions.length} futures`);
 
     // Match each asset class
     const equityResult = await matchEquities(equityExecutions, client);
