@@ -590,7 +590,7 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
                user_id: exec.user_id,
                group_key: generateGroupKey(symbol, exec.id),
                symbol,
-               instrument_type: 'future',
+               instrument_type: 'futures',
                status: 'open',
                opened_at: exec.timestamp,
                qty_opened: Math.abs(position),
@@ -669,9 +669,7 @@ async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void
   
   const { error } = await supabase
     .from('trades')
-    .upsert(tradeData, {
-      onConflict: 'group_key',
-    });
+    .insert(tradeData);
     
   if (error) {
     console.error('Error upserting trade:', error);
