@@ -33,6 +33,7 @@ interface Execution {
   multiplier: number;
   underlying?: string;
   broker_account_id?: string;
+  source_import_run_id?: string;
 }
 
 interface Trade {
@@ -51,6 +52,8 @@ interface Trade {
   realized_pnl: number;
   fees: number;
   legs?: any[]; // For options
+  ingestion_run_id?: string; // Changed from import_run_id
+  row_hash?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -216,20 +219,21 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
         firstExecId = exec.id;
         lastExecId = exec.id;
         
-                 // Create open trade
-         openTrade = {
-           user_id: exec.user_id,
-           group_key: generateGroupKey(symbol, exec.id),
-           symbol,
-           instrument_type: 'equity',
-           status: 'open',
-           opened_at: exec.timestamp,
-           qty_opened: Math.abs(qty),
-           qty_closed: 0,
-           avg_open_price: avgPrice,
-           realized_pnl: 0,
-           fees: totalFees,
-         };
+        // Create open trade
+        openTrade = {
+          user_id: exec.user_id,
+          group_key: generateGroupKey(symbol, exec.id),
+          symbol,
+          instrument_type: 'equity',
+          status: 'open',
+          opened_at: exec.timestamp,
+          qty_opened: Math.abs(qty),
+          qty_closed: 0,
+          avg_open_price: avgPrice,
+          realized_pnl: 0,
+          fees: totalFees,
+          ingestion_run_id: exec.source_import_run_id,
+        };
         
       } else {
         // Updating existing position
@@ -291,19 +295,20 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
             firstExecId = exec.id;
             lastExecId = exec.id;
             
-                         openTrade = {
-               user_id: exec.user_id,
-               group_key: generateGroupKey(symbol, exec.id),
-               symbol,
-               instrument_type: 'equity',
-               status: 'open',
-               opened_at: exec.timestamp,
-               qty_opened: Math.abs(position),
-               qty_closed: 0,
-               avg_open_price: avgPrice,
-               realized_pnl: 0,
-               fees: totalFees,
-             };
+            openTrade = {
+              user_id: exec.user_id,
+              group_key: generateGroupKey(symbol, exec.id),
+              symbol,
+              instrument_type: 'equity',
+              status: 'open',
+              opened_at: exec.timestamp,
+              qty_opened: Math.abs(position),
+              qty_closed: 0,
+              avg_open_price: avgPrice,
+              realized_pnl: 0,
+              fees: totalFees,
+              ingestion_run_id: exec.source_import_run_id,
+            };
           } else {
             openTrade = null;
           }
@@ -444,6 +449,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         realized_pnl: realizedPnl,
         fees: totalFees,
         legs: legsArray,
+        ingestion_run_id: window[0].source_import_run_id,
       };
       
       await upsertTrade(trade, supabase);
@@ -502,19 +508,20 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
         firstExecId = exec.id;
         lastExecId = exec.id;
         
-                 openTrade = {
-           user_id: exec.user_id,
-           group_key: generateGroupKey(symbol, exec.id),
-           symbol,
-            instrument_type: 'futures',
-           status: 'open',
-           opened_at: exec.timestamp,
-           qty_opened: Math.abs(qty),
-           qty_closed: 0,
-           avg_open_price: avgPrice,
-           realized_pnl: 0,
-           fees: totalFees,
-         };
+        openTrade = {
+          user_id: exec.user_id,
+          group_key: generateGroupKey(symbol, exec.id),
+          symbol,
+           instrument_type: 'futures',
+          status: 'open',
+          opened_at: exec.timestamp,
+          qty_opened: Math.abs(qty),
+          qty_closed: 0,
+          avg_open_price: avgPrice,
+          realized_pnl: 0,
+          fees: totalFees,
+          ingestion_run_id: exec.source_import_run_id,
+        };
         
       } else {
         // Updating existing position
@@ -575,19 +582,20 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
             firstExecId = exec.id;
             lastExecId = exec.id;
             
-                         openTrade = {
-               user_id: exec.user_id,
-               group_key: generateGroupKey(symbol, exec.id),
-               symbol,
-               instrument_type: 'futures',
-               status: 'open',
-               opened_at: exec.timestamp,
-               qty_opened: Math.abs(position),
-               qty_closed: 0,
-               avg_open_price: avgPrice,
-               realized_pnl: 0,
-               fees: totalFees,
-             };
+            openTrade = {
+              user_id: exec.user_id,
+              group_key: generateGroupKey(symbol, exec.id),
+              symbol,
+              instrument_type: 'futures',
+              status: 'open',
+              opened_at: exec.timestamp,
+              qty_opened: Math.abs(position),
+              qty_closed: 0,
+              avg_open_price: avgPrice,
+              realized_pnl: 0,
+              fees: totalFees,
+              ingestion_run_id: exec.source_import_run_id,
+            };
           } else {
             openTrade = null;
           }
