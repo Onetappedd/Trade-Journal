@@ -227,7 +227,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           instrument_type: 'equity',
           status: 'open',
           opened_at: exec.timestamp,
-          qty_opened: Math.abs(qty),
+          qty_opened: Math.abs(qty) || 1, // Ensure qty_opened is always > 0
           qty_closed: 0,
           avg_open_price: avgPrice,
           realized_pnl: 0,
@@ -522,7 +522,7 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
            instrument_type: 'futures',
           status: 'open',
           opened_at: exec.timestamp,
-          qty_opened: Math.abs(qty),
+          qty_opened: Math.abs(qty) || 1, // Ensure qty_opened is always > 0
           qty_closed: 0,
           avg_open_price: avgPrice,
           realized_pnl: 0,
