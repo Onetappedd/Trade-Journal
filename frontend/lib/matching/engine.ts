@@ -29,7 +29,7 @@ interface Execution {
   instrument_type: string;
   expiry?: string;
   strike?: number;
-  option_type?: 'call' | 'put';
+  option_type?: 'C' | 'P';
   multiplier: number;
   underlying?: string;
   broker_account_id?: string;
