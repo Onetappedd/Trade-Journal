@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/providers/auth-provider';
 import {
   Table,
   TableBody,
@@ -48,6 +49,7 @@ const normalizeAsset = (asset: string) => {
 };
 
 export default function TradesPage() {
+  const { session } = useAuth();
   const [rows, setRows] = useState<TradeRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -66,6 +68,8 @@ export default function TradesPage() {
   }, [q.symbol, q.asset, q.from, q.to, q.page]);
 
   async function fetchTrades() {
+    if (!session) return;
+    
     setLoading(true);
     setError(null);
     try {
@@ -78,7 +82,15 @@ export default function TradesPage() {
       if (q.from) ps.set('from', q.from);
       if (q.to) ps.set('to', q.to);
 
-      const res = await fetch(`/api/trades?${ps.toString()}`, { cache: 'no-store' });
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      };
+
+      const res = await fetch(`/api/trades?${ps.toString()}`, { 
+        cache: 'no-store',
+        headers
+      });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
