@@ -149,28 +149,24 @@ export function CSVImporter() {
       // Step A: Create import run
       const source = importState.usePreset ? importState.detectedPreset?.id || 'csv' : 'csv';
       
-      // Use server-side API route for import run creation
-      const response = await fetch('/api/import/csv', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          usePreset: importState.usePreset,
-          detectedPreset: importState.detectedPreset
+      // Create import run directly using client-side Supabase
+      const { data: runData, error: runError } = await supabase
+        .from('import_runs')
+        .insert({
+          user_id: user.id,
+          source: usePreset ? detectedPreset?.id || 'csv' : 'csv',
+          status: 'processing'
         })
-      });
+        .select('id')
+        .single();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create import run');
+      if (runError) {
+        console.error('Error creating import run:', runError);
+        throw new Error(`Failed to create import run: ${runError.message}`);
       }
 
-      const { runId, authCheck, user: serverUser } = await response.json();
-      console.log('CSV Import - Server response:', { runId, authCheck, serverUser });
+      const runId = runData.id;
+      console.log('CSV Import - Import run created:', { runId, userId: user.id });
       let totalRows = 0;
       let batch: any[] = []; // Will contain executions_normalized records
       const badRows: BadRow[] = [];
