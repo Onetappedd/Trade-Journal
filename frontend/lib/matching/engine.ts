@@ -335,6 +335,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
 
 // Options matching (multi-leg within window)
 async function matchOptions(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
+  console.log(`Starting options matching with ${executions.length} executions`);
   let updated = 0;
   let created = 0;
 
@@ -349,6 +350,8 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
     }
     optionGroups.get(key)!.push(exec);
   }
+
+  console.log(`Grouped into ${optionGroups.size} option groups`);
 
   for (const [key, optionExecs] of optionGroups) {
     const [underlying, expiry] = key.split('-');
