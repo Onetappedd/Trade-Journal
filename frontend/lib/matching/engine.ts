@@ -434,6 +434,10 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         realizedPnl = calculateOptionPnL(optionLegs, totalFees).toNumber();
       }
       
+      // Calculate average open price from legs
+      const totalOpenValue = legsArray.reduce((sum, leg) => sum + (leg.price * Math.abs(leg.quantity)), 0);
+      const avgOpenPrice = legsArray.length > 0 ? totalOpenValue / legsArray.length : 1; // Default to 1 if no legs
+      
       const trade: Trade = {
         user_id: window[0].user_id,
         group_key: generateGroupKey(underlying, firstExecId),
@@ -444,8 +448,8 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         closed_at: status === 'closed' ? window[window.length - 1].timestamp : undefined,
         qty_opened: Math.abs(netPosition),
         qty_closed: status === 'closed' ? Math.abs(netPosition) : 0,
-        avg_open_price: 0, // Calculate from legs
-        avg_close_price: status === 'closed' ? 0 : undefined,
+        avg_open_price: avgOpenPrice,
+        avg_close_price: status === 'closed' ? avgOpenPrice : undefined,
         realized_pnl: realizedPnl,
         fees: totalFees,
         legs: legsArray,
