@@ -2,30 +2,15 @@
 
 import { PnlChartWrapper } from './PnlChartWrapper';
 import { type GenericTrade } from '@/hooks/usePnlData';
-
-// Use local TradeRow type for analytics page compatibility
-interface LocalTradeRow {
-  id: string;
-  symbol: string;
-  instrument_type: string;
-  qty_opened: number;
-  avg_open_price: number;
-  opened_at: string;
-  avg_close_price?: number | null;
-  closed_at?: string | null;
-  status?: string;
-  legs?: any | null;
-  fees?: number | null;
-  realized_pnl?: number | null;
-}
+import { type TradeRow } from '@/types/trade';
 
 interface AnalyticsPnlProps {
-  trades: LocalTradeRow[];
+  trades: TradeRow[];
   className?: string;
 }
 
 export default function AnalyticsPnl({ trades, className = '' }: AnalyticsPnlProps) {
-  // Convert LocalTradeRow to GenericTrade for the shared hook
+  // Convert TradeRow to GenericTrade for the shared hook
   const genericTrades: GenericTrade[] = trades.map(trade => ({
     id: trade.id,
     symbol: trade.symbol,
