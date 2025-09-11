@@ -43,6 +43,7 @@ import { ExpectancyChart } from '@/components/analytics/ExpectancyChart';
 import { CalendarHeatmap } from '@/components/analytics/CalendarHeatmap';
 import { DrawdownRecoveryTable } from '@/components/analytics/DrawdownRecoveryTable';
 import { useDailyPnl } from '@/hooks/useAnalytics';
+import { type TradeRow } from '@/types/trade';
 
 // --- THEME ---
 const COLORS = {
@@ -66,23 +67,6 @@ interface Candle {
   volume?: number;
 }
 
-interface TradeRow {
-  id: string;
-  symbol: string;
-  side: string;
-  quantity: number;
-  entry_price: number;
-  entry_date: string;
-  exit_price?: number | null;
-  exit_date?: string | null;
-  status?: string;
-  asset_type?: string;
-  multiplier?: number | null;
-  underlying?: string | null;
-  option_type?: string | null;
-  strike_price?: number | null;
-  expiration_date?: string | null;
-}
 
 // --- HELPERS ---
 function formatCurrency(v: number) {
@@ -276,10 +260,10 @@ function useRecentTrades(limit: number = 5000) {
         const { data, error } = await supabase
           .from('trades')
           .select(
-            'id, symbol, side, quantity, entry_price, entry_date, exit_price, exit_date, status, asset_type, multiplier, underlying, option_type, strike_price, expiration_date',
+            'id, symbol, instrument_type, qty_opened, qty_closed, avg_open_price, avg_close_price, opened_at, closed_at, status, realized_pnl, fees, legs',
           )
           .eq('user_id', user.id)
-          .order('exit_date', { ascending: false })
+          .order('closed_at', { ascending: false })
           .limit(limit);
         if (error) throw error;
         if (!mounted) return;
@@ -394,7 +378,7 @@ export function AnalyticsPage() {
     if (!recentTrades || recentTrades.length === 0) return { gainers: [], losers: [] };
 
     const keyFor = (t: TradeRow) => {
-      const at = String(t.asset_type || '').toLowerCase();
+      const at = String(t.instrument_type || '').toLowerCase();
       if (at === 'option') {
         return `${t.underlying || t.symbol}_${t.option_type}_${t.strike_price}_${t.expiration_date}`;
       }
@@ -413,16 +397,17 @@ export function AnalyticsPage() {
     }[] = [];
 
     const sorted = [...recentTrades].sort(
-      (a, b) => new Date(a.entry_date).getTime() - new Date(b.entry_date).getTime(),
+      (a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime(),
     );
 
     for (const t of sorted) {
       const key = keyFor(t);
-      const side = String(t.side || '').toLowerCase();
-      const qty = Number(t.quantity) || 0;
-      const price = Number(t.entry_price) || 0;
+      // Note: side field not available in new schema, using qty_opened to determine direction
+      const side = t.qty_opened > 0 ? 'buy' : 'sell';
+      const qty = Number(t.qty_opened) || 0;
+      const price = Number(t.avg_open_price) || 0;
       if (!qty || !price) continue;
-      const type = String(t.asset_type || 'stock').toLowerCase();
+      const type = String(t.instrument_type || 'equity').toLowerCase();
 
       const s = states.get(key) || { openQty: 0, avg: 0 };
 
@@ -935,8 +920,8 @@ export function AnalyticsPage() {
                     </TableRow>
                   )}
                   {recentTrades.slice(0, 20).map((t) => {
-                    const isClosed = !!(t.exit_price && t.exit_date);
-                    const assetType = String(t.asset_type || 'stock').toLowerCase();
+                    const isClosed = !!(t.avg_close_price && t.closed_at);
+                    const assetType = String(t.instrument_type || 'equity').toLowerCase();
                     const mult =
                       t.multiplier != null
                         ? Number(t.multiplier)
@@ -946,28 +931,28 @@ export function AnalyticsPage() {
                             ? 1
                             : 1;
                     const pnl = isClosed
-                      ? (t.side === 'buy'
-                          ? t.exit_price! - t.entry_price
-                          : t.entry_price - t.exit_price!) *
-                        t.quantity *
+                      ? (t.qty_opened > 0
+                          ? t.avg_close_price! - t.avg_open_price
+                          : t.avg_open_price - t.avg_close_price!) *
+                        t.qty_opened *
                         mult
                       : 0;
                     return (
                       <TableRow key={t.id} className="hover:bg-[#2D2D2D]/70">
                         <TableCell className="text-white">
-                          {new Date(t.entry_date).toLocaleDateString()}
+                          {new Date(t.opened_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-white font-medium">{t.symbol}</TableCell>
                         <TableCell
                           className={
-                            t.side?.toUpperCase() === 'BUY' ? 'text-[#00C896]' : 'text-[#FF6B6B]'
+                            t.qty_opened > 0 ? 'text-[#00C896]' : 'text-[#FF6B6B]'
                           }
                         >
-                          {t.side?.toUpperCase()}
+                          {t.qty_opened > 0 ? 'BUY' : 'SELL'}
                         </TableCell>
-                        <TableCell className="text-white">{t.quantity}</TableCell>
+                        <TableCell className="text-white">{t.qty_opened}</TableCell>
                         <TableCell className="text-white">
-                          {formatCurrency(t.entry_price)}
+                          {formatCurrency(t.avg_open_price)}
                         </TableCell>
                         <TableCell className={pnl >= 0 ? 'text-[#00C896]' : 'text-[#FF6B6B]'}>
                           {isClosed
