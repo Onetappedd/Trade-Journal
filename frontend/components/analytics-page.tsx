@@ -379,8 +379,9 @@ export function AnalyticsPage() {
 
     const keyFor = (t: TradeRow) => {
       const at = String(t.instrument_type || '').toLowerCase();
-      if (at === 'option') {
-        return `${t.underlying || t.symbol}_${t.option_type}_${t.strike_price}_${t.expiration_date}`;
+      if (at === 'option' && t.legs && Array.isArray(t.legs) && t.legs.length > 0) {
+        const leg = t.legs[0]; // Use first leg for key generation
+        return `${leg.underlying || t.symbol}_${leg.option_type}_${leg.strike_price}_${leg.expiration_date}`;
       }
       return t.symbol;
     };
@@ -922,14 +923,11 @@ export function AnalyticsPage() {
                   {recentTrades.slice(0, 20).map((t) => {
                     const isClosed = !!(t.avg_close_price && t.closed_at);
                     const assetType = String(t.instrument_type || 'equity').toLowerCase();
-                    const mult =
-                      t.multiplier != null
-                        ? Number(t.multiplier)
-                        : assetType === 'option'
-                          ? 100
-                          : assetType === 'futures'
-                            ? 1
-                            : 1;
+                    const mult = assetType === 'option'
+                      ? 100
+                      : assetType === 'futures'
+                        ? 1
+                        : 1;
                     const pnl = isClosed
                       ? (t.qty_opened > 0
                           ? t.avg_close_price! - t.avg_open_price
