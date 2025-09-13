@@ -95,11 +95,11 @@ export function UnifiedHeader() {
 
           {/* Center: Search */}
           <div className="flex-1 flex justify-center px-6">
-            <div className="relative w-full max-w-sm">
+            <div className="relative w-full max-w-2xl">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search trades, symbols..."
-                className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
+                className="pl-10 bg-muted/50 border-0 focus-visible:ring-1 w-full"
               />
             </div>
           </div>

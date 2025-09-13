@@ -211,7 +211,8 @@ export default function TradesPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Trade History</h1>
@@ -274,6 +275,7 @@ export default function TradesPage() {
           {renderContent()}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
