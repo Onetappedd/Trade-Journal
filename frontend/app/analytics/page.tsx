@@ -340,7 +340,7 @@ export default function AnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-slate-400 text-sm font-medium">Total Return</p>
-                    <p className={`text-2xl font-bold ${analytics?.totalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <p className={`text-2xl font-bold ${(analytics?.totalPnL || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {analytics?.totalPnL ? (analytics.totalPnL >= 0 ? '+' : '') + analytics.totalPnL.toFixed(2) : 'N/A'}
                     </p>
                     <p className="text-sm text-slate-400 flex items-center mt-1">
