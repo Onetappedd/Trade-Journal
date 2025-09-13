@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Upload, User, TrendingUp, FileText, Camera, Building2 } from "lucide-react"
-import { showNotification } from "@/lib/notifications"
+import { toast } from "@/hooks/use-toast"
 
 const ONBOARDING_STORAGE_KEY = "riskr-onboarding-completed"
 
@@ -58,18 +58,13 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
   }
 
   const handleFinish = () => {
-    console.log("[v0] handleFinish called")
-    console.log("[v0] showNotification object:", showNotification)
-    console.log("[v0] showNotification.success type:", typeof showNotification.success)
-
     localStorage.setItem(ONBOARDING_STORAGE_KEY, "true")
 
-    try {
-      showNotification.success("Welcome to RiskR! Your account is ready to go.")
-      console.log("[v0] Notification sent successfully")
-    } catch (error) {
-      console.log("[v0] Notification error:", error)
-    }
+    toast({
+      title: "Welcome to RiskR!",
+      description: "Your account is ready to go.",
+      variant: "default",
+    })
 
     setIsSubmitting(false)
     onClose()
