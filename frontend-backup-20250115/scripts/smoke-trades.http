@@ -1,0 +1,13 @@
+GET http://localhost:3000/api/trades?limit=5
+
+###
+
+GET http://localhost:3000/api/trades?limit=5&asset=option
+
+###
+
+GET http://localhost:3000/api/trades?limit=5&symbol=AAPL
+
+###
+
+GET http://localhost:3000/api/pnl/daily

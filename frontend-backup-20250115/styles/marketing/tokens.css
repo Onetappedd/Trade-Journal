@@ -1,0 +1,14 @@
+:root {
+  --pp-bg: #0B0F14;
+  --pp-card: #121823;
+  --pp-muted: #94A3B8;
+  --pp-text: #E5E7EB;
+  --pp-accent: #22c55e; /* profit */
+  --pp-danger: #ef4444; /* loss */
+  --pp-ring: #22c55e;
+  --pp-border: rgba(148,163,184,0.12);
+  
+  /* Focus-visible styles for marketing theme */
+  --pp-focus-ring: #22c55e;
+  --pp-focus-offset: 2px;
+}

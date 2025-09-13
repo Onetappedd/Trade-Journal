@@ -1,115 +1,148 @@
-import { DashboardStatsSimple } from '@/components/dashboard/DashboardStatsSimple';
-import { RecentTrades } from '@/components/dashboard/RecentTrades';
-import { QuickActions } from '@/components/dashboard/QuickActions';
-import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
-import { PositionsTable } from '@/components/dashboard/PositionsTable';
-import { ExpiredOptionsAlert } from '@/components/dashboard/ExpiredOptionsAlert';
-import { MetricsStrip } from '@/components/dashboard/MetricsStrip';
-import { getPortfolioStats } from '@/lib/metrics';
-import { getDashboardMetrics } from '@/lib/dashboard-metrics';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import DashboardPnl from '@/components/charts/DashboardPnl';
+"use client"
 
-export const runtime = 'nodejs';
-import { updateExpiredOptionsTrades } from '@/lib/trades/updateExpiredOptions';
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/providers/auth-provider"
+import { DollarSign, TrendingUp, Activity, Shield, RefreshCw } from "lucide-react"
 
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic';
+interface TradeAnalytics {
+  totalTrades: number;
+  totalPnL: number;
+  realizedPnL: number;
+  unrealizedPnL: number;
+  winRate: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+}
 
-export default async function DashboardPage() {
-  // Get current user
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } },
-  );
+export default function DashboardPage() {
+  const { session, user } = useAuth()
+  const [analytics, setAnalytics] = useState<TradeAnalytics | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Check and update expired options on dashboard load
-  if (user) {
+  const fetchDashboardData = async () => {
+    if (!session) return
+    
+    setIsLoading(true)
     try {
-      await updateExpiredOptionsTrades(user.id, supabase);
+      const headers = {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      }
+
+      const response = await fetch('/api/portfolio/analytics', { headers })
+      if (response.ok) {
+        const data = await response.json()
+        setAnalytics(data)
+      }
     } catch (error) {
-      console.error('Failed to update expired options:', error);
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  // Get comprehensive dashboard metrics
-  const metrics = user ? await getDashboardMetrics(user.id) : null;
+  useEffect(() => {
+    if (session) {
+      fetchDashboardData()
+    }
+  }, [session])
 
-  // Get portfolio stats for other components
-  const stats = user
-    ? await getPortfolioStats(user.id)
-    : {
-        totalValue: 0,
-        totalPnL: 0,
-        winRate: 0,
-        activePositions: 0,
-        monthlyEquity: [],
-        recentTrades: [],
-        todayPnL: 0,
-        weekPnL: 0,
-        monthPnL: 0,
-      };
-
-  // Use comprehensive metrics if available, otherwise fall back to basic stats
-  const dashboardStats = metrics
-    ? {
-        totalValue: metrics.totalPortfolioValue,
-        totalPnL: metrics.totalPnL,
-        winRate: metrics.winRate,
-        activePositions: metrics.activePositions,
-        todayPnL: metrics.todayPnL,
-        weekPnL: metrics.weekPnL,
-        monthPnL: metrics.monthPnL,
-      }
-    : stats;
-
-  // Fetch trades for P&L chart
-  const { data: trades } = user
-    ? await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('entry_date', { ascending: true })
-    : { data: [] };
-
-
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400"></div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <p className="text-muted-foreground">Welcome back! Here's your trading overview.</p>
-      </div>
-
-      {/* User Metrics Strip */}
-      <MetricsStrip />
-
-      {/* Expired Options Alert */}
-      <ExpiredOptionsAlert />
-
-      <DashboardStatsSimple stats={dashboardStats} />
-
-      {/* P&L Chart */}
-      <DashboardPnl trades={trades || []} />
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4">
-          <RecentTrades trades={stats.recentTrades} />
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Welcome back, {user?.email?.split('@')[0] || 'Trader'}
+          </h1>
+          <p className="text-slate-400">Here's your trading performance overview</p>
         </div>
-        <div className="col-span-3">
-          <AlertsPanel />
-        </div>
-      </div>
 
-      {/* Open Positions with Real-Time Prices */}
-      <PositionsTable />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-400 text-sm">Total P&L</p>
+                  <p className={`text-2xl font-bold ${(analytics?.totalPnL || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {analytics?.totalPnL ? (analytics.totalPnL >= 0 ? '+' : '') + analytics.totalPnL.toFixed(2) : 'N/A'}
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-emerald-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-400 text-sm">Win Rate</p>
+                  <p className="text-2xl font-bold text-white">{analytics?.winRate?.toFixed(1) || 'N/A'}%</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-blue-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-400 text-sm">Total Trades</p>
+                  <p className="text-2xl font-bold text-white">{analytics?.totalTrades || 0}</p>
+                </div>
+                <Activity className="h-8 w-8 text-purple-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-400 text-sm">Sharpe Ratio</p>
+                  <p className="text-2xl font-bold text-amber-400">{analytics?.sharpeRatio?.toFixed(2) || 'N/A'}</p>
+                </div>
+                <Shield className="h-8 w-8 text-amber-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardHeader>
+              <CardTitle className="text-white">Portfolio Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 bg-slate-800/30 rounded-lg flex items-center justify-center">
+                <p className="text-slate-400">Performance chart placeholder</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardHeader>
+              <CardTitle className="text-white">Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 bg-slate-800/30 rounded-lg flex items-center justify-center">
+                <p className="text-slate-400">Recent trades placeholder</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
-  );
+  )
 }

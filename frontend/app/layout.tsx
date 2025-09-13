@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Inter } from 'next/font/google';
+import ConditionalLayout from "@/components/conditional-layout";
 
 import Providers from './providers';
 
@@ -15,18 +16,18 @@ const inter = Inter({
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: "Riskr",
-  description: "Trade Journaling & Analytics",
+  title: "RiskR - Professional Trading Analytics",
+  description: "Advanced trading journal and portfolio analytics platform",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-
-return (
-  <html lang="en" suppressHydrationWarning className={inter.variable}>
-    <body className="font-sans antialiased">
-      <Providers>{children}</Providers>
-    </body>
-  </html>
-);
-
+  return (
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body className="font-sans antialiased">
+        <Providers>
+          <ConditionalLayout>{children}</ConditionalLayout>
+        </Providers>
+      </body>
+    </html>
+  );
 }

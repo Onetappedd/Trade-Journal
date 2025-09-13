@@ -1,0 +1,115 @@
+import { DashboardStatsSimple } from '@/components/dashboard/DashboardStatsSimple';
+import { RecentTrades } from '@/components/dashboard/RecentTrades';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
+import { PositionsTable } from '@/components/dashboard/PositionsTable';
+import { ExpiredOptionsAlert } from '@/components/dashboard/ExpiredOptionsAlert';
+import { MetricsStrip } from '@/components/dashboard/MetricsStrip';
+import { getPortfolioStats } from '@/lib/metrics';
+import { getDashboardMetrics } from '@/lib/dashboard-metrics';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import DashboardPnl from '@/components/charts/DashboardPnl';
+
+export const runtime = 'nodejs';
+import { updateExpiredOptionsTrades } from '@/lib/trades/updateExpiredOptions';
+
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic';
+
+export default async function DashboardPage() {
+  // Get current user
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll() } },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Check and update expired options on dashboard load
+  if (user) {
+    try {
+      await updateExpiredOptionsTrades(user.id, supabase);
+    } catch (error) {
+      console.error('Failed to update expired options:', error);
+    }
+  }
+
+  // Get comprehensive dashboard metrics
+  const metrics = user ? await getDashboardMetrics(user.id) : null;
+
+  // Get portfolio stats for other components
+  const stats = user
+    ? await getPortfolioStats(user.id)
+    : {
+        totalValue: 0,
+        totalPnL: 0,
+        winRate: 0,
+        activePositions: 0,
+        monthlyEquity: [],
+        recentTrades: [],
+        todayPnL: 0,
+        weekPnL: 0,
+        monthPnL: 0,
+      };
+
+  // Use comprehensive metrics if available, otherwise fall back to basic stats
+  const dashboardStats = metrics
+    ? {
+        totalValue: metrics.totalPortfolioValue,
+        totalPnL: metrics.totalPnL,
+        winRate: metrics.winRate,
+        activePositions: metrics.activePositions,
+        todayPnL: metrics.todayPnL,
+        weekPnL: metrics.weekPnL,
+        monthPnL: metrics.monthPnL,
+      }
+    : stats;
+
+  // Fetch trades for P&L chart
+  const { data: trades } = user
+    ? await supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('entry_date', { ascending: true })
+    : { data: [] };
+
+
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <p className="text-muted-foreground">Welcome back! Here's your trading overview.</p>
+      </div>
+
+      {/* User Metrics Strip */}
+      <MetricsStrip />
+
+      {/* Expired Options Alert */}
+      <ExpiredOptionsAlert />
+
+      <DashboardStatsSimple stats={dashboardStats} />
+
+      {/* P&L Chart */}
+      <DashboardPnl trades={trades || []} />
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <div className="col-span-4">
+          <RecentTrades trades={stats.recentTrades} />
+        </div>
+        <div className="col-span-3">
+          <AlertsPanel />
+        </div>
+      </div>
+
+      {/* Open Positions with Real-Time Prices */}
+      <PositionsTable />
+    </div>
+  );
+}
