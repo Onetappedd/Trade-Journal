@@ -68,7 +68,6 @@ export function FormField({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onBlur={onBlur}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
             setIsFocused(false)
