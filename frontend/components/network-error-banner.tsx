@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, RefreshCw, Copy, X } from "lucide-react"
-import { showNotification } from "@/lib/notifications"
+import { toast } from "@/hooks/use-toast"
 
 interface NetworkErrorBannerProps {
   message?: string
@@ -29,9 +29,17 @@ export function NetworkErrorBanner({
     setIsRetrying(true)
     try {
       await onRetry()
-      showNotification.success("Retry successful")
+      toast({
+        title: "Success",
+        description: "Retry successful",
+        variant: "default",
+      })
     } catch (error) {
-      showNotification.error("Retry failed. Please try again.")
+      toast({
+        title: "Error",
+        description: "Retry failed. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsRetrying(false)
     }
@@ -41,7 +49,11 @@ export function NetworkErrorBanner({
     if (!errorId) return
 
     navigator.clipboard.writeText(errorId)
-    showNotification.success("Error ID copied to clipboard")
+    toast({
+      title: "Success",
+      description: "Error ID copied to clipboard",
+      variant: "default",
+    })
   }
 
   return (
