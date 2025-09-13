@@ -341,7 +341,7 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="text-slate-400 text-sm font-medium">Total Return</p>
                     <p className={`text-2xl font-bold ${(analytics?.totalPnL || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {analytics?.totalPnL ? (analytics.totalPnL >= 0 ? '+' : '') + analytics.totalPnL.toFixed(2) : 'N/A'}
+                      {analytics?.totalPnL ? ((analytics.totalPnL || 0) >= 0 ? '+' : '') + analytics.totalPnL.toFixed(2) : 'N/A'}
                     </p>
                     <p className="text-sm text-slate-400 flex items-center mt-1">
                       <ArrowUpRight className="h-3 w-3 mr-1" />
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="text-slate-400 text-sm font-medium">Max Drawdown</p>
                     <p className="text-2xl font-bold text-red-400">
-                      {analytics?.maxDrawdown ? (analytics.maxDrawdown >= 0 ? '+' : '') + analytics.maxDrawdown.toFixed(2) : 'N/A'}
+                      {analytics?.maxDrawdown ? ((analytics.maxDrawdown || 0) >= 0 ? '+' : '') + analytics.maxDrawdown.toFixed(2) : 'N/A'}
                     </p>
                     <p className="text-sm text-slate-400 flex items-center mt-1">
                       <ArrowDownRight className="h-3 w-3 mr-1" />
@@ -419,7 +419,7 @@ export default function AnalyticsPage() {
                     <p className="text-2xl font-bold text-amber-400">{analytics?.profitFactor?.toFixed(2) || 'N/A'}</p>
                     <p className="text-sm text-slate-400 flex items-center mt-1">
                       <Shield className="h-3 w-3 mr-1" />
-                      {analytics?.profitFactor > 2 ? 'Excellent' : analytics?.profitFactor > 1 ? 'Good' : 'Poor'}
+                      {(analytics?.profitFactor || 0) > 2 ? 'Excellent' : (analytics?.profitFactor || 0) > 1 ? 'Good' : 'Poor'}
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-amber-950/50 flex items-center justify-center">
@@ -504,7 +504,7 @@ export default function AnalyticsPage() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-slate-800/30 rounded-lg">
                     <div className="text-lg font-semibold text-emerald-400">
-                      {analytics?.totalPnL ? (analytics.totalPnL >= 0 ? '+' : '') + analytics.totalPnL.toFixed(0) : 'N/A'}
+                      {analytics?.totalPnL ? ((analytics.totalPnL || 0) >= 0 ? '+' : '') + analytics.totalPnL.toFixed(0) : 'N/A'}
                     </div>
                     <div className="text-xs text-slate-400">Total P&L</div>
                   </div>
@@ -548,13 +548,13 @@ export default function AnalyticsPage() {
                       <div className="flex justify-between">
                         <span className="text-slate-400">Avg Win</span>
                         <span className="text-emerald-400 font-medium">
-                          {analytics?.avgWin ? (analytics.avgWin >= 0 ? '+' : '') + analytics.avgWin.toFixed(2) : 'N/A'}
+                          {analytics?.avgWin ? ((analytics.avgWin || 0) >= 0 ? '+' : '') + analytics.avgWin.toFixed(2) : 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Avg Loss</span>
                         <span className="text-red-400 font-medium">
-                          {analytics?.avgLoss ? (analytics.avgLoss >= 0 ? '+' : '') + analytics.avgLoss.toFixed(2) : 'N/A'}
+                          {analytics?.avgLoss ? ((analytics.avgLoss || 0) >= 0 ? '+' : '') + analytics.avgLoss.toFixed(2) : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -574,13 +574,13 @@ export default function AnalyticsPage() {
                       <div className="flex justify-between">
                         <span className="text-slate-400">Max Drawdown</span>
                         <span className="text-red-400 font-medium">
-                          {analytics?.maxDrawdown ? (analytics.maxDrawdown >= 0 ? '+' : '') + analytics.maxDrawdown.toFixed(2) : 'N/A'}
+                          {analytics?.maxDrawdown ? ((analytics.maxDrawdown || 0) >= 0 ? '+' : '') + analytics.maxDrawdown.toFixed(2) : 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Realized P&L</span>
                         <span className="text-emerald-400 font-medium">
-                          {analytics?.realizedPnL ? (analytics.realizedPnL >= 0 ? '+' : '') + analytics.realizedPnL.toFixed(2) : 'N/A'}
+                          {analytics?.realizedPnL ? ((analytics.realizedPnL || 0) >= 0 ? '+' : '') + analytics.realizedPnL.toFixed(2) : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -646,7 +646,7 @@ export default function AnalyticsPage() {
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-slate-400 text-sm">Max Drawdown</span>
                       <span className="text-red-400 font-medium">
-                        {analytics?.maxDrawdown ? (analytics.maxDrawdown >= 0 ? '+' : '') + analytics.maxDrawdown.toFixed(2) : 'N/A'}
+                        {analytics?.maxDrawdown ? ((analytics.maxDrawdown || 0) >= 0 ? '+' : '') + analytics.maxDrawdown.toFixed(2) : 'N/A'}
                       </span>
                     </div>
                     <div className="w-full bg-slate-800 rounded-full h-2">
@@ -669,13 +669,13 @@ export default function AnalyticsPage() {
                     <div>
                       <div className="text-slate-400 text-sm">Avg Win</div>
                       <div className="text-emerald-400 font-medium">
-                        {analytics?.avgWin ? (analytics.avgWin >= 0 ? '+' : '') + analytics.avgWin.toFixed(2) : 'N/A'}
+                        {analytics?.avgWin ? ((analytics.avgWin || 0) >= 0 ? '+' : '') + analytics.avgWin.toFixed(2) : 'N/A'}
                       </div>
                     </div>
                     <div>
                       <div className="text-slate-400 text-sm">Avg Loss</div>
                       <div className="text-red-400 font-medium">
-                        {analytics?.avgLoss ? (analytics.avgLoss >= 0 ? '+' : '') + analytics.avgLoss.toFixed(2) : 'N/A'}
+                        {analytics?.avgLoss ? ((analytics.avgLoss || 0) >= 0 ? '+' : '') + analytics.avgLoss.toFixed(2) : 'N/A'}
                       </div>
                     </div>
                   </div>
