@@ -363,7 +363,7 @@ export default function AnalyticsPage() {
                     <p className="text-2xl font-bold text-white">{analytics?.sharpeRatio?.toFixed(2) || 'N/A'}</p>
                     <p className="text-sm text-slate-400 flex items-center mt-1">
                       <Award className="h-3 w-3 mr-1" />
-                      {analytics?.sharpeRatio > 2 ? 'Excellent' : analytics?.sharpeRatio > 1 ? 'Good' : 'Fair'}
+                      {(analytics?.sharpeRatio || 0) > 2 ? 'Excellent' : (analytics?.sharpeRatio || 0) > 1 ? 'Good' : 'Fair'}
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-blue-950/50 flex items-center justify-center">
