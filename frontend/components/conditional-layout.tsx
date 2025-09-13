@@ -11,7 +11,8 @@ import { usePathname } from "next/navigation"
 function ConditionalHeader() {
   const pathname = usePathname()
 
-  if (pathname === "/") {
+  // Don't show UnifiedHeader on home page or auth pages
+  if (pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/login")) {
     return null
   }
 
