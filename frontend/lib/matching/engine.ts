@@ -427,13 +427,42 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       // Calculate P&L for options using the new function
       let realizedPnl = 0;
       if (status === 'closed') {
-        const optionLegs = Array.from(legs.values()).map(leg => ({
-          openPrice: leg.avg_price,
-          closePrice: leg.avg_price, // For now, using same price - this should be enhanced
-          quantity: Math.abs(leg.qty),
-          multiplier: 100 // Default option multiplier
-        }));
-        realizedPnl = calculateOptionPnL(optionLegs, totalFees).toNumber();
+        // For options, we need to calculate P&L based on actual buy/sell executions
+        // Group executions by leg and calculate P&L for each leg
+        const legExecutions = new Map<string, { buys: Execution[], sells: Execution[] }>();
+        
+        for (const exec of window) {
+          const legKey = `${exec.strike}-${exec.option_type === 'C' ? 'call' : 'put'}-${exec.side}`;
+          if (!legExecutions.has(legKey)) {
+            legExecutions.set(legKey, { buys: [], sells: [] });
+          }
+          
+          if (exec.side === 'buy') {
+            legExecutions.get(legKey)!.buys.push(exec);
+          } else {
+            legExecutions.get(legKey)!.sells.push(exec);
+          }
+        }
+        
+        // Calculate P&L for each leg
+        let totalPnL = 0;
+        for (const [legKey, executions] of legExecutions) {
+          const buys = executions.buys;
+          const sells = executions.sells;
+          
+          // For each buy, find the corresponding sell and calculate P&L
+          for (const buy of buys) {
+            for (const sell of sells) {
+              if (buy.quantity === sell.quantity) {
+                // Calculate P&L: (sell_price - buy_price) * quantity * multiplier
+                const legPnL = (sell.price - buy.price) * buy.quantity * buy.multiplier;
+                totalPnL += legPnL;
+              }
+            }
+          }
+        }
+        
+        realizedPnl = totalPnL - totalFees;
       }
       
       // Calculate average open price from legs
