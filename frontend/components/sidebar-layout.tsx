@@ -36,31 +36,10 @@ import {
   LogOut,
   Search,
   Bell,
-  Home,
-  BarChart3,
-  TrendingUp,
-  History,
-  Upload,
-  Trophy,
-  FileText,
-  CreditCard,
-  CalendarIcon,
 } from "lucide-react"
 import { useTheme } from "./theme-provider"
 import { useAuth } from "@/providers/auth-provider"
-
-const menuItems = [
-  { href: "/", label: "Home", icon: Home, description: "Landing page" },
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3, description: "Portfolio overview" },
-  { href: "/analytics", label: "Analytics", icon: TrendingUp, description: "Deep insights" },
-  { href: "/trades", label: "Trade History", icon: History, description: "View all trades" },
-  { href: "/journal", label: "Journal", icon: FileText, description: "Trading notes & insights" },
-  { href: "/calendar", label: "Calendar", icon: CalendarIcon, description: "Daily P&L visualization" },
-  { href: "/import", label: "Import Trades", icon: Upload, description: "Import & connect brokers" },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, description: "Trader rankings" },
-  { href: "/subscriptions", label: "Subscriptions", icon: CreditCard, description: "Billing & plans" },
-  { href: "/settings", label: "Settings", icon: Settings, description: "Account settings" },
-]
+import { StaggeredSidebarMenu } from "./staggered-sidebar-menu"
 
 function AppSidebar() {
   const pathname = usePathname()
@@ -80,37 +59,14 @@ function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-slate-950/95">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400 font-medium">Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={`${
-                        isActive
-                          ? "bg-emerald-600/20 text-emerald-400 border-emerald-600/30"
-                          : "text-slate-300 hover:text-white hover:bg-slate-800/50"
-                      }`}
-                    >
-                      <Link href={item.href}>
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="bg-slate-950/95 p-4">
+        <div className="space-y-6">
+          {/* Navigation Section */}
+          <div>
+            <h3 className="text-slate-400 font-medium text-sm mb-3 px-3">Navigation</h3>
+            <StaggeredSidebarMenu />
+          </div>
+        </div>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-slate-800/50 p-2">
