@@ -227,9 +227,9 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           instrument_type: 'equity',
           status: 'open',
           opened_at: exec.timestamp,
-          qty_opened: Math.max(Math.abs(qty), 0.01), // Ensure qty_opened is always > 0
+          qty_opened: Math.abs(qty), // Use absolute quantity for qty_opened
           qty_closed: 0,
-          avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
+          avg_open_price: avgPrice, // Use actual price, not forced minimum
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
@@ -259,8 +259,8 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           
           // Update open trade
           if (openTrade) {
-            openTrade.qty_opened = Math.max(Math.abs(position), 0.01); // Ensure qty_opened is always > 0
-            openTrade.avg_open_price = Math.max(avgPrice, 0.01); // Ensure avg_open_price is always > 0
+            openTrade.qty_opened = Math.abs(position); // Use absolute quantity
+            openTrade.avg_open_price = avgPrice; // Use actual calculated price
             openTrade.fees = totalFees;
           }
           
@@ -303,9 +303,9 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
               instrument_type: 'equity',
               status: 'open',
               opened_at: exec.timestamp,
-              qty_opened: Math.max(Math.abs(position), 0.01), // Ensure qty_opened is always > 0
+              qty_opened: Math.abs(position), // Use absolute quantity
               qty_closed: 0,
-              avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
+              avg_open_price: avgPrice, // Use actual calculated price
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
@@ -424,7 +424,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       const netPosition = Array.from(legs.values()).reduce((sum, leg) => sum + leg.qty, 0);
       const status = netPosition === 0 ? 'closed' : 'open';
       
-      // Calculate P&L for options using the new function
+      // Calculate P&L for options using proper open/close matching
       let realizedPnl = 0;
       if (status === 'closed') {
         // For options, we need to calculate P&L based on actual buy/sell executions
@@ -432,7 +432,7 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         const legExecutions = new Map<string, { buys: Execution[], sells: Execution[] }>();
         
         for (const exec of window) {
-          const legKey = `${exec.strike}-${exec.option_type === 'C' ? 'call' : 'put'}-${exec.side}`;
+          const legKey = `${exec.strike}-${exec.option_type === 'C' ? 'call' : 'put'}`;
           if (!legExecutions.has(legKey)) {
             legExecutions.set(legKey, { buys: [], sells: [] });
           }
@@ -444,30 +444,47 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
           }
         }
         
-        // Calculate P&L for each leg
+        // Calculate P&L for each leg by matching buys and sells
         let totalPnL = 0;
         for (const [legKey, executions] of legExecutions) {
           const buys = executions.buys;
           const sells = executions.sells;
           
-          // For each buy, find the corresponding sell and calculate P&L
-          for (const buy of buys) {
-            for (const sell of sells) {
-              if (buy.quantity === sell.quantity) {
-                // Calculate P&L: (sell_price - buy_price) * quantity * multiplier
-                const legPnL = (sell.price - buy.price) * buy.quantity * buy.multiplier;
-                totalPnL += legPnL;
-              }
-            }
+          // Sort by timestamp to match chronologically
+          buys.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          sells.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+          
+          // Match buys with sells and calculate P&L
+          let buyIndex = 0;
+          let sellIndex = 0;
+          
+          while (buyIndex < buys.length && sellIndex < sells.length) {
+            const buy = buys[buyIndex];
+            const sell = sells[sellIndex];
+            
+            // Calculate P&L: (sell_price - buy_price) * quantity * multiplier
+            // For options, the price is per contract, so we multiply by quantity and multiplier
+            const legPnL = (sell.price - buy.price) * Math.min(buy.quantity, sell.quantity) * buy.multiplier;
+            totalPnL += legPnL;
+            
+            // Reduce quantities
+            const matchedQty = Math.min(buy.quantity, sell.quantity);
+            buy.quantity -= matchedQty;
+            sell.quantity -= matchedQty;
+            
+            // Move to next execution if current one is fully matched
+            if (buy.quantity === 0) buyIndex++;
+            if (sell.quantity === 0) sellIndex++;
           }
         }
         
         realizedPnl = totalPnL - totalFees;
       }
       
-      // Calculate average open price from legs
+      // Calculate average open price from legs (weighted by quantity)
+      const totalQuantity = legsArray.reduce((sum, leg) => sum + Math.abs(leg.qty), 0);
       const totalOpenValue = legsArray.reduce((sum, leg) => sum + (leg.avg_price * Math.abs(leg.qty)), 0);
-      const avgOpenPrice = legsArray.length > 0 ? totalOpenValue / legsArray.length : 0.01; // Default to 0.01 if no legs
+      const avgOpenPrice = totalQuantity > 0 ? totalOpenValue / totalQuantity : 0;
       
       const trade: Trade = {
         user_id: window[0].user_id,
@@ -477,10 +494,10 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         status,
         opened_at: window[0].timestamp,
         closed_at: status === 'closed' ? window[window.length - 1].timestamp : undefined,
-        qty_opened: Math.max(Math.abs(netPosition), 0.01), // Ensure qty_opened is always > 0
-        qty_closed: status === 'closed' ? Math.max(Math.abs(netPosition), 0.01) : 0,
-        avg_open_price: Math.max(avgOpenPrice, 0.01), // Ensure avg_open_price is always > 0
-        avg_close_price: status === 'closed' ? Math.max(avgOpenPrice, 0.01) : undefined,
+        qty_opened: Math.abs(netPosition), // Use absolute quantity
+        qty_closed: status === 'closed' ? Math.abs(netPosition) : 0,
+        avg_open_price: avgOpenPrice, // Use calculated average price
+        avg_close_price: status === 'closed' ? avgOpenPrice : undefined,
         realized_pnl: realizedPnl,
         fees: totalFees,
         legs: legsArray,
@@ -551,9 +568,9 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
           instrument_type: 'futures',
           status: 'open',
           opened_at: exec.timestamp,
-          qty_opened: Math.max(Math.abs(qty), 0.01), // Ensure qty_opened is always > 0
+          qty_opened: Math.abs(qty), // Use absolute quantity
           qty_closed: 0,
-          avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
+          avg_open_price: avgPrice, // Use actual price
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
@@ -582,8 +599,8 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
           lastExecId = exec.id;
           
           if (openTrade) {
-            openTrade.qty_opened = Math.max(Math.abs(position), 0.01); // Ensure qty_opened is always > 0
-            openTrade.avg_open_price = Math.max(avgPrice, 0.01); // Ensure avg_open_price is always > 0
+            openTrade.qty_opened = Math.abs(position); // Use absolute quantity
+            openTrade.avg_open_price = avgPrice; // Use actual calculated price
             openTrade.fees = totalFees;
           }
           
@@ -626,9 +643,9 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
               instrument_type: 'futures',
               status: 'open',
               opened_at: exec.timestamp,
-              qty_opened: Math.max(Math.abs(position), 0.01), // Ensure qty_opened is always > 0
+              qty_opened: Math.abs(position), // Use absolute quantity
               qty_closed: 0,
-              avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
+              avg_open_price: avgPrice, // Use actual calculated price
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
@@ -693,10 +710,10 @@ async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void
   // Ensure all required fields are set and constraints are satisfied
   const tradeData = {
     ...trade,
-    qty_opened: Math.max(trade.qty_opened, 0.01), // Ensure qty_opened > 0
-    qty_closed: Math.max(trade.qty_closed || 0, 0), // Ensure qty_closed >= 0
-    avg_open_price: Math.max(trade.avg_open_price, 0.01), // Ensure avg_open_price > 0
-    avg_close_price: trade.avg_close_price ? Math.max(trade.avg_close_price, 0.01) : null, // Ensure avg_close_price > 0 if set
+    qty_opened: trade.qty_opened > 0 ? trade.qty_opened : 0.01, // Ensure qty_opened > 0
+    qty_closed: trade.qty_closed || 0, // Ensure qty_closed >= 0
+    avg_open_price: trade.avg_open_price > 0 ? trade.avg_open_price : 0.01, // Ensure avg_open_price > 0
+    avg_close_price: trade.avg_close_price || null, // Allow null for open trades
     updated_at: new Date().toISOString(),
   };
   

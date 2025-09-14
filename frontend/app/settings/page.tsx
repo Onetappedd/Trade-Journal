@@ -256,6 +256,46 @@ export default function SettingsPage() {
     }
   }
 
+  const handleDeleteAllTrades = async () => {
+    try {
+      // Get the session token
+      const session = JSON.parse(localStorage.getItem('riskr-supabase-auth-v1') || '{}')
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      // Call the delete all trades API
+      const response = await fetch('/api/trades/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete trades')
+      }
+
+      const result = await response.json()
+      
+      toast({
+        title: "Trades Deleted",
+        description: `Successfully deleted ${result.deletedCount} trades.`,
+      })
+    } catch (error) {
+      console.error('Error deleting trades:', error)
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete your trades. Please try again later.",
+        variant: "destructive"
+      })
+      throw error // Re-throw to handle in DataSection
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Main Content */}
@@ -349,6 +389,7 @@ export default function SettingsPage() {
                           {item.id === "data" && (
                             <DataSection
                               onExport={handleExportData}
+                              onDeleteAllTrades={handleDeleteAllTrades}
                             />
                           )}
                         </div>
@@ -436,6 +477,7 @@ export default function SettingsPage() {
                 <CardContent>
                   <DataSection
                     onExport={handleExportData}
+                    onDeleteAllTrades={handleDeleteAllTrades}
                   />
                 </CardContent>
               </Card>
@@ -696,7 +738,33 @@ function SecuritySection({
   )
 }
 
-function DataSection({ onExport }: any) {
+function DataSection({ onExport, onDeleteAllTrades }: any) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteAllTrades = async () => {
+    if (deleteConfirmText !== "DELETE ALL TRADES") {
+      toast({
+        title: "Confirmation Required",
+        description: "Please type 'DELETE ALL TRADES' to confirm.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await onDeleteAllTrades()
+      setShowDeleteConfirm(false)
+      setDeleteConfirmText("")
+    } catch (error) {
+      console.error('Error deleting trades:', error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Export Data */}
@@ -721,6 +789,63 @@ function DataSection({ onExport }: any) {
             Export Account Data
           </Button>
         </div>
+      </div>
+
+      {/* Delete All Trades */}
+      <div className="pt-6 border-t border-slate-800/50">
+        <h3 className="text-lg font-semibold text-white mb-4">Delete All Trades</h3>
+        <p className="text-slate-400 mb-4">
+          Permanently delete all your trading data. This action cannot be undone. 
+          We recommend exporting your data first.
+        </p>
+        
+        {!showDeleteConfirm ? (
+          <Button
+            onClick={() => setShowDeleteConfirm(true)}
+            variant="outline"
+            className="border-red-700 text-red-400 hover:bg-red-950 hover:text-red-300 bg-transparent h-12"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete All Trades
+          </Button>
+        ) : (
+          <div className="space-y-4 p-4 bg-red-950/20 border border-red-800/50 rounded-lg">
+            <div className="text-red-400 font-medium">
+              ⚠️ This will permanently delete ALL your trades and cannot be undone!
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deleteConfirm" className="text-slate-300">
+                Type "DELETE ALL TRADES" to confirm:
+              </Label>
+              <Input
+                id="deleteConfirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="bg-slate-800/50 border-slate-700 text-white"
+                placeholder="DELETE ALL TRADES"
+              />
+            </div>
+            <div className="flex space-x-3">
+              <Button
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDeleteConfirmText("")
+                }}
+                variant="outline"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteAllTrades}
+                disabled={isDeleting || deleteConfirmText !== "DELETE ALL TRADES"}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isDeleting ? "Deleting..." : "Delete All Trades"}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

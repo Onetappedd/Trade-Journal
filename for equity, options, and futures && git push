@@ -1,0 +1,5 @@
+[33m204b4c6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix missing useSidebar import in sidebar-layout.tsx
+[33m0650785[m Implement collapsible sidebar functionality with staggered menu
+[33m8ef6848[m Implement React Bits staggered menu for sidebar with proper navigation order
+[33m58f262a[m Implement comprehensive sidebar system with fixed header functionality
+[33m6ff9ade[m Fix TypeScript errors: remove invalid icon props from FormField
