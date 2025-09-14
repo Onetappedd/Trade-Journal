@@ -64,12 +64,18 @@ export default function TradesPage() {
   });
 
   useEffect(() => {
-    fetchTrades();
-  }, [q.symbol, q.asset, q.from, q.to, q.page]);
+    if (session) {
+      fetchTrades();
+    }
+  }, [session, q.symbol, q.asset, q.from, q.to, q.page]);
 
   async function fetchTrades() {
-    if (!session) return;
+    if (!session) {
+      console.log('No session available for fetchTrades');
+      return;
+    }
     
+    console.log('Fetching trades with session:', session.user?.id);
     setLoading(true);
     setError(null);
     try {
@@ -98,6 +104,7 @@ export default function TradesPage() {
       }
 
       const data: TradesResponse = await res.json();
+      console.log('Trades API response:', { items: data.items?.length, total: data.total });
       setRows(data.items);
       setTotal(data.total ?? data.items.length);
     } catch (err: any) {
