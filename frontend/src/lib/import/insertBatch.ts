@@ -198,15 +198,28 @@ export async function insertBatch(
     result.error.message.includes('unique_hash') || 
     result.error.message.includes('executions_normalized_unique_hash_key')
   )) {
-    // Unique violation - use bisection to count duplicates
-    console.log('🔄 Detected duplicate hash conflict, using bisection to handle duplicates');
-    return await bisectInsert(rows, insertWithRetry);
+    // Unique violation - treat as duplicates directly to avoid infinite loops
+    console.log('🔄 Detected duplicate hash conflict, treating all as duplicates');
+    console.log('23505 error details:', {
+      code: result.error.code,
+      message: result.error.message,
+      details: result.error.details,
+      hint: result.error.hint
+    });
+    return { inserted: 0, duplicates: rows.length, failed: [] };
   }
 
   // Handle 409 conflict errors (likely duplicate hashes)
   if (result.error.code === '409') {
     console.log('🔄 Detected 409 conflict error, treating as duplicates');
     // 409 errors are typically duplicate hashes, so treat all rows as duplicates
+    // Log the error details for debugging
+    console.log('409 error details:', {
+      code: result.error.code,
+      message: result.error.message,
+      details: result.error.details,
+      hint: result.error.hint
+    });
     return { inserted: 0, duplicates: rows.length, failed: [] };
   }
 
@@ -216,7 +229,13 @@ export async function insertBatch(
     return { inserted: 0, duplicates: 0, failed: rows };
   }
 
-  // Other errors - use bisection to isolate failing records
-  console.log('🔄 Other error detected, using bisection to isolate failing records');
-  return await bisectInsert(rows, insertWithRetry);
+  // Other errors - mark all as failed to avoid infinite loops
+  console.log('❌ Other error detected, marking all rows as failed');
+  console.log('Other error details:', {
+    code: result.error.code,
+    message: result.error.message,
+    details: result.error.details,
+    hint: result.error.hint
+  });
+  return { inserted: 0, duplicates: 0, failed: rows };
 }
