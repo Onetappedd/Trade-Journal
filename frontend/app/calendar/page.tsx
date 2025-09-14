@@ -1,9 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/empty-state"
+import { useAuth } from "@/hooks/useAuth"
+import { TradeRow } from "@/types/trade"
+import { toast } from "@/hooks/use-toast"
 import {
   CalendarIcon,
   ChevronLeft,
@@ -13,6 +16,7 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
+  RefreshCw,
 } from "lucide-react"
 
 // Mock trade data for calendar visualization
@@ -47,12 +51,66 @@ const MONTHS = [
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 export default function CalendarPage() {
+  const { session } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<"monthly" | "weekly">("monthly")
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
+  const [trades, setTrades] = useState<TradeRow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Group trades by date
-  const tradesByDate = mockTrades.reduce(
+  // Convert TradeRow to calendar format
+  const convertTradeToCalendarFormat = (trade: TradeRow) => {
+    const openedAt = new Date(trade.opened_at)
+    const date = openedAt.toISOString().split("T")[0]
+    
+    return {
+      date,
+      symbol: trade.symbol,
+      pnl: trade.realized_pnl || 0,
+      side: trade.qty_opened > 0 ? "BUY" : "SELL"
+    }
+  }
+
+  // Fetch trades from backend
+  const fetchTrades = async () => {
+    if (!session) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/trades', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setTrades(data.trades || [])
+      } else {
+        throw new Error('Failed to fetch trades')
+      }
+    } catch (error) {
+      console.error('Error fetching trades:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load trade calendar data",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (session) {
+      fetchTrades()
+    }
+  }, [session])
+
+  // Convert trades to calendar format and group by date
+  const calendarTrades = trades.map(convertTradeToCalendarFormat)
+  const tradesByDate = calendarTrades.reduce(
     (acc, trade) => {
       if (!acc[trade.date]) {
         acc[trade.date] = []
@@ -60,7 +118,7 @@ export default function CalendarPage() {
       acc[trade.date].push(trade)
       return acc
     },
-    {} as Record<string, typeof mockTrades>,
+    {} as Record<string, typeof calendarTrades>,
   )
 
   // Calculate daily P&L
@@ -304,6 +362,15 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={fetchTrades}
+                disabled={isLoading}
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
               <div className="flex items-center bg-slate-900/50 border border-slate-800/50 rounded-lg p-1">
                 <Button
                   variant={viewMode === "monthly" ? "default" : "ghost"}

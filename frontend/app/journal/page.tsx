@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/empty-state"
 import { toast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/useAuth"
+import { TradeRow } from "@/types/trade"
 import {
   Plus,
   Calendar,
@@ -23,6 +25,7 @@ import {
   ArrowDownRight,
   ImageIcon,
   X,
+  RefreshCw,
 } from "lucide-react"
 
 interface JournalEntry {
@@ -94,7 +97,10 @@ const mockEntries: JournalEntry[] = [
 ]
 
 export default function JournalPage() {
-  const [entries] = useState<JournalEntry[]>(mockEntries)
+  const { session } = useAuth()
+  const [entries, setEntries] = useState<JournalEntry[]>([])
+  const [trades, setTrades] = useState<TradeRow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [newEntry, setNewEntry] = useState({
     symbol: "",
@@ -104,6 +110,63 @@ export default function JournalPage() {
     tags: "",
     screenshot: null as File | null,
   })
+
+  // Convert TradeRow to JournalEntry
+  const convertTradeToJournalEntry = (trade: TradeRow): JournalEntry => {
+    const openedAt = new Date(trade.opened_at)
+    
+    return {
+      id: trade.id,
+      date: openedAt.toISOString().split("T")[0],
+      time: openedAt.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
+      symbol: trade.symbol,
+      direction: trade.qty_opened > 0 ? "long" : "short",
+      pnl: trade.realized_pnl || 0,
+      note: `Trade: ${trade.symbol} ${trade.instrument_type} - ${trade.qty_opened > 0 ? 'Long' : 'Short'} ${Math.abs(trade.qty_opened)} shares at $${trade.avg_open_price}`,
+      tags: [trade.instrument_type, trade.qty_opened > 0 ? "long" : "short"],
+    }
+  }
+
+  // Fetch trades from backend
+  const fetchTrades = async () => {
+    if (!session) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/trades', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setTrades(data.trades || [])
+        
+        // Convert trades to journal entries
+        const journalEntries = data.trades?.map(convertTradeToJournalEntry) || []
+        setEntries(journalEntries)
+      } else {
+        throw new Error('Failed to fetch trades')
+      }
+    } catch (error) {
+      console.error('Error fetching trades:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load trade journal entries",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (session) {
+      fetchTrades()
+    }
+  }, [session])
 
   // Group entries by date
   const groupedEntries = entries.reduce(
@@ -209,13 +272,23 @@ export default function JournalPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-white">Trading Journal</h1>
               <p className="text-slate-400 text-sm sm:text-base">Document and analyze your trading decisions</p>
             </div>
-            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Entry
-                </Button>
-              </DialogTrigger>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                onClick={fetchTrades}
+                disabled={isLoading}
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Entry
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-2xl">
                 <DialogHeader>
                   <DialogTitle className="text-xl text-white">Add Journal Entry</DialogTitle>
