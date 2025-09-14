@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -39,62 +38,6 @@ interface JournalEntry {
   tags: string[]
   screenshot?: string
 }
-
-// Mock data for demonstration
-const mockEntries: JournalEntry[] = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    time: "14:30",
-    symbol: "AAPL",
-    direction: "long",
-    pnl: 1247.5,
-    note: "Strong breakout above resistance at $175. Volume confirmation with institutional buying. Held through minor pullback and exited at target.",
-    tags: ["breakout", "momentum", "tech"],
-    screenshot: "/trading-chart-screenshot.jpg",
-  },
-  {
-    id: "2",
-    date: "2024-01-15",
-    time: "11:45",
-    symbol: "TSLA",
-    direction: "short",
-    pnl: -523.75,
-    note: "Anticipated rejection at $250 resistance but underestimated buying pressure from earnings optimism. Cut losses quickly.",
-    tags: ["resistance", "earnings", "loss"],
-  },
-  {
-    id: "3",
-    date: "2024-01-14",
-    time: "16:15",
-    symbol: "MSFT",
-    direction: "long",
-    pnl: 892.25,
-    note: "Cloud earnings beat expectations. Entered on pullback to support, rode the momentum wave. Perfect risk/reward setup.",
-    tags: ["earnings", "cloud", "support"],
-  },
-  {
-    id: "4",
-    date: "2024-01-14",
-    time: "10:20",
-    symbol: "NVDA",
-    direction: "long",
-    pnl: 2134.8,
-    note: "AI sector rotation play. Entered early on sector strength signals. Multiple timeframe confirmation. Scaled out at resistance levels.",
-    tags: ["AI", "sector-rotation", "scaling"],
-    screenshot: "/nvda-chart-analysis.jpg",
-  },
-  {
-    id: "5",
-    date: "2024-01-13",
-    time: "13:10",
-    symbol: "SPY",
-    direction: "short",
-    pnl: 456.3,
-    note: "Market showing weakness at key level. VIX spike confirmed fear. Quick scalp on the breakdown with tight stops.",
-    tags: ["SPY", "VIX", "scalp"],
-  },
-]
 
 export default function JournalPage() {
   const { session } = useAuth()
@@ -272,12 +215,13 @@ export default function JournalPage() {
               <h1 className="text-2xl sm:text-3xl font-bold text-white">Trading Journal</h1>
               <p className="text-slate-400 text-sm sm:text-base">Document and analyze your trading decisions</p>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={fetchTrades}
                 disabled={isLoading}
-                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -289,88 +233,70 @@ export default function JournalPage() {
                     Add Entry
                   </Button>
                 </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl text-white">Add Journal Entry</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6 py-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="symbol" className="text-slate-300">
-                        Symbol *
-                      </Label>
+                <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Add Journal Entry</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="symbol" className="text-slate-300">Symbol *</Label>
+                        <Input
+                          id="symbol"
+                          value={newEntry.symbol}
+                          onChange={(e) => setNewEntry((prev) => ({ ...prev, symbol: e.target.value }))}
+                          placeholder="AAPL"
+                          className="bg-slate-800 border-slate-700 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="direction" className="text-slate-300">Direction</Label>
+                        <select
+                          id="direction"
+                          value={newEntry.direction}
+                          onChange={(e) => setNewEntry((prev) => ({ ...prev, direction: e.target.value as "long" | "short" }))}
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white"
+                        >
+                          <option value="long">Long</option>
+                          <option value="short">Short</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="pnl" className="text-slate-300">P&L *</Label>
                       <Input
-                        id="symbol"
-                        placeholder="e.g., AAPL"
-                        value={newEntry.symbol}
-                        onChange={(e) => setNewEntry((prev) => ({ ...prev, symbol: e.target.value.toUpperCase() }))}
-                        className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
+                        id="pnl"
+                        type="number"
+                        step="0.01"
+                        value={newEntry.pnl}
+                        onChange={(e) => setNewEntry((prev) => ({ ...prev, pnl: e.target.value }))}
+                        placeholder="1247.50"
+                        className="bg-slate-800 border-slate-700 text-white"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="direction" className="text-slate-300">
-                        Direction
-                      </Label>
-                      <select
-                        id="direction"
-                        value={newEntry.direction}
-                        onChange={(e) =>
-                          setNewEntry((prev) => ({ ...prev, direction: e.target.value as "long" | "short" }))
-                        }
-                        className="w-full h-10 px-3 bg-slate-800 border border-slate-700 rounded-md text-white"
-                      >
-                        <option value="long">Long</option>
-                        <option value="short">Short</option>
-                      </select>
+                    <div>
+                      <Label htmlFor="note" className="text-slate-300">Notes *</Label>
+                      <Textarea
+                        id="note"
+                        value={newEntry.note}
+                        onChange={(e) => setNewEntry((prev) => ({ ...prev, note: e.target.value }))}
+                        placeholder="Describe your trade setup, reasoning, and lessons learned..."
+                        rows={4}
+                        className="bg-slate-800 border-slate-700 text-white"
+                      />
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pnl" className="text-slate-300">
-                      P&L ($) *
-                    </Label>
-                    <Input
-                      id="pnl"
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g., 1247.50 or -523.75"
-                      value={newEntry.pnl}
-                      onChange={(e) => setNewEntry((prev) => ({ ...prev, pnl: e.target.value }))}
-                      className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="note" className="text-slate-300">
-                      Trade Notes *
-                    </Label>
-                    <Textarea
-                      id="note"
-                      placeholder="Describe your trade setup, reasoning, and lessons learned..."
-                      value={newEntry.note}
-                      onChange={(e) => setNewEntry((prev) => ({ ...prev, note: e.target.value }))}
-                      className="bg-slate-800 border-slate-700 text-white placeholder-slate-500 min-h-[100px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="tags" className="text-slate-300">
-                      Tags
-                    </Label>
-                    <Input
-                      id="tags"
-                      placeholder="e.g., breakout, momentum, earnings (comma separated)"
-                      value={newEntry.tags}
-                      onChange={(e) => setNewEntry((prev) => ({ ...prev, tags: e.target.value }))}
-                      className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="screenshot" className="text-slate-300">
-                      Screenshot (Optional)
-                    </Label>
-                    <div className="flex items-center space-x-4">
+                    <div>
+                      <Label htmlFor="tags" className="text-slate-300">Tags</Label>
+                      <Input
+                        id="tags"
+                        value={newEntry.tags}
+                        onChange={(e) => setNewEntry((prev) => ({ ...prev, tags: e.target.value }))}
+                        placeholder="breakout, momentum, tech"
+                        className="bg-slate-800 border-slate-700 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="screenshot" className="text-slate-300">Screenshot</Label>
                       <Input
                         id="screenshot"
                         type="file"
@@ -395,12 +321,11 @@ export default function JournalPage() {
                     </div>
                     <p className="text-xs text-slate-500">Max file size: 5MB. Supported formats: JPG, PNG, GIF</p>
                   </div>
-
                   <div className="flex justify-end space-x-3 pt-4">
                     <Button
                       variant="outline"
                       onClick={() => setIsAddModalOpen(false)}
-                      className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                      className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
                     >
                       Cancel
                     </Button>
@@ -408,151 +333,105 @@ export default function JournalPage() {
                       Add Entry
                     </Button>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Timeline Content */}
+      {/* Content */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="space-y-8">
           {Object.entries(groupedEntries)
             .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
             .map(([date, dateEntries]) => (
-              <div key={date} className="relative">
-                {/* Date Header - Sticky */}
-                <div className="sticky top-16 z-30 bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-slate-950/80 border-b border-slate-800/50 py-4 mb-6">
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="h-5 w-5 text-emerald-400" />
-                    <h2 className="text-xl font-semibold text-white">{formatDate(date)}</h2>
-                    <Badge variant="secondary" className="bg-slate-800 text-slate-300">
-                      {dateEntries.length} {dateEntries.length === 1 ? "trade" : "trades"}
-                    </Badge>
-                  </div>
+              <div key={date} className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-5 w-5 text-emerald-400" />
+                  <h2 className="text-xl font-semibold text-white">{formatDate(date)}</h2>
+                  <Badge variant="secondary" className="bg-slate-800 text-slate-300">
+                    {dateEntries.length} {dateEntries.length === 1 ? "entry" : "entries"}
+                  </Badge>
                 </div>
-
-                {/* Timeline Line */}
-                <div className="absolute left-8 top-20 bottom-0 w-0.5 bg-slate-800"></div>
-
-                {/* Entries */}
-                <div className="space-y-6 pb-12">
-                  {dateEntries
-                    .sort((a, b) => b.time.localeCompare(a.time))
-                    .map((entry, index) => (
-                      <div key={entry.id} className="relative flex items-start space-x-6">
-                        {/* Timeline Dot */}
-                        <div className="relative z-10 flex-shrink-0">
-                          <div
-                            className={`h-4 w-4 rounded-full border-2 ${
-                              entry.pnl >= 0 ? "bg-emerald-400 border-emerald-400" : "bg-red-400 border-red-400"
-                            }`}
-                          ></div>
-                        </div>
-
-                        {/* Entry Card */}
-                        <Card className="flex-1 bg-slate-900/50 border-slate-800/50 hover:border-slate-700/50 transition-colors">
-                          <CardContent className="p-6">
-                            {/* Entry Header */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
-                              <div className="flex items-center space-x-4">
-                                <div className="flex items-center space-x-3">
-                                  <div className="h-10 w-10 rounded-lg bg-slate-700/50 flex items-center justify-center">
-                                    <span className="text-sm font-semibold text-white">{entry.symbol}</span>
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center space-x-2">
-                                      <Badge
-                                        variant={entry.direction === "long" ? "default" : "secondary"}
-                                        className={`${
-                                          entry.direction === "long"
-                                            ? "bg-emerald-600 text-white"
-                                            : "bg-red-600 text-white"
-                                        } flex items-center space-x-1`}
-                                      >
-                                        {entry.direction === "long" ? (
-                                          <ArrowUpRight className="h-3 w-3" />
-                                        ) : (
-                                          <ArrowDownRight className="h-3 w-3" />
-                                        )}
-                                        <span>{entry.direction.toUpperCase()}</span>
-                                      </Badge>
-                                      <div className="flex items-center space-x-1 text-slate-400">
-                                        <Clock className="h-3 w-3" />
-                                        <span className="text-sm">{entry.time}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
+                <div className="grid gap-4">
+                  {dateEntries.map((entry) => (
+                    <Card key={entry.id} className="bg-slate-900/50 border-slate-800 hover:bg-slate-900/70 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <h3 className="text-lg font-semibold text-white">{entry.symbol}</h3>
+                              <Badge
+                                variant={entry.direction === "long" ? "default" : "destructive"}
+                                className={
+                                  entry.direction === "long"
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-red-600 text-white"
+                                }
+                              >
+                                {entry.direction.toUpperCase()}
+                              </Badge>
+                              <div className="flex items-center space-x-1 text-slate-400">
+                                <Clock className="h-4 w-4" />
+                                <span className="text-sm">{entry.time}</span>
                               </div>
-
-                              <div className="flex items-center space-x-4">
-                                <div className="text-right">
-                                  <div
-                                    className={`text-lg font-semibold flex items-center ${
-                                      entry.pnl >= 0 ? "text-emerald-400" : "text-red-400"
-                                    }`}
+                            </div>
+                            <div className="flex items-center space-x-4 mb-4">
+                              <div className="flex items-center space-x-1">
+                                <DollarSign className="h-4 w-4 text-slate-400" />
+                                <span
+                                  className={`font-semibold ${
+                                    entry.pnl >= 0 ? "text-emerald-400" : "text-red-400"
+                                  }`}
+                                >
+                                  {entry.pnl >= 0 ? "+" : ""}${entry.pnl.toFixed(2)}
+                                </span>
+                              </div>
+                              {entry.pnl >= 0 ? (
+                                <ArrowUpRight className="h-4 w-4 text-emerald-400" />
+                              ) : (
+                                <ArrowDownRight className="h-4 w-4 text-red-400" />
+                              )}
+                            </div>
+                            <p className="text-slate-300 mb-4 leading-relaxed">{entry.note}</p>
+                            {entry.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {entry.tags.map((tag, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="border-slate-600 text-slate-300 bg-slate-800/50"
                                   >
-                                    <DollarSign className="h-4 w-4 mr-1" />
-                                    {entry.pnl >= 0 ? "+" : ""}
-                                    {entry.pnl.toLocaleString("en-US", {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })}
-                                  </div>
-                                </div>
+                                    <Tag className="h-3 w-3 mr-1" />
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {entry.screenshot && (
+                            <div className="ml-4">
+                              <div className="w-20 h-20 bg-slate-800 rounded-lg flex items-center justify-center">
+                                <ImageIcon className="h-8 w-8 text-slate-400" />
                               </div>
                             </div>
-
-                            {/* Entry Content */}
-                            <div className="space-y-4">
-                              <p className="text-slate-300 leading-relaxed">{entry.note}</p>
-
-                              {/* Screenshot */}
-                              {entry.screenshot && (
-                                <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
-                                  <img
-                                    src={entry.screenshot || "/placeholder.svg"}
-                                    alt="Trade screenshot"
-                                    className="w-full max-w-md rounded-lg border border-slate-700/50"
-                                  />
-                                </div>
-                              )}
-
-                              {/* Tags */}
-                              {entry.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                  {entry.tags.map((tag, tagIndex) => (
-                                    <Badge
-                                      key={tagIndex}
-                                      variant="secondary"
-                                      className="bg-slate-800/50 text-slate-300 border-slate-700/50 flex items-center space-x-1"
-                                    >
-                                      <Tag className="h-3 w-3" />
-                                      <span>{tag}</span>
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    ))}
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
             ))}
-
-          {/* Load More Button */}
-          <div className="text-center py-8">
-            <Button
-              variant="outline"
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-            >
-              Load More Entries
-            </Button>
-          </div>
+        </div>
+        <div className="mt-8 text-center">
+          <Button
+            variant="outline"
+            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
+          >
+            Load More Entries
+          </Button>
         </div>
       </div>
     </div>
