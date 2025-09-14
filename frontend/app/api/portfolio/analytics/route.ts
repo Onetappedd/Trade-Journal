@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all user trades
+    console.log('Analytics API - User ID:', user.id);
     const { data: trades, error } = await supabase
       .from('trades')
       .select('*')
@@ -69,8 +70,12 @@ export async function GET(request: NextRequest) {
       .order('opened_at', { ascending: true });
 
     if (error) {
+      console.error('Analytics API - Error fetching trades:', error);
       throw error;
     }
+
+    console.log('Analytics API - Trades count:', trades?.length || 0);
+    console.log('Analytics API - First few trades:', trades?.slice(0, 3));
 
     if (!trades || trades.length === 0) {
       return NextResponse.json({
