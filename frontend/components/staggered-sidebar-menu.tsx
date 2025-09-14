@@ -21,10 +21,10 @@ import {
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3, description: "Portfolio overview" },
   { href: "/analytics", label: "Analytics", icon: TrendingUp, description: "Deep insights" },
+  { href: "/import", label: "Import Trades", icon: Upload, description: "Import & connect brokers" },
   { href: "/trades", label: "Trade History", icon: History, description: "View all trades" },
   { href: "/journal", label: "Journal", icon: FileText, description: "Trading notes & insights" },
   { href: "/calendar", label: "Calendar", icon: CalendarIcon, description: "Daily P&L visualization" },
-  { href: "/import", label: "Import Trades", icon: Upload, description: "Import & connect brokers" },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy, description: "Trader rankings" },
   { href: "/subscriptions", label: "Subscriptions", icon: CreditCard, description: "Billing & plans" },
   { href: "/settings", label: "Settings", icon: Settings, description: "Account settings" },

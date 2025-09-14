@@ -48,6 +48,7 @@ import { useTheme } from "./theme-provider"
 import { useAuth } from "@/providers/auth-provider"
 import { StaggeredSidebarMenu } from "./staggered-sidebar-menu"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 function AppSidebar() {
   const pathname = usePathname()
@@ -168,6 +169,7 @@ function AppSidebar() {
 function AppHeader() {
   const { setTheme, theme } = useTheme()
   const { user, signOut } = useAuth()
+  const { toast } = useToast()
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-800/50 bg-slate-950/95 px-4">
@@ -180,6 +182,17 @@ function AppHeader() {
           <Input
             placeholder="Search trades, symbols..."
             className="pl-10 bg-slate-800/50 border-slate-700/50 text-white placeholder-slate-500 focus-visible:ring-1 focus-visible:ring-emerald-500 w-full"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const query = e.currentTarget.value
+                if (query.trim()) {
+                  toast({
+                    title: "Search",
+                    description: `Searching for "${query}"...`,
+                  })
+                }
+              }
+            }}
           />
         </div>
       </div>
@@ -220,7 +233,17 @@ function AppHeader() {
               </div>
             </div>
             <div className="p-2 border-t border-slate-800">
-              <Button variant="ghost" size="sm" className="w-full text-slate-300 hover:text-white hover:bg-slate-800">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-slate-300 hover:text-white hover:bg-slate-800"
+                onClick={() => {
+                  toast({
+                    title: "Notifications",
+                    description: "All notifications feature coming soon!",
+                  })
+                }}
+              >
                 View All Notifications
               </Button>
             </div>
@@ -238,21 +261,39 @@ function AppHeader() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[140px] bg-slate-900 border-slate-800">
             <DropdownMenuItem 
-              onClick={() => setTheme("light")} 
+              onClick={() => {
+                setTheme("light")
+                toast({
+                  title: "Theme Changed",
+                  description: "Switched to light mode",
+                })
+              }} 
               className={`${theme === "light" ? "bg-slate-800" : ""} text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer`}
             >
               <Sun className="mr-2 h-4 w-4" />
               <span>Light</span>
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={() => setTheme("dark")} 
+              onClick={() => {
+                setTheme("dark")
+                toast({
+                  title: "Theme Changed",
+                  description: "Switched to dark mode",
+                })
+              }} 
               className={`${theme === "dark" ? "bg-slate-800" : ""} text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer`}
             >
               <Moon className="mr-2 h-4 w-4" />
               <span>Dark</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => setTheme("system")}
+              onClick={() => {
+                setTheme("system")
+                toast({
+                  title: "Theme Changed",
+                  description: "Switched to system theme",
+                })
+              }}
               className={`${theme === "system" ? "bg-slate-800" : ""} text-slate-300 hover:text-white hover:bg-slate-800 cursor-pointer`}
             >
               <Monitor className="mr-2 h-4 w-4" />
@@ -296,7 +337,13 @@ function AppHeader() {
             <DropdownMenuSeparator className="bg-slate-800" />
             <DropdownMenuItem 
               className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-slate-800"
-              onClick={() => signOut()}
+              onClick={() => {
+                toast({
+                  title: "Signing out...",
+                  description: "You have been signed out successfully",
+                })
+                signOut()
+              }}
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
