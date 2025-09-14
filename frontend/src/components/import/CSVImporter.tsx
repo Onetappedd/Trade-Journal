@@ -311,9 +311,9 @@ export function CSVImporter() {
                   unique_hash: execution.unique_hash
                 });
 
-                // Insert batch when it reaches 10 rows (smaller batch size for testing)
-                if (batch.length >= 10) {
-                  console.log('Flushing batch of 10 rows');
+                // Insert batch when it reaches 5 rows (smaller batch size for testing)
+                if (batch.length >= 5) {
+                  console.log('Flushing batch of 5 rows');
                   const result = await insertBatch(supabase, batch);
                   console.log('Batch insert result:', result);
                   
