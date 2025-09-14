@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { marketDataService } from '@/lib/market-data';
-import { calculatePositions } from '@/lib/position-tracker-server';
 
 // Force this API route to use Node.js runtime and disable static generation
 export const runtime = 'nodejs';
@@ -90,34 +88,42 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get current positions for unrealized P&L (server-authenticated)
-    const positions = await marketDataService.getPortfolioPositions(user.id);
-    const unrealizedPnL = positions.reduce((sum, pos) => sum + pos.unrealizedPnL, 0);
-
-    // Use position tracker to compute realized P&L and stats from raw legs
-    const tracker = calculatePositions(trades as any);
-    const realizedClosed = tracker.closedTrades;
-    const realizedPnL = tracker.stats.totalPnL;
+    // Calculate analytics directly from trades table
+    const totalTrades = trades.length;
+    const closedTrades = trades.filter(trade => trade.status === 'closed');
+    const openTrades = trades.filter(trade => trade.status === 'open');
+    
+    // Calculate realized P&L from closed trades
+    const realizedPnL = closedTrades.reduce((sum, trade) => sum + (trade.realized_pnl || 0), 0);
+    
+    // For now, set unrealized P&L to 0 (we can enhance this later with real-time prices)
+    const unrealizedPnL = 0;
     const totalPnL = realizedPnL + unrealizedPnL;
 
-    // Stats
-    const winRate = tracker.stats.winRate;
-    const avgWin = tracker.stats.avgWin;
-    const avgLoss = tracker.stats.avgLoss;
-    const profitFactor = (() => {
-      const wins = realizedClosed.filter((t) => t.pnl > 0);
-      const losses = realizedClosed.filter((t) => t.pnl < 0);
-      const grossProfit = wins.reduce((s, t) => s + t.pnl, 0);
-      const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0));
-      return grossLoss > 0 ? grossProfit / grossLoss : 0;
-    })();
+    // Calculate win rate
+    const winningTrades = closedTrades.filter(trade => (trade.realized_pnl || 0) > 0);
+    const losingTrades = closedTrades.filter(trade => (trade.realized_pnl || 0) < 0);
+    const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length) * 100 : 0;
 
-    // Monthly returns from realized closed trades (use exit_date synthesized by tracker)
+    // Calculate average win and loss
+    const avgWin = winningTrades.length > 0 
+      ? winningTrades.reduce((sum, trade) => sum + (trade.realized_pnl || 0), 0) / winningTrades.length 
+      : 0;
+    const avgLoss = losingTrades.length > 0 
+      ? Math.abs(losingTrades.reduce((sum, trade) => sum + (trade.realized_pnl || 0), 0)) / losingTrades.length 
+      : 0;
+
+    // Calculate profit factor
+    const grossProfit = winningTrades.reduce((sum, trade) => sum + (trade.realized_pnl || 0), 0);
+    const grossLoss = Math.abs(losingTrades.reduce((sum, trade) => sum + (trade.realized_pnl || 0), 0));
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
+
+    // Calculate monthly returns
     const monthlyMap = new Map<string, { month: string; pnl: number; trades: number }>();
-    realizedClosed.forEach((trade) => {
-      const month = (trade.exit_date || trade.entry_date).substring(0, 7);
+    closedTrades.forEach((trade) => {
+      const month = trade.closed_at ? trade.closed_at.substring(0, 7) : trade.opened_at.substring(0, 7);
       const existing = monthlyMap.get(month) || { month, pnl: 0, trades: 0 };
-      existing.pnl += trade.pnl;
+      existing.pnl += trade.realized_pnl || 0;
       existing.trades += 1;
       monthlyMap.set(month, existing);
     });
@@ -126,11 +132,8 @@ export async function GET(request: NextRequest) {
     );
 
     // Performance by symbol
-    const symbolMap = new Map<
-      string,
-      { symbol: string; trades: number; pnl: number; wins: number }
-    >();
-    realizedClosed.forEach((trade) => {
+    const symbolMap = new Map<string, { symbol: string; trades: number; pnl: number; wins: number }>();
+    closedTrades.forEach((trade) => {
       const existing = symbolMap.get(trade.symbol) || {
         symbol: trade.symbol,
         trades: 0,
@@ -138,8 +141,8 @@ export async function GET(request: NextRequest) {
         wins: 0,
       };
       existing.trades += 1;
-      existing.pnl += trade.pnl;
-      if (trade.pnl > 0) existing.wins += 1;
+      existing.pnl += trade.realized_pnl || 0;
+      if ((trade.realized_pnl || 0) > 0) existing.wins += 1;
       symbolMap.set(trade.symbol, existing);
     });
     const performanceBySymbol = Array.from(symbolMap.values())
@@ -149,22 +152,21 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.pnl - a.pnl);
 
-    // Sharpe ratio (simplified) from monthlyReturns pnl series
+    // Calculate Sharpe ratio (simplified)
     const returns = monthlyReturns.map((m) => m.pnl);
     const avgReturn = returns.length > 0 ? returns.reduce((s, r) => s + r, 0) / returns.length : 0;
-    const variance =
-      returns.length > 1
-        ? returns.reduce((s, r) => s + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
-        : 0;
+    const variance = returns.length > 1
+      ? returns.reduce((s, r) => s + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
+      : 0;
     const stdDev = Math.sqrt(variance);
     const sharpeRatio = stdDev > 0 ? avgReturn / stdDev : 0;
 
-    // Max drawdown on cumulative realized P&L
+    // Calculate max drawdown
     let peak = 0;
     let maxDrawdown = 0;
     let runningPnL = 0;
-    realizedClosed.forEach((trade) => {
-      runningPnL += trade.pnl;
+    closedTrades.forEach((trade) => {
+      runningPnL += trade.realized_pnl || 0;
       if (runningPnL > peak) peak = runningPnL;
       const drawdown = peak - runningPnL;
       if (drawdown > maxDrawdown) maxDrawdown = drawdown;
