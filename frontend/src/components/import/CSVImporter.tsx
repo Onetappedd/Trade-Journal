@@ -430,13 +430,18 @@ export function CSVImporter() {
                 // Don't fail the import if matching fails
               }
 
-              // Update import run with final counts
+              // Update import run with final counts and status
               await supabase
                 .from('import_runs')
                 .update({
-                  row_count: totalRows,
-                  inserted_count: importState.inserted,
-                  failed_count: importState.failed + badRows.length
+                  status: 'success',
+                  finished_at: new Date().toISOString(),
+                  summary: {
+                    row_count: totalRows,
+                    inserted_count: importState.inserted,
+                    failed_count: importState.failed + badRows.length,
+                    duplicates_count: importState.duplicates
+                  }
                 })
                 .eq('id', runId);
 
