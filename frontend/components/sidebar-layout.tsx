@@ -142,7 +142,7 @@ function AppHeader() {
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-800/50 bg-slate-950/95 px-4">
-      <SidebarTrigger className="text-slate-300 hover:text-white hover:bg-slate-800/50" />
+      <SidebarTrigger className="h-9 w-9 text-slate-300 hover:text-white hover:bg-slate-800/50 border border-slate-700/50 rounded-md transition-all duration-200 hover:border-emerald-500/50" />
       
       {/* Search Bar */}
       <div className="flex-1 flex justify-center px-8">
@@ -281,7 +281,7 @@ function AppHeader() {
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
