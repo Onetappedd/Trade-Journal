@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useSidebar } from "@/components/ui/sidebar"
 import {
   Home,
   BarChart3,
@@ -36,6 +37,8 @@ interface StaggeredSidebarMenuProps {
 export function StaggeredSidebarMenu({ className }: StaggeredSidebarMenuProps) {
   const [isHovered, setIsHovered] = useState(false)
   const pathname = usePathname()
+  const { state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
 
   return (
     <div 
@@ -59,11 +62,12 @@ export function StaggeredSidebarMenu({ className }: StaggeredSidebarMenuProps) {
                 isActive
                   ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 shadow-lg shadow-emerald-600/10"
                   : "text-slate-300",
-                isHovered && "animate-in slide-in-from-left-2 fade-in-0",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                isHovered && !isCollapsed && "animate-in slide-in-from-left-2 fade-in-0",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+                isCollapsed && "justify-center px-2"
               )}
               style={{
-                animationDelay: isHovered ? `${index * 75}ms` : "0ms",
+                animationDelay: isHovered && !isCollapsed ? `${index * 75}ms` : "0ms",
                 animationFillMode: "both",
               }}
             >
@@ -80,26 +84,31 @@ export function StaggeredSidebarMenu({ className }: StaggeredSidebarMenuProps) {
                 <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
               </div>
 
-              {/* Label and Description */}
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-medium transition-colors duration-300">
-                  {item.label}
+              {/* Label and Description - Hidden when collapsed */}
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <div className="truncate font-medium transition-colors duration-300">
+                    {item.label}
+                  </div>
+                  <div
+                    className={cn(
+                      "truncate text-xs transition-all duration-300",
+                      isActive
+                        ? "text-emerald-300/80"
+                        : "text-slate-500 group-hover:text-slate-400"
+                    )}
+                  >
+                    {item.description}
+                  </div>
                 </div>
-                <div
-                  className={cn(
-                    "truncate text-xs transition-all duration-300",
-                    isActive
-                      ? "text-emerald-300/80"
-                      : "text-slate-500 group-hover:text-slate-400"
-                  )}
-                >
-                  {item.description}
-                </div>
-              </div>
+              )}
 
               {/* Active Indicator */}
               {isActive && (
-                <div className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
+                <div className={cn(
+                  "absolute top-1/2 -translate-y-1/2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50",
+                  isCollapsed ? "right-1 h-2 w-2" : "right-2 h-2 w-2"
+                )} />
               )}
 
               {/* Hover Glow Effect */}
@@ -111,7 +120,7 @@ export function StaggeredSidebarMenu({ className }: StaggeredSidebarMenuProps) {
               />
 
               {/* Staggered Animation Overlay */}
-              {isHovered && (
+              {isHovered && !isCollapsed && (
                 <div
                   className="absolute inset-0 rounded-lg bg-gradient-to-r from-slate-800/20 to-transparent animate-in fade-in-0"
                   style={{

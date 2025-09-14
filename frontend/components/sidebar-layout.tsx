@@ -40,22 +40,30 @@ import {
 import { useTheme } from "./theme-provider"
 import { useAuth } from "@/providers/auth-provider"
 import { StaggeredSidebarMenu } from "./staggered-sidebar-menu"
+import { cn } from "@/lib/utils"
 
 function AppSidebar() {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
+  const { state } = useSidebar()
+  const isCollapsed = state === 'collapsed'
 
   return (
     <Sidebar variant="inset" className="border-slate-800/50 bg-slate-950/95">
       <SidebarHeader className="border-b border-slate-800/50">
-        <div className="flex items-center gap-2 px-2 py-2">
+        <div className={cn(
+          "flex items-center gap-2 px-2 py-2 transition-all duration-300",
+          isCollapsed ? "justify-center" : ""
+        )}>
           <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">R</span>
           </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-lg text-white">RiskR</span>
-            <span className="text-xs text-slate-400">Trading Platform</span>
-          </div>
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <span className="font-bold text-lg text-white">RiskR</span>
+              <span className="text-xs text-slate-400">Trading Platform</span>
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
@@ -63,55 +71,64 @@ function AppSidebar() {
         <div className="space-y-6">
           {/* Navigation Section */}
           <div>
-            <h3 className="text-slate-400 font-medium text-sm mb-3 px-3">Navigation</h3>
+            {!isCollapsed && (
+              <h3 className="text-slate-400 font-medium text-sm mb-3 px-3">Navigation</h3>
+            )}
             <StaggeredSidebarMenu />
           </div>
         </div>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-slate-800/50 p-2">
-        <div className="flex items-center gap-2 p-2">
+        <div className={cn(
+          "flex items-center gap-2 p-2 transition-all duration-300",
+          isCollapsed ? "justify-center" : ""
+        )}>
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.user_metadata?.avatar_url} alt="User" />
             <AvatarFallback className="bg-emerald-600 text-white font-medium text-sm">
               {user?.email?.charAt(0).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col min-w-0 flex-1">
-            <p className="text-sm font-medium text-white truncate">
-              {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
-            </p>
-            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800" align="end">
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-slate-800" />
-              <DropdownMenuItem 
-                className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-slate-800"
-                onClick={() => signOut()}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!isCollapsed && (
+            <>
+              <div className="flex flex-col min-w-0 flex-1">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+                </p>
+                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800" align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-800" />
+                  <DropdownMenuItem 
+                    className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-slate-800"
+                    onClick={() => signOut()}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>
