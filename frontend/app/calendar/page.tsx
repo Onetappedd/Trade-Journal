@@ -280,10 +280,7 @@ export default function CalendarPage() {
             icon={CalendarIcon}
             title="No trades yet"
             description="Import your trades to see your trading calendar with daily P&L visualization"
-            action={{
-              label: "Import Trades",
-              href: "/import",
-            }}
+            onAction={() => window.location.href = "/import"}
           />
         </div>
       </div>

@@ -192,10 +192,7 @@ export default function JournalPage() {
             icon={FileText}
             title="No journal entries yet"
             description="Start documenting your trades to track your progress and improve your strategy"
-            action={{
-              label: "Add First Entry",
-              onClick: () => setIsAddModalOpen(true),
-            }}
+            onAction={() => setIsAddModalOpen(true)}
           />
         </div>
       </div>
