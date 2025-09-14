@@ -401,35 +401,38 @@ export function CSVImporter() {
               }
 
               // Step D: Run matching engine to convert executions to trades
-              if (finalInserted > 0) {
-                console.log('Running matching engine for', finalInserted, 'imported executions');
-                try {
-                  const response = await fetch('/api/matching/run', {
-                    method: 'POST',
-                    headers: { 
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${session?.access_token}`,
-                    },
-                    body: JSON.stringify({ userId: user.id })
-                  });
-                  
-                  if (response.ok) {
-                    const matchResult = await response.json();
-                    console.log('Matching engine result:', matchResult);
-                  } else {
-                    console.error('Matching engine API error:', response.status, response.statusText);
-                  }
-                } catch (matchError) {
-                  console.error('Matching engine error:', matchError);
-                  // Don't fail the import if matching fails
+              // Always run matching engine after import, regardless of finalInserted count
+              // because the state updates might not reflect the actual inserted count
+              console.log('Running matching engine after import completion');
+              try {
+                const response = await fetch('/api/matching/run', {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`,
+                  },
+                  body: JSON.stringify({ 
+                    userId: user.id,
+                    sinceImportRunId: runId // Pass the import run ID to process only new executions
+                  })
+                });
+                
+                if (response.ok) {
+                  const matchResult = await response.json();
+                  console.log('Matching engine result:', matchResult);
+                } else {
+                  console.error('Matching engine API error:', response.status, response.statusText);
+                  const errorText = await response.text();
+                  console.error('Error details:', errorText);
                 }
-              } else {
-                console.log('No executions were inserted, skipping matching engine');
+              } catch (matchError) {
+                console.error('Matching engine error:', matchError);
+                // Don't fail the import if matching fails
               }
 
-              // Update ingestion run with final counts
+              // Update import run with final counts
               await supabase
-                .from('ingestion_runs')
+                .from('import_runs')
                 .update({
                   row_count: totalRows,
                   inserted_count: importState.inserted,
