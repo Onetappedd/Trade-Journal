@@ -171,7 +171,6 @@ export default function LoginPage() {
                 required
                 error={formErrors.email}
                 placeholder="Enter your email"
-                icon={<Mail className="h-4 w-4" />}
               />
 
               <FormField
@@ -184,7 +183,6 @@ export default function LoginPage() {
                 required
                 error={formErrors.password}
                 placeholder="Enter your password"
-                icon={<Lock className="h-4 w-4" />}
               />
 
               <div className="flex items-center justify-between text-sm">

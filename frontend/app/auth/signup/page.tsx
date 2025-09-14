@@ -208,7 +208,6 @@ export default function SignupPage() {
                 error={formErrors.username}
                 placeholder="Choose a username"
                 helperText="Letters, numbers, and underscores only"
-                icon={<User className="h-4 w-4" />}
               />
 
               <FormField
@@ -221,7 +220,6 @@ export default function SignupPage() {
                 required
                 error={formErrors.email}
                 placeholder="Enter your email"
-                icon={<Mail className="h-4 w-4" />}
               />
 
               <FormField
@@ -235,7 +233,6 @@ export default function SignupPage() {
                 error={formErrors.password}
                 placeholder="Create a password"
                 helperText="At least 8 characters with uppercase, lowercase, and number"
-                icon={<Lock className="h-4 w-4" />}
               />
 
               <FormField
@@ -248,7 +245,6 @@ export default function SignupPage() {
                 required
                 error={formErrors.confirmPassword}
                 placeholder="Confirm your password"
-                icon={<Lock className="h-4 w-4" />}
               />
 
               {/* Terms Checkbox */}

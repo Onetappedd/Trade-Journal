@@ -185,7 +185,6 @@ export default function ResetPasswordPage() {
                   error={formErrors.email}
                   placeholder="Enter your email address"
                   helperText="We'll send reset instructions to this email"
-                  icon={<Mail className="h-4 w-4" />}
                 />
 
                 <SubmitButton
