@@ -59,19 +59,19 @@ export function UnifiedHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b border-slate-800/50 bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-slate-950/80">
         <div className="container flex h-16 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
           {/* Left: Logo and Navigation */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-8">
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
-              <span className="font-bold text-xl">RiskR</span>
+              <span className="font-bold text-xl text-white">RiskR</span>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav className="hidden md:flex items-center space-x-2">
               {menuItems.slice(1, 6).map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
@@ -79,10 +79,10 @@ export function UnifiedHeader() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-900"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        ? "bg-emerald-600 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -94,31 +94,31 @@ export function UnifiedHeader() {
           </div>
 
           {/* Center: Search */}
-          <div className="flex-1 flex justify-center px-6">
-            <div className="relative w-full max-w-2xl">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex-1 flex justify-center px-8">
+            <div className="relative w-full max-w-lg">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search trades, symbols..."
-                className="pl-10 bg-muted/50 border-0 focus-visible:ring-1 w-full"
+                className="pl-10 bg-slate-800/50 border-slate-700/50 text-white placeholder-slate-500 focus-visible:ring-1 focus-visible:ring-emerald-500 w-full"
               />
             </div>
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="h-9 w-9 p-0 md:hidden"
+              className="h-9 w-9 p-0 md:hidden text-slate-300 hover:text-white hover:bg-slate-800/50"
             >
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 relative">
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
                 3
@@ -127,7 +127,7 @@ export function UnifiedHeader() {
             </Button>
 
             {/* Settings */}
-            <Button variant="ghost" size="sm" asChild className="h-9 w-9 p-0">
+            <Button variant="ghost" size="sm" asChild className="h-9 w-9 p-0 text-slate-300 hover:text-white hover:bg-slate-800/50">
               <Link href="/settings">
                 <Settings className="h-5 w-5" />
                 <span className="sr-only">Settings</span>
@@ -137,24 +137,24 @@ export function UnifiedHeader() {
             {/* Theme Toggle */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-300 hover:text-white hover:bg-slate-800/50">
                   <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                   <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                   <span className="sr-only">Toggle theme</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[140px]">
-                <DropdownMenuItem onClick={() => setTheme("light")} className={theme === "light" ? "bg-accent/10" : ""}>
+              <DropdownMenuContent align="end" className="min-w-[140px] bg-slate-900 border-slate-800">
+                <DropdownMenuItem onClick={() => setTheme("light")} className={`${theme === "light" ? "bg-slate-800" : ""} text-slate-300 hover:text-white hover:bg-slate-800`}>
                   <Sun className="mr-2 h-4 w-4" />
                   <span>Light</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")} className={theme === "dark" ? "bg-accent/10" : ""}>
+                <DropdownMenuItem onClick={() => setTheme("dark")} className={`${theme === "dark" ? "bg-slate-800" : ""} text-slate-300 hover:text-white hover:bg-slate-800`}>
                   <Moon className="mr-2 h-4 w-4" />
                   <span>Dark</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setTheme("system")}
-                  className={theme === "system" ? "bg-accent/10" : ""}
+                  className={`${theme === "system" ? "bg-slate-800" : ""} text-slate-300 hover:text-white hover:bg-slate-800`}
                 >
                   <Monitor className="mr-2 h-4 w-4" />
                   <span>System</span>
@@ -174,29 +174,29 @@ export function UnifiedHeader() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</p>
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">{user?.email}</p>
+                    <p className="font-medium text-white">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</p>
+                    <p className="w-[200px] truncate text-sm text-slate-400">{user?.email}</p>
                   </div>
                 </div>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-slate-800" />
                 <DropdownMenuItem asChild>
-                  <Link href="/settings" className="cursor-pointer">
+                  <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/settings" className="cursor-pointer">
+                  <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-slate-800" />
                 <DropdownMenuItem 
-                  className="cursor-pointer text-red-600 dark:text-red-400"
+                  className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-slate-800"
                   onClick={() => signOut()}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
