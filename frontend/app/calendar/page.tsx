@@ -121,7 +121,7 @@ export default function CalendarPage() {
     {} as Record<string, typeof calendarTrades>,
   )
 
-  // Calculate daily P&L
+  // Calculate daily P&L and statistics
   const dailyPnL = Object.entries(tradesByDate).reduce(
     (acc, [date, trades]) => {
       acc[date] = trades.reduce((sum, trade) => sum + trade.pnl, 0)
@@ -129,6 +129,14 @@ export default function CalendarPage() {
     },
     {} as Record<string, number>,
   )
+
+  // Calculate calendar statistics
+  const dailyPnLValues = Object.values(dailyPnL)
+  const winningDays = dailyPnLValues.filter(pnl => pnl > 0).length
+  const losingDays = dailyPnLValues.filter(pnl => pnl < 0).length
+  const avgDailyPnL = dailyPnLValues.length > 0 
+    ? dailyPnLValues.reduce((sum, pnl) => sum + pnl, 0) / dailyPnLValues.length 
+    : 0
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
@@ -328,7 +336,7 @@ export default function CalendarPage() {
   }
 
   // Check if we have any trades to show
-  const hasTrades = mockTrades.length > 0
+  const hasTrades = trades.length > 0
 
   if (!hasTrades) {
     return (
@@ -427,17 +435,19 @@ export default function CalendarPage() {
               <div className="flex items-center space-x-2">
                 <TrendingUp className="h-4 w-4 text-emerald-400" />
                 <span className="text-sm text-slate-400">Winning Days:</span>
-                <span className="text-sm font-medium text-emerald-400">12</span>
+                <span className="text-sm font-medium text-emerald-400">{winningDays}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <TrendingDown className="h-4 w-4 text-red-400" />
                 <span className="text-sm text-slate-400">Losing Days:</span>
-                <span className="text-sm font-medium text-red-400">8</span>
+                <span className="text-sm font-medium text-red-400">{losingDays}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <DollarSign className="h-4 w-4 text-white" />
                 <span className="text-sm text-slate-400">Avg Daily:</span>
-                <span className="text-sm font-medium text-white">+$247</span>
+                <span className={`text-sm font-medium ${avgDailyPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {avgDailyPnL >= 0 ? '+' : ''}${avgDailyPnL.toFixed(0)}
+                </span>
               </div>
             </div>
           </div>
