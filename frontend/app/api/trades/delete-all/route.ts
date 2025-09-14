@@ -14,6 +14,7 @@ export async function DELETE(request: NextRequest) {
 
     const token = authHeader.replace('Bearer ', '');
     
+    // Create client with user token for authentication
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,7 +37,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized', details: authError?.message }, { status: 401 });
     }
 
-    // Delete all trades for the user
+    // Create service role client for bypassing RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          persistSession: false,
+        },
+      }
+    );
+
+    // Delete all trades for the user (using user client - has DELETE policy)
     const { data: trades, error: deleteError } = await supabase
       .from('trades')
       .delete()
@@ -48,15 +60,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete trades', details: deleteError.message }, { status: 500 });
     }
 
-    // Also delete all executions for the user
-    const { error: deleteExecutionsError } = await supabase
+    // Delete all executions for the user (using admin client to bypass RLS)
+    const { error: deleteExecutionsError } = await supabaseAdmin
       .from('executions_normalized')
       .delete()
       .eq('user_id', user.id);
 
     if (deleteExecutionsError) {
       console.error('Error deleting executions:', deleteExecutionsError);
-      // Don't fail the request if executions deletion fails, just log it
+      return NextResponse.json({ error: 'Failed to delete executions', details: deleteExecutionsError.message }, { status: 500 });
     }
 
     const deletedCount = trades?.length || 0;
@@ -64,7 +76,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       deletedCount,
-      message: `Successfully deleted ${deletedCount} trades and associated executions`
+      message: `Successfully deleted ${deletedCount} trades and all associated executions`
     });
 
   } catch (error) {
