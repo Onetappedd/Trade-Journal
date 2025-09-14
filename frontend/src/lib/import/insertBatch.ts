@@ -19,8 +19,15 @@ export interface InsertResult {
  */
 export async function bisectInsert(
   rows: any[],
-  insertFn: (batch: any[]) => Promise<{ data: any; error: any }>
+  insertFn: (batch: any[]) => Promise<{ data: any; error: any }>,
+  depth: number = 0
 ): Promise<InsertResult> {
+  // Prevent infinite recursion
+  if (depth > 10) {
+    console.error('🚫 Bisection depth limit reached, marking all rows as failed');
+    return { inserted: 0, duplicates: 0, failed: rows };
+  }
+
   if (rows.length === 0) {
     return { inserted: 0, duplicates: 0, failed: [] };
   }
@@ -30,11 +37,11 @@ export async function bisectInsert(
     const result = await insertFn(rows);
     
     if (result.error) {
-      // Check if it's a unique violation (duplicate)
-      if (result.error.code === '23505' && (
+      // Check if it's a unique violation (duplicate) or 409 conflict
+      if ((result.error.code === '23505' && (
         result.error.message.includes('unique_hash') || 
         result.error.message.includes('executions_normalized_unique_hash_key')
-      )) {
+      )) || result.error.code === '409') {
         return { inserted: 0, duplicates: 1, failed: [] };
       }
       // Other error - mark as failed
@@ -51,8 +58,8 @@ export async function bisectInsert(
 
   // Process both halves recursively
   const [leftResult, rightResult] = await Promise.all([
-    bisectInsert(leftHalf, insertFn),
-    bisectInsert(rightHalf, insertFn)
+    bisectInsert(leftHalf, insertFn, depth + 1),
+    bisectInsert(rightHalf, insertFn, depth + 1)
   ]);
 
   // Combine results
@@ -118,12 +125,20 @@ export async function insertBatch(
           .select('id')
           .limit(1); // Use minimal data for performance
 
-        // Check for rate limiting errors
-        if (result.error && (result.error.code === '429' || result.error.code === '503')) {
-          if (attempt < retryDelays.length - 1) {
-            // Wait before retry
-            await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
-            continue;
+        // Check for specific error types that should not be retried
+        if (result.error) {
+          // Don't retry on duplicate/conflict errors - these are permanent
+          if (result.error.code === '23505' || result.error.code === '409' || result.error.code === 'PGRST301') {
+            return result; // Return immediately without retry
+          }
+          
+          // Only retry on rate limiting and server errors
+          if (result.error.code === '429' || result.error.code === '503') {
+            if (attempt < retryDelays.length - 1) {
+              // Wait before retry
+              await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+              continue;
+            }
           }
         }
 
@@ -182,9 +197,23 @@ export async function insertBatch(
     result.error.message.includes('executions_normalized_unique_hash_key')
   )) {
     // Unique violation - use bisection to count duplicates
+    console.log('🔄 Detected duplicate hash conflict, using bisection to handle duplicates');
     return await bisectInsert(rows, insertWithRetry);
   }
 
+  // Handle 409 conflict errors (likely duplicate hashes)
+  if (result.error.code === '409') {
+    console.log('🔄 Detected 409 conflict error, using bisection to handle conflicts');
+    return await bisectInsert(rows, insertWithRetry);
+  }
+
+  // Handle RLS policy errors
+  if (result.error.code === 'PGRST301') {
+    console.error('🚫 RLS Policy Error: Cannot insert due to Row Level Security policy');
+    return { inserted: 0, duplicates: 0, failed: rows };
+  }
+
   // Other errors - use bisection to isolate failing records
+  console.log('🔄 Other error detected, using bisection to isolate failing records');
   return await bisectInsert(rows, insertWithRetry);
 }

@@ -145,6 +145,16 @@ export function CSVImporter() {
 
     setImportState(prev => ({ ...prev, stage: 'importing', progress: 0 }));
 
+    // Set a timeout to prevent infinite loops
+    const importTimeout = setTimeout(() => {
+      console.error('🚫 Import timeout reached, stopping import');
+      setImportState(prev => ({ 
+        ...prev, 
+        stage: 'complete', 
+        error: 'Import timed out after 5 minutes. Please try again with a smaller file.' 
+      }));
+    }, 5 * 60 * 1000); // 5 minutes timeout
+
     try {
       // Step A: Create import run
       const source = importState.usePreset ? importState.detectedPreset?.id || 'csv' : 'csv';
@@ -301,9 +311,9 @@ export function CSVImporter() {
                   unique_hash: execution.unique_hash
                 });
 
-                // Insert batch when it reaches 5 rows (reduced for testing small files)
-                if (batch.length >= 5) {
-                  console.log('Flushing batch of 5 rows');
+                // Insert batch when it reaches 50 rows (reasonable batch size)
+                if (batch.length >= 50) {
+                  console.log('Flushing batch of 50 rows');
                   const result = await insertBatch(supabase, batch);
                   console.log('Batch insert result:', result);
                   
@@ -451,6 +461,9 @@ export function CSVImporter() {
         stage: 'mapping',
         error: `Import error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
+    } finally {
+      // Clear the timeout
+      clearTimeout(importTimeout);
     }
   }, [user, importState.mapping, importState.inserted, importState.failed, importState.usePreset, importState.detectedPreset, importState.timezoneOverride, selectedFile, supabase]);
 
