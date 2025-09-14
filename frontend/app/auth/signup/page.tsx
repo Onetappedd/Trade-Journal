@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FormField, SubmitButton } from "@/components/form-field"
 import { toast } from "@/hooks/use-toast"
 import { BarChart3, User, Mail, Lock, Chrome } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuth } from "@/providers/auth-provider"
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -20,7 +20,7 @@ export default function SignupPage() {
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { signUp } = useAuth()
+  const { supabase } = useAuth()
 
   const validateField = (field: string, value: string | boolean) => {
     const errors: Record<string, string> = {}
@@ -99,8 +99,18 @@ export default function SignupPage() {
     setIsSubmitting(true)
 
     try {
-      const { error } = await signUp(formData.email, formData.password, {
-        username: formData.username
+      if (!supabase) {
+        throw new Error('Authentication service not available')
+      }
+      
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            username: formData.username
+          }
+        }
       })
       
       if (error) {
