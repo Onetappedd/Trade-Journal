@@ -42,9 +42,11 @@ export async function bisectInsert(
         result.error.message.includes('unique_hash') || 
         result.error.message.includes('executions_normalized_unique_hash_key')
       )) || result.error.code === '409') {
+        console.log('🔄 Single row duplicate/conflict detected, treating as duplicate');
         return { inserted: 0, duplicates: 1, failed: [] };
       }
       // Other error - mark as failed
+      console.log('❌ Single row insert failed with error:', result.error.code, result.error.message);
       return { inserted: 0, duplicates: 0, failed: rows };
     }
     
@@ -203,8 +205,9 @@ export async function insertBatch(
 
   // Handle 409 conflict errors (likely duplicate hashes)
   if (result.error.code === '409') {
-    console.log('🔄 Detected 409 conflict error, using bisection to handle conflicts');
-    return await bisectInsert(rows, insertWithRetry);
+    console.log('🔄 Detected 409 conflict error, treating as duplicates');
+    // 409 errors are typically duplicate hashes, so treat all rows as duplicates
+    return { inserted: 0, duplicates: rows.length, failed: [] };
   }
 
   // Handle RLS policy errors
