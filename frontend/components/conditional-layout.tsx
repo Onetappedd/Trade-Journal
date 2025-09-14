@@ -1,34 +1,31 @@
 "use client"
 
 import type React from "react"
-import { UnifiedHeader } from "@/components/unified-header"
+import { SidebarLayout } from "@/components/sidebar-layout"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
 import { usePathname } from "next/navigation"
 
-function ConditionalHeader() {
-  const pathname = usePathname()
-
-  // Don't show UnifiedHeader on home page or auth pages
-  if (pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/login")) {
-    return null
-  }
-
-  return <UnifiedHeader />
-}
-
-export default function ConditionalLayout({
+function ConditionalLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const pathname = usePathname()
+
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <Suspense fallback={null}>
-        <ConditionalHeader />
-        {children}
+        {/* Don't show sidebar on home page or auth pages */}
+        {pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/login") ? (
+          <main className="min-h-screen bg-slate-950 text-slate-100">
+            {children}
+          </main>
+        ) : (
+          <SidebarLayout>{children}</SidebarLayout>
+        )}
       </Suspense>
       <Toaster />
       <SonnerToaster
@@ -45,3 +42,5 @@ export default function ConditionalLayout({
     </ThemeProvider>
   )
 }
+
+export default ConditionalLayout
