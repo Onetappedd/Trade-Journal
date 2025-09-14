@@ -13,6 +13,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -46,7 +52,7 @@ import { cn } from "@/lib/utils"
 function AppSidebar() {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
-  const { state } = useSidebar()
+  const { state, toggleSidebar } = useSidebar()
   const isCollapsed = state === 'collapsed'
 
   return (
@@ -54,16 +60,39 @@ function AppSidebar() {
       <SidebarHeader className="border-b border-slate-800/50">
         <div className={cn(
           "flex items-center gap-2 px-2 py-2 transition-all duration-300",
-          isCollapsed ? "justify-center" : ""
+          isCollapsed ? "justify-center" : "justify-between"
         )}>
-          <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">R</span>
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">R</span>
+            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col">
+                <span className="font-bold text-lg text-white">RiskR</span>
+                <span className="text-xs text-slate-400">Trading Platform</span>
+              </div>
+            )}
           </div>
           {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="font-bold text-lg text-white">RiskR</span>
-              <span className="text-xs text-slate-400">Trading Platform</span>
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-800/50"
+                    onClick={() => toggleSidebar()}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="bg-slate-900 border-slate-700 text-white">
+                  <p>Collapse sidebar</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </SidebarHeader>
