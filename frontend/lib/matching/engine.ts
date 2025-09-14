@@ -155,7 +155,7 @@ export async function matchUserTrades({
     // Split executions by instrument type
     const equityExecutions = executions.filter(e => e.instrument_type === 'stock' || e.instrument_type === 'equity');
     const optionExecutions = executions.filter(e => e.instrument_type === 'option');
-    const futureExecutions = executions.filter(e => e.instrument_type === 'future');
+    const futureExecutions = executions.filter(e => e.instrument_type === 'future' || e.instrument_type === 'futures');
 
     console.log(`Split executions: ${equityExecutions.length} equity, ${optionExecutions.length} options, ${futureExecutions.length} futures`);
 
@@ -227,9 +227,9 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           instrument_type: 'equity',
           status: 'open',
           opened_at: exec.timestamp,
-          qty_opened: Math.abs(qty) || 1, // Ensure qty_opened is always > 0
+          qty_opened: Math.max(Math.abs(qty), 0.01), // Ensure qty_opened is always > 0
           qty_closed: 0,
-          avg_open_price: avgPrice,
+          avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
@@ -259,8 +259,8 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           
           // Update open trade
           if (openTrade) {
-            openTrade.qty_opened = Math.abs(position);
-            openTrade.avg_open_price = avgPrice;
+            openTrade.qty_opened = Math.max(Math.abs(position), 0.01); // Ensure qty_opened is always > 0
+            openTrade.avg_open_price = Math.max(avgPrice, 0.01); // Ensure avg_open_price is always > 0
             openTrade.fees = totalFees;
           }
           
@@ -303,9 +303,9 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
               instrument_type: 'equity',
               status: 'open',
               opened_at: exec.timestamp,
-              qty_opened: Math.abs(position),
+              qty_opened: Math.max(Math.abs(position), 0.01), // Ensure qty_opened is always > 0
               qty_closed: 0,
-              avg_open_price: avgPrice,
+              avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
@@ -448,10 +448,10 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         status,
         opened_at: window[0].timestamp,
         closed_at: status === 'closed' ? window[window.length - 1].timestamp : undefined,
-        qty_opened: Math.abs(netPosition),
-        qty_closed: status === 'closed' ? Math.abs(netPosition) : 0,
-        avg_open_price: avgOpenPrice,
-        avg_close_price: status === 'closed' ? avgOpenPrice : undefined,
+        qty_opened: Math.max(Math.abs(netPosition), 0.01), // Ensure qty_opened is always > 0
+        qty_closed: status === 'closed' ? Math.max(Math.abs(netPosition), 0.01) : 0,
+        avg_open_price: Math.max(avgOpenPrice, 0.01), // Ensure avg_open_price is always > 0
+        avg_close_price: status === 'closed' ? Math.max(avgOpenPrice, 0.01) : undefined,
         realized_pnl: realizedPnl,
         fees: totalFees,
         legs: legsArray,
@@ -519,12 +519,12 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
           user_id: exec.user_id,
           group_key: generateGroupKey(symbol, exec.id),
           symbol,
-           instrument_type: 'futures',
+          instrument_type: 'futures',
           status: 'open',
           opened_at: exec.timestamp,
-          qty_opened: Math.abs(qty) || 1, // Ensure qty_opened is always > 0
+          qty_opened: Math.max(Math.abs(qty), 0.01), // Ensure qty_opened is always > 0
           qty_closed: 0,
-          avg_open_price: avgPrice,
+          avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
           realized_pnl: 0,
           fees: totalFees,
           ingestion_run_id: exec.source_import_run_id,
@@ -553,8 +553,8 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
           lastExecId = exec.id;
           
           if (openTrade) {
-            openTrade.qty_opened = Math.abs(position);
-            openTrade.avg_open_price = avgPrice;
+            openTrade.qty_opened = Math.max(Math.abs(position), 0.01); // Ensure qty_opened is always > 0
+            openTrade.avg_open_price = Math.max(avgPrice, 0.01); // Ensure avg_open_price is always > 0
             openTrade.fees = totalFees;
           }
           
@@ -597,9 +597,9 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
               instrument_type: 'futures',
               status: 'open',
               opened_at: exec.timestamp,
-              qty_opened: Math.abs(position),
+              qty_opened: Math.max(Math.abs(position), 0.01), // Ensure qty_opened is always > 0
               qty_closed: 0,
-              avg_open_price: avgPrice,
+              avg_open_price: Math.max(avgPrice, 0.01), // Ensure avg_open_price is always > 0
               realized_pnl: 0,
               fees: totalFees,
               ingestion_run_id: exec.source_import_run_id,
@@ -664,8 +664,10 @@ async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void
   // Ensure all required fields are set and constraints are satisfied
   const tradeData = {
     ...trade,
-    qty_closed: trade.qty_closed || 0, // Ensure qty_closed is set (constraint: >= 0)
-    avg_close_price: trade.avg_close_price || 0, // Ensure avg_close_price is set
+    qty_opened: Math.max(trade.qty_opened, 0.01), // Ensure qty_opened > 0
+    qty_closed: Math.max(trade.qty_closed || 0, 0), // Ensure qty_closed >= 0
+    avg_open_price: Math.max(trade.avg_open_price, 0.01), // Ensure avg_open_price > 0
+    avg_close_price: trade.avg_close_price ? Math.max(trade.avg_close_price, 0.01) : null, // Ensure avg_close_price > 0 if set
     updated_at: new Date().toISOString(),
   };
   
