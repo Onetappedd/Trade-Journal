@@ -1,0 +1,5 @@
+Timestamp,Symbol,Side,Quantity,Price,Type
+2024-01-15 09:30:00,AAPL,Buy,100,150.00,Equity
+2024-01-15 10:15:00,MSFT,Sell,50,300.00,Equity
+2024-01-16 14:30:00,GOOGL,Buy,25,2800.00,Equity
+2024-01-16 15:45:00,TSLA,Sell,10,200.00,Equity

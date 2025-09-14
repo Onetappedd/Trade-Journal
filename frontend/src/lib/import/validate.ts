@@ -297,6 +297,9 @@ export function normalizeRow(raw: Record<string, unknown>):
           const normalizedType = optionType.toUpperCase();
           if (normalizedType === 'CALL' || normalizedType === 'PUT') {
             normalized.option_type = normalizedType;
+          } else if (normalizedType === 'EQUITY' || normalizedType === 'STOCK') {
+            // If Type is "Equity" or "Stock", set asset_type to equity and don't set option_type
+            normalized.asset_type = 'equity';
           } else {
             addError('option_type', `must be CALL or PUT, got: ${optionType}`);
           }
