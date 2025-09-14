@@ -62,7 +62,7 @@ export function UnifiedHeader() {
       <header className="sticky top-0 z-50 w-full border-b border-slate-800/50 bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-slate-950/80">
         <div className="container flex h-16 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
           {/* Left: Logo and Navigation */}
-          <div className="flex items-center space-x-8">
+          <div className="flex items-center space-x-8 flex-shrink-0">
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
@@ -105,7 +105,7 @@ export function UnifiedHeader() {
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"
@@ -118,13 +118,45 @@ export function UnifiedHeader() {
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-                3
-              </span>
-              <span className="sr-only">Notifications</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50"
+                >
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                    3
+                  </span>
+                  <span className="sr-only">Notifications</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 bg-slate-900 border-slate-800">
+                <div className="p-3 border-b border-slate-800">
+                  <h3 className="font-semibold text-white">Notifications</h3>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <div className="p-3 border-b border-slate-800/50">
+                    <p className="text-sm text-slate-300">New trade executed: AAPL</p>
+                    <p className="text-xs text-slate-500 mt-1">2 minutes ago</p>
+                  </div>
+                  <div className="p-3 border-b border-slate-800/50">
+                    <p className="text-sm text-slate-300">Portfolio value updated</p>
+                    <p className="text-xs text-slate-500 mt-1">1 hour ago</p>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm text-slate-300">Weekly performance report ready</p>
+                    <p className="text-xs text-slate-500 mt-1">1 day ago</p>
+                  </div>
+                </div>
+                <div className="p-2 border-t border-slate-800">
+                  <Button variant="ghost" size="sm" className="w-full text-slate-300 hover:text-white hover:bg-slate-800">
+                    View All Notifications
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Settings */}
             <Button variant="ghost" size="sm" asChild className="h-9 w-9 p-0 text-slate-300 hover:text-white hover:bg-slate-800/50">

@@ -112,39 +112,148 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async () => {
     setIsSubmitting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been saved successfully.",
-    })
-    setIsEditing({ ...isEditing, profile: false })
-    setIsSubmitting(false)
+    try {
+      // Get the session token
+      const session = JSON.parse(localStorage.getItem('riskr-supabase-auth-v1') || '{}')
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      // Update user profile via Supabase
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          username: formData.username,
+          bio: formData.bio
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile')
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved successfully.",
+      })
+      setIsEditing({ ...isEditing, profile: false })
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleSaveSecurity = async () => {
     setIsSubmitting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    toast({
-      title: "Security Settings Updated",
-      description: "Your password and security settings have been updated.",
-    })
-    setIsEditing({ ...isEditing, security: false })
-    setIsSubmitting(false)
+    try {
+      // Get the session token
+      const session = JSON.parse(localStorage.getItem('riskr-supabase-auth-v1') || '{}')
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      // Update password via Supabase
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update password')
+      }
+
+      toast({
+        title: "Security Settings Updated",
+        description: "Your password has been updated successfully.",
+      })
+      setIsEditing({ ...isEditing, security: false })
+      // Clear password fields
+      setFormData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }))
+    } catch (error) {
+      console.error('Error updating password:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update password. Please check your current password and try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleExportData = (type: string) => {
-    toast({
-      title: "Export Started",
-      description: `Your ${type} export is being prepared. You'll receive an email when it's ready.`,
-    })
-    setTimeout(() => {
+  const handleExportData = async (type: string) => {
+    try {
+      // Get the session token
+      const session = JSON.parse(localStorage.getItem('riskr-supabase-auth-v1') || '{}')
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      toast({
+        title: "Export Started",
+        description: `Your ${type} export is being prepared. You'll receive an email when it's ready.`,
+      })
+
+      // Call the export API
+      const response = await fetch('/api/user/export-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          exportType: type
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to start export')
+      }
+
+      const result = await response.json()
+      
       toast({
         title: "Export Complete",
-        description: `Your ${type} has been exported successfully.`,
+        description: `Your ${type} has been exported successfully. Check your email for the download link.`,
       })
-    }, 3000)
+    } catch (error) {
+      console.error('Error exporting data:', error)
+      toast({
+        title: "Export Failed",
+        description: "Failed to export your data. Please try again later.",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
