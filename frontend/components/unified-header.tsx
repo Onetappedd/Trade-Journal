@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { useTheme } from "./theme-provider"
 import { useAuth } from "@/providers/auth-provider"
+import { useNotifications } from "@/hooks/use-notifications"
 
 const menuItems = [
   { href: "/", label: "Home", icon: Home, description: "Landing page" },
@@ -55,6 +56,7 @@ export function UnifiedHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { setTheme, theme } = useTheme()
   const { user, signOut } = useAuth()
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
   const pathname = usePathname()
 
   return (
@@ -126,29 +128,71 @@ export function UnifiedHeader() {
                   className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50"
                 >
                   <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-                    3
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
                   <span className="sr-only">Notifications</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 bg-slate-900 border-slate-800">
-                <div className="p-3 border-b border-slate-800">
+                <div className="p-3 border-b border-slate-800 flex items-center justify-between">
                   <h3 className="font-semibold text-white">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={markAllAsRead}
+                      className="text-xs text-slate-400 hover:text-white"
+                    >
+                      Mark all read
+                    </Button>
+                  )}
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  <div className="p-3 border-b border-slate-800/50">
-                    <p className="text-sm text-slate-300">New trade executed: AAPL</p>
-                    <p className="text-xs text-slate-500 mt-1">2 minutes ago</p>
-                  </div>
-                  <div className="p-3 border-b border-slate-800/50">
-                    <p className="text-sm text-slate-300">Portfolio value updated</p>
-                    <p className="text-xs text-slate-500 mt-1">1 hour ago</p>
-                  </div>
-                  <div className="p-3">
-                    <p className="text-sm text-slate-300">Weekly performance report ready</p>
-                    <p className="text-xs text-slate-500 mt-1">1 day ago</p>
-                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-slate-400">
+                      <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No notifications</p>
+                    </div>
+                  ) : (
+                    notifications.slice(0, 5).map((notification) => (
+                      <div 
+                        key={notification.id}
+                        className={`p-3 border-b border-slate-800/50 cursor-pointer hover:bg-slate-800/30 ${
+                          !notification.isRead ? 'bg-slate-800/20' : ''
+                        }`}
+                        onClick={() => {
+                          if (!notification.isRead) {
+                            markAsRead(notification.id);
+                          }
+                          if (notification.actionUrl) {
+                            window.location.href = notification.actionUrl;
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                            notification.type === 'success' ? 'bg-green-500' :
+                            notification.type === 'warning' ? 'bg-yellow-500' :
+                            notification.type === 'error' ? 'bg-red-500' :
+                            'bg-blue-500'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-300 font-medium">{notification.title}</p>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2">{notification.message}</p>
+                            <p className="text-xs text-slate-600 mt-1">
+                              {new Date(notification.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          {!notification.isRead && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="p-2 border-t border-slate-800">
                   <Button variant="ghost" size="sm" className="w-full text-slate-300 hover:text-white hover:bg-slate-800">

@@ -4,7 +4,6 @@ import type React from "react"
 import { SidebarLayout } from "@/components/sidebar-layout"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Suspense } from "react"
 import { usePathname } from "next/navigation"
 
@@ -16,17 +15,15 @@ function ConditionalLayout({
   const pathname = usePathname()
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-      <Suspense fallback={null}>
-        {/* Don't show sidebar on home page or auth pages */}
-        {pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/login") ? (
-          <main className="min-h-screen bg-slate-950 text-slate-100">
-            {children}
-          </main>
-        ) : (
-          <SidebarLayout>{children}</SidebarLayout>
-        )}
-      </Suspense>
+    <Suspense fallback={null}>
+      {/* Don't show sidebar on home page or auth pages */}
+      {pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/login") ? (
+        <main className="min-h-screen bg-slate-950 text-slate-100">
+          {children}
+        </main>
+      ) : (
+        <SidebarLayout>{children}</SidebarLayout>
+      )}
       <Toaster />
       <SonnerToaster
         theme="dark"
@@ -39,7 +36,7 @@ function ConditionalLayout({
           },
         }}
       />
-    </ThemeProvider>
+    </Suspense>
   )
 }
 
