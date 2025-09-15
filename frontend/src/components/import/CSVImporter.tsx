@@ -63,6 +63,8 @@ export function CSVImporter() {
     timezoneOverride: 'local'
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [currentImportId, setCurrentImportId] = useState<string | null>(null);
 
 
   const handleFileSelect = useCallback(async (file: File) => {
@@ -123,13 +125,30 @@ export function CSVImporter() {
       return;
     }
 
+    // Prevent multiple simultaneous imports
+    if (isImporting) {
+      console.log('🚫 Import already in progress, ignoring duplicate call');
+      return;
+    }
+
+    // Generate unique import ID to prevent duplicate processing
+    const importId = `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setCurrentImportId(importId);
+    
+    console.log('🚀 Starting import process for file:', selectedFile.name, 'with ID:', importId);
+    setIsImporting(true);
+
     // Check if we have either preset or manual mapping
     if (importState.usePreset && !importState.detectedPreset?.transform) {
       console.error('Preset mode selected but no transform available');
+      setIsImporting(false);
+      setCurrentImportId(null);
       return;
     }
     if (!importState.usePreset && !importState.mapping) {
       console.error('Manual mode selected but no mapping available');
+      setIsImporting(false);
+      setCurrentImportId(null);
       return;
     }
 
@@ -147,12 +166,14 @@ export function CSVImporter() {
 
     // Set a timeout to prevent infinite loops
     const importTimeout = setTimeout(() => {
-      console.error('🚫 Import timeout reached, stopping import');
+      console.error('🚫 Import timeout reached, stopping import for ID:', importId);
       setImportState(prev => ({ 
         ...prev, 
         stage: 'complete', 
         error: 'Import timed out after 5 minutes. Please try again with a smaller file.' 
       }));
+      setIsImporting(false);
+      setCurrentImportId(null);
     }, 5 * 60 * 1000); // 5 minutes timeout
 
     try {
@@ -183,9 +204,15 @@ export function CSVImporter() {
 
       // Step B: Stream and process rows
       await new Promise<void>((resolve, reject) => {
+        console.log('📊 Starting streamRows for import ID:', importId);
         streamRows(
           selectedFile,
           async (row, rowNo) => {
+            // Check if this is still the current import (prevent race conditions)
+            if (currentImportId !== importId) {
+              console.log('🚫 Import ID mismatch, skipping row processing for row:', rowNo);
+              return;
+            }
             try {
               totalRows++;
               console.log(`Processing row ${rowNo}:`, row);
@@ -311,9 +338,9 @@ export function CSVImporter() {
                   unique_hash: execution.unique_hash
                 });
 
-                // Insert batch when it reaches 3 rows (smaller batch size for testing)
-                if (batch.length >= 3) {
-                  console.log('Flushing batch of 3 rows');
+                // Insert batch when it reaches 1 row (ensure small files are processed)
+                if (batch.length >= 1) {
+                  console.log('Flushing batch of', batch.length, 'rows');
                   const result = await insertBatch(supabase, batch);
                   console.log('Batch insert result:', result);
                   
@@ -344,7 +371,13 @@ export function CSVImporter() {
           },
           async () => {
             try {
-              console.log('Streaming completed. Final stats:', { 
+              // Check if this is still the current import (prevent race conditions)
+              if (currentImportId !== importId) {
+                console.log('🚫 Import ID mismatch in completion callback, aborting');
+                return;
+              }
+              
+              console.log('Streaming completed for import ID:', importId, '. Final stats:', { 
                 totalRows, 
                 batchLength: batch.length, 
                 badRowsLength: badRows.length,
@@ -470,10 +503,12 @@ export function CSVImporter() {
         error: `Import error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
     } finally {
-      // Clear the timeout
+      // Clear the timeout and reset importing state
       clearTimeout(importTimeout);
+      setIsImporting(false);
+      setCurrentImportId(null);
     }
-  }, [user, importState.mapping, importState.inserted, importState.failed, importState.usePreset, importState.detectedPreset, importState.timezoneOverride, selectedFile, supabase]);
+  }, [user, importState.mapping, importState.inserted, importState.failed, importState.usePreset, importState.detectedPreset, importState.timezoneOverride, selectedFile, supabase, isImporting, currentImportId]);
 
   const downloadFailedRows = useCallback(() => {
     if (importState.badRows.length === 0) return;
@@ -671,9 +706,14 @@ export function CSVImporter() {
 
           <button
             onClick={handleStartImport}
-            className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
+            disabled={isImporting}
+            className={`w-full px-6 py-3 rounded-md font-medium ${
+              isImporting 
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
-            Start Import {importState.usePreset ? `(${importState.detectedPreset?.label} preset)` : '(manual mapping)'}
+            {isImporting ? 'Importing...' : `Start Import ${importState.usePreset ? `(${importState.detectedPreset?.label} preset)` : '(manual mapping)'}`}
           </button>
         </div>
       )}
@@ -733,6 +773,8 @@ export function CSVImporter() {
                 timezoneOverride: 'local'
               });
               setSelectedFile(null);
+              setIsImporting(false);
+              setCurrentImportId(null);
             }}
             className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
           >
