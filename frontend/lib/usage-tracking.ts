@@ -22,7 +22,7 @@ export const emitUsageEvent = createWrappedApi(
     kind: UsageEventKind,
     payload: UsageEventPayload = {}
   ): Promise<string | null> => {
-    const supabase = createClient();
+    const supabase = createSupabaseClient();
     
     // This function should be called from API routes with service role
     const { data, error } = await (supabase as any).rpc('emit_usage_event', {
@@ -45,7 +45,7 @@ export const emitUsageEvent = createWrappedApi(
  */
 export const getUserUsageSummary = createWrappedApi(
   async () => {
-    const supabase = createClient();
+    const supabase = createSupabaseClient();
     
     // TODO: Implement get_user_usage_summary RPC function
     // For now, return a stub response
@@ -64,7 +64,7 @@ export const getUserUsageSummary = createWrappedApi(
  */
 export const getUserUsagePeriod = createWrappedApi(
   async (startDate: string, endDate: string) => {
-    const supabase = createClient();
+    const supabase = createSupabaseClient();
     
     const { data, error } = await (supabase as any).rpc('get_user_usage_period', {
       p_start_date: startDate,

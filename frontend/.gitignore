@@ -30,3 +30,4 @@ next-env.d.ts
 app/dashboard/route.ts
 app/dashboard/route.ts.bak
 app/dashboard/route.backup
+.vercel

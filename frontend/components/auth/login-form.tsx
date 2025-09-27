@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createSupabaseClient } from '@/lib/supabase/client';
 import { config } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,7 +57,8 @@ export default function LoginForm() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const supabase = createSupabaseClient();
 
   // LOGIN HANDLER
   const handleLogin = async (formData: FormData) => {
@@ -77,7 +78,9 @@ export default function LoginForm() {
         setMessage({ type: 'error', text: error.message });
       } else {
         setMessage({ type: 'success', text: 'Login successful! Redirecting...' });
-        router.push('/dashboard');
+        // Redirect to intended destination or dashboard
+        const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+        router.push(redirectTo);
         router.refresh();
       }
     } catch (error) {
@@ -257,6 +260,7 @@ export default function LoginForm() {
                       className="pl-10"
                       required
                       disabled={isLoading || isOAuthLoading}
+                      data-testid="email-input"
                     />
                   </div>
                 </div>
@@ -273,6 +277,7 @@ export default function LoginForm() {
                       className="pl-10 pr-10"
                       required
                       disabled={isLoading || isOAuthLoading}
+                      data-testid="password-input"
                     />
                     <button
                       type="button"
@@ -300,7 +305,7 @@ export default function LoginForm() {
                   </Alert>
                 )}
 
-                <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading} data-testid="sign-in-button">
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>

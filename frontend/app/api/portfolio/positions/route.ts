@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseClient } from '@/lib/supabase/client';
 import { marketDataService } from '@/lib/market-data';
 
 // Force this API route to use Node.js runtime and disable static generation

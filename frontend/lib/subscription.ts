@@ -29,7 +29,7 @@ export interface SubscriptionCheck {
 }
 
 export async function getUserSubscription(userId: string): Promise<UserSubscription | null> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
   
   const { data, error } = await supabase
     .from('user_subscription_status')
@@ -109,7 +109,7 @@ export async function checkUserAccess(userId: string, requiredRole: UserRole = '
 }
 
 export async function upgradeToPro(userId: string): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
   
   // This would typically integrate with Stripe
   // For now, we'll just update the user role
@@ -130,7 +130,7 @@ export async function upgradeToPro(userId: string): Promise<{ success: boolean; 
 }
 
 export async function cancelSubscription(userId: string): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
   
   // This would typically integrate with Stripe
   const { error } = await (supabase as any)

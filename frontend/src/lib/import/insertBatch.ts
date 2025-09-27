@@ -196,10 +196,12 @@ export async function insertBatch(
   // Handle specific error types
   if (result.error.code === '23505' && (
     result.error.message.includes('unique_hash') || 
-    result.error.message.includes('executions_normalized_unique_hash_key')
+    result.error.message.includes('executions_normalized_unique_hash_key') ||
+    result.error.message.includes('user_id') ||
+    result.error.message.includes('row_hash')
   )) {
-    // Unique violation - treat as duplicates directly to avoid infinite loops
-    console.log('🔄 Detected duplicate hash conflict, treating all as duplicates');
+    // Unique violation on (user_id, row_hash) - treat as duplicates directly to avoid infinite loops
+    console.log('🔄 Detected duplicate hash conflict on (user_id, row_hash), treating all as duplicates');
     console.log('23505 error details:', {
       code: result.error.code,
       message: result.error.message,

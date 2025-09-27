@@ -125,7 +125,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [dbUser, setDbUser] = useState<{ username: string; email: string; avatar?: string } | null>(
     null,
   );
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   React.useEffect(() => {
     async function fetchDbUser() {

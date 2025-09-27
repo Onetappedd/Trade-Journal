@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = createSupabaseClient();
 
     // Test the connection
     const { data, error } = await supabase.from('profiles').select('count').limit(1);

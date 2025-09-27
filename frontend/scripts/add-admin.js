@@ -5,7 +5,7 @@
  * Usage: node scripts/add-admin.js <email>
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseClient } from '@/lib/supabase/client';
 import dotenv from 'dotenv';
 
 // Load environment variables

@@ -48,7 +48,7 @@ export function RealizedTradesTable() {
       try {
         setLoading(true);
         setError(null);
-        const supabase = createClient();
+        const supabase = createSupabaseClient();
         const {
           data: { user },
           error: userError,

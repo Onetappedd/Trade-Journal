@@ -34,7 +34,7 @@ export async function calculatePortfolioHistory(
   startDate?: Date,
   endDate?: Date,
 ): Promise<PortfolioDataPoint[]> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   // Fetch all user trades
   let query = supabase

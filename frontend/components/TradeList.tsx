@@ -51,7 +51,7 @@ export default function TradeList({ limit, showHeader = true }: TradeListProps) 
 
   const fetchTrades = async () => {
     try {
-      const supabase = createClient();
+      const supabase = createSupabaseClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();

@@ -39,17 +39,35 @@ export function useUserTrades(opts?: { filters?: Filters; refreshInterval?: numb
   const key = !authLoading && user ? ["user-trades", user.id, JSON.stringify(filters)] : null;
 
   const fetcher = async (_: string, userId: string, filtersJson: string) => {
-    const supabase = createClient();
+    const supabase = createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('No session found');
+    }
+
     const f: Filters = JSON.parse(filtersJson);
-    let q = supabase.from("trades").select("*").eq("user_id", userId).order("opened_at", { ascending: false });
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (f.instrument_type) params.set('asset', f.instrument_type);
+    if (f.symbol) params.set('symbol', f.symbol);
+    params.set('limit', '100'); // Add pagination limit
+    params.set('offset', '0');
 
-    if (f.instrument_type) q = q.eq("instrument_type", f.instrument_type);
-    if (f.status) q = q.eq("status", f.status);
-    if (f.symbol) q = q.ilike("symbol", `%${f.symbol}%`);
+    const response = await fetch(`/api/trades?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
-    const { data, error } = await q;
-    if (error) throw error;
-    return (data ?? []) as Trade[];
+    if (!response.ok) {
+      throw new Error(`Failed to fetch trades: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.items || [];
   };
 
   const swr = useSWR(key, fetcher, {

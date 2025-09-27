@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseWithToken } from '@/lib/supabase/server';
 import { matchUserTrades } from '@/lib/matching/engine';
 
 export async function POST(request: NextRequest) {
@@ -11,20 +11,7 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.replace('Bearer ', '');
     
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          persistSession: false,
-        },
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    );
+    const supabase = createSupabaseWithToken(token);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     

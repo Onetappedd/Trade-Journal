@@ -24,7 +24,7 @@ export default function SignupForm() {
   const [formMsg, setFormMsg] = useState<string | null>(null);
 
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkUsername = async (value: string) => {

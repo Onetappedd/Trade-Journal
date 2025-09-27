@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   const {
     register,

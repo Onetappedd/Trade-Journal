@@ -3,7 +3,7 @@
  * Shared logic between API routes and client components
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseClient } from '@/lib/supabase/client';
 import { parse } from 'csv-parse';
 import { autoMap, applyMapping } from './mapping';
 import { normalizeRow } from './validate';

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseWithToken, createSupabaseAdmin } from '@/lib/supabase/server';
 
 // Force this API route to use Node.js runtime and disable static generation
 export const runtime = 'nodejs';
@@ -15,20 +15,7 @@ export async function DELETE(request: NextRequest) {
     const token = authHeader.replace('Bearer ', '');
     
     // Create client with user token for authentication
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          persistSession: false,
-        },
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    );
+    const supabase = createSupabaseWithToken(token);
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -38,15 +25,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Create service role client for bypassing RLS
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          persistSession: false,
-        },
-      }
-    );
+    const supabaseAdmin = createSupabaseAdmin();
 
     // Delete all trades for the user (using user client - has DELETE policy)
     const { data: trades, error: deleteError } = await supabase

@@ -109,7 +109,7 @@ export async function calculateUserPerformance(
   startDate: Date,
   endDate: Date,
 ): Promise<PerformanceData[]> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   // Fetch trades within date range
   const { data: trades, error } = await supabase
@@ -172,7 +172,7 @@ export async function calculatePeriodPerformance(
   period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
   date: Date = new Date(),
 ): Promise<PeriodPerformance> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   // Calculate date range based on period
   const endDate = new Date(date);
@@ -328,7 +328,7 @@ export async function compareStrategies(
   startDate?: Date,
   endDate?: Date,
 ): Promise<StrategyPerformance[]> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   let query = supabase.from('trades').select('*').eq('user_id', userId);
 

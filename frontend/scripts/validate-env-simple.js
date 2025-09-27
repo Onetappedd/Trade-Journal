@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+
+/**
+ * Simple environment validation script
+ * Validates required environment variables without TypeScript dependencies
+ */
+
+const requiredClientVars = [
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+];
+
+const requiredServerVars = [
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'STRIPE_WEBHOOK_SECRET',
+  'STRIPE_PRICE_BASIC',
+  'STRIPE_PRICE_PRO'
+];
+
+const optionalVars = [
+  'SENTRY_DSN'
+];
+
+function validateEnvironment() {
+  console.log('🔍 Validating environment variables...');
+  
+  const missingVars = [];
+  const invalidVars = [];
+  
+  // Check client variables
+  requiredClientVars.forEach(varName => {
+    const value = process.env[varName];
+    if (!value) {
+      missingVars.push(varName);
+    } else if (varName === 'NEXT_PUBLIC_SUPABASE_URL' && !value.startsWith('http')) {
+      invalidVars.push(`${varName}: must be a valid URL`);
+    }
+  });
+  
+  // Check server variables (only if not in test mode)
+  const isTestMode = process.env.NEXT_PUBLIC_E2E_TEST === 'true' || process.env.NODE_ENV === 'test';
+  if (!isTestMode) {
+    requiredServerVars.forEach(varName => {
+      const value = process.env[varName];
+      if (!value) {
+        missingVars.push(varName);
+      }
+    });
+  } else {
+    console.log('⚠️  Skipping server env validation in test mode');
+  }
+  
+  // Report results
+  if (missingVars.length > 0) {
+    console.error('❌ Missing required environment variables:');
+    missingVars.forEach(varName => {
+      console.error(`  - ${varName}`);
+    });
+    console.error('\nPlease set these variables in your .env.local file');
+    process.exit(1);
+  }
+  
+  if (invalidVars.length > 0) {
+    console.error('❌ Invalid environment variables:');
+    invalidVars.forEach(error => {
+      console.error(`  - ${error}`);
+    });
+    process.exit(1);
+  }
+  
+  console.log('✅ Client environment variables validated');
+  if (!isTestMode) {
+    console.log('✅ Server environment variables validated');
+  }
+  console.log('🎉 All environment variables are valid!');
+}
+
+validateEnvironment();

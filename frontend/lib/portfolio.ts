@@ -28,7 +28,7 @@ export interface PortfolioSummary {
  * Calculate real portfolio value using live market prices
  */
 export async function calculateRealPortfolioValue(userId: string): Promise<PortfolioSummary> {
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   // Fetch all open positions for the user
   const { data: trades, error } = await supabase

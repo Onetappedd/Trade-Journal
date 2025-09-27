@@ -16,7 +16,7 @@ export type TradeListParams = {
 
 export async function getTrades(params: TradeListParams): Promise<TradesResponse> {
   // Source: Supabase (see export logic)
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
   const page = Math.max(1, Number(params.page) || 1);
   const pageSize = Math.max(1, Math.min(Number(params.pageSize) || 50, 200));
   let query = supabase.from('trades').select('*', { count: 'exact' }).eq('user_id', params.userId);

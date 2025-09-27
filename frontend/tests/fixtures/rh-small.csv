@@ -1,0 +1,4 @@
+Date,Symbol,Side,Quantity,Price,Commission,Venue
+2024-01-15,AAPL,BUY,100,150.25,0.00,Robinhood
+2024-01-15,MSFT,SELL,50,380.50,0.00,Robinhood
+2024-01-16,GOOGL,BUY,25,2800.00,0.00,Robinhood

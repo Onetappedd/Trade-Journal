@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseWithToken } from '@/lib/supabase/server'
+import { handleError, createSuccessResponse } from '@/lib/error-mapping'
 
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ ok: false, code: 'UNAUTHORIZED', message: 'No authorization token provided' }, { status: 401 })
     }
 
     const token = authHeader.split(' ')[1]
@@ -24,10 +25,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { currentPassword, newPassword } = body
 
+    // Validate input
+    if (!newPassword || newPassword.length < 6) {
+      return NextResponse.json({ 
+        ok: false, 
+        code: 'WEAK_PASSWORD', 
+        message: 'Password must be at least 6 characters long' 
+      }, { status: 400 })
+    }
+
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ ok: false, code: 'UNAUTHORIZED', message: 'Invalid or expired token' }, { status: 401 })
     }
 
     // Update password
@@ -36,13 +46,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (updateError) {
-      console.error('Error updating password:', updateError)
-      return NextResponse.json({ error: 'Failed to update password' }, { status: 500 })
+      const errorResponse = handleError(updateError)
+      return NextResponse.json(errorResponse, { status: 400 })
     }
 
-    return NextResponse.json({ message: 'Password updated successfully' })
+    return NextResponse.json(createSuccessResponse('Password updated successfully'))
   } catch (error) {
-    console.error('Error in password update:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const errorResponse = handleError(error)
+    return NextResponse.json(errorResponse, { status: 500 })
   }
 }

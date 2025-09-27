@@ -46,7 +46,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const supabase = createClient();
+  const supabase = createSupabaseClient();
 
   useEffect(() => {
     fetchProfile();

@@ -12,6 +12,8 @@ import { ProgressBar } from './ProgressBar';
 import { ErrorTable } from './ErrorTable';
 import { MappingUI } from './MappingUI';
 import { SummaryCard } from './SummaryCard';
+import { toast } from '@/hooks/use-toast';
+import { useThrottledProgress } from '@/src/hooks/use-throttled-progress';
 import type { CanonicalTrade } from '@/src/lib/import/types';
 
 interface BadRow {
@@ -36,15 +38,41 @@ interface ImportState {
   detectionScore: number;
   usePreset: boolean;
   timezoneOverride: string;
+  finished: boolean;
 }
 
 export function CSVImporter() {
   const { user, loading, supabase, session } = useAuth();
+  const [sessionValidated, setSessionValidated] = useState<boolean | null>(null);
+  const { progress: throttledProgress, updateProgress, resetProgress } = useThrottledProgress();
 
   // Debug logging (remove in production)
   if (process.env.NODE_ENV === 'development') {
     console.log('CSVImporter - Auth state:', { user: !!user, loading, userId: user?.id });
   }
+
+  // Validate session on component mount
+  React.useEffect(() => {
+    const validateSession = async () => {
+      if (loading || !supabase) return;
+      
+      try {
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+        if (error || !currentUser) {
+          console.error('Session validation failed:', error);
+          setSessionValidated(false);
+        } else {
+          console.log('Session validated successfully:', currentUser.id);
+          setSessionValidated(true);
+        }
+      } catch (error) {
+        console.error('Error validating session:', error);
+        setSessionValidated(false);
+      }
+    };
+
+    validateSession();
+  }, [supabase, loading]);
   const [importState, setImportState] = useState<ImportState>({
     stage: 'idle',
     progress: 0,
@@ -60,7 +88,8 @@ export function CSVImporter() {
     detectedPreset: null,
     detectionScore: 0,
     usePreset: false,
-    timezoneOverride: 'local'
+    timezoneOverride: 'local',
+    finished: false
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -162,7 +191,8 @@ export function CSVImporter() {
       userId: user.id 
     });
 
-    setImportState(prev => ({ ...prev, stage: 'importing', progress: 0 }));
+    setImportState(prev => ({ ...prev, stage: 'importing', progress: 0, finished: false }));
+    resetProgress(); // Reset throttled progress
 
     // Set a timeout to prevent infinite loops
     const importTimeout = setTimeout(() => {
@@ -170,7 +200,8 @@ export function CSVImporter() {
       setImportState(prev => ({ 
         ...prev, 
         stage: 'complete', 
-        error: 'Import timed out after 5 minutes. Please try again with a smaller file.' 
+        error: 'Import timed out after 5 minutes. Please try again with a smaller file.',
+        finished: true
       }));
       setIsImporting(false);
       setCurrentImportId(null);
@@ -356,11 +387,9 @@ export function CSVImporter() {
                 }
               }
 
-              // Update progress
-              setImportState(prev => ({
-                ...prev,
-                progress: totalRows / 10000 // Estimate, could be improved
-              }));
+              // Update progress with throttling
+              const progressPercent = Math.min((totalRows / 10000) * 100, 100); // Estimate, could be improved
+              updateProgress(progressPercent);
             } catch (error) {
               badRows.push({
                 rowNo,
@@ -417,6 +446,7 @@ export function CSVImporter() {
                 console.log('✅ Final batch insert result:', result);
                 
                 finalInserted += result.inserted;
+                // Update counters in a single setState to avoid race conditions
                 setImportState(prev => ({
                   ...prev,
                   inserted: prev.inserted + result.inserted,
@@ -482,7 +512,8 @@ export function CSVImporter() {
                 ...prev,
                 stage: 'complete',
                 progress: 1,
-                badRows
+                badRows,
+                finished: true
               }));
 
               resolve();
@@ -558,8 +589,46 @@ export function CSVImporter() {
     );
   }
 
+  // Session validation alert
+  if (sessionValidated === false) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Session Expired
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>Your session has expired. Please sign in again to continue importing files.</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => window.location.href = '/auth/sign-in'}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm"
+                >
+                  Sign In Again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Log mount for debugging
+  React.useEffect(() => {
+    console.log('[IMPORTER] mounted');
+  }, []);
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-6" data-testid="importer-mounted">
       <h1 className="text-3xl font-bold text-foreground">CSV Import</h1>
 
       {importState.error && (
@@ -573,6 +642,7 @@ export function CSVImporter() {
           <input
             type="file"
             accept=".csv"
+            data-testid="import-file-input"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleFileSelect(file);
@@ -619,6 +689,7 @@ export function CSVImporter() {
                 </div>
                 <div className="flex space-x-2">
                   <button
+                    data-testid="import-use-preset-toggle"
                     onClick={() => setImportState(prev => ({ ...prev, usePreset: true }))}
                     className={`px-4 py-2 rounded-md text-sm font-medium ${
                       importState.usePreset
@@ -629,6 +700,7 @@ export function CSVImporter() {
                     Use detected preset
                   </button>
                   <button
+                    data-testid="import-manual-mapping-toggle"
                     onClick={() => setImportState(prev => ({ ...prev, usePreset: false }))}
                     className={`px-4 py-2 rounded-md text-sm font-medium ${
                       !importState.usePreset
@@ -705,6 +777,7 @@ export function CSVImporter() {
           </div>
 
           <button
+            data-testid="import-start-button"
             onClick={handleStartImport}
             disabled={isImporting}
             className={`w-full px-6 py-3 rounded-md font-medium ${
@@ -722,16 +795,31 @@ export function CSVImporter() {
         <div className="space-y-4">
           <div className="text-center">
             <h3 className="text-lg font-medium text-foreground mb-2">Importing Trades</h3>
-            <ProgressBar value={importState.progress} />
-            <p className="text-sm text-muted-foreground mt-2">
-              Inserted: {importState.inserted} | Failed: {importState.failed} | Duplicates: {importState.duplicates}
-            </p>
+            <div data-testid="import-progress">
+              <ProgressBar value={throttledProgress} />
+            </div>
+            <div data-testid="import-progress-text" className="text-sm text-muted-foreground mt-2">
+              Inserted: <span data-testid="import-inserted-count">{importState.inserted}</span> | 
+              Failed: <span data-testid="import-failed-count">{importState.failed}</span> | 
+              Duplicates: <span data-testid="import-duplicates-count">{importState.duplicates}</span>
+            </div>
           </div>
         </div>
       )}
 
       {importState.stage === 'complete' && (
         <div className="space-y-6">
+          <div data-testid="import-finished" className="text-center">
+            <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Import Finished
+            </div>
+          </div>
+          <div data-testid="import-summary-inserted">{importState.inserted}</div>
+          <div data-testid="import-summary-duplicates">{importState.duplicates}</div>
+          <div data-testid="import-summary-failed">{importState.failed}</div>
           <SummaryCard
             inserted={importState.inserted}
             failed={importState.failed}
@@ -743,6 +831,7 @@ export function CSVImporter() {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium text-foreground">Failed Rows</h3>
                 <button
+                  data-testid="import-download-failed-button"
                   onClick={downloadFailedRows}
                   className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
                 >
@@ -753,33 +842,74 @@ export function CSVImporter() {
             </div>
           )}
 
-          <button
-            onClick={() => {
-              setImportState({
-                stage: 'idle',
-                progress: 0,
-                headers: [],
-                sampleRows: [],
-                mapping: {},
-                inserted: 0,
-                failed: 0,
-                duplicates: 0,
-                badRows: [],
-                runId: null,
-                error: null,
-                detectedPreset: null,
-                detectionScore: 0,
-                usePreset: false,
-                timezoneOverride: 'local'
-              });
-              setSelectedFile(null);
-              setIsImporting(false);
-              setCurrentImportId(null);
-            }}
-            className="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
-          >
-            Import Another File
-          </button>
+          <div className="flex space-x-4">
+            <button
+              data-testid="import-rollback-button"
+              onClick={async () => {
+                try {
+                  // Call rollback API if available
+                  const session = JSON.parse(localStorage.getItem('riskr-supabase-auth-v1') || '{}');
+                  const token = session?.access_token;
+
+                  if (token && importState.runId) {
+                    const response = await fetch('/api/import/rollback', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ runId: importState.runId })
+                    });
+
+                    if (response.ok) {
+                      toast({
+                        title: "Import Rolled Back",
+                        description: "The import has been successfully rolled back.",
+                      });
+                    }
+                  }
+                } catch (error) {
+                  console.error('Rollback error:', error);
+                  toast({
+                    title: "Rollback Failed",
+                    description: "Failed to rollback the import. Please try again.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              className="flex-1 bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 font-medium"
+            >
+              Rollback Import
+            </button>
+            <button
+              data-testid="import-another-button"
+              onClick={() => {
+                setImportState({
+                  stage: 'idle',
+                  progress: 0,
+                  headers: [],
+                  sampleRows: [],
+                  mapping: {},
+                  inserted: 0,
+                  failed: 0,
+                  duplicates: 0,
+                  badRows: [],
+                  runId: null,
+                  error: null,
+                  detectedPreset: null,
+                  detectionScore: 0,
+                  usePreset: false,
+                  timezoneOverride: 'local'
+                });
+                setSelectedFile(null);
+                setIsImporting(false);
+                setCurrentImportId(null);
+              }}
+              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 font-medium"
+            >
+              Import Another File
+            </button>
+          </div>
         </div>
       )}
     </div>

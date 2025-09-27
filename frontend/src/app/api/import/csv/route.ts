@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseClient } from '@/lib/supabase/client';
 import { streamAndProcessCSV } from '@/src/lib/import/server';
 
 export const runtime = 'nodejs';

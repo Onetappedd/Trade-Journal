@@ -1,19 +1,27 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase-server';
+import { createSupabaseClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 import BackgroundChartAnimation from '@/components/auth/background-chart-animation';
 import TickerTape from '@/components/auth/ticker-tape';
 import LoginForm from '@/components/auth/login-form';
 
-export default async function LoginPage() {
-  const supabase = await createClient();
+interface LoginPageProps {
+  searchParams: {
+    redirectTo?: string;
+  };
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const supabase = createSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect('/dashboard');
+    // Redirect to the intended destination or dashboard
+    const redirectTo = searchParams.redirectTo || '/dashboard';
+    redirect(redirectTo);
   }
 
   return (

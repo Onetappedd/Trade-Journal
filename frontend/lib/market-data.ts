@@ -275,7 +275,7 @@ class MarketDataService {
 
   // Get user's portfolio positions with real prices
   async getPortfolioPositions(userId: string) {
-    const supabase = createClient();
+    const supabase = createSupabaseClient();
 
     try {
       // Get user's open trades

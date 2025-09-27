@@ -7,8 +7,8 @@
     "npm": ">=8.0.0"
   },
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
+    "build": "node scripts/validate-env-simple.js && next build && node scripts/check-client-secrets.js",
+    "dev": "node scripts/validate-env-simple.js && next dev",
     "lint": "next lint",
     "start": "next start",
     "type-check": "tsc -p . --noEmit",
@@ -16,6 +16,8 @@
     "format:check": "prettier --check .",
     "scan:weird": "node scripts/scan-weird-chars.mjs",
     "check-env": "node scripts/check-env.js",
+    "validate-env": "node scripts/validate-env-simple.js",
+    "check-secrets": "node scripts/check-client-secrets.js",
     "check:routes": "node -e \"console.log('market routes present')\"",
     "check:all": "npm run scan:weird && npm run format:check && npm run type-check && npm run lint && npm run check:routes && npm run check-env",
     "check-db": "node scripts/check-db.js",
@@ -24,6 +26,16 @@
     "test-polygon": "node scripts/test-polygon.js",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:e2e": "node tests/e2e/validate-env.js && playwright test",
+    "test:e2e:ui": "node tests/e2e/validate-env.js && playwright test --ui",
+    "test:e2e:headed": "node tests/e2e/validate-env.js && playwright test --headed",
+    "test:e2e:import": "node tests/e2e/validate-env.js && playwright test tests/e2e/import.spec.ts",
+    "test:install": "playwright install --with-deps",
+    "test:triage": "ts-node --transpile-only scripts/e2e.triage.ts",
+    "e2e:seed": "ts-node --transpile-only scripts/e2e.seed.ts",
+    "e2e:teardown": "ts-node --transpile-only scripts/e2e.teardown.ts",
+    "e2e:helper": "ts-node --transpile-only scripts/e2e.helper.ts",
+    "verify:username-index": "node scripts/verify-username-index.js",
     "types:gen": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" --schema public > lib/database.types.ts"
   },
   "dependencies": {

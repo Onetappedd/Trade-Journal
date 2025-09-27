@@ -34,7 +34,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { usePortfolioAnalytics, usePortfolioPositions } from '@/hooks/usePortfolio';
 import { useAuth } from '@/providers/auth-provider';
-import { createClient } from '@/lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase/client';
 import AnalyticsPnl from '@/components/charts/AnalyticsPnl';
 
 // Import new analytics components
@@ -247,7 +247,7 @@ function useRecentTrades(limit: number = 5000) {
 
   useEffect(() => {
     let mounted = true;
-    const supabase = createClient();
+    const supabase = createSupabaseClient();
 
     async function fetchTrades() {
       try {
