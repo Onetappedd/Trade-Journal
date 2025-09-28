@@ -160,7 +160,7 @@ export function FunctionalCSVImporter() {
             });
             
             // Now try the actual import - use Webull-specific API if Webull preset is selected
-            const apiEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-simple' : '/api/import/csv-fixed';
+            const apiEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-fixed' : '/api/import/csv-fixed';
             console.log('Using API endpoint:', apiEndpoint);
             
             const uploadResponse = await fetch(apiEndpoint, {
