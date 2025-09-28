@@ -1,14 +1,16 @@
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { createClient } from '@/lib/supabase/client'
 
 export async function getIsPremium(userId: string) {
-  const { data } = await supabaseAdmin
+  const supabase = createClient()
+  const { data } = await supabase
     .from('user_entitlements').select('is_premium').eq('user_id', userId).single()
   return !!data?.is_premium
 }
 
 export type BillingState = 'active' | 'trial' | 'grace' | 'canceled' | 'none'
 export async function getBillingState(userId: string): Promise<BillingState> {
-  const { data } = await supabaseAdmin
+  const supabase = createClient()
+  const { data } = await supabase
     .from('billing_subscriptions')
     .select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1).maybeSingle()
   if (!data) return 'none'

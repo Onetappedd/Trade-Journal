@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase';
-import { createWrappedApi } from '@/lib/errors';
+import { createClient } from '@/lib/supabase/client';
 
 export type UsageEventKind = 
   | 'csv_import' 
@@ -16,13 +15,13 @@ export interface UsageEventPayload {
  * Emits a usage event to track user activity for Pro feature cost analysis
  * This should be called from service-side code (API routes) using service role
  */
-export const emitUsageEvent = createWrappedApi(
-  async (
-    userId: string,
-    kind: UsageEventKind,
-    payload: UsageEventPayload = {}
-  ): Promise<string | null> => {
-    const supabase = createSupabaseClient();
+export async function emitUsageEvent(
+  userId: string,
+  kind: UsageEventKind,
+  payload: UsageEventPayload = {}
+): Promise<string | null> {
+  try {
+    const supabase = createClient();
     
     // This function should be called from API routes with service role
     const { data, error } = await (supabase as any).rpc('emit_usage_event', {
@@ -36,16 +35,18 @@ export const emitUsageEvent = createWrappedApi(
     }
 
     return data;
-  },
-  'Failed to emit usage event'
-);
+  } catch (error) {
+    console.error('Failed to emit usage event:', error);
+    throw error;
+  }
+}
 
 /**
  * Gets current month usage summary for the authenticated user
  */
-export const getUserUsageSummary = createWrappedApi(
-  async () => {
-    const supabase = createSupabaseClient();
+export async function getUserUsageSummary() {
+  try {
+    const supabase = createClient();
     
     // TODO: Implement get_user_usage_summary RPC function
     // For now, return a stub response
@@ -55,16 +56,18 @@ export const getUserUsageSummary = createWrappedApi(
       storage_used_mb: 0,
       last_activity: null
     };
-  },
-  'Failed to get usage summary'
-);
+  } catch (error) {
+    console.error('Failed to get usage summary:', error);
+    throw error;
+  }
+}
 
 /**
  * Gets usage summary for a specific date period with cost estimates
  */
-export const getUserUsagePeriod = createWrappedApi(
-  async (startDate: string, endDate: string) => {
-    const supabase = createSupabaseClient();
+export async function getUserUsagePeriod(startDate: string, endDate: string) {
+  try {
+    const supabase = createClient();
     
     const { data, error } = await (supabase as any).rpc('get_user_usage_period', {
       p_start_date: startDate,
@@ -76,9 +79,11 @@ export const getUserUsagePeriod = createWrappedApi(
     }
 
     return data || [];
-  },
-  'Failed to get usage period'
-);
+  } catch (error) {
+    console.error('Failed to get usage period:', error);
+    throw error;
+  }
+}
 
 /**
  * Helper function to track CSV import completion
