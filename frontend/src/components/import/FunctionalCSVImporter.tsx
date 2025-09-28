@@ -83,7 +83,7 @@ export function FunctionalCSVImporter() {
       setImportStatus({
         stage: 'idle',
         progress: 0,
-        message: `File selected: ${file.name} (${(file.size / 1024).toFixed(1}KB)`,
+        message: `File selected: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`,
       });
     }
   }, []);
