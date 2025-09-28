@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
           
           if (insertError) {
             console.error('Error inserting trade:', insertError);
+            console.error('Trade data that failed:', tradeData);
             errorCount++;
           } else {
             console.log('Trade inserted successfully:', insertData);
