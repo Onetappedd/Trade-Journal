@@ -38,40 +38,19 @@ export default function DashboardPage() {
   const { showOnboarding, closeOnboarding } = useOnboarding()
   const router = useRouter()
   const [positions, setPositions] = useState([])
-  const [hasTrades, setHasTrades] = useState(true)
+  const [hasTrades, setHasTrades] = useState(false)
+  const [user, setUser] = useState(null)
+  const [dashboardData, setDashboardData] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const dashboardOverview = {
-    dayPnL: "+$2,847.32",
-    portfolioValue: "$847,293",
-    recentTrades: [
-      {
-        symbol: "AAPL",
-        side: "BUY",
-        quantity: 100,
-        price: "$175.23",
-        pnl: "+$247.50",
-        time: "2 min ago",
-        status: "filled",
-      },
-      {
-        symbol: "TSLA",
-        side: "SELL",
-        quantity: 50,
-        price: "$242.18",
-        pnl: "-$125.30",
-        time: "15 min ago",
-        status: "filled",
-      },
-      {
-        symbol: "NVDA",
-        side: "BUY",
-        quantity: 25,
-        price: "$891.45",
-        pnl: "+$1,247.80",
-        time: "1 hour ago",
-        status: "filled",
-      },
-    ],
+  const dashboardOverview = dashboardData ? {
+    dayPnL: dashboardData.dayPnL || "+$0.00",
+    portfolioValue: dashboardData.portfolioValue || "$0.00",
+    recentTrades: dashboardData.trades || [],
+  } : {
+    dayPnL: "+$0.00",
+    portfolioValue: "$0.00",
+    recentTrades: [],
   }
 
   const alerts = []
@@ -107,12 +86,44 @@ export default function DashboardPage() {
       const session = await getSession()
       if (!session) {
         router.push("/auth/login")
-      } else if (!session.user.onboarded) {
-        showOnboarding()
+      } else {
+        setUser(session.user)
+        // Fetch real dashboard data
+        await fetchDashboardData(session)
+        if (!session.user.onboarded) {
+          showOnboarding()
+        }
       }
     }
     checkSession()
   }, [router, showOnboarding])
+
+  const fetchDashboardData = async (session) => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/test-dashboard', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Dashboard data fetched:', data)
+        setDashboardData(data)
+        setHasTrades(data.trades && data.trades.length > 0)
+      } else {
+        console.error('Failed to fetch dashboard data:', response.statusText)
+        setHasTrades(false)
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      setHasTrades(false)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Test API connection
   useEffect(() => {
@@ -192,7 +203,9 @@ export default function DashboardPage() {
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome back, John</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                Welcome back, {user?.user_metadata?.name || user?.email || 'User'}
+              </h1>
               <p className="text-slate-400 text-sm sm:text-base">Here's your trading performance overview for today</p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
@@ -210,8 +223,35 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-400"></div>
+            <span className="ml-2 text-slate-400">Loading dashboard...</span>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !hasTrades && (
+          <div className="text-center py-12">
+            <div className="mb-4">
+              <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">No trades yet</h3>
+              <p className="text-slate-400 mb-6">Start by importing your trading data to see your performance analytics.</p>
+              <Button 
+                onClick={() => router.push('/import')}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Import Trades
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Stats - Only show if has trades */}
+        {!loading && hasTrades && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <Card className="bg-slate-900/50 border-slate-800/50">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -548,6 +588,7 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
+        )}
       </main>
     </div>
   )

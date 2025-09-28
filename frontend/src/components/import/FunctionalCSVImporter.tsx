@@ -121,6 +121,9 @@ export function FunctionalCSVImporter() {
       const uploadResponse = await fetch('/api/import/csv', {
         method: 'POST',
         body: formData,
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        }
       });
 
       if (!uploadResponse.ok) {
@@ -140,7 +143,11 @@ export function FunctionalCSVImporter() {
       // Poll for import status
       const pollStatus = async () => {
         try {
-          const statusResponse = await fetch(`/api/import/status/${importRunId}`);
+          const statusResponse = await fetch(`/api/import/status/${importRunId}`, {
+            headers: {
+              'Authorization': `Bearer ${session?.access_token}`,
+            }
+          });
           const statusData = await statusResponse.json();
 
           if (statusData.status === 'completed') {
