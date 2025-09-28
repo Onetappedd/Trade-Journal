@@ -6,29 +6,17 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== WEBULL CSV IMPORT START ===');
+    console.log('=== WEBULL CSV SIMPLE START ===');
     
     // Get the file from FormData
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const data = formData.get('data') as string;
     
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
     
     console.log('File received:', file.name, file.size);
-    
-    // Parse the request data
-    let requestData;
-    try {
-      requestData = JSON.parse(data || '{}');
-    } catch (e) {
-      console.error('Failed to parse request data:', e);
-      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
-    }
-    
-    console.log('Request data:', requestData);
     
     // Create Supabase client
     const cookieStore = cookies();
@@ -44,8 +32,6 @@ export async function POST(request: NextRequest) {
       }
     );
     
-    console.log('Supabase client created');
-    
     // Get user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
@@ -55,62 +41,6 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('User authenticated:', user.id);
-    
-    // Test database connection first
-    try {
-      const { data: testData, error: testError } = await supabase
-        .from('import_runs')
-        .select('id')
-        .limit(1);
-      
-      if (testError) {
-        console.error('Database test error:', testError);
-        return NextResponse.json({ 
-          error: 'Database connection failed', 
-          details: testError.message 
-        }, { status: 500 });
-      }
-      
-      console.log('Database connection successful');
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      return NextResponse.json({ 
-        error: 'Database connection failed', 
-        details: dbError.message 
-      }, { status: 500 });
-    }
-    
-    // Try to create import run with minimal fields first
-    let importRun;
-    try {
-      const { data: importRunData, error: importError } = await supabase
-        .from('import_runs')
-        .insert({
-          user_id: user.id,
-          source: 'webull',
-          status: 'processing'
-        })
-        .select()
-        .single();
-      
-      if (importError) {
-        console.error('Import run creation error:', importError);
-        return NextResponse.json({ 
-          error: 'Failed to create import run', 
-          details: importError.message 
-        }, { status: 500 });
-      }
-      
-      importRun = importRunData;
-      console.log('Import run created:', importRun.id);
-      
-    } catch (e) {
-      console.error('Import run creation failed:', e);
-      return NextResponse.json({ 
-        error: 'Import run creation failed', 
-        details: e.message 
-      }, { status: 500 });
-    }
     
     // Read and parse CSV
     const csvText = await file.text();
@@ -141,7 +71,7 @@ export async function POST(request: NextRequest) {
         const side = (row['Side'] || '').toLowerCase();
         const status = row['Status'] || '';
         
-        // Use the "Filled" column for quantity (how many contracts were actually filled)
+        // Use the "Filled" column for quantity
         const filledStr = row['Filled'] || '0';
         const quantity = parseFloat(filledStr);
         
@@ -152,7 +82,7 @@ export async function POST(request: NextRequest) {
         
         // Use filled time if available, otherwise placed time
         const dateStr = row['Filled Time'] || row['Placed Time'] || '';
-        const date = dateStr.split(' ')[0]; // Extract just the date part (MM/DD/YYYY)
+        const date = dateStr.split(' ')[0]; // Extract just the date part
         
         // Check if trade is filled
         const isFilled = status.toLowerCase() === 'filled';
@@ -177,7 +107,6 @@ export async function POST(request: NextRequest) {
             status: side === 'sell' ? 'closed' : 'open',
             pnl: pnl,
             broker: 'webull',
-            import_run_id: importRun.id,
             row_hash: `${user.id}_${symbol}_${side}_${quantity}_${price}_${date}`
           };
           
@@ -210,24 +139,6 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Update import run with progress (try with minimal fields)
-    try {
-      await supabase
-        .from('import_runs')
-        .update({
-          status: 'completed',
-          result: {
-            inserted: insertedCount,
-            skipped: skippedCount,
-            errors: errorCount
-          }
-        })
-        .eq('id', importRun.id);
-    } catch (e) {
-      console.error('Failed to update import run:', e);
-      // Don't fail the whole import for this
-    }
-    
     console.log('Import completed successfully');
     console.log('Final stats:', {
       totalRows: lines.length - 1,
@@ -238,7 +149,6 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      importRunId: importRun.id,
       message: 'Webull CSV import completed successfully',
       stats: {
         totalRows: lines.length - 1,
@@ -249,7 +159,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Webull CSV Import error:', error);
+    console.error('Webull CSV Simple error:', error);
     return NextResponse.json({ 
       error: 'Import failed', 
       details: error.message 
