@@ -129,13 +129,27 @@ export async function POST(request: NextRequest) {
         // Enhanced mapping for Webull and other brokers
         const symbol = row.symbol || row.ticker || row.instrument || row.stock || '';
         const side = (row.side || row.action || row.type || row.direction || '').toLowerCase();
-        const quantity = parseFloat(row.quantity || row.shares || row.size || row.qty || '0');
-        const price = parseFloat(row.price || row.price_per_share || row.amount || row.value || '0');
-        const date = row.date || row.trade_date || row.time || row.timestamp || new Date().toISOString().split('T')[0];
         
-        console.log(`Row ${i}: symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}, date=${date}`);
+        // Handle Webull's "total qty" column and quantity parsing
+        const quantityStr = row['total qty'] || row.quantity || row.shares || row.size || row.qty || '0';
+        const quantity = parseFloat(quantityStr);
         
-        if (symbol && side && quantity > 0 && price > 0) {
+        // Handle Webull's price format with @ symbol (e.g., "@3.51" -> "3.51")
+        const priceStr = row.price || row.price_per_share || row.amount || row.value || '0';
+        const cleanPriceStr = priceStr.replace('@', '').trim();
+        const price = parseFloat(cleanPriceStr);
+        
+        // Handle Webull's date format and use filled time if available
+        const dateStr = row['filled time'] || row['placed time'] || row.date || row.trade_date || row.time || row.timestamp || new Date().toISOString().split('T')[0];
+        const date = dateStr.split(' ')[0]; // Extract just the date part (MM/DD/YYYY)
+        
+        // Check if trade is filled (not cancelled)
+        const status = row.status || '';
+        const isFilled = status.toLowerCase() === 'filled';
+        
+        console.log(`Row ${i}: symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}, date=${date}, status=${status}, filled=${isFilled}`);
+        
+        if (symbol && side && quantity > 0 && price > 0 && isFilled) {
           console.log(`Valid trade found: ${symbol} ${side} ${quantity} @ ${price}`);
           
           // Calculate P&L (simplified - you might want more sophisticated calculation)
@@ -166,7 +180,12 @@ export async function POST(request: NextRequest) {
             insertedCount++;
           }
         } else {
-          console.log(`Skipped row ${i}: symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}`);
+          const skipReason = !symbol ? 'no symbol' : 
+                           !side ? 'no side' : 
+                           quantity <= 0 ? 'invalid quantity' : 
+                           price <= 0 ? 'invalid price' : 
+                           !isFilled ? 'not filled' : 'unknown';
+          console.log(`Skipped row ${i}: ${skipReason} - symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}, status=${status}`);
           skippedCount++;
         }
       } catch (error) {
