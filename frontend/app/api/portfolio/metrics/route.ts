@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseWithToken } from '@/lib/supabase/server';
 import { calculateTradingStatistics } from '@/lib/trading-statistics';
 
+// Force dynamic rendering to avoid build-time static generation
+export const dynamic = 'force-dynamic';
+
 /**
  * Portfolio Metrics API
  * Provides aggregated trading metrics for dashboard display

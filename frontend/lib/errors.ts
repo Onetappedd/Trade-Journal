@@ -1,5 +1,17 @@
 import { toast } from 'sonner';
-import { captureException, setUser, setTag } from '@/lib/monitoring';
+
+// Client-safe monitoring functions (no server-only env vars)
+const captureException = (error: Error, context?: any) => {
+  console.error('Error captured:', error, context);
+};
+
+const setUser = (user: any) => {
+  console.log('User set:', user);
+};
+
+const setTag = (key: string, value: string) => {
+  console.log('Tag set:', key, value);
+};
 
 // Error types for better categorization
 export type ErrorType = 

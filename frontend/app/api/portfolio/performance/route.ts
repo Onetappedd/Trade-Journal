@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseWithToken } from '@/lib/supabase/server';
 
+// Force dynamic rendering to avoid build-time static generation
+export const dynamic = 'force-dynamic';
+
 interface PerformanceMetrics {
   strategy: string;
   totalTrades: number;

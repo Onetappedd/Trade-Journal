@@ -4,6 +4,9 @@ import { KPISummary, KPIFilters, KPICalculationConfig } from '@/src/types/kpi';
 import { unstable_cache } from 'next/cache';
 import { createApiError, createApiSuccess, ERROR_CODES } from '@/src/types/api';
 
+// Force dynamic rendering to avoid build-time static generation
+export const dynamic = 'force-dynamic';
+
 /**
  * KPI Summary API
  * 
