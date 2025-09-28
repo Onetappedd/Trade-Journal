@@ -1,6 +1,6 @@
 # Database Schema
 
-Complete database schema documentation for the trading journal application.
+Complete database schema documentation for the Riskr trading analytics platform.
 
 ## Table of Contents
 

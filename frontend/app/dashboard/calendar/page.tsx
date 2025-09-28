@@ -5,7 +5,7 @@ import { CalendarPage } from '@/components/calendar-page';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Calendar | Trading Journal',
+  title: 'Calendar | Riskr',
   description: 'View your trading activity in calendar format',
 };
 

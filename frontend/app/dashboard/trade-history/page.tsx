@@ -9,7 +9,7 @@ import { usePersistedState } from "@/lib/ui/persist";
 import { toast } from "@/components/ui/sonner";
 
 // Persist filter state by default
-const PERSIST_KEY = "tradingjournal:history:filters:v1";
+const PERSIST_KEY = "riskr:history:filters:v1";
 
 export default function TradeHistoryPage() {
   const [filters, setFilters, resetFilters] = usePersistedState(PERSIST_KEY, {});
@@ -17,9 +17,9 @@ export default function TradeHistoryPage() {
 
   const saveReport = () => {
     try {
-      const prev: any[] = JSON.parse(localStorage.getItem("tradingjournal:history:reports:v1") || "[]");
+      const prev: any[] = JSON.parse(localStorage.getItem("riskr:history:reports:v1") || "[]");
       const next = [...prev, { filters, widgets: visibleWidgets, saved: new Date().toISOString() }];
-      localStorage.setItem("tradingjournal:history:reports:v1", JSON.stringify(next));
+      localStorage.setItem("riskr:history:reports:v1", JSON.stringify(next));
       toast.success("Report view saved");
     } catch {
       toast.error("Could not save report");

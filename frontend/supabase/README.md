@@ -1,6 +1,6 @@
 # Trading Database Schema
 
-This document describes the complete database schema for the trading journal application, implemented in Supabase with PostgreSQL.
+This document describes the complete database schema for the Riskr trading analytics platform, implemented in Supabase with PostgreSQL.
 
 ## Overview
 

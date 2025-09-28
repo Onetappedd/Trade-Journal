@@ -1,6 +1,6 @@
 # Data Flows Documentation
 
-This document provides comprehensive diagrams and step-by-step flows for the key data processes in the trading journal application.
+This document provides comprehensive diagrams and step-by-step flows for the key data processes in the Riskr trading analytics platform.
 
 ## Table of Contents
 

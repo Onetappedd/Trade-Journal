@@ -32,7 +32,7 @@ import { IMPORT_V2 } from '@/src/lib/flags';
 const data = {
   teams: [
     {
-      name: 'Trading Journal',
+      name: 'Riskr',
       logo: GalleryVerticalEnd,
       plan: 'Pro',
     },

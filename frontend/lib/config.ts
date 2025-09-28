@@ -1,7 +1,7 @@
 export const config = {
   site: {
     name: 'Riskr',
-    description: 'Professional Trading Journal & Analytics',
+    description: 'Professional Trading Analytics Platform',
     url: process.env.NEXT_PUBLIC_SITE_URL || 'https://riskr.net',
     domain: 'riskr.net',
   },

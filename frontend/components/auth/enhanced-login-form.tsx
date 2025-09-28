@@ -55,7 +55,7 @@ export function EnhancedLoginForm() {
 
       <div className="relative z-10 w-full max-w-md p-6">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">TradingJournal</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Riskr</h1>
           <p className="text-slate-300">Professional Trading Analytics</p>
           <FinancialTicker />
         </div>

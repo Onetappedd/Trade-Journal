@@ -212,7 +212,7 @@ export default function JournalPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">Trading Journal</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Riskr</h1>
               <p className="text-slate-400 text-sm sm:text-base">Document and analyze your trading decisions</p>
             </div>
             <div className="flex items-center space-x-3">

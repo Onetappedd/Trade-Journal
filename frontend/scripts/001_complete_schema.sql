@@ -2,7 +2,7 @@
 -- TradeJournal Pro - Complete Database Schema
 -- Version: 1.0
 -- Description: This script sets up all tables, types, functions,
--- and RLS policies for the trading journal application.
+-- and RLS policies for the Riskr trading analytics platform.
 -- =================================================================
 
 -- Drop existing objects if they exist to ensure a clean setup

@@ -114,34 +114,6 @@ export default function DashboardPage() {
     checkSession()
   }, [router, showOnboarding])
 
-  // Test API connection
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        const session = await getSession()
-        if (session) {
-          const response = await fetch('/api/test-dashboard', {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-          
-          if (response.ok) {
-            const data = await response.json()
-            console.log('Dashboard test successful:', data)
-          } else {
-            console.error('Dashboard test failed:', response.statusText)
-          }
-        }
-      } catch (error) {
-        console.error('Dashboard test error:', error)
-      }
-    }
-    
-    testConnection()
-  }, [])
-
   useEffect(() => {
     setPositions(positionsData)
     if (dashboardOverview && dashboardOverview.recentTrades.length === 0) {

@@ -1,4 +1,4 @@
--- Complete Database Schema for Trading Journal
+-- Complete Database Schema for Riskr Trading Analytics Platform
 -- Run this in your Supabase SQL Editor if tables are missing
 
 -- Enable Row Level Security

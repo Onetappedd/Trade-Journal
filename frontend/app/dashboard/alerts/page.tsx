@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Price Alerts - Trading Journal',
+  title: 'Price Alerts - Riskr',
   description: 'Manage your price alerts and notifications',
 };
 

@@ -1,6 +1,6 @@
-# Trading Journal Application
+# Riskr - Trading Analytics Platform
 
-A comprehensive trading journal application built with Next.js, Supabase, and TypeScript. Features include trade tracking, performance analytics, CSV import, subscription management, and real-time KPI calculations.
+A comprehensive trading analytics platform built with Next.js, Supabase, and TypeScript. Features include trade tracking, performance analytics, CSV import, subscription management, and real-time KPI calculations.
 
 ## 🔒 Security First
 
@@ -447,7 +447,7 @@ DEBUG=app:api npm run dev
 - **Documentation**: Check the docs folder
 - **Issues**: GitHub Issues for bugs
 - **Discussions**: GitHub Discussions for questions
-- **Email**: support@tradingjournal.com
+- **Email**: support@riskr.net
 
 ### Reporting Issues
 

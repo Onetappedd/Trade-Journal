@@ -120,7 +120,7 @@ export const TESTIMONIALS = [
     avatar: "/marketing/avatars/sarah.jpg"
   },
   {
-    quote: "Finally, a trading journal that understands options. The Greeks calculations are spot-on and the analytics are professional-grade.",
+    quote: "Finally, a trading analytics platform that understands options. The Greeks calculations are spot-on and the analytics are professional-grade.",
     author: "Mike Rodriguez",
     role: "Options Trader",
     avatar: "/marketing/avatars/mike.jpg"

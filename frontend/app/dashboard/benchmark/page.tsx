@@ -5,7 +5,7 @@ import { BenchmarkPage } from '@/components/benchmark-page';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Benchmark | Trading Journal',
+  title: 'Benchmark | Riskr',
   description: 'Compare your performance against market benchmarks',
 };
 

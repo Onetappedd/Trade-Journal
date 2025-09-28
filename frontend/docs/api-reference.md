@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference for all API endpoints in the trading journal application.
+Complete reference for all API endpoints in the Riskr trading analytics platform.
 
 ## Table of Contents
 

@@ -1,4 +1,4 @@
-// Accessibility utilities for the trading journal app
+// Accessibility utilities for the Riskr trading analytics platform
 
 /**
  * Check if the user prefers reduced motion

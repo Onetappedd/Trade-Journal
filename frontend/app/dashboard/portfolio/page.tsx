@@ -5,7 +5,7 @@ import { PortfolioPage } from '@/components/portfolio-page';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Portfolio | Trading Journal',
+  title: 'Portfolio | Riskr',
   description: 'View your live portfolio and current positions',
 };
 

@@ -37,7 +37,7 @@ You're ready to use the real data integration!
 
 ## 🎯 Required Tables
 
-The trading journal needs these tables:
+The Riskr trading analytics platform needs these tables:
 
 ### **trades** (Essential)
 

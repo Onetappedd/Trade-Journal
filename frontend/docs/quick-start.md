@@ -1,6 +1,6 @@
 # Quick Start Guide for New Contributors
 
-This guide will get you up and running with the trading journal application in under 10 minutes.
+This guide will get you up and running with the Riskr trading analytics platform in under 10 minutes.
 
 ## 🚀 10-Minute Setup
 

@@ -228,7 +228,7 @@ export default function LoginForm() {
     <div className="w-full max-w-md mx-auto">
       <div className="flex items-center justify-center space-x-2 mb-8">
         <TrendingUp className="h-8 w-8 text-blue-600" />
-        <h1 className="text-2xl font-bold text-gray-900">TradingJournal</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Riskr</h1>
       </div>
 
       <Tabs defaultValue="login" className="w-full">
