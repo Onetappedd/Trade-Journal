@@ -24,6 +24,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { getSession } from '@/lib/auth';
 
 interface ImportStatus {
   stage: 'idle' | 'uploading' | 'parsing' | 'validating' | 'importing' | 'complete' | 'error';
@@ -98,6 +99,17 @@ export function FunctionalCSVImporter() {
       return;
     }
 
+    // Get session for authentication
+    const session = await getSession();
+    if (!session) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to import trades.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsImporting(true);
     setImportStatus({
       stage: 'uploading',
@@ -109,7 +121,7 @@ export function FunctionalCSVImporter() {
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('requestData', JSON.stringify({
+      formData.append('data', JSON.stringify({
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
         broker: brokerPreset || 'csv',
