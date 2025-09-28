@@ -147,6 +147,11 @@ export function FunctionalCSVImporter() {
             console.log('CSV Debug Data:', debugData);
             
             // Show debug info to user
+            console.log('Full debug data:', debugData);
+            console.log('Headers:', debugData.debug.headers);
+            console.log('Sample rows:', debugData.debug.sampleRows);
+            console.log('Possible columns:', debugData.debug.possibleColumns);
+            
             toast({
               title: 'CSV Analysis Complete',
               description: `Found ${debugData.debug.totalLines} lines with headers: ${debugData.debug.headers.join(', ')}`,

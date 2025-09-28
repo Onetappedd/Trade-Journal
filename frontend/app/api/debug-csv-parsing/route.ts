@@ -91,7 +91,17 @@ export async function POST(request: NextRequest) {
           quantity: possibleQuantityColumns,
           price: possiblePriceColumns,
           date: possibleDateColumns
-        }
+        },
+        // Show first few complete rows for analysis
+        firstFewRows: lines.slice(0, 3).map(line => line.split(',')),
+        // Show what we would extract from first row
+        extractionTest: sampleRows.length > 0 ? {
+          symbol: sampleRows[0].symbol || sampleRows[0].ticker || sampleRows[0].instrument || sampleRows[0].stock || 'NOT_FOUND',
+          side: sampleRows[0].side || sampleRows[0].action || sampleRows[0].type || sampleRows[0].direction || 'NOT_FOUND',
+          quantity: sampleRows[0].quantity || sampleRows[0].shares || sampleRows[0].size || sampleRows[0].qty || 'NOT_FOUND',
+          price: sampleRows[0].price || sampleRows[0].price_per_share || sampleRows[0].amount || sampleRows[0].value || 'NOT_FOUND',
+          date: sampleRows[0].date || sampleRows[0].trade_date || sampleRows[0].time || sampleRows[0].timestamp || 'NOT_FOUND'
+        } : null
       }
     });
 
