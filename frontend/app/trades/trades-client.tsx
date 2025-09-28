@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { createSupabaseClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import {
   Table,
   TableBody,
@@ -43,7 +43,7 @@ export default function TradesClient() {
   const [assetFilter, setAssetFilter] = useState<string>('all');
   const [sideFilter, setSideFilter] = useState<string>('all');
 
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
 
   const fetchTrades = async () => {
     try {

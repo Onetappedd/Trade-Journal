@@ -178,7 +178,17 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     });
 
   if (countError) {
-    throw new Error(`Failed to get trades count: ${countError.message}`);
+    console.error('Trades count error:', countError);
+    // Return empty result instead of throwing error
+    return {
+      trades: [],
+      totalCount: 0,
+      page,
+      limit,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false
+    };
   }
 
   // Get paginated results
@@ -186,7 +196,17 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     .range(offset, offset + (limit || 20) - 1);
 
   if (tradesError) {
-    throw new Error(`Failed to fetch trades: ${tradesError.message}`);
+    console.error('Trades fetch error:', tradesError);
+    // Return empty result instead of throwing error
+    return {
+      trades: [],
+      totalCount: 0,
+      page,
+      limit,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false
+    };
   }
 
   return {

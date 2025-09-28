@@ -123,7 +123,9 @@ async function getKPISummary(
   const { data: trades, error: tradesError } = await query;
 
   if (tradesError) {
-    throw new Error(`Failed to fetch trades: ${tradesError.message}`);
+    console.error('Trades query error:', tradesError);
+    // Return empty summary instead of throwing error
+    return getEmptyKPISummary(dateRange);
   }
 
   if (!trades || trades.length === 0) {

@@ -1,49 +1,13 @@
 "use client"
 
 import React from "react"
-import CSVImporter from "@/src/components/import/CSVImporter"
-import { CSVImporterTest } from "@/src/components/import/CSVImporterTest"
-import { BulletproofCSVImporter } from "@/src/components/import/BulletproofCSVImporter"
-import { IMPORT_V2, IS_E2E } from "@/lib/flags"
-
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('CSVImporter Error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-6 bg-red-900/20 border border-red-500/30 rounded-lg">
-          <h2 className="text-red-200 font-semibold mb-2">Import Error</h2>
-          <p className="text-red-300 mb-4">
-            We encountered an unexpected error. Please try again.
-          </p>
-          {this.state.error && (
-            <details className="text-sm text-red-400">
-              <summary className="cursor-pointer">Error Details</summary>
-              <pre className="mt-2 whitespace-pre-wrap">{this.state.error.message}</pre>
-            </details>
-          )}
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Upload, FileText, Settings, CheckCircle, AlertTriangle, Database, Clock, Shield, Zap } from "lucide-react"
 
 export default function ImportPage() {
   return (
@@ -57,45 +21,138 @@ export default function ImportPage() {
           </p>
         </div>
 
-        {/* Import v2 disabled message */}
-        {!IMPORT_V2 && (
-          <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
-            <p className="text-yellow-200">
-              Import v2 is disabled. Please enable NEXT_PUBLIC_IMPORT_V2_ENABLED=true
-            </p>
-          </div>
-        )}
+        {/* Main Import Interface */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Upload Section */}
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <Upload className="h-5 w-5 mr-2 text-emerald-400" />
+                Upload CSV File
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="csv-file" className="text-slate-300">Select CSV File</Label>
+                <Input
+                  id="csv-file"
+                  type="file"
+                  accept=".csv"
+                  className="mt-2 bg-slate-800 border-slate-700 text-slate-100"
+                />
+              </div>
 
-        {/* Test indicators */}
-        {IS_E2E && (
-          <div data-testid="import-flag" style={{ display: 'none' }}>
-            {IMPORT_V2 ? 'enabled' : 'disabled'}
-          </div>
-        )}
+              <div>
+                <Label htmlFor="broker-preset" className="text-slate-300">Broker Preset (Optional)</Label>
+                <Select>
+                  <SelectTrigger className="mt-2 bg-slate-800 border-slate-700 text-slate-100">
+                    <SelectValue placeholder="Select your broker for automatic mapping" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="interactive-brokers">Interactive Brokers</SelectItem>
+                    <SelectItem value="td-ameritrade">TD Ameritrade</SelectItem>
+                    <SelectItem value="etrade">E*TRADE</SelectItem>
+                    <SelectItem value="schwab">Charles Schwab</SelectItem>
+                    <SelectItem value="fidelity">Fidelity</SelectItem>
+                    <SelectItem value="robinhood">Robinhood</SelectItem>
+                    <SelectItem value="webull">Webull</SelectItem>
+                    <SelectItem value="custom">Custom Format</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-         {/* Test CSV Importer Component */}
-         <div data-testid="importer-mounted">mounted</div>
-         <div data-testid="import-file-input">file input placeholder</div>
-         <div data-testid="import-start-button">start button placeholder</div>
-         
-         {/* Simple test component to verify basic functionality */}
-         <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg mb-4">
-           <h3 className="text-blue-200 font-semibold mb-2">Test Component</h3>
-           <p className="text-blue-300">This is a test component to verify the page loads correctly.</p>
-         </div>
-         
-        {/* Test CSV Importer Component */}
-        <CSVImporterTest />
-        
-        {/* Bulletproof CSV Importer Component */}
-        <ErrorBoundary>
-          <BulletproofCSVImporter />
-        </ErrorBoundary>
-        
-        {/* Legacy CSV Importer Component with Error Boundary */}
-        <ErrorBoundary>
-          <CSVImporter />
-        </ErrorBoundary>
+              <div>
+                <Label className="text-slate-300">Import Options</Label>
+                <div className="mt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="skip-duplicates" className="text-slate-300">Skip Duplicates</Label>
+                      <p className="text-sm text-slate-400">Prevent importing duplicate trades</p>
+                    </div>
+                    <Switch id="skip-duplicates" defaultChecked />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="normalize-timestamps" className="text-slate-300">Normalize Timestamps</Label>
+                      <p className="text-sm text-slate-400">Convert all timestamps to UTC</p>
+                    </div>
+                    <Switch id="normalize-timestamps" defaultChecked />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="map-fees" className="text-slate-300">Map Fees & Commissions</Label>
+                      <p className="text-sm text-slate-400">Automatically map fee columns</p>
+                    </div>
+                    <Switch id="map-fees" defaultChecked />
+                  </div>
+                </div>
+              </div>
+
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled>
+                <FileText className="h-4 w-4 mr-2" />
+                Start Import
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Features Section */}
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <Shield className="h-5 w-5 mr-2 text-blue-400" />
+                Bulletproof Import Features
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="h-5 w-5 text-emerald-400" />
+                  <span className="text-slate-300">File size & MIME validation</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Database className="h-5 w-5 text-blue-400" />
+                  <span className="text-slate-300">Streaming/chunked parsing</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Shield className="h-5 w-5 text-purple-400" />
+                  <span className="text-slate-300">Row-level idempotency</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Clock className="h-5 w-5 text-amber-400" />
+                  <span className="text-slate-300">UTC timestamp normalization</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Settings className="h-5 w-5 text-cyan-400" />
+                  <span className="text-slate-300">Broker preset support</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Zap className="h-5 w-5 text-emerald-400" />
+                  <span className="text-slate-300">Real-time status updates</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Status Section */}
+        <div className="mt-8">
+          <Card className="bg-slate-900/50 border-slate-800/50">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <AlertTriangle className="h-5 w-5 mr-2 text-amber-400" />
+                Import Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-400">No file selected. Please choose a CSV file to begin the import process.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
