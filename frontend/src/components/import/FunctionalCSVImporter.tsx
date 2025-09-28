@@ -129,7 +129,31 @@ export function FunctionalCSVImporter() {
         options: importOptions
       }));
 
-            // Upload file
+            // First, debug the CSV parsing
+            const debugResponse = await fetch('/api/debug-csv-parsing', {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'Authorization': `Bearer ${session?.access_token}`,
+              }
+            });
+            
+            if (!debugResponse.ok) {
+              const errorData = await debugResponse.json();
+              throw new Error(errorData.message || 'Debug failed');
+            }
+            
+            const debugData = await debugResponse.json();
+            console.log('CSV Debug Data:', debugData);
+            
+            // Show debug info to user
+            toast({
+              title: 'CSV Analysis Complete',
+              description: `Found ${debugData.debug.totalLines} lines with headers: ${debugData.debug.headers.join(', ')}`,
+              variant: 'default',
+            });
+            
+            // Now try the actual import
             const uploadResponse = await fetch('/api/import/csv-fixed', {
               method: 'POST',
               body: formData,

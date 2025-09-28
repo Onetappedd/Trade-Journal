@@ -126,14 +126,18 @@ export async function POST(request: NextRequest) {
           row[header] = values[index] || '';
         });
         
-        // Simple mapping (you can enhance this based on your CSV format)
-        const symbol = row.symbol || row.ticker || '';
-        const side = (row.side || row.action || '').toLowerCase();
-        const quantity = parseFloat(row.quantity || row.shares || '0');
-        const price = parseFloat(row.price || row.price_per_share || '0');
-        const date = row.date || row.trade_date || new Date().toISOString().split('T')[0];
+        // Enhanced mapping for Webull and other brokers
+        const symbol = row.symbol || row.ticker || row.instrument || row.stock || '';
+        const side = (row.side || row.action || row.type || row.direction || '').toLowerCase();
+        const quantity = parseFloat(row.quantity || row.shares || row.size || row.qty || '0');
+        const price = parseFloat(row.price || row.price_per_share || row.amount || row.value || '0');
+        const date = row.date || row.trade_date || row.time || row.timestamp || new Date().toISOString().split('T')[0];
         
-        if (symbol && side && quantity && price) {
+        console.log(`Row ${i}: symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}, date=${date}`);
+        
+        if (symbol && side && quantity > 0 && price > 0) {
+          console.log(`Valid trade found: ${symbol} ${side} ${quantity} @ ${price}`);
+          
           // Calculate P&L (simplified - you might want more sophisticated calculation)
           const pnl = side === 'sell' ? (price - parseFloat(row.entry_price || '0')) * quantity : 0;
           
@@ -162,6 +166,7 @@ export async function POST(request: NextRequest) {
             insertedCount++;
           }
         } else {
+          console.log(`Skipped row ${i}: symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}`);
           skippedCount++;
         }
       } catch (error) {
