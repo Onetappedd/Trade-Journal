@@ -40,8 +40,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -67,14 +66,14 @@ export async function GET(request: NextRequest) {
     };
 
     // Validate parameters
-    if (params.page < 1) {
+    if (params.page && params.page < 1) {
       return NextResponse.json(
         createApiError(ERROR_CODES.VALIDATION_ERROR, 'Page must be greater than 0'),
         { status: 400 }
       );
     }
 
-    if (params.limit < 1 || params.limit > 100) {
+    if (params.limit && (params.limit < 1 || params.limit > 100)) {
       return NextResponse.json(
         createApiError(ERROR_CODES.VALIDATION_ERROR, 'Limit must be between 1 and 100'),
         { status: 400 }
@@ -114,7 +113,7 @@ const getCachedTrades = unstable_cache(
  */
 async function getTrades(userId: string, params: TradesQueryParams, supabase: any) {
   const { page, limit, sort, direction, symbol, side, status, asset_type, date_from, date_to } = params;
-  const offset = (page - 1) * limit;
+  const offset = ((page || 1) - 1) * (limit || 20);
 
   // Build base query
   let query = supabase
@@ -160,7 +159,7 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
 
   // Apply sorting
   const validSortFields = ['symbol', 'side', 'quantity', 'price', 'pnl', 'opened_at', 'closed_at', 'status'];
-  const sortField = validSortFields.includes(sort) ? sort : 'opened_at';
+  const sortField = (sort && validSortFields.includes(sort)) ? sort : 'opened_at';
   query = query.order(sortField, { ascending: direction === 'asc' });
 
   // Get total count for pagination
@@ -184,7 +183,7 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
 
   // Get paginated results
   const { data: trades, error: tradesError } = await query
-    .range(offset, offset + limit - 1);
+    .range(offset, offset + (limit || 20) - 1);
 
   if (tradesError) {
     throw new Error(`Failed to fetch trades: ${tradesError.message}`);
@@ -195,9 +194,9 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     totalCount: totalCount || 0,
     page,
     limit,
-    totalPages: Math.ceil((totalCount || 0) / limit),
-    hasNextPage: offset + limit < (totalCount || 0),
-    hasPreviousPage: page > 1
+    totalPages: Math.ceil((totalCount || 0) / (limit || 20)),
+    hasNextPage: offset + (limit || 20) < (totalCount || 0),
+    hasPreviousPage: (page || 1) > 1
   };
 }
 
@@ -215,8 +214,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {

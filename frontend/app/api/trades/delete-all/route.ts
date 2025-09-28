@@ -12,10 +12,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    
     // Create client with user token for authentication
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();

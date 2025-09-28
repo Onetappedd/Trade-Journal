@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseWithToken } from '@/lib/supabase/server';
+import { createSupabaseWithToken, createSupabaseAdmin } from '@/lib/supabase/server';
 import { revalidateTag } from 'next/cache';
 import { unstable_cache } from 'next/cache';
 import { createApiError, createApiSuccess, ERROR_CODES } from '@/src/types/api';
@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {

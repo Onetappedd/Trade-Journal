@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 
 // Initialize Stripe only if configured
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
+    apiVersion: '2025-08-27.basil',
 }) : null;
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
           subscriptionData = {
             tier: getTierFromPriceId(subscription.items.data[0]?.price.id),
             status: subscription.status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_end: (subscription as any).current_period_end ? new Date((subscription as any).current_period_end * 1000).toISOString() : null,
             cancel_at_period_end: subscription.cancel_at_period_end,
             stripe_subscription_id: subscription.id,
             stripe_customer_id: subscription.customer as string
@@ -115,12 +115,12 @@ export async function POST(request: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice;
         userId = await getUserIdFromCustomer(invoice.customer as string, supabase);
         
-        if (userId && invoice.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        if (userId && (invoice as any).subscription) {
+          const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string);
           subscriptionData = {
             tier: getTierFromPriceId(subscription.items.data[0]?.price.id),
             status: subscription.status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_end: (subscription as any).current_period_end ? new Date((subscription as any).current_period_end * 1000).toISOString() : null,
             cancel_at_period_end: subscription.cancel_at_period_end,
             stripe_subscription_id: subscription.id,
             stripe_customer_id: subscription.customer as string
@@ -132,10 +132,10 @@ export async function POST(request: NextRequest) {
         const failedInvoice = event.data.object as Stripe.Invoice;
         userId = await getUserIdFromCustomer(failedInvoice.customer as string, supabase);
         
-        if (userId && failedInvoice.subscription) {
+        if (userId && (failedInvoice as any).subscription) {
           subscriptionData = {
             status: 'past_due',
-            stripe_subscription_id: failedInvoice.subscription as string,
+            stripe_subscription_id: (failedInvoice as any).subscription as string,
             stripe_customer_id: failedInvoice.customer as string
           };
         }

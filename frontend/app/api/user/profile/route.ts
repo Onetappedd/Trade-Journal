@@ -9,18 +9,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ ok: false, code: 'UNAUTHORIZED', message: 'No authorization token provided' }, { status: 401 })
     }
 
-    const token = authHeader.split(' ')[1]
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    )
+    const supabase = createSupabaseWithToken(request)
 
     const body = await request.json()
     const { first_name, last_name, username, bio } = body

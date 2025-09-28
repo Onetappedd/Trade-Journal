@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { getServerSupabase } from '@/lib/supabase/server';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = getServerSupabase();
 
     // Test the connection
     const { data, error } = await supabase.from('profiles').select('count').limit(1);

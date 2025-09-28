@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseWithToken } from '@/lib/supabase/server';
 import { createSupabaseClient } from '@/lib/supabase/client';
 
 /**
@@ -23,22 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          persistSession: false,
-        },
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    );
+    const supabase = createSupabaseWithToken(request);
 
     // Get current user - RLS will ensure only their data is accessible
     const { data: { user }, error: authError } = await supabase.auth.getUser();

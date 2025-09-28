@@ -63,8 +63,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -148,8 +147,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -295,7 +293,7 @@ async function processCSVAsync(
       for (const row of chunk) {
         try {
           // Normalize row data
-          const normalizedRow = await normalizeRowData(row, importRequest);
+          const normalizedRow = await normalizeRowData(row as Record<string, any>, importRequest);
           
           // Compute row hash for idempotency
           const rowHash = computeRowHash(normalizedRow, userId, importRequest.broker || 'csv');

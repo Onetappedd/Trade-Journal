@@ -27,8 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {

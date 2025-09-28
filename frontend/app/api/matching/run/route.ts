@@ -9,9 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    
-    const supabase = createSupabaseWithToken(token);
+    const supabase = createSupabaseWithToken(request);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     

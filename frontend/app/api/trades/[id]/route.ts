@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { getServerSupabase } from '@/lib/supabase/server';
 import type { Database } from '@/lib/database.types';
 
 // Force this API route to use Node.js runtime
@@ -10,7 +10,7 @@ type TradeUpdate = Database['public']['Tables']['trades']['Update'];
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const supabase = await createClient();
+    const supabase = getServerSupabase();
 
     // Get current user
     const {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const supabase = await createClient();
+    const supabase = getServerSupabase();
     const body = await request.json();
 
     // Get current user
@@ -86,7 +86,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const supabase = await createClient();
+    const supabase = getServerSupabase();
 
     // Get current user
     const {
