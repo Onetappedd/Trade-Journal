@@ -442,7 +442,7 @@ async function enqueueMatchingJobs(importRunId: string, userId: string, supabase
     // Get unique symbols and dates from the import
     const { data: trades } = await supabase
       .from('trades')
-      .select('symbol, opened_at')
+      .select('symbol, entry_date')
       .eq('user_id', userId)
       .eq('import_run_id', importRunId);
 
@@ -452,7 +452,7 @@ async function enqueueMatchingJobs(importRunId: string, userId: string, supabase
     const batches = new Map<string, string[]>();
     
     for (const trade of trades) {
-      const date = new Date(trade.opened_at).toISOString().split('T')[0];
+      const date = new Date(trade.entry_date).toISOString().split('T')[0];
       const key = `${trade.symbol}_${date}`;
       
       if (!batches.has(key)) {
