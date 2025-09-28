@@ -17,7 +17,7 @@ export function QuickActions() {
       title: 'Import Trades',
       description: 'Upload CSV file',
       icon: Upload,
-      href: '/dashboard/import-trades',
+      href: '/import',
       color: 'text-blue-600',
     },
     {

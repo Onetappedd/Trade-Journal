@@ -130,7 +130,7 @@ export function FunctionalCSVImporter() {
       }));
 
             // Upload file
-            const uploadResponse = await fetch('/api/import/test-minimal', {
+            const uploadResponse = await fetch('/api/import/csv-simple', {
               method: 'POST',
               body: formData,
               headers: {
@@ -155,16 +155,28 @@ export function FunctionalCSVImporter() {
       // Poll for import status
         const pollStatus = async () => {
           try {
-            // For now, just simulate completion since we're using the simple API
-            setImportStatus({
-              stage: 'complete',
-              progress: 100,
-              message: 'Import completed successfully!',
-              importedCount: 1,
-              totalCount: 1
-            });
-            setIsImporting(false);
-            return;
+            const uploadData = await uploadResponse.json();
+            
+            if (uploadData.success) {
+              setImportStatus({
+                stage: 'complete',
+                progress: 100,
+                message: `Import completed successfully! ${uploadData.stats?.inserted || 0} trades imported.`,
+                importedCount: uploadData.stats?.inserted || 0,
+                totalCount: uploadData.stats?.totalRows || 0
+              });
+              setIsImporting(false);
+              
+              // Show success toast
+              toast({
+                title: 'Import Successful',
+                description: `Successfully imported ${uploadData.stats?.inserted || 0} trades.`,
+                variant: 'default',
+              });
+              return;
+            } else {
+              throw new Error(uploadData.error || 'Import failed');
+            }
             
             const statusResponse = await fetch(`/api/import/status/${importRunId}`, {
               headers: {

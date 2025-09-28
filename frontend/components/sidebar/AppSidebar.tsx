@@ -32,7 +32,7 @@ const navigation = [
 
 const quickActions = [
   { name: 'Add Trade', href: '/dashboard/import/manual', icon: Plus },
-  ...(IMPORT_V2 ? [{ name: 'Import Hub', href: '/dashboard/import', icon: Upload }] : []),
+  ...(IMPORT_V2 ? [{ name: 'Import Hub', href: '/import', icon: Upload }] : []),
   { name: 'Manual Entry', href: '/dashboard/import/manual', icon: FileText },
 ];
 

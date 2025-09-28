@@ -59,7 +59,7 @@ const data = {
         },
         ...(IMPORT_V2 ? [{
           title: 'Import Hub',
-          url: '/dashboard/import',
+          url: '/import',
         }] : []),
         {
           title: 'Manual Entry',
