@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Test database connection
     const { data: trades, error: tradesError } = await supabase
       .from('trades')
-      .select('id, symbol, side, quantity, price, pnl, opened_at, status')
+      .select('id, symbol, side, quantity, entry_price, exit_price, entry_date, exit_date, status')
       .eq('user_id', user.id)
       .limit(5);
 

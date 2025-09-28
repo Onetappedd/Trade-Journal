@@ -309,23 +309,22 @@ async function processCSVAsync(
           if (existing && importRequest.options?.skipDuplicates) {
             skipped++;
           } else {
-            // Insert or update trade
+            // Insert or update trade - using correct schema columns
             const tradeData = {
               user_id: userId,
               row_hash: rowHash,
               broker: importRequest.broker || 'csv',
               broker_trade_id: normalizedRow.broker_trade_id,
+              import_run_id: importRunId,
               symbol: normalizedRow.symbol,
               side: normalizedRow.side,
               quantity: normalizedRow.quantity,
-              price: normalizedRow.price,
-              opened_at: normalizedRow.opened_at,
-              closed_at: normalizedRow.closed_at,
-              fees: normalizedRow.fees || 0,
-              commission: normalizedRow.commission || 0,
-              pnl: normalizedRow.pnl,
-              asset_type: normalizedRow.asset_type || 'equity',
-              status: normalizedRow.status || 'closed'
+              entry_price: normalizedRow.price,
+              exit_price: normalizedRow.exit_price,
+              entry_date: normalizedRow.entry_date,
+              exit_date: normalizedRow.exit_date,
+              status: normalizedRow.status || 'closed',
+              notes: normalizedRow.notes || null
             };
 
             if (existing) {
@@ -422,8 +421,8 @@ async function normalizeRowData(
   // Normalize timestamps to UTC
   if (importRequest.options?.normalizeTimestamps) {
     if (normalized.date) {
-      normalized.opened_at = normalizeTimestamp(normalized.date);
-      normalized.closed_at = normalized.opened_at; // Assume same day for now
+      normalized.entry_date = normalized.date;
+      normalized.exit_date = normalized.date; // Assume same day for now
     }
   }
 
