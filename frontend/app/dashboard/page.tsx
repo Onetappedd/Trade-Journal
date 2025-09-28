@@ -177,21 +177,6 @@ export default function DashboardPage() {
     }))
   }
 
-  if (isOverviewLoading || isAlertsLoading || isPositionsLoading) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    )
-  }
-
-  if (overviewError || alertsError || positionsError) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
-        <p>Error loading data. Please try again.</p>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
