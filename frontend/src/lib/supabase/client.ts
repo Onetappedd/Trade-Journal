@@ -35,3 +35,4 @@ export const supabase = createSupabaseClient();
 
 // Export the createClient function for custom configurations
 export { createClient };
+

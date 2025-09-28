@@ -235,3 +235,4 @@ function canMatchTrades(trade1: any, trade2: any): boolean {
   
   return true;
 }
+

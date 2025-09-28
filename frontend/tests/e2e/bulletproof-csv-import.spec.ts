@@ -207,3 +207,4 @@ AAPL,SELL,100,155.00,2024-01-01,1.00`;
     await expect(page.locator('text=AAPL')).toBeVisible();
   });
 });
+

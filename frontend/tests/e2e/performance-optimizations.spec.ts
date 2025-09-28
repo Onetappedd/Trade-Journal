@@ -245,3 +245,4 @@ test.describe('Performance Optimizations', () => {
     await expect(page.locator('text=Performance History')).toBeVisible();
   });
 });
+

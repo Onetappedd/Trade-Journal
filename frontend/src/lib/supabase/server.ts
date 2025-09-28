@@ -75,3 +75,4 @@ export function createSupabaseWithToken(token: string) {
 
 // Export the createClient function for custom configurations
 export { createClient };
+

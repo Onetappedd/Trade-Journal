@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useApi } from '@/src/hooks/useApi';
-import { useToast } from '@/components/ui/toast';
+import { useToast } from '@/src/components/ui/toast';
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -344,3 +344,4 @@ export function ErrorTest() {
     </div>
   );
 }
+

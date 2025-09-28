@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,33 +39,20 @@ interface SubscriptionStatus {
  * - Upgrade prompts for non-premium users
  * - Graceful fallbacks
  */
-export async function PremiumGate({ 
+export function PremiumGate({ 
   children, 
   feature, 
   tier, 
   fallback,
   showUpgrade = true 
 }: PremiumGateProps) {
-  // Fetch subscription status from server
-  const subscriptionStatus = await getSubscriptionStatus();
-  
-  // Check if user has required tier
-  const hasAccess = checkFeatureAccess(subscriptionStatus, feature, tier);
-  
-  if (hasAccess) {
-    return <>{children}</>;
-  }
-
-  // Show fallback or upgrade prompt
-  if (fallback) {
-    return <>{fallback}</>;
-  }
-
-  if (showUpgrade) {
-    return <UpgradePrompt tier={tier} feature={feature} />;
-  }
-
-  return null;
+  return <PremiumGateClient 
+    children={children}
+    feature={feature}
+    tier={tier}
+    fallback={fallback}
+    showUpgrade={showUpgrade}
+  />;
 }
 
 /**
@@ -245,33 +234,4 @@ function UpgradePrompt({ tier, feature }: { tier: string; feature: string }) {
   );
 }
 
-/**
- * Get subscription status from server
- */
-async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
-  try {
-    const { createSupabaseWithToken } = await import('@/lib/supabase/server');
-    const supabase = createSupabaseWithToken(''); // This would need proper auth in real implementation
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { entitled: false, tier: 'free' };
-    }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/me/subscription`, {
-      headers: {
-        'Authorization': `Bearer ${user.access_token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-
-    return { entitled: false, tier: 'free' };
-  } catch (error) {
-    console.error('Error getting subscription status:', error);
-    return { entitled: false, tier: 'free' };
-  }
-}

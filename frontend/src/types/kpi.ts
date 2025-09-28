@@ -138,3 +138,4 @@ export interface KPICacheConfig {
   /** Whether to use stale-while-revalidate */
   swr: boolean;
 }
+

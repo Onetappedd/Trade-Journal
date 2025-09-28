@@ -263,3 +263,4 @@ test.describe('Error Handling System', () => {
     await expect(page.locator('text=Subscription Loaded')).toBeVisible();
   });
 });
+

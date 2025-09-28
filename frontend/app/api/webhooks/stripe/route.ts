@@ -4,11 +4,12 @@ import { revalidateTag } from 'next/cache';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Initialize Stripe only if configured
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
-});
+}) : null;
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 /**
  * Stripe Webhook Handler
@@ -24,6 +25,14 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check if Stripe is configured
+    if (!stripe || !webhookSecret) {
+      return NextResponse.json(
+        { error: 'Stripe not configured' },
+        { status: 503 }
+      );
+    }
+
     const body = await request.text();
     const signature = headers().get('stripe-signature');
 
@@ -227,3 +236,4 @@ function getPriceIdFromTier(tier: string): string | null {
 
   return tierMapping[tier] || null;
 }
+

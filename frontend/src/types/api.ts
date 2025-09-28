@@ -184,3 +184,4 @@ export function getErrorSeverity(error: any): 'low' | 'medium' | 'high' | 'criti
   
   return 'medium';
 }
+

@@ -127,3 +127,4 @@ export async function getUserIdOrThrow(): Promise<string> {
   const user = await getUserOrThrow()
   return user.id
 }
+

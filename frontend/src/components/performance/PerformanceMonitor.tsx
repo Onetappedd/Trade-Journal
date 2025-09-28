@@ -67,71 +67,67 @@ export function PerformanceMonitor({
   useEffect(() => {
     if (!enabled) return;
 
-    const startMonitoring = () => {
-      setIsMonitoring(true);
-      
-      // Monitor render performance
-      const observer = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        entries.forEach((entry) => {
-          if (entry.entryType === 'measure') {
-            setMetrics(prev => ({
-              ...prev,
-              renderTime: entry.duration
-            }));
-          }
-        });
-      observer.observe({ entryTypes: ['measure'] });
-
-      // Monitor network requests
-      const originalFetch = window.fetch;
-      window.fetch = async (...args) => {
-        const start = performance.now();
-        const response = await originalFetch(...args);
-        const end = performance.now();
-        
-        setMetrics(prev => ({
-          ...prev,
-          networkRequests: prev.networkRequests + 1
-        }));
-        
-        return response;
-      };
-
-      // Monitor memory usage
-      const checkMemory = () => {
-        if ('memory' in performance) {
-          const memory = (performance as any).memory;
+    setIsMonitoring(true);
+    
+    // Monitor render performance
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      entries.forEach((entry) => {
+        if (entry.entryType === 'measure') {
           setMetrics(prev => ({
             ...prev,
-            memoryUsage: memory.usedJSHeapSize / 1024 / 1024 // MB
+            renderTime: entry.duration
           }));
         }
-      };
+      });
+    });
+    observer.observe({ entryTypes: ['measure'] });
 
-      const memoryInterval = setInterval(checkMemory, 1000);
-
-      // Monitor component count
-      const countComponents = () => {
-        const componentCount = document.querySelectorAll('[data-component]').length;
-        setMetrics(prev => ({
-          ...prev,
-          componentCount
-        }));
-      };
-
-      const componentInterval = setInterval(countComponents, 2000);
-
-      return () => {
-        observer.disconnect();
-        window.fetch = originalFetch;
-        clearInterval(memoryInterval);
-        clearInterval(componentInterval);
-      };
+    // Monitor network requests
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const start = performance.now();
+      const response = await originalFetch(...args);
+      const end = performance.now();
+      
+      setMetrics(prev => ({
+        ...prev,
+        networkRequests: prev.networkRequests + 1
+      }));
+      
+      return response;
     };
 
-    const cleanup = startMonitoring();
-    return cleanup;
+    // Monitor memory usage
+    const checkMemory = () => {
+      if ('memory' in performance) {
+        const memory = (performance as any).memory;
+        setMetrics(prev => ({
+          ...prev,
+          memoryUsage: memory.usedJSHeapSize / 1024 / 1024 // MB
+        }));
+      }
+    };
+
+    const memoryInterval = setInterval(checkMemory, 1000);
+
+    // Monitor component count
+    const countComponents = () => {
+      const componentCount = document.querySelectorAll('[data-component]').length;
+      setMetrics(prev => ({
+        ...prev,
+        componentCount
+      }));
+    };
+
+    const componentInterval = setInterval(countComponents, 2000);
+
+    return () => {
+      observer.disconnect();
+      window.fetch = originalFetch;
+      clearInterval(memoryInterval);
+      clearInterval(componentInterval);
+    };
   }, [enabled]);
 
   // Update metrics callback
@@ -358,3 +354,4 @@ export function PerformanceMonitor({
     </div>
   );
 }
+

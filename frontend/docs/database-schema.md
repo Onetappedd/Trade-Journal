@@ -531,3 +531,4 @@ FROM (VALUES ('free'), ('basic'), ('pro'), ('enterprise')) as tiers(tier);
 
 *Last updated: 2025-09-27*
 *Version: 1.0.0*
+

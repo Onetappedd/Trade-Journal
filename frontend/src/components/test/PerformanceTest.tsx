@@ -49,7 +49,7 @@ interface PerformanceMetrics {
 export function PerformanceTest() {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [simulateLargeDataset, setSimulateLargeDataset] = useState(false);
+  const [simulateLargeDatasetFlag, setSimulateLargeDatasetFlag] = useState(false);
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({
     renderTime: 0,
     networkRequests: 0,
@@ -440,3 +440,4 @@ export function PerformanceTest() {
     </div>
   );
 }
+

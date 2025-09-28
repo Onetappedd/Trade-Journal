@@ -25,7 +25,7 @@ export default function AdminUsersPage() {
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [removingAdmin, setRemovingAdmin] = useState<string | null>(null);
 
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
 
   useEffect(() => {
     loadData();

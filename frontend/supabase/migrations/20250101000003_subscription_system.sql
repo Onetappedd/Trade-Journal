@@ -186,3 +186,4 @@ COMMENT ON TABLE subscriptions IS 'Tracks user subscription status and billing i
 COMMENT ON TABLE webhook_events IS 'Stores webhook events for idempotency processing';
 COMMENT ON TABLE user_entitlements IS 'Caches user feature entitlements for fast access';
 COMMENT ON FUNCTION get_user_subscription_status IS 'Returns user subscription status with entitlements';
+

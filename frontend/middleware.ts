@@ -1,6 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
-import { createSupabaseClient } from '@/lib/supabase/server'
+import { getServerSupabase } from '@/lib/supabase/server'
 
 /**
  * Middleware to protect routes that require authentication
@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   
   try {
     // Create Supabase client for server-side auth check
-    const supabase = createSupabaseClient()
+    const supabase = getServerSupabase()
     
     // Get the session from cookies
     const { data: { session }, error } = await supabase.auth.getSession()

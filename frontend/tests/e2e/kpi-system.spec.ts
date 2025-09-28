@@ -195,3 +195,4 @@ MSFT,SELL,50,300.00,2024-01-02,1.50`;
     await expect(totalPnl).toContainText('$0.00');
   });
 });
+

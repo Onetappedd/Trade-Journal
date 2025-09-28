@@ -133,3 +133,4 @@ COMMENT ON COLUMN trades.row_hash IS 'SHA256 hash for row-level idempotency';
 COMMENT ON COLUMN trades.broker IS 'Broker source for the trade';
 COMMENT ON COLUMN trades.broker_trade_id IS 'Original trade ID from broker';
 COMMENT ON COLUMN trades.import_run_id IS 'Reference to the import run that created this trade';
+

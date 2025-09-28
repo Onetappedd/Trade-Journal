@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createSupabaseClient } from '@/lib/supabase/server';
+import { getServerSupabase } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 import BackgroundChartAnimation from '@/components/auth/background-chart-animation';

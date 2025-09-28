@@ -11,13 +11,13 @@ const requiredClientVars = [
 ];
 
 const requiredServerVars = [
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'STRIPE_WEBHOOK_SECRET',
-  'STRIPE_PRICE_BASIC',
-  'STRIPE_PRICE_PRO'
+  'SUPABASE_SERVICE_ROLE_KEY'
 ];
 
-const optionalVars = [
+const optionalServerVars = [
+  'STRIPE_WEBHOOK_SECRET',
+  'STRIPE_PRICE_BASIC',
+  'STRIPE_PRICE_PRO',
   'SENTRY_DSN'
 ];
 
@@ -40,12 +40,30 @@ function validateEnvironment() {
   // Check server variables (only if not in test mode)
   const isTestMode = process.env.NEXT_PUBLIC_E2E_TEST === 'true' || process.env.NODE_ENV === 'test';
   if (!isTestMode) {
+    // Check required server variables
     requiredServerVars.forEach(varName => {
       const value = process.env[varName];
       if (!value) {
         missingVars.push(varName);
       }
     });
+    
+    // Check optional server variables and warn if missing
+    const missingOptionalVars = [];
+    optionalServerVars.forEach(varName => {
+      const value = process.env[varName];
+      if (!value) {
+        missingOptionalVars.push(varName);
+      }
+    });
+    
+    if (missingOptionalVars.length > 0) {
+      console.log('⚠️  Optional environment variables not set:');
+      missingOptionalVars.forEach(varName => {
+        console.log(`  - ${varName}`);
+      });
+      console.log('These features will be disabled if not configured.');
+    }
   } else {
     console.log('⚠️  Skipping server env validation in test mode');
   }
@@ -76,3 +94,4 @@ function validateEnvironment() {
 }
 
 validateEnvironment();
+

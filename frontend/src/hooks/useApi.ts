@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useToast } from '@/components/ui/toast';
+import { useToast } from '@/src/components/ui/toast';
 import { ApiResponse, ApiError, getErrorMessage, getErrorSeverity, isApiError } from '@/src/types/api';
 
 interface UseApiOptions {
@@ -307,3 +307,4 @@ export function useApiUpload<T = any>(options: UseApiOptions = {}) {
     uploadProgress
   };
 }
+

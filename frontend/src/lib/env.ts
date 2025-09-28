@@ -138,3 +138,4 @@ export function isProduction(): boolean {
 export function isImportV2Enabled(): boolean {
   return process.env.NEXT_PUBLIC_IMPORT_V2_ENABLED === 'true';
 }
+

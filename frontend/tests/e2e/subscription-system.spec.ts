@@ -264,3 +264,4 @@ test.describe('Subscription System', () => {
     await expect(testModeSwitch).toBeChecked();
   });
 });
+
