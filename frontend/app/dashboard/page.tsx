@@ -573,7 +573,6 @@ export default function DashboardPage() {
             </Card>
           </div>
         </div>
-        )}
       </main>
     </div>
   )
