@@ -144,97 +144,27 @@ export function FunctionalCSVImporter() {
       }
 
       const uploadResult = await uploadResponse.json();
-      const importRunId = uploadResult.importRunId;
-
-      setImportStatus({
-        stage: 'parsing',
-        progress: 30,
-        message: 'Parsing CSV file...',
-      });
-
-      // Poll for import status
-        const pollStatus = async () => {
-          try {
-            const uploadData = await uploadResponse.json();
-            
-            if (uploadData.success) {
-              setImportStatus({
-                stage: 'complete',
-                progress: 100,
-                message: `Import completed successfully! ${uploadData.stats?.inserted || 0} trades imported.`,
-                importedCount: uploadData.stats?.inserted || 0,
-                totalCount: uploadData.stats?.totalRows || 0
-              });
-              setIsImporting(false);
-              
-              // Show success toast
-              toast({
-                title: 'Import Successful',
-                description: `Successfully imported ${uploadData.stats?.inserted || 0} trades.`,
-                variant: 'default',
-              });
-              return;
-            } else {
-              throw new Error(uploadData.error || 'Import failed');
-            }
-            
-            const statusResponse = await fetch(`/api/import/status/${importRunId}`, {
-              headers: {
-                'Authorization': `Bearer ${session?.access_token}`,
-              }
-            });
-            const statusData = await statusResponse.json();
-
-          if (statusData.status === 'completed') {
-            setImportStatus({
-              stage: 'complete',
-              progress: 100,
-              message: `Import completed! ${statusData.importedCount} trades imported successfully.`,
-              importedCount: statusData.importedCount,
-              totalCount: statusData.totalCount,
-            });
-            setIsImporting(false);
-            toast({
-              title: 'Import Successful',
-              description: `${statusData.importedCount} trades imported successfully.`,
-            });
-          } else if (statusData.status === 'failed') {
-            setImportStatus({
-              stage: 'error',
-              progress: 0,
-              message: 'Import failed',
-              error: statusData.error,
-            });
-            setIsImporting(false);
-            toast({
-              title: 'Import Failed',
-              description: statusData.error || 'Unknown error occurred.',
-              variant: 'destructive',
-            });
-          } else {
-            // Still processing
-            setImportStatus({
-              stage: 'importing',
-              progress: Math.min(90, 30 + (statusData.progress || 0) * 0.6),
-              message: statusData.message || 'Processing trades...',
-              importedCount: statusData.importedCount,
-              totalCount: statusData.totalCount,
-            });
-            setTimeout(pollStatus, 1000); // Poll every second
-          }
-        } catch (error) {
-          setImportStatus({
-            stage: 'error',
-            progress: 0,
-            message: 'Status check failed',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          setIsImporting(false);
-        }
-      };
-
-      // Start polling
-      setTimeout(pollStatus, 1000);
+      
+      if (uploadResult.success) {
+        setImportStatus({
+          stage: 'complete',
+          progress: 100,
+          message: `Import completed successfully! ${uploadResult.stats?.inserted || 0} trades imported.`,
+          importedCount: uploadResult.stats?.inserted || 0,
+          totalCount: uploadResult.stats?.totalRows || 0
+        });
+        setIsImporting(false);
+        
+        // Show success toast
+        toast({
+          title: 'Import Successful',
+          description: `Successfully imported ${uploadResult.stats?.inserted || 0} trades.`,
+          variant: 'default',
+        });
+        return;
+      } else {
+        throw new Error(uploadResult.error || 'Import failed');
+      }
 
     } catch (error) {
       setImportStatus({
