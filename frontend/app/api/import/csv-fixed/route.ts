@@ -117,6 +117,8 @@ export async function POST(request: NextRequest) {
     let skippedCount = 0;
     let errorCount = 0;
     
+    console.log('Starting to process', lines.length - 1, 'rows');
+    
     for (let i = 1; i < lines.length; i++) {
       try {
         const values = lines[i].split(',').map(v => v.trim());
@@ -155,28 +157,34 @@ export async function POST(request: NextRequest) {
           // Calculate P&L (simplified - you might want more sophisticated calculation)
           const pnl = side === 'sell' ? (price - parseFloat(row.entry_price || '0')) * quantity : 0;
           
-          const { error: insertError } = await supabase
+          const tradeData = {
+            user_id: user.id,
+            symbol: symbol.toUpperCase(),
+            side: side === 'buy' ? 'buy' : 'sell',
+            quantity,
+            entry_price: price,
+            exit_price: side === 'sell' ? price : null,
+            entry_date: date,
+            exit_date: side === 'sell' ? date : null,
+            status: side === 'sell' ? 'closed' : 'open',
+            pnl: pnl,
+            broker: 'csv',
+            import_run_id: importRun.id,
+            row_hash: `${user.id}_${symbol}_${side}_${quantity}_${price}_${date}`
+          };
+          
+          console.log('Inserting trade:', tradeData);
+          
+          const { data: insertData, error: insertError } = await supabase
             .from('trades')
-            .insert({
-              user_id: user.id,
-              symbol: symbol.toUpperCase(),
-              side: side === 'buy' ? 'buy' : 'sell',
-              quantity,
-              entry_price: price,
-              exit_price: side === 'sell' ? price : null,
-              entry_date: date,
-              exit_date: side === 'sell' ? date : null,
-              status: side === 'sell' ? 'closed' : 'open',
-              pnl: pnl,
-              broker: 'csv',
-              import_run_id: importRun.id,
-              row_hash: `${user.id}_${symbol}_${side}_${quantity}_${price}_${date}`
-            });
+            .insert(tradeData)
+            .select();
           
           if (insertError) {
             console.error('Error inserting trade:', insertError);
             errorCount++;
           } else {
+            console.log('Trade inserted successfully:', insertData);
             insertedCount++;
           }
         } else {
@@ -213,6 +221,12 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('Import completed successfully');
+    console.log('Final stats:', {
+      totalRows: lines.length - 1,
+      inserted: insertedCount,
+      skipped: skippedCount,
+      errors: errorCount
+    });
     
     return NextResponse.json({
       success: true,
