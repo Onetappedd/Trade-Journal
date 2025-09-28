@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
-import { redirect } from 'next/navigation'
 import DashboardClient from './_client/DashboardClient'
 import { DashboardData } from '@/types/dashboard'
 
@@ -21,23 +20,19 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) {
-    redirect('/auth/login')
+    // middleware should redirect; render nothing here
+    return null
   }
 
-  // TODO: Replace with real query - for now using mock data
+  // TODO: Replace this with real queries against your tables.
+  // For now, return empty-safe defaults.
   const dashboardData: DashboardData = {
     dayPnL: 0,
     portfolioValue: 0,
     trades: [],
     positions: [],
-    risk: {
-      maxDrawdownPct: 0.082,
-      sharpe: 1.45,
-      beta: 0.89,
-      volPct: 0.123
-    },
-    riskEvents: [],
-    integrations: []
+    risk: { maxDrawdownPct: 0, sharpe: 0, beta: 0, volPct: 0 },
+    integrations: [{ name: 'TopstepX', status: 'needs_auth' }],
   }
 
   return <DashboardClient user={user} dashboardData={dashboardData} />

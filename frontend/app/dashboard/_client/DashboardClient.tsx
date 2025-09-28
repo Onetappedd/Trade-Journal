@@ -1,652 +1,429 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
-import { 
-  DashboardData, 
-  Trade, 
-  Timeframe, 
-  CustomRange,
-  ChartDataPoint,
-  fmtUSD,
-  fmtPct,
-  withSignUSD,
-  colorByCategory
-} from '@/types/dashboard'
-import { 
-  Activity, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Target, 
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Download,
-  Plus,
-  Settings,
-  Upload,
-  BarChart3,
-  PieChart,
-  Calendar,
-  Zap
-} from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/hooks/use-toast'
-import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
+import { Upload, Settings, TrendingUp, DollarSign, Target, Shield, History, PieChart, LineChart, MoreHorizontal, Plus, BarChart3 } from 'lucide-react'
+import { DashboardData, Trade, Position, Timeframe, CATEGORY_COLORS, fmtUSD, withSignUSD } from '@/types/dashboard'
+import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RPieChart, Pie, Cell } from 'recharts'
 
-interface DashboardClientProps {
-  user: User
-  dashboardData: DashboardData
+// ------------ Helpers ------------
+const fmtPct0 = (n: number) => `${(n * 100).toFixed(0)}%`
+const fmtPct1 = (n: number) => `${(n * 100).toFixed(1)}%`
+
+const startOfWeek = () => {
+  const d = new Date()
+  const day = (d.getDay() + 6) % 7 // Mon=0
+  d.setDate(d.getDate() - day)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+const startOfMonth = () => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d }
+const startOfYear = () => { const d = new Date(); d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d }
+
+function endOfDay(d: Date) {
+  const x = new Date(d)
+  x.setHours(23, 59, 59, 999)
+  return x
 }
 
-export default function DashboardClient({ user, dashboardData }: DashboardClientProps) {
+function inRange(dt: Date, from: Date, to: Date) {
+  return dt >= from && dt <= to
+}
+
+function mergeDailySeries(trades: Trade[]) {
+  // derive daily PnL & cumulative series from trades.closedAt or openedAt
+  const map = new Map<string, number>()
+  for (const t of trades) {
+    const when = new Date(t.closedAt ?? t.openedAt ?? Date.now())
+    const key = when.toISOString().slice(0, 10)
+    map.set(key, (map.get(key) ?? 0) + (t.pnl ?? 0))
+  }
+  const sorted = [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
+  let cum = 0
+  const data = sorted.map(([date, daily]) => {
+    cum += daily
+    return { date, daily, cum }
+  })
+  // create labels
+  return data.map(d => ({ ...d, dateLabel: d.date }))
+}
+
+// ------------ Props ------------
+export default function DashboardClient({
+  user,
+  dashboardData: initialData,
+}: {
+  user: any
+  dashboardData: DashboardData
+}) {
+
   const router = useRouter()
-  const { toast } = useToast()
+  const [dashboardData, setDashboardData] = useState<DashboardData>(initialData)
   const [timeframe, setTimeframe] = useState<Timeframe>('today')
-  const [customRange, setCustomRange] = useState<CustomRange | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [socket, setSocket] = useState<WebSocket | null>(null)
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | null>(null)
+  const [loading, setLoading] = useState(false) // for refetch or ws
 
-  // Derived state
+  // -------- Derived data --------
   const hasTrades = !!dashboardData?.trades?.length
+  const fromDate = useMemo(() => {
+    const now = new Date()
+    if (timeframe === 'today') { const d = new Date(); d.setHours(0, 0, 0, 0); return d }
+    if (timeframe === 'wtd') return startOfWeek()
+    if (timeframe === 'mtd') return startOfMonth()
+    if (timeframe === 'ytd') return startOfYear()
+    return customRange?.from ?? startOfMonth()
+  }, [timeframe, customRange])
 
-  // Date calculations
-  const now = new Date()
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfWeek = (() => {
-    const d = new Date()
-    const day = (d.getDay() + 6) % 7
-    d.setDate(d.getDate() - day)
-    d.setHours(0, 0, 0, 0)
-    return d
-  })()
-  const startOfMonth = (() => {
-    const d = new Date()
-    d.setDate(1)
-    d.setHours(0, 0, 0, 0)
-    return d
-  })()
-  const startOfYear = new Date(now.getFullYear(), 0, 1)
+  const toDate = useMemo(() => {
+    if (timeframe === 'custom' && customRange?.to) return endOfDay(customRange.to)
+    return endOfDay(new Date())
+  }, [timeframe, customRange])
 
-  // Period calculations
-  const getPeriodPnL = (trades: Trade[], from: Date) =>
-    trades.filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= from)
-          .reduce((a, t) => a + (t.pnl ?? 0), 0)
-
-  const getFilteredTrades = (trades: Trade[], timeframe: Timeframe, customRange?: CustomRange | null) => {
-    let from: Date
-    switch (timeframe) {
-      case 'today':
-        from = startOfDay
-        break
-      case 'wtd':
-        from = startOfWeek
-        break
-      case 'mtd':
-        from = startOfMonth
-        break
-      case 'ytd':
-        from = startOfYear
-        break
-      case 'custom':
-        from = customRange?.start ?? startOfDay
-        break
-      default:
-        from = startOfDay
-    }
-    
-    return trades.filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= from)
-  }
-
-  const filteredTrades = useMemo(() => 
-    getFilteredTrades(dashboardData?.trades ?? [], timeframe, customRange),
-    [dashboardData?.trades, timeframe, customRange]
-  )
-
-  // KPI calculations
-  const todayPnL = getPeriodPnL(dashboardData?.trades ?? [], startOfDay)
-  const wtdPnL = getPeriodPnL(dashboardData?.trades ?? [], startOfWeek)
-  const mtdPnL = getPeriodPnL(dashboardData?.trades ?? [], startOfMonth)
-  const ytdPnL = getPeriodPnL(dashboardData?.trades ?? [], startOfYear)
-  
-  const last20 = (dashboardData?.trades ?? []).slice(-20)
-  const winRate20 = last20.length ? last20.filter(t => (t.pnl ?? 0) > 0).length / last20.length : 0
-
-  // Chart data
-  const chartData: ChartDataPoint[] = useMemo(() => {
-    if (!filteredTrades.length) return []
-    
-    // Group trades by date and calculate daily/cumulative PnL
-    const dailyMap = new Map<string, number>()
-    const cumMap = new Map<string, number>()
-    
-    filteredTrades.forEach(trade => {
-      const date = new Date(trade.closedAt ?? trade.openedAt ?? Date.now())
-      const dateKey = date.toISOString().split('T')[0]
-      const existing = dailyMap.get(dateKey) ?? 0
-      dailyMap.set(dateKey, existing + (trade.pnl ?? 0))
+  const filteredTrades = useMemo(() => {
+    const items = dashboardData?.trades ?? []
+    return items.filter(t => {
+      const d = new Date(t.closedAt ?? t.openedAt ?? Date.now())
+      return inRange(d, fromDate, toDate)
     })
-    
-    // Calculate cumulative
-    let cumulative = 0
-    const sortedDates = Array.from(dailyMap.keys()).sort()
-    sortedDates.forEach(date => {
-      cumulative += dailyMap.get(date) ?? 0
-      cumMap.set(date, cumulative)
-    })
-    
-    return sortedDates.map(date => ({
-      dateLabel: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      date: new Date(date),
-      daily: dailyMap.get(date) ?? 0,
-      cum: cumMap.get(date) ?? 0
-    }))
-  }, [filteredTrades])
+  }, [dashboardData?.trades, fromDate, toDate])
 
-  // WebSocket connection
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    
-    const ws = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001')
-    setSocket(ws)
-    
-    return () => {
-      ws.close()
-    }
-  }, [])
+  const todayPnL = useMemo(() => {
+    const start = new Date(); start.setHours(0, 0, 0, 0)
+    const end = endOfDay(new Date())
+    return (dashboardData?.trades ?? [])
+      .filter(t => inRange(new Date(t.closedAt ?? t.openedAt ?? Date.now()), start, end))
+      .reduce((a, t) => a + (t.pnl ?? 0), 0)
+  }, [dashboardData?.trades])
 
-  // WebSocket message handling
-  useEffect(() => {
-    if (!socket) return
-    
-    const onMsg = (event: MessageEvent) => {
-      try {
-        const msg = JSON.parse(event.data)
-        if (msg?.type === 'livePnL' && typeof msg.value === 'number') {
-          // Update dashboard data with live PnL
-          toast({
-            title: 'Live Update',
-            description: `Portfolio P&L updated: ${withSignUSD(msg.value)}`,
-          })
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.debug('WebSocket message parse error:', error)
-        }
+  const wtdPnL = useMemo(() => {
+    const start = startOfWeek()
+    return (dashboardData?.trades ?? [])
+      .filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= start)
+      .reduce((a, t) => a + (t.pnl ?? 0), 0)
+  }, [dashboardData?.trades])
+
+  const mtdPnL = useMemo(() => {
+    const start = startOfMonth()
+    return (dashboardData?.trades ?? [])
+      .filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= start)
+      .reduce((a, t) => a + (t.pnl ?? 0), 0)
+  }, [dashboardData?.trades])
+
+  const winRate20 = useMemo(() => {
+    const last20 = (dashboardData?.trades ?? []).slice(-20)
+    if (!last20.length) return 0
+    return last20.filter(t => (t.pnl ?? 0) > 0).length / last20.length
+  }, [dashboardData?.trades])
+
+  const chartData = useMemo(() => {
+    if (dashboardData?.dailyPnlSeries && dashboardData?.cumPnlSeries) {
+      // Optional: merge provided series by date key
+      const map = new Map<string, { dateLabel: string; daily?: number; cum?: number }>()
+      for (const d of dashboardData.dailyPnlSeries) {
+        map.set(d.t, { dateLabel: d.t, daily: d.pnl })
       }
+      for (const c of dashboardData.cumPnlSeries) {
+        const prev = map.get(c.t) ?? { dateLabel: c.t }
+        map.set(c.t, { ...prev, cum: c.pnl })
+      }
+      return [...map.values()].sort((a, b) => a.dateLabel.localeCompare(b.dateLabel))
     }
-    
-    socket.addEventListener('message', onMsg)
-    return () => socket.removeEventListener('message', onMsg)
-  }, [socket, toast])
+    return mergeDailySeries(filteredTrades)
+  }, [dashboardData?.dailyPnlSeries, dashboardData?.cumPnlSeries, filteredTrades])
 
-  // Safe fetch utility
-  const safeFetch = async (input: RequestInfo, init?: RequestInit) => {
-    const ctrl = new AbortController()
-    const p = fetch(input, { ...init, signal: ctrl.signal })
-    ;(p as any).abort = () => ctrl.abort()
-    return p
-  }
+  const allocation = useMemo(() => {
+    const pos = dashboardData?.positions ?? []
+    const byCat = pos.reduce((acc, p) => {
+      acc[p.category] = (acc[p.category] ?? 0) + p.value
+      return acc
+    }, {} as Record<string, number>)
+    const total = Object.values(byCat).reduce((a, b) => a + b, 0)
+    const entries = Object.entries(byCat).map(([category, value]) => ({
+      name: category,
+      value,
+      pct: total ? value / total : 0
+    }))
+    return entries
+  }, [dashboardData?.positions])
 
-  // Export CSV handler
-  const handleExportCSV = async () => {
-    try {
-      setLoading(true)
-      const response = await safeFetch(`/api/export?scope=${timeframe}`)
-      if (!response.ok) throw new Error('Export failed')
-      
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `trades-${timeframe}-${new Date().toISOString().split('T')[0]}.csv`
-      a.click()
-      window.URL.revokeObjectURL(url)
-      
-      toast({
-        title: 'Export Complete',
-        description: 'CSV file downloaded successfully',
-      })
-    } catch (error) {
-      toast({
-        title: 'Export Failed',
-        description: 'Failed to export CSV file',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Timeframe chips
-  const timeframeOptions: { value: Timeframe; label: string }[] = [
-    { value: 'today', label: 'Today' },
-    { value: 'wtd', label: 'WTD' },
-    { value: 'mtd', label: 'MTD' },
-    { value: 'ytd', label: 'YTD' },
-  ]
-
-  // KPI Cards
-  const kpiCards = [
-    {
-      title: 'Today P&L',
-      value: withSignUSD(todayPnL),
-      icon: TrendingUp,
-      testId: 'kpi-day-pnl',
-      change: todayPnL >= 0 ? 'positive' : 'negative'
-    },
-    {
-      title: 'WTD P&L',
-      value: withSignUSD(wtdPnL),
-      icon: BarChart3,
-      testId: 'kpi-wtd',
-      change: wtdPnL >= 0 ? 'positive' : 'negative'
-    },
-    {
-      title: 'MTD P&L',
-      value: withSignUSD(mtdPnL),
-      icon: Calendar,
-      testId: 'kpi-mtd',
-      change: mtdPnL >= 0 ? 'positive' : 'negative'
-    },
-    {
-      title: 'Win Rate (20)',
-      value: fmtPct(winRate20),
-      icon: Target,
-      testId: 'kpi-winrate20',
-      change: winRate20 >= 0.5 ? 'positive' : 'negative'
-    }
-  ]
-
-  // Risk event severity icons
-  const getRiskIcon = (severity: string) => {
-    switch (severity) {
-      case 'critical': return <XCircle className="h-4 w-4 text-red-500" />
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />
-      default: return <CheckCircle className="h-4 w-4 text-blue-500" />
-    }
-  }
-
+  // ------------ UI ------------
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.user_metadata?.name || user?.email || 'User'}
-          </h1>
-          <p className="text-slate-400 text-sm sm:text-base">
-            Here's your trading performance overview for today
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/settings')}
-            aria-label="Settings"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => router.push('/import')}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Import Trades
-          </Button>
-        </div>
-      </div>
-
-      {/* Timeframe Selector */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {timeframeOptions.map((option) => (
-          <Button
-            key={option.value}
-            variant={timeframe === option.value ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTimeframe(option.value)}
-            className="min-h-10"
-          >
-            {option.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div data-testid="kpi-skeleton" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-              <Skeleton className="h-3 w-24 bg-slate-800 rounded mb-4" />
-              <Skeleton className="h-8 w-32 bg-slate-800 rounded" />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && !hasTrades && (
-        <div className="text-center py-12">
-          <div className="mb-6">
-            <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">No trades yet</h3>
-            <p className="text-slate-400 mb-6">Start by importing your trading data to see your performance analytics.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={() => router.push('/import')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                data-testid="cta-import-csv"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Import CSV
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/settings/integrations')}
-                data-testid="cta-connect-broker"
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                Connect Broker
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/trades/new?from=dashboard')}
-                data-testid="cta-add-manual-trade"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Manual Trade
-              </Button>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Welcome back, {user?.user_metadata?.name || user?.email || 'Trader'}</h1>
+            <p className="text-slate-400 text-sm">Here's your trading performance overview</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="bg-slate-900 border-slate-800" onClick={() => router.push('/settings')} aria-label="Settings">
+              <Settings className="h-4 w-4 mr-2" /> Settings
+            </Button>
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => router.push('/import')} aria-label="Import Trades">
+              <Upload className="h-4 w-4 mr-2" /> Import Trades
+            </Button>
           </div>
         </div>
-      )}
 
-      {/* Main Content - Only show if has trades */}
-      {!loading && hasTrades && (
-        <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-            {kpiCards.map((card) => (
-              <Card key={card.title} className="bg-slate-900 border-slate-800">
-                <CardContent className="p-6 min-h-[110px]">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-slate-400">{card.title}</p>
-                    <card.icon className={`h-4 w-4 ${
-                      card.change === 'positive' ? 'text-emerald-400' : 'text-red-400'
-                    }`} />
+        {/* Timeframe chips */}
+        <div className="flex gap-2 mb-6">
+          {(['today', 'wtd', 'mtd', 'ytd'] as Timeframe[]).map(tf => (
+            <Badge
+              key={tf}
+              data-testid={`chip-${tf}`}
+              onClick={() => setTimeframe(tf)}
+              className={`cursor-pointer px-3 py-1 ${timeframe === tf ? 'bg-emerald-600' : 'bg-slate-800'}`}
+            >
+              {tf.toUpperCase()}
+            </Badge>
+          ))}
+          {/* Custom would open a date-range picker later */}
+        </div>
+
+        {/* Empty state */}
+        {!hasTrades && (
+          <div className="text-center py-24">
+            <div className="mb-4">
+              <div className="text-4xl mb-3">〰️</div>
+              <h3 className="text-lg font-semibold text-white mb-2">No trades yet</h3>
+              <p className="text-slate-400 mb-6">Start by importing your trading data to see your performance analytics.</p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button onClick={() => router.push('/import')} className="bg-emerald-600 hover:bg-emerald-700">
+                <Upload className="h-4 w-4 mr-2" /> Import CSV
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/settings/integrations')}>⚡ Connect Broker</Button>
+              <Button variant="outline" onClick={() => router.push('/trades/new?from=dashboard')}><Plus className="h-4 w-4 mr-2" /> Add Manual Trade</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Full dashboard when trades exist */}
+        {hasTrades && (
+          <>
+            {/* KPI Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card data-testid="kpi-day-pnl" className="bg-slate-900 border-slate-800">
+                <CardContent className="p-5 min-h-[110px]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-400 text-sm">Today's P&L</p>
+                      <p className={`text-2xl font-bold ${todayPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(todayPnL)}</p>
+                    </div>
+                    <div className="h-10 w-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-emerald-400" />
+                    </div>
                   </div>
-                  <p 
-                    className={`text-2xl font-bold ${
-                      card.change === 'positive' ? 'text-emerald-400' : 'text-red-400'
-                    }`}
-                    data-testid={card.testId}
-                  >
-                    {card.value}
-                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
 
-          {/* Portfolio Performance Chart */}
-          <Card className="bg-slate-900 border-slate-800 mb-8">
-            <CardHeader>
-              <CardTitle className="text-white">Portfolio Performance</CardTitle>
-              <CardDescription>Daily P&L and cumulative performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64" data-testid="chart-portfolio">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis 
-                      dataKey="dateLabel" 
-                      stroke="#9CA3AF"
-                      fontSize={12}
-                    />
-                    <YAxis 
-                      yAxisId="left" 
-                      stroke="#9CA3AF"
-                      fontSize={12}
-                    />
-                    <YAxis 
-                      yAxisId="right" 
-                      orientation="right" 
-                      stroke="#9CA3AF"
-                      fontSize={12}
-                    />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: '#1F2937',
-                        border: '1px solid #374151',
-                        borderRadius: '8px',
-                        color: '#F9FAFB'
-                      }}
-                    />
-                    <Bar 
-                      yAxisId="left" 
-                      dataKey="daily" 
-                      fill="#10B981"
-                      name="Daily P&L"
-                    />
-                    <Line 
-                      yAxisId="right" 
-                      type="monotone" 
-                      dataKey="cum" 
-                      stroke="#3B82F6"
-                      strokeWidth={2}
-                      dot={false}
-                      name="Cumulative P&L"
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Trades */}
-          <Card className="bg-slate-900 border-slate-800 mb-8">
-            <CardHeader>
-              <CardTitle className="text-white">Recent Trades</CardTitle>
-              <CardDescription>Your latest trading activity</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3" data-testid="list-recent-trades">
-                {filteredTrades.slice(0, 5).map((trade) => (
-                  <div key={trade.id} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-2 h-2 rounded-full ${
-                        trade.side === 'buy' ? 'bg-emerald-400' : 'bg-red-400'
-                      }`} />
-                      <div>
-                        <p className="font-medium text-white">{trade.symbol}</p>
-                        <p className="text-sm text-slate-400">
-                          {trade.side.toUpperCase()} {trade.quantity} @ {fmtUSD(trade.price)}
-                        </p>
-                      </div>
+              <Card data-testid="kpi-portfolio" className="bg-slate-900 border-slate-800">
+                <CardContent className="p-5 min-h-[110px]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-400 text-sm">Portfolio Value</p>
+                      <p className="text-2xl font-bold text-white">{fmtUSD(dashboardData.portfolioValue)}</p>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-medium ${
-                        (trade.pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
-                      }`}>
-                        {withSignUSD(trade.pnl ?? 0)}
-                      </p>
-                      <p className="text-sm text-slate-400">
-                        {trade.closedAt ? new Date(trade.closedAt).toLocaleDateString() : 'Open'}
-                      </p>
+                    <div className="h-10 w-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-blue-400" />
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          {/* Risk Events */}
-          {dashboardData.riskEvents && dashboardData.riskEvents.length > 0 && (
-            <Card className="bg-slate-900 border-slate-800 mb-8">
-              <CardHeader>
-                <CardTitle className="text-white">Recent Risk Events</CardTitle>
-                <CardDescription>Important risk alerts and notifications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3" data-testid="risk-events">
-                  {dashboardData.riskEvents.slice(0, 3).map((event) => (
-                    <div key={event.id} className="flex items-center space-x-3 p-3 bg-slate-800 rounded-lg">
-                      {getRiskIcon(event.severity)}
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{event.details}</p>
-                        <p className="text-xs text-slate-400">
-                          {new Date(event.at).toLocaleString()}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {event.kind}
-                      </Badge>
+              <Card data-testid="kpi-mtd" className="bg-slate-900 border-slate-800">
+                <CardContent className="p-5 min-h-[110px]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-400 text-sm">MTD P&L</p>
+                      <p className={`text-2xl font-bold ${mtdPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(mtdPnL)}</p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Target className="h-5 w-5 text-orange-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Asset Allocation */}
-          {dashboardData.positions && dashboardData.positions.length > 0 && (
-            <Card className="bg-slate-900 border-slate-800 mb-8">
-              <CardHeader>
-                <CardTitle className="text-white">Asset Allocation</CardTitle>
-                <CardDescription>Portfolio distribution by category</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {dashboardData.positions.map((position) => (
-                    <div key={position.symbol} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          colorByCategory[position.category] ?? 'bg-slate-400'
-                        }`} />
-                        <div>
-                          <p className="font-medium text-white">{position.symbol}</p>
-                          <p className="text-sm text-slate-400">{position.category}</p>
+              <Card data-testid="kpi-winrate20" className="bg-slate-900 border-slate-800">
+                <CardContent className="p-5 min-h-[110px]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-400 text-sm">Win Rate (last 20)</p>
+                      <p className="text-2xl font-bold text-white">{fmtPct0(winRate20)}</p>
+                    </div>
+                    <div className="h-10 w-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-purple-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts + Allocation */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <Card className="bg-slate-900 border-slate-800 lg:col-span-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center">
+                    <LineChart className="h-5 w-5 mr-2" /> Equity Curve & Daily P&L
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div data-testid="chart-portfolio" className="h-72">
+                    <ResponsiveContainer>
+                      <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="dateLabel" />
+                        <YAxis yAxisId="left" />
+                        <YAxis yAxisId="right" orientation="right" />
+                        <Tooltip />
+                        <Bar yAxisId="left" dataKey="daily" />
+                        <Line yAxisId="right" type="monotone" dataKey="cum" dot={false} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-900 border-slate-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center">
+                    <PieChart className="h-5 w-5 mr-2" /> Asset Allocation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-72 flex items-center justify-center">
+                    {allocation.length ? (
+                      <ResponsiveContainer>
+                        <RPieChart>
+                          <Pie data={allocation} dataKey="value" nameKey="name" outerRadius={100}>
+                            {allocation.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.name] ?? '#94a3b8'} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v: number, _: any, item: any) => [`${fmtUSD(v)} (${fmtPct1(item.payload.pct)})`, item.payload.name]} />
+                        </RPieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <p className="text-slate-400">No positions</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Trades + Risk Metrics/Events */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <Card className="bg-slate-900 border-slate-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center justify-between">
+                    <span className="flex items-center"><History className="h-5 w-5 mr-2" /> Recent Trades</span>
+                    <Button variant="ghost" size="sm" onClick={() => router.push('/trades')} aria-label="More trades">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div data-testid="list-recent-trades" className="space-y-3">
+                    {filteredTrades.slice(-5).reverse().map(t => (
+                      <div key={t.id} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${t.pnl >= 0 ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                          <div>
+                            <p className="text-white font-medium">{t.symbol}</p>
+                            <p className="text-slate-400 text-sm">{t.side} • {t.quantity} • {t.strategy ?? '—'}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-medium">{fmtUSD(t.price)}</p>
+                          <p className={`text-sm ${t.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(t.pnl)}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium text-white">{fmtUSD(position.value)}</p>
-                        <p className={`text-sm ${
-                          position.changePct >= 0 ? 'text-emerald-400' : 'text-red-400'
-                        }`}>
-                          {withSignUSD(position.changePct)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    ))}
+                    {!filteredTrades.length && <p className="text-slate-400">No trades in selected timeframe.</p>}
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Quick Actions */}
-          <Card className="bg-slate-900 border-slate-800">
-            <CardHeader>
-              <CardTitle className="text-white">Quick Actions</CardTitle>
-              <CardDescription>Common trading tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push('/trades/new?from=dashboard')}
-                  className="h-20 flex flex-col space-y-2"
-                  data-testid="action-add-manual-trade"
-                >
-                  <Plus className="h-6 w-6" />
-                  <span>Add Manual Trade</span>
+              <Card className="bg-slate-900 border-slate-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white">Risk Metrics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between"><span className="text-slate-400">Max Drawdown</span><span className="text-white font-medium">-{fmtPct1(dashboardData.risk.maxDrawdownPct)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Sharpe Ratio</span><span className="text-white font-medium">{dashboardData.risk.sharpe.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Beta</span><span className="text-white font-medium">{dashboardData.risk.beta.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Volatility</span><span className="text-white font-medium">{fmtPct1(dashboardData.risk.volPct)}</span></div>
+                  </div>
+                  <div className="mt-5">
+                    <p className="text-slate-300 font-medium mb-2">Recent Risk Events</p>
+                    <div data-testid="risk-events" className="space-y-2">
+                      {(dashboardData.riskEvents ?? []).slice(0, 3).map(e => (
+                        <div key={e.id} className="flex items-center justify-between bg-slate-800 p-2 rounded">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            e.severity === 'critical' ? 'bg-red-500/20 text-red-300' :
+                              e.severity === 'warning' ? 'bg-amber-500/20 text-amber-300' :
+                                'bg-slate-600/40 text-slate-200'
+                          }`}>{e.severity}</span>
+                          <span className="text-sm text-slate-200 flex-1 mx-3 truncate">{e.details}</span>
+                          <span className="text-xs text-slate-400">{new Date(e.at).toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {!(dashboardData.riskEvents ?? []).length && <p className="text-slate-400 text-sm">No recent events.</p>}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Integrations & Quick Actions */}
+            <div className="grid grid-cols-1 gap-4 mb-4">
+              {!!dashboardData.integrations?.length && (
+                <Card className="bg-slate-900 border-slate-800">
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap gap-4 items-center">
+                      {dashboardData.integrations!.map(int => (
+                        <div key={int.name} className="flex items-center gap-2">
+                          <span className="text-slate-300">{int.name}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            int.status === 'connected' ? 'bg-emerald-500/20 text-emerald-300' :
+                              int.status === 'needs_auth' ? 'bg-amber-500/20 text-amber-200' :
+                                'bg-red-500/20 text-red-300'
+                          }`}>{int.status.replace('_', ' ')}</span>
+                          {int.lastSync && <span className="text-slate-500 text-xs">• synced {new Date(int.lastSync).toLocaleString()}</span>}
+                          {int.status !== 'connected' && (
+                            <Button variant="ghost" size="sm" onClick={() => router.push('/settings/integrations')}>Connect</Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <Button variant="outline" className="h-auto p-4 bg-slate-900 border-slate-800" onClick={() => router.push('/trades')}>
+                  <div className="flex flex-col items-center text-center"><BarChart3 className="h-6 w-6 mb-2" /><span>View All Trades</span></div>
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleExportCSV}
-                  disabled={loading}
-                  className="h-20 flex flex-col space-y-2"
-                  data-testid="action-export-csv"
-                >
-                  <Download className="h-6 w-6" />
-                  <span>Export CSV</span>
+                <Button variant="outline" className="h-auto p-4 bg-slate-900 border-slate-800" onClick={() => router.push('/analytics')}>
+                  <div className="flex flex-col items-center text-center"><PieChart className="h-6 w-6 mb-2" /><span>Analytics</span></div>
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push('/analytics')}
-                  className="h-20 flex flex-col space-y-2"
-                  data-testid="action-view-analytics"
-                >
-                  <BarChart3 className="h-6 w-6" />
-                  <span>View Analytics</span>
+                <Button variant="outline" className="h-auto p-4 bg-slate-900 border-slate-800" onClick={() => router.push('/import')}>
+                  <div className="flex flex-col items-center text-center"><Upload className="h-6 w-6 mb-2" /><span>Import Data</span></div>
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push('/settings/integrations')}
-                  className="h-20 flex flex-col space-y-2"
-                  data-testid="action-manage-integrations"
-                >
-                  <Zap className="h-6 w-6" />
-                  <span>Manage Integrations</span>
+                <Button variant="outline" className="h-auto p-4 bg-slate-900 border-slate-800" onClick={() => router.push('/trades/new?from=dashboard')}>
+                  <div className="flex flex-col items-center text-center"><Plus className="h-6 w-6 mb-2" /><span>Add Manual Trade</span></div>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Broker Sync Status */}
-          {dashboardData.integrations && dashboardData.integrations.length > 0 && (
-            <Card className="bg-slate-900 border-slate-800">
-              <CardHeader>
-                <CardTitle className="text-white">Integration Status</CardTitle>
-                <CardDescription>Broker connection status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {dashboardData.integrations.map((integration) => (
-                    <div key={integration.name} className="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        {integration.status === 'connected' ? (
-                          <CheckCircle className="h-4 w-4 text-emerald-400" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-400" />
-                        )}
-                        <div>
-                          <p className="font-medium text-white">{integration.name}</p>
-                          <p className="text-sm text-slate-400 capitalize">{integration.status.replace('_', ' ')}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        {integration.lastSync && (
-                          <p className="text-sm text-slate-400">
-                            {new Date(integration.lastSync).toLocaleString()}
-                          </p>
-                        )}
-                        {integration.status !== 'connected' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => router.push('/settings/integrations')}
-                          >
-                            Connect
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+            </div>
+          </>
+        )}
+      </main>
     </div>
   )
 }

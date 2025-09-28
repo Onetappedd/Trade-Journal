@@ -10,17 +10,19 @@ export type Trade = {
   pnl: number
   openedAt?: string
   closedAt?: string
+  strategy?: string
+  noteCount?: number
 }
 
 export type Position = {
   symbol: string
   quantity: number
   value: number
-  category: string
+  category: string // e.g., 'Stocks' | 'Options' | 'Futures' | 'Crypto' | 'Technology' | etc
   changePct: number
 }
 
-export type RiskMetrics = {
+export type RiskSummary = {
   maxDrawdownPct: number
   sharpe: number
   beta: number
@@ -29,13 +31,13 @@ export type RiskMetrics = {
 
 export type RiskEvent = {
   id: string
-  at: string
+  at: string // ISO
   kind: 'maxLoss' | 'drawdown' | 'gap' | 'ruleBreach'
   details: string
   severity: 'info' | 'warning' | 'critical'
 }
 
-export type Integration = {
+export type IntegrationStatus = {
   name: string
   status: 'connected' | 'needs_auth' | 'error'
   lastSync?: string
@@ -45,10 +47,13 @@ export type DashboardData = {
   dayPnL: number
   portfolioValue: number
   trades: Trade[]
-  positions?: Position[]
-  risk?: RiskMetrics
+  positions: Position[]
+  risk: RiskSummary
   riskEvents?: RiskEvent[]
-  integrations?: Integration[]
+  integrations?: IntegrationStatus[]
+  // series (optional; if not provided we derive from trades)
+  dailyPnlSeries?: { t: string; pnl: number }[]
+  cumPnlSeries?: { t: string; pnl: number }[]
 }
 
 export type Timeframe = 'today' | 'wtd' | 'mtd' | 'ytd' | 'custom'
@@ -77,11 +82,15 @@ export const withSignUSD = (n: number) =>
   `${n >= 0 ? '+' : ''}${fmtUSD(n)}`
 
 // Color mapping for categories
-export const colorByCategory: Record<string, string> = {
-  Technology: 'bg-sky-400',
-  Automotive: 'bg-amber-400',
-  Energy: 'bg-lime-400',
-  Healthcare: 'bg-rose-400',
-  Finance: 'bg-emerald-400',
-  Other: 'bg-slate-400',
+export const CATEGORY_COLORS: Record<string, string> = {
+  Stocks: '#60a5fa',     // tailwind sky-400
+  Options: '#f59e0b',    // amber-500
+  Futures: '#34d399',    // emerald-400
+  Crypto: '#a78bfa',     // violet-400
+  Technology: '#60a5fa',
+  Automotive: '#f59e0b',
+  Energy: '#84cc16',     // lime-500
+  Healthcare: '#fb7185', // rose-400
+  Finance: '#10b981',    // emerald-500
+  Other: '#94a3b8',      // slate-400
 }
