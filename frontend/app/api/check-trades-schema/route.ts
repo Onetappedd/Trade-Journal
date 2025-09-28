@@ -32,45 +32,26 @@ export async function GET(request: NextRequest) {
     
     console.log('User authenticated:', user.id);
     
-    // Get table structure
-    const { data: columns, error: columnsError } = await supabase
-      .from('information_schema.columns')
-      .select('column_name, data_type, is_nullable')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'trades')
-      .order('ordinal_position');
-    
-    if (columnsError) {
-      console.error('Error getting table structure:', columnsError);
-      return NextResponse.json({ 
-        error: 'Failed to get table structure', 
-        details: columnsError.message 
-      }, { status: 500 });
-    }
-    
-    console.log('Trades table columns:', columns);
-    
-    // Try to get a sample record to see what columns exist
-    const { data: sampleTrades, error: sampleError } = await supabase
+    // Try to get existing trades to see what columns are available
+    const { data: existingTrades, error: existingError } = await supabase
       .from('trades')
       .select('*')
       .limit(1);
     
-    if (sampleError) {
-      console.error('Error getting sample trades:', sampleError);
+    if (existingError) {
+      console.error('Error getting existing trades:', existingError);
       return NextResponse.json({ 
-        error: 'Failed to get sample trades', 
-        details: sampleError.message 
+        error: 'Failed to get existing trades', 
+        details: existingError.message 
       }, { status: 500 });
     }
     
-    console.log('Sample trades:', sampleTrades);
+    console.log('Existing trades:', existingTrades);
     
     return NextResponse.json({
       success: true,
-      columns: columns,
-      sampleTrades: sampleTrades,
-      message: 'Trades table schema retrieved successfully'
+      existingTrades: existingTrades,
+      message: 'Trades table check completed'
     });
 
   } catch (error: any) {
