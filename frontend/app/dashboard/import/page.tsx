@@ -5,13 +5,7 @@ import CSVImporter from '@/src/components/import/CSVImporter';
 import { useAuth } from '@/providers/auth-provider';
 
 // Import feature flag with fallback
-let IMPORT_V2: boolean;
-try {
-  const flags = require('@/src/lib/flags');
-  IMPORT_V2 = flags.IMPORT_V2;
-} catch {
-  IMPORT_V2 = process.env.NEXT_PUBLIC_IMPORT_V2_ENABLED === 'true' || true; // Temporarily enabled for testing
-}
+import { IMPORT_V2 } from '@/lib/flags';
 
 export default function ImportPage() {
   const { user, loading } = useAuth();

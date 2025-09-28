@@ -7,7 +7,7 @@
  * Only use this in server-side code (API routes, server components, etc.)
  */
 
-import { createSupabaseClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 import { redirect } from 'next/navigation'
 
 /**
@@ -24,7 +24,7 @@ export async function getUserOrThrow(): Promise<{
   app_metadata?: any
 }> {
   try {
-    const supabase = createSupabaseClient()
+    const supabase = createClient()
     
     // Get the session from cookies
     const { data: { session }, error } = await supabase.auth.getSession()
@@ -65,7 +65,7 @@ export async function getUserOrRedirect(redirectTo?: string): Promise<{
   app_metadata?: any
 }> {
   try {
-    const supabase = createSupabaseClient()
+    const supabase = createClient()
     
     // Get the session from cookies
     const { data: { session }, error } = await supabase.auth.getSession()
@@ -99,7 +99,7 @@ export async function getUserOrNull(): Promise<{
   app_metadata?: any
 } | null> {
   try {
-    const supabase = createSupabaseClient()
+    const supabase = createClient()
     
     // Get the session from cookies
     const { data: { session }, error } = await supabase.auth.getSession()
