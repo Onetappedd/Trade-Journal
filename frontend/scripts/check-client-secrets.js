@@ -8,20 +8,16 @@
 const fs = require('fs');
 const path = require('path');
 
-// Server-only environment variables that should never appear in client bundle
-const SERVER_ONLY_VARS = [
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'STRIPE_WEBHOOK_SECRET',
-  'STRIPE_PRICE_BASIC',
-  'STRIPE_PRICE_PRO',
-  'SENTRY_DSN',
-];
+// Import environment variable constants
+const { ENV_KEYS } = require('../src/lib/env-constants.js');
 
-// Directories to check in .next output
+// Server-only environment variables that should never appear in client bundle
+const SERVER_ONLY_VARS = Object.values(ENV_KEYS);
+
+// Directories to check in .next output (CLIENT BUNDLE ONLY)
 const CLIENT_DIRS = [
   'static/chunks',
   'static/css',
-  'server/app',
 ];
 
 function checkFileForSecrets(filePath) {
@@ -81,22 +77,20 @@ function main() {
   });
   
   if (foundIssues.length > 0) {
-    console.warn('⚠️  SECURITY WARNING: Server-only secrets found in client bundle!');
-    console.warn('');
+    console.error('❌ SECURITY VULNERABILITY: Server-only secrets found in client bundle!');
+    console.error('');
     
     foundIssues.forEach(issue => {
-      console.warn(`File: ${issue.file}`);
-      console.warn(`Secrets found: ${issue.secrets.join(', ')}`);
-      console.warn('');
+      console.error(`File: ${issue.file}`);
+      console.error(`Secrets found: ${issue.secrets.join(', ')}`);
+      console.error('');
     });
     
-    console.warn('🚨 This is a security vulnerability!');
-    console.warn('Server-only environment variables must not be exposed to the client.');
-    console.warn('Check your environment variable usage in client-side code.');
-    console.warn('⚠️  Continuing build for now, but this should be fixed in production.');
-    
-    // Temporarily allow build to continue
-    // process.exit(1);
+    console.error('🚨 This is a critical security vulnerability!');
+    console.error('Server-only environment variables must not be exposed to the client.');
+    console.error('Check your environment variable usage in client-side code.');
+    console.error('');
+    process.exit(1);
   }
   
   console.log('✅ No server-only secrets found in client bundle');

@@ -2,6 +2,15 @@
 
 A comprehensive trading journal application built with Next.js, Supabase, and TypeScript. Features include trade tracking, performance analytics, CSV import, subscription management, and real-time KPI calculations.
 
+## 🔒 Security First
+
+**⚠️ IMPORTANT**: This project uses environment variables for sensitive data. Never commit actual API keys or secrets to version control.
+
+- See [SECURITY.md](./SECURITY.md) for detailed security guidelines
+- All environment variable names are defined in `src/lib/env-constants.ts`
+- Use `.env.local` for local development (automatically ignored by git)
+- The build process validates that no server secrets leak to the client bundle
+
 ## 🚀 Quick Start (Under 10 Minutes)
 
 ### Prerequisites

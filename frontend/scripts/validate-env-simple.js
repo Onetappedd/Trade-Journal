@@ -5,20 +5,23 @@
  * Validates required environment variables without TypeScript dependencies
  */
 
+// Import environment variable constants
+const { ENV_KEYS, CLIENT_ENV_KEYS } = require('../src/lib/env-constants.js');
+
 const requiredClientVars = [
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  CLIENT_ENV_KEYS.SUPABASE_URL,
+  CLIENT_ENV_KEYS.SUPABASE_ANON_KEY
 ];
 
 const requiredServerVars = [
-  'SUPABASE_SERVICE_ROLE_KEY'
+  ENV_KEYS.SUPABASE_SERVICE_ROLE_KEY
 ];
 
 const optionalServerVars = [
-  'STRIPE_WEBHOOK_SECRET',
-  'STRIPE_PRICE_BASIC',
-  'STRIPE_PRICE_PRO',
-  'SENTRY_DSN'
+  ENV_KEYS.STRIPE_WEBHOOK_SECRET,
+  ENV_KEYS.STRIPE_PRICE_BASIC,
+  ENV_KEYS.STRIPE_PRICE_PRO,
+  ENV_KEYS.SENTRY_DSN
 ];
 
 function validateEnvironment() {
