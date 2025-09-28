@@ -129,8 +129,9 @@ export function FunctionalCSVImporter() {
         options: importOptions
       }));
 
-            // First, debug the CSV parsing with detailed results
-            const debugResponse = await fetch('/api/import/csv-debug-detailed', {
+            // First, debug the CSV parsing with Webull-specific logic
+            const debugEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-test' : '/api/import/csv-debug-detailed';
+            const debugResponse = await fetch(debugEndpoint, {
               method: 'POST',
               body: formData,
               headers: {
