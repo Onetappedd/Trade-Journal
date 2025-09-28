@@ -13,7 +13,7 @@ interface LoginPageProps {
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const supabase = createSupabaseClient();
+  const supabase = getServerSupabase();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -26,7 +26,7 @@ export default function PortfolioSettingsPage() {
     if (!user) return;
 
     setIsLoading(true);
-    const supabase = createSupabaseClient();
+    const supabase = createClient();
 
     try {
       // First, try to get existing settings
@@ -76,7 +76,7 @@ export default function PortfolioSettingsPage() {
     }
 
     setIsSaving(true);
-    const supabase = createSupabaseClient();
+    const supabase = createClient();
 
     try {
       const { error } = await supabase

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -116,6 +116,10 @@ export function CommandPalette({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="p-0 max-w-2xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Scanner Command Palette</DialogTitle>
+          <DialogDescription>Search and apply scanner presets, filters, and symbols</DialogDescription>
+        </DialogHeader>
         <Command>
           <CommandInput 
             placeholder="Search presets, filters, symbols..." 

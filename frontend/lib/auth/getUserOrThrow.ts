@@ -1,5 +1,7 @@
 import { createSupabaseWithToken } from '@/lib/supabase/server';
+import { getServerSupabase } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
+import { redirect } from 'next/navigation';
 
 export interface User {
   id: string;
@@ -22,11 +24,17 @@ export async function getUserOrThrow(request: NextRequest): Promise<User> {
   }
 }
 
-export async function getUserOrRedirect(request: NextRequest): Promise<User> {
+export async function getUserOrRedirect(redirectPath: string = '/login'): Promise<User> {
   try {
-    return await getUserOrThrow(request);
+    const supabase = getServerSupabase();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      redirect(redirectPath);
+    }
+    
+    return user;
   } catch (error) {
-    // In a real implementation, this would redirect to login
-    throw new Error('Authentication required');
+    redirect(redirectPath);
   }
 }
