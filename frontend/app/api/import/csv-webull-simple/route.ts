@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     let errorCount = 0;
     
     console.log('Starting to process', lines.length - 1, 'rows');
+    console.log('Headers found:', headers);
     
     for (let i = 1; i < lines.length; i++) {
       try {
@@ -65,6 +66,11 @@ export async function POST(request: NextRequest) {
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
+        
+        // Log first few rows for debugging
+        if (i <= 3) {
+          console.log(`Row ${i} raw data:`, row);
+        }
         
         // Webull-specific parsing
         const symbol = row['Symbol'] || '';
@@ -146,6 +152,12 @@ export async function POST(request: NextRequest) {
       skipped: skippedCount,
       errors: errorCount
     });
+    
+    // Log summary of what was processed
+    console.log(`Processed ${lines.length - 1} total rows`);
+    console.log(`Found ${insertedCount} valid trades to import`);
+    console.log(`Skipped ${skippedCount} rows`);
+    console.log(`Encountered ${errorCount} errors`);
     
     return NextResponse.json({
       success: true,
