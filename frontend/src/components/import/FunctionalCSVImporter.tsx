@@ -130,7 +130,7 @@ export function FunctionalCSVImporter() {
       }));
 
             // Upload file
-            const uploadResponse = await fetch('/api/debug-import', {
+            const uploadResponse = await fetch('/api/import/csv-fixed', {
               method: 'POST',
               body: formData,
               headers: {
@@ -161,21 +161,21 @@ export function FunctionalCSVImporter() {
               setImportStatus({
                 stage: 'complete',
                 progress: 100,
-                message: `Debug test passed! All systems working.`,
-                importedCount: 0,
-                totalCount: 0
+                message: `Import completed successfully! ${uploadData.stats?.inserted || 0} trades imported.`,
+                importedCount: uploadData.stats?.inserted || 0,
+                totalCount: uploadData.stats?.totalRows || 0
               });
               setIsImporting(false);
               
               // Show success toast
               toast({
-                title: 'Debug Test Successful',
-                description: `All import systems are working correctly. Ready for real import.`,
+                title: 'Import Successful',
+                description: `Successfully imported ${uploadData.stats?.inserted || 0} trades.`,
                 variant: 'default',
               });
               return;
             } else {
-              throw new Error(uploadData.error || 'Debug test failed');
+              throw new Error(uploadData.error || 'Import failed');
             }
             
             const statusResponse = await fetch(`/api/import/status/${importRunId}`, {
