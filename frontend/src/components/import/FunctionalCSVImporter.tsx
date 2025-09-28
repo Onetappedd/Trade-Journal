@@ -129,8 +129,8 @@ export function FunctionalCSVImporter() {
         options: importOptions
       }));
 
-            // First, debug the CSV parsing
-            const debugResponse = await fetch('/api/debug-csv-parsing', {
+            // First, debug the CSV parsing with detailed results
+            const debugResponse = await fetch('/api/import/csv-debug-detailed', {
               method: 'POST',
               body: formData,
               headers: {
@@ -148,13 +148,13 @@ export function FunctionalCSVImporter() {
             
             // Show debug info to user
             console.log('Full debug data:', debugData);
-            console.log('Headers:', debugData.debug.headers);
-            console.log('Sample rows:', debugData.debug.sampleRows);
-            console.log('Possible columns:', debugData.debug.possibleColumns);
+            console.log('Parsing results:', debugData.debug.parsingResults);
+            console.log('Summary:', debugData.debug.summary);
             
+            const summary = debugData.debug.summary;
             toast({
               title: 'CSV Analysis Complete',
-              description: `Found ${debugData.debug.totalLines} lines with headers: ${debugData.debug.headers.join(', ')}`,
+              description: `Found ${debugData.debug.totalLines} lines. Valid trades: ${summary.validTrades}, Skipped: ${summary.skippedTrades}`,
               variant: 'default',
             });
             
