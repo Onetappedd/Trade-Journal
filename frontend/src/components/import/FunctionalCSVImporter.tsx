@@ -130,7 +130,7 @@ export function FunctionalCSVImporter() {
       }));
 
             // Upload file
-            const uploadResponse = await fetch('/api/import/csv-simple', {
+            const uploadResponse = await fetch('/api/import/test-minimal', {
               method: 'POST',
               body: formData,
               headers: {
