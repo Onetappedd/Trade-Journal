@@ -29,11 +29,24 @@ export async function POST(request: NextRequest) {
     
     console.log('File received:', file.name, file.size);
     
-    // Create Supabase client
+    // Create Supabase client for authentication
     const cookieStore = cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+    
+    // Create service role client for database operations (bypasses RLS)
+    const supabaseAdmin = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
         cookies: {
           get(name: string) {
@@ -94,7 +107,7 @@ export async function POST(request: NextRequest) {
     console.log('Starting transaction for', trades.length, 'valid trades');
     
     const transactionResult = await executeImportTransaction(
-      supabase,
+      supabaseAdmin,
       trades,
       user.id,
       fileId,
