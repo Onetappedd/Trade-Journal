@@ -27,12 +27,56 @@ import { toast } from '@/hooks/use-toast';
 import { getSession } from '@/lib/auth';
 
 interface ImportStatus {
-  stage: 'idle' | 'uploading' | 'parsing' | 'validating' | 'importing' | 'complete' | 'error';
+  stage: 'idle' | 'uploading' | 'parsing' | 'validating' | 'preview' | 'importing' | 'complete' | 'error';
   progress: number;
   message: string;
   error?: string;
   importedCount?: number;
   totalCount?: number;
+}
+
+interface PreviewData {
+  profiling: {
+    totalRows: number;
+    headerRows: number;
+    parsedRows: number;
+    filledRows: number;
+    importedRows: number;
+    skipped: {
+      cancelled: number;
+      zeroQty: number;
+      zeroPrice: number;
+      badDate: number;
+      parseError: number;
+    };
+  };
+  importableTradesPreview: Array<{
+    externalId: string;
+    broker: string;
+    symbolRaw: string;
+    symbol: string;
+    assetType: string;
+    side: string;
+    quantity: number;
+    price: number;
+    fees: number;
+    commission: number;
+    status: string;
+    executedAt: string;
+    meta: {
+      rowIndex: number;
+      source: string;
+    };
+  }>;
+  skippedRowsPreview: Array<{
+    rowIndex: number;
+    reason: string;
+    symbolRaw: string;
+    status: string;
+    filled: string;
+    price: string;
+  }>;
+  message: string;
 }
 
 interface ImportOptions {
@@ -55,6 +99,8 @@ export function FunctionalCSVImporter() {
     message: 'No file selected. Please choose a CSV file to begin the import process.',
   });
   const [isImporting, setIsImporting] = useState(false);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,9 +158,82 @@ export function FunctionalCSVImporter() {
 
     setIsImporting(true);
     setImportStatus({
-      stage: 'uploading',
-      progress: 10,
-      message: 'Uploading file...',
+      stage: 'parsing',
+      progress: 20,
+      message: 'Analyzing CSV file...',
+    });
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      // Call test endpoint to get preview data
+      const testEndpoint = brokerPreset === 'webull' ? '/api/test-webull-import-simple' : '/api/import/csv-debug-detailed';
+      const testResponse = await fetch(testEndpoint, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        }
+      });
+      
+      if (!testResponse.ok) {
+        const errorData = await testResponse.json();
+        throw new Error(errorData.message || 'Analysis failed');
+      }
+      
+      const testData = await testResponse.json();
+      console.log('CSV Analysis Data:', testData);
+      
+      // Set preview data and show preview
+      setPreviewData(testData);
+      setShowPreview(true);
+      setImportStatus({
+        stage: 'preview',
+        progress: 50,
+        message: `Analysis complete. Found ${testData.profiling.importedRows} importable trades.`,
+      });
+      setIsImporting(false);
+      
+    } catch (error) {
+      setImportStatus({
+        stage: 'error',
+        progress: 0,
+        message: 'Analysis failed',
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
+      setIsImporting(false);
+      toast({
+        title: 'Analysis Failed',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive',
+      });
+    }
+  }, [selectedFile, brokerPreset, importOptions]);
+
+  const handleConfirmImport = useCallback(async () => {
+    if (!selectedFile || !previewData) {
+      return;
+    }
+
+    // Get session for authentication
+    const session = await getSession();
+    if (!session) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to import trades.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    setShowPreview(false);
+    setImportStatus({
+      stage: 'importing',
+      progress: 70,
+      message: 'Importing trades to database...',
     });
 
     try {
@@ -129,51 +248,19 @@ export function FunctionalCSVImporter() {
         options: importOptions
       }));
 
-            // First, debug the CSV parsing with Webull-specific logic
-            const debugEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-test' : '/api/import/csv-debug-detailed';
-            const debugResponse = await fetch(debugEndpoint, {
-              method: 'POST',
-              body: formData,
-              headers: {
-                'Authorization': `Bearer ${session?.access_token}`,
-              }
-            });
-            
-            if (!debugResponse.ok) {
-              const errorData = await debugResponse.json();
-              throw new Error(errorData.message || 'Debug failed');
-            }
-            
-            const debugData = await debugResponse.json();
-            console.log('CSV Debug Data:', debugData);
-            
-            // Show debug info to user
-            console.log('Full debug data:', debugData);
-            console.log('Parsing results:', debugData.debug.parsingResults);
-            console.log('Summary:', debugData.debug.summary);
-            
-            const summary = debugData.debug.summary;
-            toast({
-              title: 'CSV Analysis Complete',
-              description: `Found ${debugData.debug.totalLines} lines. Valid trades: ${summary.validTrades}, Skipped: ${summary.skippedTrades}`,
-              variant: 'default',
-            });
-            
-            // Now try the actual import - use Webull-specific API if Webull preset is selected
-            const apiEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-final' : '/api/import/csv-fixed';
-            console.log('Using API endpoint:', apiEndpoint);
-            
-            const uploadResponse = await fetch(apiEndpoint, {
-              method: 'POST',
-              body: formData,
-              headers: {
-                'Authorization': `Bearer ${session?.access_token}`,
-              }
-            });
+      // Use final import endpoint
+      const apiEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-final' : '/api/import/csv-fixed';
+      const uploadResponse = await fetch(apiEndpoint, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        }
+      });
 
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json();
-        throw new Error(errorData.message || 'Upload failed');
+        throw new Error(errorData.message || 'Import failed');
       }
 
       const uploadResult = await uploadResponse.json();
@@ -213,7 +300,7 @@ export function FunctionalCSVImporter() {
         variant: 'destructive',
       });
     }
-  }, [selectedFile, brokerPreset, importOptions]);
+  }, [selectedFile, previewData, brokerPreset, importOptions]);
 
   const handleReset = useCallback(() => {
     setSelectedFile(null);
@@ -224,9 +311,21 @@ export function FunctionalCSVImporter() {
       message: 'No file selected. Please choose a CSV file to begin the import process.',
     });
     setIsImporting(false);
+    setPreviewData(null);
+    setShowPreview(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  }, []);
+
+  const handleCancelPreview = useCallback(() => {
+    setShowPreview(false);
+    setPreviewData(null);
+    setImportStatus({
+      stage: 'idle',
+      progress: 0,
+      message: 'Preview cancelled. Ready to analyze another file.',
+    });
   }, []);
 
   const getStatusIcon = () => {
@@ -460,6 +559,131 @@ export function FunctionalCSVImporter() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Preview Modal */}
+      {showPreview && previewData && (
+        <Card className="bg-slate-900/50 border-slate-800/50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-white">
+              <AlertTriangle className="h-5 w-5 mr-2 text-yellow-400" />
+              Import Preview
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Profiling Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-800/50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-emerald-400">{previewData.profiling.importedRows}</div>
+                <div className="text-sm text-slate-400">Importable</div>
+              </div>
+              <div className="bg-slate-800/50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-red-400">{previewData.profiling.skipped.cancelled}</div>
+                <div className="text-sm text-slate-400">Cancelled</div>
+              </div>
+              <div className="bg-slate-800/50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-400">{previewData.profiling.skipped.zeroQty + previewData.profiling.skipped.zeroPrice}</div>
+                <div className="text-sm text-slate-400">Zero Values</div>
+              </div>
+              <div className="bg-slate-800/50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-slate-400">{previewData.profiling.totalRows}</div>
+                <div className="text-sm text-slate-400">Total Rows</div>
+              </div>
+            </div>
+
+            {/* Warning for zero importable rows */}
+            {previewData.profiling.importedRows === 0 && (
+              <Alert className="border-yellow-500/50 bg-yellow-950/20">
+                <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                <AlertDescription className="text-yellow-200">
+                  Most rows are Cancelled/zero-filled. Nothing to import.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Importable Trades Preview */}
+            {previewData.importableTradesPreview.length > 0 && (
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-3">Importable Trades Preview</h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {previewData.importableTradesPreview.map((trade, index) => (
+                    <div key={index} className="bg-slate-800/50 p-3 rounded-lg text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-emerald-400 font-medium">{trade.symbol}</span>
+                        <span className="text-slate-300">{trade.side.toUpperCase()}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400 mt-1">
+                        <span>Qty: {trade.quantity}</span>
+                        <span>Price: ${trade.price}</span>
+                        <span>Date: {new Date(trade.executedAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Skipped Rows Preview */}
+            {previewData.skippedRowsPreview.length > 0 && (
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-3">Skipped Rows Preview</h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {previewData.skippedRowsPreview.map((row, index) => (
+                    <div key={index} className="bg-slate-800/50 p-3 rounded-lg text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-red-400 font-medium">Row {row.rowIndex}</span>
+                        <Badge variant="destructive" className="text-xs">
+                          {row.reason}
+                        </Badge>
+                      </div>
+                      <div className="text-slate-400 mt-1">
+                        Symbol: {row.symbolRaw} | Status: {row.status} | Price: {row.price}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              {previewData.profiling.importedRows > 0 ? (
+                <Button
+                  onClick={handleConfirmImport}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={isImporting}
+                >
+                  {isImporting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="h-4 w-4 mr-2" />
+                      Import {previewData.profiling.importedRows} Trades
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleCancelPreview}
+                  className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Close Preview
+                </Button>
+              )}
+              <Button
+                onClick={handleCancelPreview}
+                variant="outline"
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

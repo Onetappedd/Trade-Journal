@@ -2,22 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { parseWebullCsvHeaders, processWebullCsv } from '@/lib/imports/webull';
-import { upsertTrades } from '@/lib/imports/upsertTrades';
-import { logImportStart, logImportSummary, logImportErrors, logImportComplete, logImportError } from '@/lib/logger';
-import { 
-  executeImportTransaction, 
-  createTransactionErrorResponse, 
-  createTransactionSuccessResponse 
-} from '@/lib/imports/transactionWrapper';
+import { logImportStart, logImportSummary, logImportErrors, logImportError } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-  const fileId = `import-${Date.now()}`;
+  const fileId = `test-${Date.now()}`;
   let userId = '';
   
   try {
-    console.log('=== WEBULL CSV FINAL START ===');
+    console.log('=== WEBULL IMPORT SIMPLE TEST START ===');
     
     // Get the file from FormData
     const formData = await request.formData();
@@ -90,59 +84,72 @@ export async function POST(request: NextRequest) {
       logImportErrors(fileId, userId, summary.errors);
     }
     
-    // Execute the import in a transaction-safe manner
-    console.log('Starting transaction for', trades.length, 'valid trades');
-    
-    const transactionResult = await executeImportTransaction(
-      supabase,
-      trades,
-      user.id,
-      fileId,
-      // Success callback
-      (result) => {
-        logImportComplete(fileId, userId, {
-          inserted: result.inserted,
-          duplicatesSkipped: result.duplicatesSkipped,
-          errors: result.errors
-        });
-      },
-      // Error callback
-      (error) => {
-        logImportError(fileId, userId, error, 'transaction-failure');
+    // Prepare comprehensive profiling data for frontend modal
+    const profilingSummary = {
+      totalRows: summary.totalRows,
+      headerRows: summary.headerRows,
+      parsedRows: summary.parsedRows,
+      filledRows: summary.filledRows,
+      importedRows: summary.importedRows,
+      skipped: {
+        cancelled: summary.skipped.cancelled,
+        zeroQty: summary.skipped.zeroQty,
+        zeroPrice: summary.skipped.zeroPrice,
+        badDate: summary.skipped.badDate,
+        parseError: summary.skipped.parseError
       }
-    );
+    };
     
-    if (!transactionResult.success) {
-      // Return transaction error response
-      return NextResponse.json(
-        createTransactionErrorResponse(
-          new Error(transactionResult.error || 'Unknown transaction error'),
-          summary,
-          skippedRows
-        ),
-        { status: 500 }
-      );
-    }
+    // Get first 10 importable trades for preview
+    const importableTradesPreview = trades.slice(0, 10).map(trade => ({
+      externalId: trade.externalId,
+      broker: trade.broker,
+      symbolRaw: trade.symbolRaw,
+      symbol: trade.symbol,
+      assetType: trade.assetType,
+      side: trade.side,
+      quantity: trade.quantity,
+      price: trade.price,
+      fees: trade.fees,
+      commission: trade.commission,
+      status: trade.status,
+      executedAt: trade.executedAt,
+      meta: {
+        rowIndex: trade.meta.rowIndex,
+        source: trade.meta.source
+      }
+    }));
     
-    // Return transaction success response
-    return NextResponse.json(
-      createTransactionSuccessResponse(
-        transactionResult.result!,
-        summary,
-        skippedRows
-      )
-    );
+    // Get first 10 skipped rows with reasons
+    const skippedRowsPreview = skippedRows.slice(0, 10).map(skipped => ({
+      rowIndex: skipped.rowIndex,
+      reason: skipped.reason,
+      symbolRaw: skipped.symbolRaw,
+      status: skipped.status,
+      filled: skipped.filled,
+      price: skipped.price
+    }));
+    
+            return NextResponse.json({
+              success: true,
+              profiling: profilingSummary,
+              importableTradesPreview: importableTradesPreview,
+              skippedRowsPreview: skippedRowsPreview,
+              errors: summary.errors,
+              errorSummary: summary.errorSummary,
+              message: `Processed ${summary.totalRows} rows: ${summary.importedRows} importable, ${Object.values(summary.skipped).reduce((a, b) => a + b, 0)} skipped`
+            });
 
   } catch (error: any) {
-    console.error('Webull CSV Final error:', error);
+    console.error('Webull import simple test error:', error);
     
     // Log import error
     if (userId) {
-      logImportError(fileId, userId, error, 'csv-webull-final');
+      logImportError(fileId, userId, error, 'test-webull-import-simple');
     }
     
     return NextResponse.json({ 
-      error: 'Import failed', 
+      error: 'Test failed', 
       details: error.message 
     }, { status: 500 });
   }

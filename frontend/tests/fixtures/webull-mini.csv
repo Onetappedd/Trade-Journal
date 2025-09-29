@@ -1,0 +1,9 @@
+Symbol,Action,Status,Filled,FilledQty,Quantity,Price,AvgPrice,PlacedTime,ExecutedTime,OrderId,Commission,Fees,Notes
+AAPL,Buy,Filled,10,10,10,150.00,150.00,2024-01-15 09:30:00,2024-01-15 09:30:15,ORD001,1.00,0.50,Market order
+TSLA250822C00325000,Sell,Filled,5,5,5,325.00,325.00,2024-01-15 10:15:00,2024-01-15 10:15:30,ORD002,2.50,1.25,Option trade
+MSFT,Buy,Cancelled,0,0,100,250.00,0.00,2024-01-15 11:00:00,,ORD003,0.00,0.00,Cancelled order
+GOOGL,Sell,Cancelled,0,0,50,2800.00,0.00,2024-01-15 12:00:00,,ORD004,0.00,0.00,Cancelled order
+NVDA,Buy,Filled,,,25,800.00,800.00,2024-01-15 13:30:00,2024-01-15 13:30:45,ORD005,1.25,0.75,Zero filled
+AMZN,Buy,Filled,15,15,15,3200.00,3200.00,2024-01-15 14:00:00,invalid-date-format,ORD006,3.00,1.50,Bad date
+META,Sell,Filled,8,8,8,@450.00,450.00,2024-01-15 15:00:00,2024-01-15 15:00:20,ORD007,2.00,1.00,Price with @
+SPY250822P00400000,Buy,Filled,3,3,3,400.00,400.00,2024-01-15 16:00:00,2024-01-15 16:00:10,ORD008,1.50,0.75,Put option
