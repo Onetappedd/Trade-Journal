@@ -231,10 +231,14 @@ export async function upsertSingleTrade(
     if (error) {
       const importError = createImportError(tradeRecord.meta?.rowIndex || 0, 'PARSE_ERROR', tradeRecord.symbol_raw, {
         databaseError: error.message,
-        tradeRecord
+        tradeRecord,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint
       });
       logImportError(importError, 'upsertSingleTrade');
       console.error('Error inserting trade:', error);
+      console.error('Trade record that failed:', JSON.stringify(tradeRecord, null, 2));
       return { success: false, isDuplicate: false, error: error.message };
     }
 

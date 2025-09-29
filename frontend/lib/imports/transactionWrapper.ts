@@ -88,15 +88,9 @@ async function validateTrades(
   const errors: string[] = [];
   
   try {
-    // Check if user exists and is valid
-    const { data: userData, error: userError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .single();
-    
-    if (userError || !userData) {
-      errors.push('User validation failed');
+    // Validate userId is present
+    if (!userId || userId.trim() === '') {
+      errors.push('User ID is required');
     }
     
     // Check for required fields in all trades
@@ -116,7 +110,7 @@ async function validateTrades(
       }
     }
     
-    // Check database connectivity
+    // Check database connectivity by testing a simple query
     const { data: dbTest, error: dbError } = await supabase
       .from('trades')
       .select('id')
