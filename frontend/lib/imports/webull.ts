@@ -99,15 +99,15 @@ function createFieldMap(headers: string[]): Record<string, string> {
   
   // Add fallback mappings for common Webull CSV variations
   const fallbackMappings = [
-    { expected: 'symbol', alternatives: ['Symbol', 'SYMBOL', 'symbol', 'Ticker', 'TICKER'] },
-    { expected: 'action', alternatives: ['Side', 'SIDE', 'side', 'Action', 'ACTION', 'action', 'Buy/Sell', 'BUY/SELL'] },
-    { expected: 'status', alternatives: ['Status', 'STATUS', 'status', 'Order Status', 'ORDER STATUS'] },
-    { expected: 'filled', alternatives: ['Filled', 'FILLED', 'filled', 'Filled Qty', 'FILLED QTY', 'FilledQty'] },
-    { expected: 'quantity', alternatives: ['Quantity', 'QUANTITY', 'quantity', 'Qty', 'QTY', 'Shares', 'SHARES'] },
-    { expected: 'price', alternatives: ['Price', 'PRICE', 'price', 'Executed Price', 'EXECUTED PRICE', 'Avg Price', 'AVG PRICE'] },
-    { expected: 'executedtime', alternatives: ['Filled Time', 'FILLED TIME', 'filledtime', 'FilledTime', 'Executed Time', 'EXECUTED TIME', 'executedtime', 'ExecutedTime', 'Placed Time', 'PLACED TIME', 'placedtime', 'PlacedTime', 'Date', 'DATE', 'Time', 'TIME'] },
-    { expected: 'commission', alternatives: ['Commission', 'COMMISSION', 'commission', 'Comm', 'COMM'] },
-    { expected: 'fees', alternatives: ['Fees', 'FEES', 'fees', 'Fee', 'FEE'] }
+    { expected: 'symbol', alternatives: ['Symbol', 'SYMBOL', 'symbol', 'Ticker', 'TICKER', 'Ticker Symbol', 'TICKER SYMBOL'] },
+    { expected: 'action', alternatives: ['Side', 'SIDE', 'side', 'Action', 'ACTION', 'action', 'Buy/Sell', 'BUY/SELL', 'Direction', 'DIRECTION'] },
+    { expected: 'status', alternatives: ['Status', 'STATUS', 'status', 'Order Status', 'ORDER STATUS', 'OrderState', 'ORDER STATE'] },
+    { expected: 'filled', alternatives: ['Filled', 'FILLED', 'filled', 'Filled Qty', 'FILLED QTY', 'FilledQty', 'Filled Quantity', 'FILLED QUANTITY'] },
+    { expected: 'quantity', alternatives: ['Quantity', 'QUANTITY', 'quantity', 'Qty', 'QTY', 'Shares', 'SHARES', 'Size', 'SIZE'] },
+    { expected: 'price', alternatives: ['Price', 'PRICE', 'price', 'Executed Price', 'EXECUTED PRICE', 'Avg Price', 'AVG PRICE', 'Fill Price', 'FILL PRICE', 'Execution Price', 'EXECUTION PRICE'] },
+    { expected: 'executedtime', alternatives: ['Filled Time', 'FILLED TIME', 'filledtime', 'FilledTime', 'Executed Time', 'EXECUTED TIME', 'executedtime', 'ExecutedTime', 'Placed Time', 'PLACED TIME', 'placedtime', 'PlacedTime', 'Date', 'DATE', 'Time', 'TIME', 'Execution Time', 'EXECUTION TIME', 'Fill Date', 'FILL DATE'] },
+    { expected: 'commission', alternatives: ['Commission', 'COMMISSION', 'commission', 'Comm', 'COMM', 'Commission Fee', 'COMMISSION FEE'] },
+    { expected: 'fees', alternatives: ['Fees', 'FEES', 'fees', 'Fee', 'FEE', 'Total Fees', 'TOTAL FEES', 'Other Fees', 'OTHER FEES'] }
   ];
   
   // Apply fallback mappings for missing fields
@@ -118,6 +118,26 @@ function createFieldMap(headers: string[]): Record<string, string> {
         const headerIndex = normalizedHeaders.indexOf(normalizedAlternative);
         if (headerIndex !== -1) {
           fieldMap[mapping.expected] = headers[headerIndex];
+          break;
+        }
+      }
+    }
+  }
+  
+  // If we still don't have required fields, try fuzzy matching
+  const requiredFields = ['symbol', 'action', 'status', 'price', 'executedtime'];
+  for (const requiredField of requiredFields) {
+    if (!fieldMap[requiredField]) {
+      // Try to find a header that contains the required field name
+      for (let i = 0; i < headers.length; i++) {
+        const header = headers[i].toLowerCase();
+        if (header.includes(requiredField) || 
+            (requiredField === 'symbol' && (header.includes('ticker') || header.includes('stock'))) ||
+            (requiredField === 'action' && (header.includes('side') || header.includes('direction'))) ||
+            (requiredField === 'status' && header.includes('status')) ||
+            (requiredField === 'price' && header.includes('price')) ||
+            (requiredField === 'executedtime' && (header.includes('time') || header.includes('date')))) {
+          fieldMap[requiredField] = headers[i];
           break;
         }
       }
@@ -635,6 +655,22 @@ export function parseWebullCsvHeaders(headers: string[]): Record<string, string>
   if (missingFields.length > 0) {
     console.warn('[DEBUG] Missing required fields:', missingFields);
     console.warn('[DEBUG] Available headers:', headers);
+    console.warn('[DEBUG] Normalized headers:', headers.map(normalizeHeader));
+    
+    // Show what we're looking for vs what we have
+    console.warn('[DEBUG] Field mapping analysis:');
+    for (const field of missingFields) {
+      console.warn(`  ${field}: Looking for headers containing "${field}"`);
+      const matchingHeaders = headers.filter(h => 
+        h.toLowerCase().includes(field) || 
+        (field === 'symbol' && (h.toLowerCase().includes('ticker') || h.toLowerCase().includes('stock'))) ||
+        (field === 'action' && (h.toLowerCase().includes('side') || h.toLowerCase().includes('direction'))) ||
+        (field === 'status' && h.toLowerCase().includes('status')) ||
+        (field === 'price' && h.toLowerCase().includes('price')) ||
+        (field === 'executedtime' && (h.toLowerCase().includes('time') || h.toLowerCase().includes('date')))
+      );
+      console.warn(`    Found: ${matchingHeaders.join(', ') || 'None'}`);
+    }
   }
   
   return fieldMap;
