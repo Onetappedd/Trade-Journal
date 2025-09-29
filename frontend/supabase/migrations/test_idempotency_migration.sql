@@ -72,3 +72,4 @@ FROM pg_trigger
 WHERE tgrelid = 'public.trades'::regclass
 AND tgname = 'trigger_set_trade_idempotency_key';
 
+

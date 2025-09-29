@@ -163,3 +163,4 @@ DROP VIEW IF EXISTS public.trades_with_meta;
 - The unique constraint only applies when idempotency_key is NOT NULL
 - All new columns are nullable to maintain compatibility
 
+

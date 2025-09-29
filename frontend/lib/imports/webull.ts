@@ -100,12 +100,12 @@ function createFieldMap(headers: string[]): Record<string, string> {
   // Add fallback mappings for common Webull CSV variations
   const fallbackMappings = [
     { expected: 'symbol', alternatives: ['Symbol', 'SYMBOL', 'symbol', 'Ticker', 'TICKER'] },
-    { expected: 'action', alternatives: ['Action', 'ACTION', 'action', 'Side', 'SIDE', 'Buy/Sell', 'BUY/SELL'] },
+    { expected: 'action', alternatives: ['Side', 'SIDE', 'side', 'Action', 'ACTION', 'action', 'Buy/Sell', 'BUY/SELL'] },
     { expected: 'status', alternatives: ['Status', 'STATUS', 'status', 'Order Status', 'ORDER STATUS'] },
     { expected: 'filled', alternatives: ['Filled', 'FILLED', 'filled', 'Filled Qty', 'FILLED QTY', 'FilledQty'] },
     { expected: 'quantity', alternatives: ['Quantity', 'QUANTITY', 'quantity', 'Qty', 'QTY', 'Shares', 'SHARES'] },
     { expected: 'price', alternatives: ['Price', 'PRICE', 'price', 'Executed Price', 'EXECUTED PRICE', 'Avg Price', 'AVG PRICE'] },
-    { expected: 'executedtime', alternatives: ['Executed Time', 'EXECUTED TIME', 'executedtime', 'ExecutedTime', 'Date', 'DATE', 'Time', 'TIME'] },
+    { expected: 'executedtime', alternatives: ['Filled Time', 'FILLED TIME', 'filledtime', 'FilledTime', 'Executed Time', 'EXECUTED TIME', 'executedtime', 'ExecutedTime', 'Placed Time', 'PLACED TIME', 'placedtime', 'PlacedTime', 'Date', 'DATE', 'Time', 'TIME'] },
     { expected: 'commission', alternatives: ['Commission', 'COMMISSION', 'commission', 'Comm', 'COMM'] },
     { expected: 'fees', alternatives: ['Fees', 'FEES', 'fees', 'Fee', 'FEE'] }
   ];
@@ -318,15 +318,42 @@ export function parseWebullCsvRow(
         fieldMap,
         row,
         symbolRaw: row[fieldMap.symbol],
-        action: row[fieldMap.action],
-        status: row[fieldMap.status]
+        actionRaw: row[fieldMap.action],
+        status: row[fieldMap.status],
+        price: row[fieldMap.price],
+        executedtime: row[fieldMap.executedtime]
       });
     }
     
     // Extract basic fields
     const symbolRaw = row[fieldMap.symbol] || '';
-    const action = (row[fieldMap.action] || '').toLowerCase();
+    const actionRaw = (row[fieldMap.action] || '').toLowerCase();
     const status = (row[fieldMap.status] || '').toLowerCase();
+    
+    // Handle Webull's Side field values (Buy/Sell vs buy/sell)
+    let action = actionRaw;
+    if (actionRaw === 'buy' || actionRaw === 'sell') {
+      action = actionRaw;
+    } else if (actionRaw === 'b' || actionRaw === 's') {
+      action = actionRaw === 'b' ? 'buy' : 'sell';
+    } else {
+      // Try to parse common variations
+      if (actionRaw.includes('buy') || actionRaw.includes('b')) {
+        action = 'buy';
+      } else if (actionRaw.includes('sell') || actionRaw.includes('s')) {
+        action = 'sell';
+      }
+    }
+    
+    // Debug logging for action parsing
+    if (rowIndex <= 3) {
+      console.log(`[DEBUG] Action parsing for row ${rowIndex}:`, {
+        actionRaw,
+        action,
+        status,
+        symbolRaw
+      });
+    }
     
     if (!symbolRaw) {
       const error = createImportError(rowIndex, 'MISSING_REQUIRED', symbolRaw, { 
