@@ -162,3 +162,4 @@ DROP VIEW IF EXISTS public.trades_with_meta;
 - Existing trades will get idempotency_key generated on next update
 - The unique constraint only applies when idempotency_key is NOT NULL
 - All new columns are nullable to maintain compatibility
+

@@ -164,3 +164,4 @@ GRANT SELECT ON public.trades_with_meta TO authenticated;
 
 -- Add comment to the view
 COMMENT ON VIEW public.trades_with_meta IS 'Enhanced trades view with parsed metadata fields';
+

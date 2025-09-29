@@ -97,6 +97,33 @@ function createFieldMap(headers: string[]): Record<string, string> {
     }
   }
   
+  // Add fallback mappings for common Webull CSV variations
+  const fallbackMappings = [
+    { expected: 'symbol', alternatives: ['Symbol', 'SYMBOL', 'symbol', 'Ticker', 'TICKER'] },
+    { expected: 'action', alternatives: ['Action', 'ACTION', 'action', 'Side', 'SIDE', 'Buy/Sell', 'BUY/SELL'] },
+    { expected: 'status', alternatives: ['Status', 'STATUS', 'status', 'Order Status', 'ORDER STATUS'] },
+    { expected: 'filled', alternatives: ['Filled', 'FILLED', 'filled', 'Filled Qty', 'FILLED QTY', 'FilledQty'] },
+    { expected: 'quantity', alternatives: ['Quantity', 'QUANTITY', 'quantity', 'Qty', 'QTY', 'Shares', 'SHARES'] },
+    { expected: 'price', alternatives: ['Price', 'PRICE', 'price', 'Executed Price', 'EXECUTED PRICE', 'Avg Price', 'AVG PRICE'] },
+    { expected: 'executedtime', alternatives: ['Executed Time', 'EXECUTED TIME', 'executedtime', 'ExecutedTime', 'Date', 'DATE', 'Time', 'TIME'] },
+    { expected: 'commission', alternatives: ['Commission', 'COMMISSION', 'commission', 'Comm', 'COMM'] },
+    { expected: 'fees', alternatives: ['Fees', 'FEES', 'fees', 'Fee', 'FEE'] }
+  ];
+  
+  // Apply fallback mappings for missing fields
+  for (const mapping of fallbackMappings) {
+    if (!fieldMap[mapping.expected]) {
+      for (const alternative of mapping.alternatives) {
+        const normalizedAlternative = normalizeHeader(alternative);
+        const headerIndex = normalizedHeaders.indexOf(normalizedAlternative);
+        if (headerIndex !== -1) {
+          fieldMap[mapping.expected] = headers[headerIndex];
+          break;
+        }
+      }
+    }
+  }
+  
   return fieldMap;
 }
 
@@ -285,21 +312,45 @@ export function parseWebullCsvRow(
   rowIndex: number
 ): WebullTradeDTO {
   try {
+    // Debug logging for first few rows
+    if (rowIndex <= 3) {
+      console.log(`[DEBUG] Parsing row ${rowIndex}:`, {
+        fieldMap,
+        row,
+        symbolRaw: row[fieldMap.symbol],
+        action: row[fieldMap.action],
+        status: row[fieldMap.status]
+      });
+    }
+    
     // Extract basic fields
     const symbolRaw = row[fieldMap.symbol] || '';
     const action = (row[fieldMap.action] || '').toLowerCase();
     const status = (row[fieldMap.status] || '').toLowerCase();
     
     if (!symbolRaw) {
-      const error = createImportError(rowIndex, 'MISSING_REQUIRED', symbolRaw, { field: 'symbol', row });
+      const error = createImportError(rowIndex, 'MISSING_REQUIRED', symbolRaw, { 
+        field: 'symbol', 
+        row, 
+        fieldMap,
+        availableFields: Object.keys(row),
+        message: `Symbol field not found. Available fields: ${Object.keys(row).join(', ')}`
+      });
       logImportError(error, 'parseWebullCsvRow');
-      throw new WebullParseError(rowIndex, 'Missing symbol', row);
+      throw new WebullParseError(rowIndex, `Missing symbol field. Available fields: ${Object.keys(row).join(', ')}`, row);
     }
     
     if (!action || !['buy', 'sell'].includes(action)) {
-      const error = createImportError(rowIndex, 'PARSE_ERROR', symbolRaw, { field: 'action', value: action, row });
+      const error = createImportError(rowIndex, 'PARSE_ERROR', symbolRaw, { 
+        field: 'action', 
+        value: action, 
+        row,
+        fieldMap,
+        availableFields: Object.keys(row),
+        message: `Action field not found or invalid. Available fields: ${Object.keys(row).join(', ')}`
+      });
       logImportError(error, 'parseWebullCsvRow');
-      throw new WebullParseError(rowIndex, `Invalid action: ${action}`, row);
+      throw new WebullParseError(rowIndex, `Invalid action: ${action}. Available fields: ${Object.keys(row).join(', ')}`, row);
     }
     
     // Extract quantity
@@ -544,5 +595,20 @@ export function processWebullCsv(
  * Parses Webull CSV headers and creates field mapping
  */
 export function parseWebullCsvHeaders(headers: string[]): Record<string, string> {
-  return createFieldMap(headers);
+  const fieldMap = createFieldMap(headers);
+  
+  // Debug logging for field mapping
+  console.log('[DEBUG] Headers:', headers);
+  console.log('[DEBUG] Field map:', fieldMap);
+  
+  // Check for missing required fields
+  const requiredFields = ['symbol', 'action', 'status', 'price', 'executedtime'];
+  const missingFields = requiredFields.filter(field => !fieldMap[field]);
+  
+  if (missingFields.length > 0) {
+    console.warn('[DEBUG] Missing required fields:', missingFields);
+    console.warn('[DEBUG] Available headers:', headers);
+  }
+  
+  return fieldMap;
 }

@@ -259,3 +259,4 @@ describe('Transaction Safety', () => {
     expect(result.error).toContain('Pre-validation failed');
   });
 });
+

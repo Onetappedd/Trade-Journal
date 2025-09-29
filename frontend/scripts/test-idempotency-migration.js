@@ -195,3 +195,4 @@ async function runMigration() {
 runMigration().then(success => {
   process.exit(success ? 0 : 1);
 });
+

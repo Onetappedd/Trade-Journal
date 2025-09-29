@@ -146,3 +146,4 @@ COMMENT ON FUNCTION public.commit_transaction IS 'Placeholder function for trans
 COMMENT ON FUNCTION public.rollback_transaction IS 'Placeholder function for transaction management';
 COMMENT ON FUNCTION public.batch_insert_trades IS 'Batch insert trades with idempotency checking';
 COMMENT ON FUNCTION public.get_import_summary IS 'Get import summary for error reporting';
+

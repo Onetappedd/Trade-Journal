@@ -66,3 +66,4 @@ afterAll(() => {
 
 // Export mock for use in tests
 export { mockSupabase };
+
