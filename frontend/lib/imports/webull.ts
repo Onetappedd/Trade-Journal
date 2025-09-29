@@ -144,6 +144,24 @@ function createFieldMap(headers: string[]): Record<string, string> {
     }
   }
   
+  // Final fallback: if we still don't have required fields, try to map by position
+  // This is a last resort for completely unknown CSV formats
+  if (!fieldMap.symbol && headers.length > 0) {
+    fieldMap.symbol = headers[0]; // Assume first column is symbol
+  }
+  if (!fieldMap.action && headers.length > 1) {
+    fieldMap.action = headers[1]; // Assume second column is action
+  }
+  if (!fieldMap.status && headers.length > 2) {
+    fieldMap.status = headers[2]; // Assume third column is status
+  }
+  if (!fieldMap.price && headers.length > 3) {
+    fieldMap.price = headers[3]; // Assume fourth column is price
+  }
+  if (!fieldMap.executedtime && headers.length > 4) {
+    fieldMap.executedtime = headers[4]; // Assume fifth column is time
+  }
+  
   return fieldMap;
 }
 
@@ -208,15 +226,67 @@ export function parseDate(dateStr: string): string {
         [, month, day, year] = match;
       }
       
-      // Create date in US/Eastern timezone
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+      // Validate date components
+      const yearNum = parseInt(year);
+      const monthNum = parseInt(month);
+      const dayNum = parseInt(day);
+      const hourNum = parseInt(hour);
+      const minuteNum = parseInt(minute);
+      const secondNum = parseInt(second);
       
-      // Convert to UTC ISO string
-      return date.toISOString();
+      // Check for valid ranges
+      if (monthNum < 1 || monthNum > 12) {
+        console.warn(`Invalid month: ${monthNum} in date: ${dateStr}`);
+        continue;
+      }
+      if (dayNum < 1 || dayNum > 31) {
+        console.warn(`Invalid day: ${dayNum} in date: ${dateStr}`);
+        continue;
+      }
+      if (hourNum < 0 || hourNum > 23) {
+        console.warn(`Invalid hour: ${hourNum} in date: ${dateStr}`);
+        continue;
+      }
+      if (minuteNum < 0 || minuteNum > 59) {
+        console.warn(`Invalid minute: ${minuteNum} in date: ${dateStr}`);
+        continue;
+      }
+      if (secondNum < 0 || secondNum > 59) {
+        console.warn(`Invalid second: ${secondNum} in date: ${dateStr}`);
+        continue;
+      }
+      
+      try {
+        // Create date in US/Eastern timezone
+        const date = new Date(yearNum, monthNum - 1, dayNum, hourNum, minuteNum, secondNum);
+        
+        // Validate the date is valid
+        if (isNaN(date.getTime())) {
+          console.warn(`Invalid date created from: ${dateStr}`);
+          continue;
+        }
+        
+        // Convert to UTC ISO string
+        return date.toISOString();
+      } catch (error) {
+        console.warn(`Error creating date from: ${dateStr}`, error);
+        continue;
+      }
     }
   }
   
+  // Try to parse as ISO string or other common formats
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  } catch (error) {
+    console.warn(`Failed to parse date: ${dateStr}`, error);
+  }
+  
   // Fallback to current time
+  console.warn(`Using fallback date for: ${dateStr}`);
   return new Date().toISOString();
 }
 
@@ -671,6 +741,9 @@ export function parseWebullCsvHeaders(headers: string[]): Record<string, string>
       );
       console.warn(`    Found: ${matchingHeaders.join(', ') || 'None'}`);
     }
+  } else {
+    console.log('[DEBUG] All required fields mapped successfully!');
+    console.log('[DEBUG] Final field mapping:', fieldMap);
   }
   
   return fieldMap;
