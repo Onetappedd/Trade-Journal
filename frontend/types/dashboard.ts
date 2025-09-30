@@ -43,6 +43,20 @@ export type IntegrationStatus = {
   lastSync?: string
 }
 
+export type BrokerData = {
+  accounts: Array<{
+    account_id: string
+    name: string
+    number: string
+    institution_name: string
+    total_value: number | null
+    currency: string | null
+    last_successful_holdings_sync: string | null
+  }>
+  totalValue: number
+  lastSync: string | null
+}
+
 export type DashboardData = {
   dayPnL: number
   portfolioValue: number
@@ -51,6 +65,7 @@ export type DashboardData = {
   risk: RiskSummary
   riskEvents?: RiskEvent[]
   integrations?: IntegrationStatus[]
+  brokerData?: BrokerData
   // series (optional; if not provided we derive from trades)
   dailyPnlSeries?: { t: string; pnl: number }[]
   cumPnlSeries?: { t: string; pnl: number }[]

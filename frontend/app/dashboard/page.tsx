@@ -24,7 +24,14 @@ export default async function DashboardPage() {
     return null
   }
 
-  // Fetch real trade data from database
+  // Create service role client for accessing SnapTrade data
+  const { createClient: createSBClient } = await import('@supabase/supabase-js')
+  const supabaseAdmin = createSBClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  // Fetch manual trade data from database
   const { data: trades, error: tradesError } = await supabase
     .from('trades')
     .select('*')
@@ -36,18 +43,40 @@ export default async function DashboardPage() {
     console.error('Error fetching trades:', tradesError)
   }
 
-  // Calculate KPIs from real data
+  // Fetch SnapTrade broker data
+  const { data: snaptradeAccounts } = await supabaseAdmin
+    .from('snaptrade_accounts')
+    .select('*')
+    .eq('user_id', user.id)
+
+  const { data: brokerVerification } = await supabaseAdmin
+    .from('user_broker_verification')
+    .select('is_broker_verified, last_verified_at')
+    .eq('user_id', user.id)
+    .single()
+
+  // Calculate broker portfolio value
+  const brokerPortfolioValue = snaptradeAccounts?.reduce(
+    (sum, acc) => sum + (acc.total_value || 0),
+    0
+  ) || 0
+
+  // Calculate manual trade metrics
   const dayPnL = trades?.filter(t => {
     const tradeDate = new Date(t.entry_date || t.created_at)
     const today = new Date()
     return tradeDate.toDateString() === today.toDateString()
   }).reduce((sum, t) => sum + (t.pnl || 0), 0) || 0
 
-  const portfolioValue = trades?.reduce((sum, t) => sum + (t.entry_price * t.quantity), 0) || 0
+  const manualPortfolioValue = trades?.reduce((sum, t) => sum + (t.entry_price * t.quantity), 0) || 0
+
+  // Combine broker + manual data
+  const totalPortfolioValue = brokerPortfolioValue + manualPortfolioValue
+  const hasBrokerData = brokerVerification?.is_broker_verified || false
 
   const dashboardData: DashboardData = {
     dayPnL,
-    portfolioValue,
+    portfolioValue: totalPortfolioValue,
     trades: trades || [],
     positions: [], // TODO: Calculate from trades
     risk: { 
@@ -56,7 +85,14 @@ export default async function DashboardPage() {
       beta: 0, 
       volPct: 0 
     },
-    integrations: [{ name: 'TopstepX', status: 'needs_auth' }],
+    integrations: hasBrokerData 
+      ? [{ name: 'SnapTrade', status: 'connected' }]
+      : [{ name: 'SnapTrade', status: 'needs_auth' }],
+    brokerData: hasBrokerData ? {
+      accounts: snaptradeAccounts || [],
+      totalValue: brokerPortfolioValue,
+      lastSync: brokerVerification?.last_verified_at || null,
+    } : undefined,
   }
 
   return <DashboardClient user={user} dashboardData={dashboardData} />

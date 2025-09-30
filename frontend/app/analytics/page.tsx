@@ -74,6 +74,7 @@ export default function AnalyticsPage() {
   const [hasError, setHasError] = useState(false)
   const [isEmpty, setIsEmpty] = useState(false)
   const [analytics, setAnalytics] = useState<TradeAnalytics | null>(null)
+  const [dataSource, setDataSource] = useState<'combined' | 'manual' | 'broker'>('combined')
 
   const [filters, setFilters] = useState({
     timeframe: "3M",
@@ -129,7 +130,7 @@ export default function AnalyticsPage() {
     { value: "VTI", label: "Total Market (VTI)" },
   ]
 
-  // Fetch analytics data from your existing API
+  // Fetch analytics data from combined API (broker + manual)
   const fetchAnalytics = async () => {
     if (!session) return
     
@@ -137,7 +138,8 @@ export default function AnalyticsPage() {
     setHasError(false)
     
     try {
-      const response = await fetch('/api/portfolio/analytics', {
+      // Use the new combined analytics endpoint with selected data source
+      const response = await fetch(`/api/analytics/combined?source=${dataSource}&timeframe=${filters.timeframe}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
@@ -148,12 +150,17 @@ export default function AnalyticsPage() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
-      const data = await response.json()
-      setAnalytics(data)
+      const result = await response.json()
       
-      // Check if we have enough data
-      if (data.totalTrades < 10) {
-        setIsEmpty(true)
+      if (result.success) {
+        setAnalytics(result.data)
+        
+        // Check if we have enough data (from either source)
+        if (result.data.totalTrades < 10 && !result.data.hasBrokerData) {
+          setIsEmpty(true)
+        }
+      } else {
+        throw new Error(result.error || 'Failed to fetch analytics')
       }
     } catch (error) {
       console.error('Error fetching analytics:', error)
@@ -167,7 +174,7 @@ export default function AnalyticsPage() {
     if (session) {
       fetchAnalytics()
     }
-  }, [session])
+  }, [session, dataSource, filters.timeframe])
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -310,6 +317,33 @@ export default function AnalyticsPage() {
               <p className="text-slate-400 text-sm sm:text-base">Comprehensive performance analysis and risk metrics</p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+              {/* Data Source Toggle */}
+              <div className="flex items-center space-x-1 bg-slate-800/50 rounded-lg p-1">
+                <Button
+                  size="sm"
+                  variant={dataSource === "combined" ? "default" : "ghost"}
+                  onClick={() => setDataSource("combined")}
+                  className="h-7 px-3 text-xs"
+                >
+                  Combined
+                </Button>
+                <Button
+                  size="sm"
+                  variant={dataSource === "manual" ? "default" : "ghost"}
+                  onClick={() => setDataSource("manual")}
+                  className="h-7 px-3 text-xs"
+                >
+                  Manual
+                </Button>
+                <Button
+                  size="sm"
+                  variant={dataSource === "broker" ? "default" : "ghost"}
+                  onClick={() => setDataSource("broker")}
+                  className="h-7 px-3 text-xs"
+                >
+                  Broker
+                </Button>
+              </div>
               <Button
                 onClick={() => setFilterDrawerOpen(true)}
                 variant="outline"
