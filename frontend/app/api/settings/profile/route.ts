@@ -30,7 +30,26 @@ export async function GET() {
       .single()
 
     if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Profile fetch error:', profileError)
       return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+    }
+
+    // If no profile exists, return user data with empty profile fields
+    if (!profile) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          firstName: '',
+          lastName: '',
+          username: '',
+          bio: '',
+          avatarUrl: null,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at,
+        }
+      })
     }
 
     return NextResponse.json({
@@ -38,13 +57,13 @@ export async function GET() {
       data: {
         id: user.id,
         email: user.email,
-        firstName: profile?.first_name || '',
-        lastName: profile?.last_name || '',
-        username: profile?.username || '',
-        bio: profile?.bio || '',
-        avatarUrl: profile?.avatar_url || null,
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || '',
+        username: profile.username || '',
+        bio: profile.bio || '',
+        avatarUrl: profile.avatar_url || null,
         createdAt: user.created_at,
-        updatedAt: profile?.updated_at || user.updated_at,
+        updatedAt: profile.updated_at || user.updated_at,
       }
     })
   } catch (error) {

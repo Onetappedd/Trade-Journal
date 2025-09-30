@@ -85,6 +85,7 @@ export default function SettingsPageClient() {
   const [activeSection, setActiveSection] = useState<string | null>("profile")
   const [isMobile, setIsMobile] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [showPassword, setShowPassword] = useState({
     current: false,
     new: false,
@@ -167,11 +168,23 @@ export default function SettingsPageClient() {
       if (result.success) {
         setProfileData(result.data)
         setFormData({
-          firstName: result.data.firstName,
-          lastName: result.data.lastName,
-          username: result.data.username,
-          email: result.data.email,
-          bio: result.data.bio,
+          firstName: result.data.firstName || '',
+          lastName: result.data.lastName || '',
+          username: result.data.username || '',
+          email: result.data.email || user?.email || '',
+          bio: result.data.bio || '',
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        })
+      } else {
+        // If no profile exists, use user data from auth
+        setFormData({
+          firstName: '',
+          lastName: '',
+          username: '',
+          email: user?.email || '',
+          bio: '',
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
@@ -179,6 +192,17 @@ export default function SettingsPageClient() {
       }
     } catch (error) {
       console.error('Failed to load profile data:', error)
+      // Fallback to user data from auth
+      setFormData({
+        firstName: '',
+        lastName: '',
+        username: '',
+        email: user?.email || '',
+        bio: '',
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
     }
   }
 
@@ -452,6 +476,68 @@ export default function SettingsPageClient() {
     }
   }
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('avatar', file)
+
+      const response = await fetch('/api/settings/profile/avatar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Update profile data with new avatar URL
+        setProfileData(prev => prev ? { ...prev, avatarUrl: result.data.avatarUrl } : null)
+        toast({
+          title: "Avatar updated",
+          description: "Your profile picture has been updated successfully.",
+        })
+      } else {
+        toast({
+          title: "Upload failed",
+          description: result.error || "Failed to upload avatar",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error)
+      toast({
+        title: "Upload failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
   const handleRevokeSession = async (sessionId: string) => {
     setLoading(true)
     try {
@@ -538,27 +624,44 @@ export default function SettingsPageClient() {
               <img 
                 src={profileData.avatarUrl} 
                 alt="Profile" 
-                className="w-20 h-20 rounded-full object-cover"
+                className="w-20 h-20 rounded-full object-cover border-2 border-slate-600"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center border-2 border-slate-600">
                 <User className="h-8 w-8 text-slate-400" />
               </div>
             )}
             {isEditing.profile && (
-              <Button
-                size="sm"
-                className="absolute -bottom-1 -right-1 rounded-full w-8 h-8 p-0"
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
+              <div className="absolute -bottom-1 -right-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  id="avatar-upload"
+                  disabled={uploadingAvatar}
+                />
+                <label htmlFor="avatar-upload">
+                  <Button
+                    size="sm"
+                    className="rounded-full w-8 h-8 p-0 cursor-pointer"
+                    disabled={uploadingAvatar}
+                  >
+                    {uploadingAvatar ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </Button>
+                </label>
+              </div>
             )}
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">
-              {formData.firstName} {formData.lastName}
+              {formData.firstName || 'First'} {formData.lastName || 'Last'}
             </h3>
-            <p className="text-slate-400">@{formData.username}</p>
+            <p className="text-slate-400">@{formData.username || 'username'}</p>
             {profileData && (
               <p className="text-xs text-slate-500">
                 Member since {new Date(profileData.createdAt).toLocaleDateString()}
