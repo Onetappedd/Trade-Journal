@@ -11,6 +11,12 @@
  *   npm run snaptrade:snapshot <userId>
  */
 
+// Load environment variables from .env.local
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+
 import { snaptrade } from '../lib/snaptrade';
 import { createClient } from '@supabase/supabase-js';
 import * as readline from 'readline';
