@@ -126,7 +126,7 @@
     "react-virtuoso": "^4.14.0",
     "react-window": "^2.1.2",
     "recharts": "^3.2.1",
-    "snaptrade-react": "^2.0.8",
+    "snaptrade-react": "^3.2.4",
     "snaptrade-typescript-sdk": "^3.0.83",
     "sonner": "latest",
     "stripe": "^18.5.0",
