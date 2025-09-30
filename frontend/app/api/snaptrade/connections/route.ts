@@ -4,28 +4,59 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { listBrokerageAuthorizations } from '@/lib/snaptrade';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      console.error('Auth error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Use service role client for accessing SnapTrade data
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Get user's SnapTrade data (server-only access)
-    const { data: snaptradeUser, error: userError } = await supabase
+    const { data: snaptradeUser, error: userError } = await supabaseAdmin
       .from('snaptrade_users')
       .select('st_user_id, st_user_secret')
       .eq('user_id', user.id)
       .single();
 
     if (userError || !snaptradeUser) {
-      return NextResponse.json({ error: 'User not registered with SnapTrade' }, { status: 400 });
+      console.log('User not registered with SnapTrade, returning empty connections');
+      // Return empty connections if user hasn't registered yet
+      return NextResponse.json({
+        success: true,
+        data: {
+          connections: [],
+          brokerVerified: false,
+          lastVerifiedAt: null,
+          totalConnections: 0,
+          activeConnections: 0
+        }
+      });
     }
 
     // Get connections from SnapTrade API
@@ -35,13 +66,13 @@ export async function GET(request: NextRequest) {
     );
 
     // Get cached connections from database
-    const { data: cachedConnections } = await supabase
+    const { data: cachedConnections } = await supabaseAdmin
       .from('snaptrade_connections')
       .select('*')
       .eq('user_id', user.id);
 
     // Get accounts for these connections
-    const { data: accounts } = await supabase
+    const { data: accounts } = await supabaseAdmin
       .from('snaptrade_accounts')
       .select('*')
       .eq('user_id', user.id);
@@ -71,7 +102,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Check Broker-Verified status from view
-    const { data: verificationData } = await supabase
+    const { data: verificationData } = await supabaseAdmin
       .from('user_broker_verification')
       .select('is_broker_verified, last_verified_at')
       .eq('user_id', user.id)
