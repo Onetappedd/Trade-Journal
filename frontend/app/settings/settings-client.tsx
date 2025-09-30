@@ -45,6 +45,35 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 
+interface ProfileData {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  username: string
+  bio: string
+  avatarUrl: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface SecurityData {
+  twoFactorEnabled: boolean
+  sessions: Array<{
+    id: string
+    device: string
+    location: string
+    lastActive: string
+    current: boolean
+  }>
+}
+
+interface DataStats {
+  totalTrades: number
+  lastExport: string | null
+  accountCreated: string
+}
+
 export default function SettingsPageClient() {
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState({
@@ -55,18 +84,23 @@ export default function SettingsPageClient() {
 
   const [activeSection, setActiveSection] = useState<string | null>("profile")
   const [isMobile, setIsMobile] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState({
     current: false,
     new: false,
     confirm: false,
   })
 
+  const [profileData, setProfileData] = useState<ProfileData | null>(null)
+  const [securityData, setSecurityData] = useState<SecurityData | null>(null)
+  const [dataStats, setDataStats] = useState<DataStats | null>(null)
+
   const [formData, setFormData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    username: "johndoe_trader",
-    email: user?.email || "john.doe@example.com",
-    bio: "Professional trader with 10+ years of experience in equity markets and risk management.",
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    bio: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -118,6 +152,62 @@ export default function SettingsPageClient() {
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
+  // Load data when component mounts
+  useEffect(() => {
+    loadProfileData()
+    loadSecurityData()
+    loadDataStats()
+  }, [])
+
+  const loadProfileData = async () => {
+    try {
+      const response = await fetch('/api/settings/profile')
+      const result = await response.json()
+      
+      if (result.success) {
+        setProfileData(result.data)
+        setFormData({
+          firstName: result.data.firstName,
+          lastName: result.data.lastName,
+          username: result.data.username,
+          email: result.data.email,
+          bio: result.data.bio,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load profile data:', error)
+    }
+  }
+
+  const loadSecurityData = async () => {
+    try {
+      const response = await fetch('/api/settings/security')
+      const result = await response.json()
+      
+      if (result.success) {
+        setSecurityData(result.data)
+      }
+    } catch (error) {
+      console.error('Failed to load security data:', error)
+    }
+  }
+
+  const loadDataStats = async () => {
+    try {
+      const response = await fetch('/api/settings/data')
+      const result = await response.json()
+      
+      if (result.success) {
+        setDataStats(result.data)
+      }
+    } catch (error) {
+      console.error('Failed to load data stats:', error)
+    }
+  }
+
   const sections = [
     { id: "profile", label: "Profile & Account", icon: User },
     { id: "security", label: "Security & Privacy", icon: Shield },
@@ -127,40 +217,278 @@ export default function SettingsPageClient() {
     { id: "billing", label: "Billing & Plans", icon: CreditCard },
   ]
 
-  const handleSave = (section: string) => {
-    setIsEditing({ ...isEditing, [section]: false })
-    toast({
-      title: "Settings saved",
-      description: "Your changes have been saved successfully.",
-    })
+  const handleSave = async (section: string) => {
+    setLoading(true)
+    try {
+      if (section === 'profile') {
+        const response = await fetch('/api/settings/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            username: formData.username,
+            bio: formData.bio,
+          }),
+        })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          setProfileData(result.data)
+          setIsEditing({ ...isEditing, [section]: false })
+          toast({
+            title: "Profile updated",
+            description: "Your profile has been updated successfully.",
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Failed to update profile",
+            variant: "destructive",
+          })
+        }
+      } else if (section === 'security') {
+        if (formData.newPassword !== formData.confirmPassword) {
+          toast({
+            title: "Error",
+            description: "New passwords do not match",
+            variant: "destructive",
+          })
+          return
+        }
+
+        const response = await fetch('/api/settings/security', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            currentPassword: formData.currentPassword,
+            newPassword: formData.newPassword,
+          }),
+        })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          setIsEditing({ ...isEditing, [section]: false })
+          setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+          toast({
+            title: "Password updated",
+            description: "Your password has been updated successfully.",
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Failed to update password",
+            variant: "destructive",
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancel = (section: string) => {
     setIsEditing({ ...isEditing, [section]: false })
-    // Reset form data if needed
+    // Reset form data to original values
+    if (section === 'profile' && profileData) {
+      setFormData({
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        username: profileData.username,
+        email: profileData.email,
+        bio: profileData.bio,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
+    } else if (section === 'security') {
+      setFormData({ ...formData, currentPassword: "", newPassword: "", confirmPassword: "" })
+    }
   }
 
-  const handleExportData = () => {
-    toast({
-      title: "Export started",
-      description: "Your data export will be ready shortly. You'll receive an email when it's complete.",
-    })
+  const handleExportData = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/settings/data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'export' }),
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        // In a real implementation, you would download the file
+        // For now, we'll just show a success message
+        toast({
+          title: "Export completed",
+          description: result.message,
+        })
+      } else {
+        toast({
+          title: "Export failed",
+          description: result.error || "Failed to export data",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Export error:', error)
+      toast({
+        title: "Export failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleResetTrades = () => {
-    toast({
-      title: "Reset trades",
-      description: "All trading data has been reset. This action cannot be undone.",
-      variant: "destructive",
-    })
+  const handleResetTrades = async () => {
+    if (!confirm('Are you sure you want to reset all trading data? This action cannot be undone.')) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/settings/data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'reset_trades' }),
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast({
+          title: "Trades reset",
+          description: result.message,
+          variant: "destructive",
+        })
+        // Reload data stats
+        loadDataStats()
+      } else {
+        toast({
+          title: "Reset failed",
+          description: result.error || "Failed to reset trades",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Reset error:', error)
+      toast({
+        title: "Reset failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDeleteAccount = () => {
-    toast({
-      title: "Account deletion",
-      description: "Account deletion initiated. You'll receive a confirmation email.",
-      variant: "destructive",
-    })
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.')) {
+      return
+    }
+
+    if (!confirm('This is your final warning. Are you absolutely sure you want to delete your account?')) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/settings/data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'delete_account' }),
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast({
+          title: "Account deletion initiated",
+          description: result.message,
+          variant: "destructive",
+        })
+        // Redirect to home page or logout
+        setTimeout(() => {
+          window.location.href = '/'
+        }, 3000)
+      } else {
+        toast({
+          title: "Deletion failed",
+          description: result.error || "Failed to delete account",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast({
+        title: "Deletion failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRevokeSession = async (sessionId: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/settings/security', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        toast({
+          title: "Session revoked",
+          description: "The session has been revoked successfully.",
+        })
+        // Reload security data
+        loadSecurityData()
+      } else {
+        toast({
+          title: "Revoke failed",
+          description: result.error || "Failed to revoke session",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Session revoke error:', error)
+      toast({
+        title: "Revoke failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderProfileSection = () => (
@@ -193,9 +521,10 @@ export default function SettingsPageClient() {
               <Button
                 size="sm"
                 onClick={() => handleSave("profile")}
+                disabled={loading}
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save
+                {loading ? 'Saving...' : 'Save'}
               </Button>
             </div>
           )}
@@ -205,9 +534,17 @@ export default function SettingsPageClient() {
         {/* Profile Picture */}
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center">
-              <User className="h-8 w-8 text-slate-400" />
-            </div>
+            {profileData?.avatarUrl ? (
+              <img 
+                src={profileData.avatarUrl} 
+                alt="Profile" 
+                className="w-20 h-20 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center">
+                <User className="h-8 w-8 text-slate-400" />
+              </div>
+            )}
             {isEditing.profile && (
               <Button
                 size="sm"
@@ -222,6 +559,11 @@ export default function SettingsPageClient() {
               {formData.firstName} {formData.lastName}
             </h3>
             <p className="text-slate-400">@{formData.username}</p>
+            {profileData && (
+              <p className="text-xs text-slate-500">
+                Member since {new Date(profileData.createdAt).toLocaleDateString()}
+              </p>
+            )}
           </div>
         </div>
 
@@ -327,9 +669,10 @@ export default function SettingsPageClient() {
               <Button
                 size="sm"
                 onClick={() => handleSave("security")}
+                disabled={loading}
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save
+                {loading ? 'Saving...' : 'Save'}
               </Button>
             </div>
           )}
@@ -339,15 +682,26 @@ export default function SettingsPageClient() {
         {/* Two-Factor Authentication */}
         <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
           <div className="flex items-center gap-3">
-            <Shield className="h-5 w-5 text-green-400" />
+            <Shield className={`h-5 w-5 ${securityData?.twoFactorEnabled ? 'text-green-400' : 'text-slate-400'}`} />
             <div>
               <h3 className="text-white font-medium">Two-Factor Authentication</h3>
-              <p className="text-slate-400 text-sm">Enabled</p>
+              <p className="text-slate-400 text-sm">
+                {securityData?.twoFactorEnabled ? 'Enabled' : 'Not enabled'}
+              </p>
             </div>
           </div>
-          <Badge variant="secondary" className="bg-green-900/50 text-green-400">
-            <Check className="h-3 w-3 mr-1" />
-            Active
+          <Badge 
+            variant="secondary" 
+            className={securityData?.twoFactorEnabled ? "bg-green-900/50 text-green-400" : "bg-slate-700 text-slate-400"}
+          >
+            {securityData?.twoFactorEnabled ? (
+              <>
+                <Check className="h-3 w-3 mr-1" />
+                Active
+              </>
+            ) : (
+              'Disabled'
+            )}
           </Badge>
         </div>
 
@@ -436,12 +790,12 @@ export default function SettingsPageClient() {
         <div>
           <h3 className="text-white font-medium mb-4">Active Sessions</h3>
           <div className="space-y-3">
-            {sessions.map((session) => (
+            {securityData?.sessions?.map((session) => (
               <div key={session.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  {session.device.includes("iPhone") ? (
+                  {session.device.includes("iPhone") || session.device.includes("Mobile") ? (
                     <Smartphone className="h-5 w-5 text-slate-400" />
-                  ) : session.device.includes("MacBook") ? (
+                  ) : session.device.includes("MacBook") || session.device.includes("Mac") ? (
                     <Monitor className="h-5 w-5 text-slate-400" />
                   ) : (
                     <Monitor className="h-5 w-5 text-slate-400" />
@@ -463,13 +817,23 @@ export default function SettingsPageClient() {
                     </Badge>
                   )}
                   {!session.current && (
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleRevokeSession(session.id)}
+                      disabled={loading}
+                    >
                       <LogOut className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
               </div>
-            ))}
+            )) || (
+              <div className="text-center py-8 text-slate-400">
+                <Shield className="h-8 w-8 mx-auto mb-2" />
+                <p>No active sessions found</p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -485,15 +849,41 @@ export default function SettingsPageClient() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Data Statistics */}
+        {dataStats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <h4 className="text-white font-medium mb-1">Total Trades</h4>
+              <p className="text-2xl font-bold text-green-400">{dataStats.totalTrades}</p>
+            </div>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <h4 className="text-white font-medium mb-1">Account Created</h4>
+              <p className="text-sm text-slate-400">
+                {new Date(dataStats.accountCreated).toLocaleDateString()}
+              </p>
+            </div>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <h4 className="text-white font-medium mb-1">Last Export</h4>
+              <p className="text-sm text-slate-400">
+                {dataStats.lastExport ? new Date(dataStats.lastExport).toLocaleDateString() : 'Never'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Export Data */}
         <div className="space-y-4">
           <h3 className="text-white font-medium">Export Your Data</h3>
           <p className="text-slate-400 text-sm">
             Download a copy of your trading data and account information.
           </p>
-          <Button onClick={handleExportData} className="w-full sm:w-auto">
+          <Button 
+            onClick={handleExportData} 
+            className="w-full sm:w-auto"
+            disabled={loading}
+          >
             <Download className="h-4 w-4 mr-2" />
-            Export All Data
+            {loading ? 'Exporting...' : 'Export All Data'}
           </Button>
         </div>
 
@@ -512,9 +902,13 @@ export default function SettingsPageClient() {
               <p className="text-slate-400 text-sm mb-3">
                 This will permanently delete all your trades, positions, and trading history. This action cannot be undone.
               </p>
-              <Button variant="destructive" onClick={handleResetTrades}>
+              <Button 
+                variant="destructive" 
+                onClick={handleResetTrades}
+                disabled={loading}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Reset All Trading Data
+                {loading ? 'Resetting...' : 'Reset All Trading Data'}
               </Button>
             </div>
 
@@ -523,12 +917,162 @@ export default function SettingsPageClient() {
               <p className="text-slate-400 text-sm mb-3">
                 Permanently delete your account and all associated data. This action cannot be undone.
               </p>
-              <Button variant="destructive" onClick={handleDeleteAccount}>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteAccount}
+                disabled={loading}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
+                {loading ? 'Deleting...' : 'Delete Account'}
               </Button>
             </div>
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  const renderPreferencesSection = () => (
+    <Card className="bg-slate-900/50 border-slate-800/50">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Palette className="h-5 w-5" />
+          Preferences
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-white font-medium">Theme</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-300">Dark Mode</p>
+              <p className="text-slate-400 text-sm">Use dark theme for the application</p>
+            </div>
+            <Switch 
+              checked={preferences.theme === 'dark'} 
+              onCheckedChange={(checked) => setPreferences({...preferences, theme: checked ? 'dark' : 'light'})}
+            />
+          </div>
+        </div>
+
+        <Separator className="bg-slate-800" />
+
+        <div className="space-y-4">
+          <h3 className="text-white font-medium">Privacy</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-300">Public Profile</p>
+                <p className="text-slate-400 text-sm">Make your profile visible to other users</p>
+              </div>
+              <Switch 
+                checked={preferences.privacy.profilePublic} 
+                onCheckedChange={(checked) => setPreferences({
+                  ...preferences, 
+                  privacy: {...preferences.privacy, profilePublic: checked}
+                })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-300">Show Trades</p>
+                <p className="text-slate-400 text-sm">Display your trading activity publicly</p>
+              </div>
+              <Switch 
+                checked={preferences.privacy.showTrades} 
+                onCheckedChange={(checked) => setPreferences({
+                  ...preferences, 
+                  privacy: {...preferences.privacy, showTrades: checked}
+                })}
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  const renderNotificationsSection = () => (
+    <Card className="bg-slate-900/50 border-slate-800/50">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Bell className="h-5 w-5" />
+          Notifications
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-white font-medium">Email Notifications</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-300">Trade Alerts</p>
+                <p className="text-slate-400 text-sm">Get notified about trade executions</p>
+              </div>
+              <Switch 
+                checked={preferences.notifications.email} 
+                onCheckedChange={(checked) => setPreferences({
+                  ...preferences, 
+                  notifications: {...preferences.notifications, email: checked}
+                })}
+              />
+            </div>
+          </div>
+        </div>
+
+        <Separator className="bg-slate-800" />
+
+        <div className="space-y-4">
+          <h3 className="text-white font-medium">Push Notifications</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-300">Browser Notifications</p>
+                <p className="text-slate-400 text-sm">Receive notifications in your browser</p>
+              </div>
+              <Switch 
+                checked={preferences.notifications.push} 
+                onCheckedChange={(checked) => setPreferences({
+                  ...preferences, 
+                  notifications: {...preferences.notifications, push: checked}
+                })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-300">SMS Notifications</p>
+                <p className="text-slate-400 text-sm">Receive text message alerts</p>
+              </div>
+              <Switch 
+                checked={preferences.notifications.sms} 
+                onCheckedChange={(checked) => setPreferences({
+                  ...preferences, 
+                  notifications: {...preferences.notifications, sms: checked}
+                })}
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  const renderBillingSection = () => (
+    <Card className="bg-slate-900/50 border-slate-800/50">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          Billing & Plans
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="text-center py-8">
+          <CreditCard className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+          <h3 className="text-lg font-medium text-white mb-2">Free Plan</h3>
+          <p className="text-slate-400 mb-4">You're currently on the free plan with unlimited trades.</p>
+          <Button variant="outline" disabled>
+            Upgrade to Pro
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -540,8 +1084,14 @@ export default function SettingsPageClient() {
         return renderProfileSection()
       case "security":
         return renderSecuritySection()
+      case "preferences":
+        return renderPreferencesSection()
+      case "notifications":
+        return renderNotificationsSection()
       case "data":
         return renderDataSection()
+      case "billing":
+        return renderBillingSection()
       default:
         return (
           <Card className="bg-slate-900/50 border-slate-800/50">
