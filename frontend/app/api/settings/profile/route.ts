@@ -100,19 +100,28 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'First name, last name, and username are required' }, { status: 400 })
     }
 
+    // Validate username format
+    if (username.length < 3 || username.length > 20) {
+      return NextResponse.json({ error: 'Username must be between 3 and 20 characters' }, { status: 400 })
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return NextResponse.json({ error: 'Username can only contain letters, numbers, and underscores' }, { status: 400 })
+    }
+
     // Check if username is already taken by another user
-    const { data: existingProfile, error: checkError } = await supabase
+    const { data: existingProfiles, error: checkError } = await supabase
       .from('profiles')
       .select('id')
       .eq('username', username)
       .neq('id', user.id)
-      .single()
 
-    if (checkError && checkError.code !== 'PGRST116') {
+    if (checkError) {
+      console.error('Username check error:', checkError)
       return NextResponse.json({ error: 'Failed to check username availability' }, { status: 500 })
     }
 
-    if (existingProfile) {
+    if (existingProfiles && existingProfiles.length > 0) {
       return NextResponse.json({ error: 'Username is already taken' }, { status: 400 })
     }
 
@@ -133,6 +142,12 @@ export async function PUT(request: NextRequest) {
 
     if (profileError) {
       console.error('Profile update error:', profileError)
+      
+      // Handle specific database errors
+      if (profileError.code === '23505') { // Unique constraint violation
+        return NextResponse.json({ error: 'Username is already taken' }, { status: 400 })
+      }
+      
       return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
     }
 

@@ -659,11 +659,13 @@ export default function SettingsPageClient() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">
-              {formData.firstName || 'First'} {formData.lastName || 'Last'}
+              @{formData.username || 'username'}
             </h3>
-            <p className="text-slate-400">@{formData.username || 'username'}</p>
+            {formData.bio && (
+              <p className="text-slate-400 text-sm mt-1">{formData.bio}</p>
+            )}
             {profileData && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 mt-2">
                 Member since {new Date(profileData.createdAt).toLocaleDateString()}
               </p>
             )}
