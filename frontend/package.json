@@ -127,7 +127,7 @@
     "react-window": "^2.1.2",
     "recharts": "^3.2.1",
     "snaptrade-react": "^3.2.4",
-    "snaptrade-typescript-sdk": "^3.0.83",
+    "snaptrade-typescript-sdk": "^9.0.143",
     "sonner": "latest",
     "stripe": "^18.5.0",
     "swr": "^2.2.4",
