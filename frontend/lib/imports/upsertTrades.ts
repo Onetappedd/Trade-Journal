@@ -30,6 +30,10 @@ export interface TradeRecord {
   fees: number;
   commission: number;
   executed_at: string; // ISO UTC
+  group_key: string; // Required field for grouping trades
+  instrument_type: string; // Required field for instrument type
+  opened_at: string; // Required field for when trade was opened
+  qty_opened: number; // Required field for quantity opened
   meta: Record<string, any>;
 }
 
@@ -139,6 +143,11 @@ export function convertToTradeRecord(tradeDTO: WebullTradeDTO, userId: string): 
     absoluteQuantity
   );
 
+  // Generate group key for grouping related trades
+  // Use symbol + date to group trades of the same symbol on the same day
+  const tradeDate = new Date(tradeDTO.executedAt).toISOString().split('T')[0];
+  const groupKey = `${tradeDTO.symbol}_${tradeDate}`;
+
   return {
     user_id: userId,
     broker: tradeDTO.broker,
@@ -153,6 +162,10 @@ export function convertToTradeRecord(tradeDTO: WebullTradeDTO, userId: string): 
     fees: safeFees,
     commission: safeCommission,
     executed_at: tradeDTO.executedAt,
+    group_key: groupKey,
+    instrument_type: tradeDTO.assetType, // Use asset_type as instrument_type
+    opened_at: tradeDTO.executedAt, // Use executed_at as opened_at
+    qty_opened: absoluteQuantity, // Use same quantity as opened
     meta: {
       ...tradeDTO.meta,
       originalBroker: tradeDTO.broker,
