@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         console.error(`Error processing row ${i}:`, error);
         parsingResults.push({
           row: i,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
           rawData: {}
         });
       }
