@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       console.log('FormData received successfully');
     } catch (e) {
       console.error('FormData error:', e);
-      return NextResponse.json({ error: 'FormData parsing failed', details: e.message }, { status: 400 });
+      return NextResponse.json({ error: 'FormData parsing failed', details: e instanceof Error ? e.message : 'Unknown error' }, { status: 400 });
     }
     
     // Test 4: Check file
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       console.log('Request data parsed:', requestData);
     } catch (e) {
       console.error('JSON parse error:', e);
-      return NextResponse.json({ error: 'Invalid JSON in data field', details: e.message }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid JSON in data field', details: e instanceof Error ? e.message : 'Unknown error' }, { status: 400 });
     }
     
     console.log('=== BASIC IMPORT TEST SUCCESS ===');

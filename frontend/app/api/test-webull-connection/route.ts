@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       console.error('Import run creation failed:', e);
       return NextResponse.json({ 
         error: 'Import run creation failed', 
-        details: e.message 
+        details: e instanceof Error ? e.message : 'Unknown error' 
       }, { status: 500 });
     }
 

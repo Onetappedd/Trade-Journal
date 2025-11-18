@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       console.error('Supabase client creation failed:', e);
       return NextResponse.json({ 
         error: 'Failed to create Supabase client', 
-        details: e.message 
+        details: e instanceof Error ? e.message : 'Unknown error'
       }, { status: 500 });
     }
     
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       console.error('Auth check failed:', e);
       return NextResponse.json({ 
         error: 'Auth check failed', 
-        details: e.message 
+        details: e instanceof Error ? e.message : 'Unknown error'
       }, { status: 500 });
     }
     
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       console.error('Database test failed:', e);
       return NextResponse.json({ 
         error: 'Database test failed', 
-        details: e.message 
+        details: e instanceof Error ? e.message : 'Unknown error'
       }, { status: 500 });
     }
     
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       console.log('FormData received successfully');
     } catch (e) {
       console.error('FormData error:', e);
-      return NextResponse.json({ error: 'FormData parsing failed', details: e.message }, { status: 400 });
+      return NextResponse.json({ error: 'FormData parsing failed', details: e instanceof Error ? e.message : 'Unknown error' }, { status: 400 });
     }
     
     // Step 6: Test file handling
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       console.log('Request data parsed:', requestData);
     } catch (e) {
       console.error('JSON parse error:', e);
-      return NextResponse.json({ error: 'Invalid JSON in data field', details: e.message }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid JSON in data field', details: e instanceof Error ? e.message : 'Unknown error' }, { status: 400 });
     }
     
     // Step 8: Test import_runs table creation
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
       console.error('Import run creation failed:', e);
       return NextResponse.json({ 
         error: 'Import run creation failed', 
-        details: e.message 
+        details: e instanceof Error ? e.message : 'Unknown error'
       }, { status: 500 });
     }
     

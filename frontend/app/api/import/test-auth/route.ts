@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       console.error('Supabase client creation failed:', e);
       return NextResponse.json({ 
         error: 'Failed to create Supabase client', 
-        details: e.message 
+        details: e instanceof Error ? e.message : 'Unknown error' 
       }, { status: 500 });
     }
     
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       console.error('Auth check failed:', e);
       return NextResponse.json({ 
         error: 'Auth check failed', 
-        details: e.message 
+        details: e instanceof Error ? e.message : 'Unknown error' 
       }, { status: 500 });
     }
     
