@@ -213,26 +213,42 @@ export function parseDate(dateStr: string): string {
   for (const format of formats) {
     const match = dateStr.match(format);
     if (match) {
-      let year, month, day, hour = 0, minute = 0, second = 0;
+      let year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+      let yearStr, monthStr, dayStr, hourStr, minuteStr, secondStr;
       
       if (format === formats[0] || format === formats[1]) {
         // MM/DD/YYYY format
-        [, month, day, year, hour, minute, second] = match;
+        [, monthStr, dayStr, yearStr, hourStr, minuteStr, secondStr] = match;
+        month = parseInt(monthStr);
+        day = parseInt(dayStr);
+        year = parseInt(yearStr);
+        hour = parseInt(hourStr);
+        minute = parseInt(minuteStr);
+        second = secondStr ? parseInt(secondStr) : 0;
       } else if (format === formats[2]) {
         // YYYY-MM-DD format
-        [, year, month, day, hour, minute, second] = match;
+        [, yearStr, monthStr, dayStr, hourStr, minuteStr, secondStr] = match;
+        year = parseInt(yearStr);
+        month = parseInt(monthStr);
+        day = parseInt(dayStr);
+        hour = parseInt(hourStr);
+        minute = parseInt(minuteStr);
+        second = secondStr ? parseInt(secondStr) : 0;
       } else if (format === formats[3]) {
         // MM/DD/YYYY (date only)
-        [, month, day, year] = match;
+        [, monthStr, dayStr, yearStr] = match;
+        month = parseInt(monthStr);
+        day = parseInt(dayStr);
+        year = parseInt(yearStr);
       }
       
       // Validate date components
-      const yearNum = parseInt(year);
-      const monthNum = parseInt(month);
-      const dayNum = parseInt(day);
-      const hourNum = parseInt(hour);
-      const minuteNum = parseInt(minute);
-      const secondNum = parseInt(second);
+      const yearNum = year;
+      const monthNum = month;
+      const dayNum = day;
+      const hourNum = hour;
+      const minuteNum = minute;
+      const secondNum = second;
       
       // Check for valid ranges
       if (monthNum < 1 || monthNum > 12) {
@@ -545,7 +561,8 @@ export function parseWebullCsvRow(
     if (error instanceof WebullParseError) {
       throw error;
     }
-    throw new WebullParseError(rowIndex, `Parse error: ${error.message}`, row);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new WebullParseError(rowIndex, `Parse error: ${message}`, row);
   }
 }
 

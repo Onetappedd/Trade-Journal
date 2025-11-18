@@ -6,7 +6,7 @@ type TradeInsert = Database['public']['Tables']['trades']['Insert'];
 type TradeUpdate = Database['public']['Tables']['trades']['Update'];
 
 export async function createTrade(trade: TradeInsert) {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
   const { data, error } = await (supabase as any).from('trades').insert([trade]).select().single();
 
   if (error) {
@@ -17,7 +17,7 @@ export async function createTrade(trade: TradeInsert) {
 }
 
 export async function getTrades(userId: string) {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('trades')
     .select('*')
@@ -32,7 +32,7 @@ export async function getTrades(userId: string) {
 }
 
 export async function updateTrade(id: string, updates: TradeUpdate) {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
   const { data, error } = await (supabase as any)
     .from('trades')
     .update(updates)
@@ -48,7 +48,7 @@ export async function updateTrade(id: string, updates: TradeUpdate) {
 }
 
 export async function deleteTrade(id: string) {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
   const { error } = await (supabase as any).from('trades').delete().eq('id', id);
 
   if (error) {
@@ -59,7 +59,7 @@ export async function deleteTrade(id: string) {
 }
 
 export async function getDashboardStats(userId: string) {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
   const { data: trades, error } = await supabase.from('trades').select('*').eq('user_id', userId);
 
   if (error) {

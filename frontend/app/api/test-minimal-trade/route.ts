@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
         results.push({
           name: testCase.name,
           success: false,
-          error: e.message
+          error: e instanceof Error ? e.message : String(e)
         });
       }
     }

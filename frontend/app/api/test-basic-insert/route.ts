@@ -66,9 +66,10 @@ export async function GET(request: NextRequest) {
       }
     } catch (e) {
       console.error('Exception with minimum insert:', e);
+      const message = e instanceof Error ? e.message : String(e);
       return NextResponse.json({
         success: false,
-        error: e.message,
+        error: message,
         message: 'Minimum insert failed with exception'
       });
     }

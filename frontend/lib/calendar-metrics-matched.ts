@@ -44,7 +44,7 @@ export async function getUserTradesGroupedByDay(
   startDate?: Date,
   endDate?: Date,
 ): Promise<CalendarData> {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
 
   // Fetch ALL trades for the user
   const { data: trades, error } = await supabase

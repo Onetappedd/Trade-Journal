@@ -44,7 +44,7 @@ export async function getUserTradesGroupedByDay(
   startDate?: Date,
   endDate?: Date,
 ): Promise<CalendarData> {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
 
   // Build query
   let query = supabase

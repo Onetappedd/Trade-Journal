@@ -74,9 +74,10 @@ export async function POST(request: NextRequest) {
       console.log('Database connection successful');
     } catch (dbError) {
       console.error('Database connection failed:', dbError);
+      const message = dbError instanceof Error ? dbError.message : String(dbError);
       return NextResponse.json({ 
         error: 'Database connection failed', 
-        details: dbError.message 
+        details: message
       }, { status: 500 });
     }
     

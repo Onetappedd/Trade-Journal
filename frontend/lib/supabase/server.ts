@@ -43,6 +43,10 @@ export function createSupabaseWithToken(request: NextRequest) {
           Authorization: `Bearer ${token}`,
         },
       },
+      cookies: {
+        getAll() { return []; },
+        setAll() {}
+      }
     }
   );
 }
@@ -61,6 +65,10 @@ export function createSupabaseAdmin() {
         autoRefreshToken: false,
         persistSession: false,
       },
+      cookies: {
+        getAll() { return []; },
+        setAll() {}
+      }
     }
   );
 }

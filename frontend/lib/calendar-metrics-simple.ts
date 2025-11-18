@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase';
  * Simple and direct approach to get trades grouped by exit date with P&L
  */
 export async function getSimplifiedCalendarData(userId: string) {
-  const supabase = createSupabaseClient();
+  const supabase = createClient();
 
   // Fetch ALL trades for the user
   const { data: trades, error } = await supabase.from('trades').select('*').eq('user_id', userId);

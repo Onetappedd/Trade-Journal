@@ -1,8 +1,14 @@
 {
-  "extends": ["next/core-web-vitals"],
-  "linterOptions": {
-    "reportUnusedDisableDirectives": "error"
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
   },
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "reportUnusedDisableDirectives": true,
   "rules": {
     "no-irregular-whitespace": "error",
     "no-restricted-imports": [

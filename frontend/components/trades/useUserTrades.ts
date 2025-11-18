@@ -39,7 +39,7 @@ export function useUserTrades(opts?: { filters?: Filters; refreshInterval?: numb
   const key = !authLoading && user ? ["user-trades", user.id, JSON.stringify(filters)] : null;
 
   const fetcher = async (_: string, userId: string, filtersJson: string) => {
-    const supabase = createSupabaseClient();
+      const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
