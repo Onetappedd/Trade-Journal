@@ -95,6 +95,8 @@ export interface Trade {
   fees: number
   legs: Record<string, any> | null
   status: TradeStatus
+  notes: string | null
+  tags: string[]
   created_at: string
   updated_at: string
 }

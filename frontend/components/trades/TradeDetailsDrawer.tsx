@@ -21,8 +21,8 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
   useEffect(() => {
     if (trade) {
       setTab("Overview");
-      setTags([]);
-      setNotes("");
+      setTags(trade.tags || []);
+      setNotes(trade.notes || "");
     }
   }, [trade]);
 
@@ -45,22 +45,55 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
 
   // Tags: editable as chips
   const handleTagEdit = () => setEditingTags(true);
-  const handleTagSave = () => {
-    // TODO: Persist tags via API
+  const handleTagSave = async () => {
+    if (!trade) return;
     setEditingTags(false);
-    toast.success("Tags updated");
+    
+    try {
+      const response = await fetch(`/api/trades/${trade.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update tags');
+      }
+      
+      toast.success("Tags updated");
+    } catch (error) {
+      console.error('Error saving tags:', error);
+      toast.error("Failed to save tags");
+      // Revert to original tags on error
+      setTags(trade.tags || []);
+    }
   };
 
   // Notes: autosave on blur
   const handleNotesBlur = async () => {
-    if (notes === "") return;
+    if (!trade) return;
+    
+    // Only save if notes have changed
+    if (notes === (trade.notes || "")) return;
+    
     setSavingNotes(true);
     try {
-      // TODO: Persist note via API (replace with fetch in real impl)
-      await new Promise(res => setTimeout(res, 600));
+      const response = await fetch(`/api/trades/${trade.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update notes');
+      }
+      
       toast.success("Notes saved");
-    } catch {
+    } catch (error) {
+      console.error('Error saving notes:', error);
       toast.error("Failed to save notes");
+      // Revert to original notes on error
+      setNotes(trade.notes || "");
     } finally {
       setSavingNotes(false);
     }

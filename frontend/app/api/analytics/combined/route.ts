@@ -110,7 +110,11 @@ export async function GET(request: NextRequest) {
       avgWin: 0,
       avgLoss: 0,
       profitFactor: 0,
+      sharpeRatio: 0,
       maxDrawdown: 0,
+      maxDrawdownPercent: 0,
+      equityCurve: [] as Array<{ date: string; value: number }>,
+      drawdownSeries: [] as Array<{ date: string; drawdown: number }>,
       monthlyReturns: [] as Array<{ month: string; pnl: number; trades: number }>,
       performanceBySymbol: [] as Array<{ symbol: string; trades: number; pnl: number; winRate: number }>,
     };
@@ -142,21 +146,52 @@ export async function GET(request: NextRequest) {
       const totalLosses = Math.abs(losses.reduce((a, b) => a + b, 0));
       manualMetrics.profitFactor = totalLosses > 0 ? totalWins / totalLosses : 0;
 
-      // Calculate max drawdown
-      let peak = 0;
-      let maxDD = 0;
-      let cumPnL = 0;
+      // Build equity curve from cumulative realized P&L
+      const startingCapital = 10000; // Default starting capital
+      const sortedTrades = [...closedTrades].sort((a, b) => 
+        new Date(a.executed_at || a.closed_at).getTime() - new Date(b.executed_at || b.closed_at).getTime()
+      );
       
-      closedTrades
-        .sort((a, b) => new Date(a.executed_at).getTime() - new Date(b.executed_at).getTime())
-        .forEach(trade => {
-          cumPnL += trade.pnl || 0;
-          if (cumPnL > peak) peak = cumPnL;
-          const drawdown = peak - cumPnL;
-          if (drawdown > maxDD) maxDD = drawdown;
-        });
+      let cumPnL = 0;
+      const equityCurve: Array<{ date: string; value: number }> = [
+        { date: sortedTrades[0]?.executed_at || sortedTrades[0]?.closed_at, value: startingCapital }
+      ];
+      
+      sortedTrades.forEach(trade => {
+        cumPnL += trade.pnl || 0;
+        const tradeDate = trade.executed_at || trade.closed_at;
+        if (tradeDate) {
+          equityCurve.push({
+            date: tradeDate,
+            value: startingCapital + cumPnL,
+          });
+        }
+      });
+      
+      manualMetrics.equityCurve = equityCurve;
 
-      manualMetrics.maxDrawdown = -maxDD;
+      // Calculate drawdown series and max drawdown
+      let peak = startingCapital;
+      let maxDD = 0;
+      let maxDDPercent = 0;
+      const drawdownSeries: Array<{ date: string; drawdown: number }> = [];
+      
+      equityCurve.forEach(point => {
+        if (point.value > peak) peak = point.value;
+        const drawdown = peak > 0 ? ((point.value - peak) / peak) * 100 : 0;
+        drawdownSeries.push({
+          date: point.date,
+          drawdown,
+        });
+        
+        if (drawdown < maxDDPercent) maxDDPercent = drawdown;
+        const ddAmount = peak - point.value;
+        if (ddAmount > maxDD) maxDD = ddAmount;
+      });
+
+      manualMetrics.maxDrawdown = -maxDD; // Dollar amount
+      manualMetrics.maxDrawdownPercent = maxDDPercent; // Percentage (negative)
+      manualMetrics.drawdownSeries = drawdownSeries;
 
       // Calculate monthly returns
       const monthlyMap: { [key: string]: { pnl: number; trades: number } } = {};
@@ -206,18 +241,27 @@ export async function GET(request: NextRequest) {
         .slice(0, 10); // Top 10
     }
 
-    // Calculate Sharpe Ratio (simplified - assumes daily returns)
-    let sharpeRatio = 0;
-    if (manualMetrics.totalTrades > 0) {
-      const returns = manualTrades
-        ?.filter(t => t.status === 'closed')
-        .map(t => t.pnl || 0) || [];
+    // Calculate Sharpe Ratio from equity curve (proper method using daily returns)
+    if (manualMetrics.equityCurve.length > 1) {
+      const dailyReturns: number[] = [];
       
-      if (returns.length > 1) {
-        const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
-        const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
+      for (let i = 1; i < manualMetrics.equityCurve.length; i++) {
+        const prevValue = manualMetrics.equityCurve[i - 1].value;
+        const currValue = manualMetrics.equityCurve[i].value;
+        
+        if (prevValue > 0) {
+          const dailyReturn = (currValue - prevValue) / prevValue;
+          dailyReturns.push(dailyReturn);
+        }
+      }
+      
+      if (dailyReturns.length > 1) {
+        const meanReturn = dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length;
+        const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / dailyReturns.length;
         const stdDev = Math.sqrt(variance);
-        sharpeRatio = stdDev > 0 ? (mean / stdDev) * Math.sqrt(252) : 0; // Annualized
+        
+        // Annualize: Sharpe = (mean_daily_return / std_daily_return) * sqrt(252)
+        manualMetrics.sharpeRatio = stdDev > 0 ? (meanReturn / stdDev) * Math.sqrt(252) : 0;
       }
     }
 
@@ -227,7 +271,6 @@ export async function GET(request: NextRequest) {
     if (dataSource === 'manual') {
       combinedAnalytics = {
         ...manualMetrics,
-        sharpeRatio,
         dataSource: 'manual',
         hasBrokerData: false,
         hasManualData,
@@ -244,6 +287,9 @@ export async function GET(request: NextRequest) {
         profitFactor: 0,
         sharpeRatio: 0,
         maxDrawdown: 0,
+        maxDrawdownPercent: 0,
+        equityCurve: brokerMetrics.equityCurve,
+        drawdownSeries: [],
         monthlyReturns: [],
         performanceBySymbol: [],
         brokerData: brokerMetrics,
@@ -255,7 +301,6 @@ export async function GET(request: NextRequest) {
       // Combined view
       combinedAnalytics = {
         ...manualMetrics,
-        sharpeRatio,
         brokerData: hasBrokerData ? brokerMetrics : null,
         dataSource: 'combined',
         hasBrokerData,

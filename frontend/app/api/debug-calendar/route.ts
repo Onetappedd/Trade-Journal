@@ -5,8 +5,13 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { calculatePositions } from '@/lib/position-tracker-server';
 import { getUserTradesGroupedByDay } from '@/lib/calendar-metrics-server';
+import { debugRouteGuard } from '@/lib/route-guards';
 
 export async function GET() {
+  // Guard: Only allow in development or when explicitly enabled
+  const guardResponse = debugRouteGuard();
+  if (guardResponse) return guardResponse;
+  
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(

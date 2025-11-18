@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { debugRouteGuard } from '@/lib/route-guards';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  // Guard: Only allow in development or when explicitly enabled
+  const guardResponse = debugRouteGuard();
+  if (guardResponse) return guardResponse;
+  
   try {
     const supabase = getServerSupabase();
 

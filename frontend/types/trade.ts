@@ -9,5 +9,6 @@ export type TradeRow = {
   opened_at: string; closed_at: string | null;
   realized_pnl: number | null; fees: number | null; created_at: string | null; updated_at: string | null;
   group_key: string; ingestion_run_id: string | null; row_hash: string | null; legs: any | null;
+  notes: string | null; tags: string[];
 };
 export type TradesResponse = { items: TradeRow[]; total: number };

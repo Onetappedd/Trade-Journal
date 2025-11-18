@@ -84,6 +84,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
+// PATCH handler for partial updates (e.g., notes, tags)
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  return PUT(request, { params });
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const supabase = getServerSupabase();

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSupabase } from '@/lib/supabase/server';
+import { debugRouteGuard } from '@/lib/route-guards';
 
 export async function GET(request: NextRequest) {
+  // Guard: Only allow in development or when explicitly enabled
+  const guardResponse = debugRouteGuard();
+  if (guardResponse) return guardResponse;
+  
   const startTime = Date.now();
   
   try {
