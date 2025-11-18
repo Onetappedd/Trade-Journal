@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       console.error('Test insert failed:', e);
       return NextResponse.json({ 
         error: 'Test insert failed', 
-        details: e.message,
+        details: e instanceof Error ? e.message : 'Unknown error',
         columns: columns
       }, { status: 500 });
     }
