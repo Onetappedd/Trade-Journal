@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { FixedSizeList } from 'react-window';
+
+// Dynamic import for react-window to handle module resolution issues
+let FixedSizeList: any = null;
+try {
+  const ReactWindow = require('react-window');
+  FixedSizeList = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
+} catch (e) {
+  // Fallback if react-window is not available
+  console.warn('react-window not available, using fallback rendering');
+}
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -351,15 +360,29 @@ export function VirtualizedTradesTable({
         {/* Virtualized List */}
         <div className="border border-slate-800/50 rounded">
           {trades.length > 0 ? (
-            <FixedSizeList
-              height={400}
-              itemCount={trades.length}
-              itemSize={60}
-              itemData={listData}
-              overscanCount={5}
-            >
-              {ListItem}
-            </FixedSizeList>
+            FixedSizeList ? (
+              <FixedSizeList
+                height={400}
+                itemCount={trades.length}
+                itemSize={60}
+                itemData={listData}
+                overscanCount={5}
+              >
+                {ListItem}
+              </FixedSizeList>
+            ) : (
+              // Fallback: render all items if react-window is not available
+              <div className="max-h-[400px] overflow-y-auto">
+                {trades.map((trade, index) => (
+                  <ListItem
+                    key={trade.id || index}
+                    index={index}
+                    style={{ height: 60 }}
+                    data={listData}
+                  />
+                ))}
+              </div>
+            )
           ) : (
             <div className="flex items-center justify-center h-40 text-slate-400">
               {isLoading ? 'Loading trades...' : 'No trades found'}
