@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { snaptrade } from "@/lib/snaptrade";
 
+export const dynamic = 'force-dynamic'
+
 interface Trade {
   symbol: string;
   buyDate: string;

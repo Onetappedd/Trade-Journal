@@ -25,6 +25,8 @@ const BROKER_DISPLAY_NAMES: Record<string, string> = {
   'VANGUARD': 'Vanguard',
 };
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

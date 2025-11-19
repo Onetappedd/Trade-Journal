@@ -9,6 +9,8 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { listBrokerageAuthorizations } from '@/lib/snaptrade';
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = cookies();
