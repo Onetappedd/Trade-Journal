@@ -263,13 +263,56 @@ registerAdapter(robinhoodAdapter);
 
 ### Robinhood
 
-**Detection**: Looks for headers like "Activity Date", "Trans Code", "Instrument", "Qty", "Price"
+**Supported Format**: Robinhood Activity CSV Export
 
-**Normalization**:
-- Date format: `MM/DD/YYYY` → ISO 8601
-- Options: Parses from "Description" field (e.g., "AAPL 01/19/24 $170 Call")
-- Side: "Buy", "Sell", "SELL" → standardized
-- Crypto: Handles crypto symbols like "BTC", "ETH"
+**CSV Header Format**:
+```
+"Activity Date","Process Date","Settle Date","Instrument","Description","Trans Code","Quantity","Price","Amount"
+```
+
+**Trade Codes Supported** (imported as trades):
+- `BTO` → Buy To Open (options)
+- `STC` → Sell To Close (options)
+- `Buy` → Stock/ETF buy
+- `Sell` → Stock/ETF sell
+
+**Non-Trade Codes** (currently ignored):
+- `ACH` → ACH deposits/withdrawals
+- `RTP` → Instant bank transfer
+- `DCF` → Debit card transfer
+- `GOLD` → Robinhood Gold subscription fee
+- `INT` → Interest payment
+- `CDIV` → Cash dividend
+- `REC` → Reconciliation/adjustment rows
+- `OEXP` → Option expiration (TODO: handle in future iteration for auto-closing expired options)
+
+**Field Mapping**:
+- **Activity Date** (MM/DD/YYYY) → `executed_at`
+- **Instrument** → `symbol` (for stocks) or `underlying` (for options)
+- **Description** → Used to parse option details (expiry, strike, type) and extract symbol for stock trades
+- **Trans Code** → `side` (BTO/Buy → BUY, STC/Sell → SELL)
+- **Quantity** → `quantity` (positive for buys, negative for sells)
+- **Price** → `price` (parsed from format like "$3.05" or "($209.03)")
+- **Amount** → `gross_amount` (parsed from format like "$304.95" or "($209.03)")
+
+**Option Parsing**:
+- Description format: `"NVDA 6/28/2024 Call $125.00"` or `"SPY 6/24/2024 Put $545.00"`
+- Extracts: underlying symbol, expiration date (MM/DD/YYYY → ISO), option type (CALL/PUT), strike price
+- Sets `assetClass: 'options'` and populates `underlying`, `expiry`, `strike`, `right` fields
+
+**Stock Parsing**:
+- Description format: `"Bought 10.0000 AAPL @ 175.00"` or `"Sold 10.0000 AAPL @ 180.00"`
+- Extracts symbol from Instrument column or from description if Instrument is empty
+- Sets `assetClass: 'EQUITY'`
+
+**Idempotency**: Uses hash of `activityDate + description + transCode + quantity + price + amount`
+
+**Notes**:
+- Money values are parsed handling `$`, commas, and parentheses (negative values)
+- Footer/disclaimer rows are automatically skipped
+- Empty rows and rows with missing Trans Code are skipped
+
+**Legacy Format Support**: The adapter also supports older Robinhood CSV formats with headers like "Date", "Symbol", "Side", "Quantity", "Price" for backward compatibility.
 
 ### Webull
 

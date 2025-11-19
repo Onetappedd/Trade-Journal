@@ -562,30 +562,199 @@ export const webullAdapter: BrokerAdapter = {
 // -----------------------------
 // Adapters: Robinhood
 // -----------------------------
+
+/**
+ * Helper to parse money values from Robinhood CSV format.
+ * Handles $, commas, and parentheses for negative values.
+ * Examples: "$1,339.92", "($209.03)", "$0.01"
+ */
+function parseMoney(value: string | null | undefined): number | null {
+  if (!value || !value.trim()) return null;
+  const trimmed = value.trim();
+  // Detect parentheses for negative (e.g., "($209.03)")
+  const negative = trimmed.startsWith('(') && trimmed.endsWith(')');
+  // Remove $, commas, and parentheses
+  const cleaned = trimmed.replace(/[,$()]/g, '');
+  const num = Number.parseFloat(cleaned);
+  if (Number.isNaN(num)) return null;
+  return negative ? -num : num;
+}
+
+/**
+ * Parse Robinhood option description format.
+ * Examples:
+ * - "NVDA 6/28/2024 Call $125.00"
+ * - "SPY 6/24/2024 Call $545.00"
+ * - "AVGO 7/5/2024 Put $1,725.00"
+ * Returns: { underlying, expiry, option_type, strike_price }
+ */
+function parseRobinhoodOptionDescription(description: string): {
+  underlying?: string;
+  expiry?: string;
+  option_type?: 'CALL' | 'PUT';
+  strike_price?: number;
+} {
+  if (!description) return {};
+  
+  // Pattern: SYMBOL MM/DD/YYYY Call|Put $STRIKE
+  // More flexible regex to handle variations in spacing
+  // Example: "NVDA 6/28/2024 Call $125.00" or "AVGO 7/5/2024 Put $1,725.00"
+  const callMatch = description.match(/^([A-Z.]+)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+Call\s+\$([\d,]+\.?\d*)/i);
+  const putMatch = description.match(/^([A-Z.]+)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+Put\s+\$([\d,]+\.?\d*)/i);
+  
+  const match = callMatch || putMatch;
+  if (!match) return {};
+  
+  const underlying = match[1].toUpperCase();
+  const dateStr = match[2]; // MM/DD/YYYY
+  const optionType = callMatch ? 'CALL' : 'PUT';
+  const strikeStr = match[3].replace(/,/g, '');
+  const strikePrice = Number.parseFloat(strikeStr);
+  
+  // Parse MM/DD/YYYY to ISO date YYYY-MM-DD
+  const dateParts = dateStr.split('/');
+  if (dateParts.length !== 3) return { underlying, option_type: optionType, strike_price: strikePrice };
+  
+  const month = dateParts[0].padStart(2, '0');
+  const day = dateParts[1].padStart(2, '0');
+  const year = dateParts[2];
+  const expiry = `${year}-${month}-${day}`;
+  
+  return {
+    underlying,
+    expiry,
+    option_type: optionType,
+    strike_price: Number.isNaN(strikePrice) ? undefined : strikePrice,
+  };
+}
+
+/**
+ * Parse MM/DD/YYYY date string to ISO format.
+ */
+function parseActivityDate(dateStr: string | null | undefined, userTimezone?: string): string {
+  if (!dateStr || !dateStr.trim()) return new Date().toISOString();
+  
+  // Parse MM/DD/YYYY format
+  const parts = dateStr.trim().split('/');
+  if (parts.length !== 3) {
+    // Fallback to existing normalizeExecTime
+    return normalizeExecTime(dateStr, userTimezone);
+  }
+  
+  const month = parts[0].padStart(2, '0');
+  const day = parts[1].padStart(2, '0');
+  const year = parts[2];
+  
+  // Create date string in ISO format (YYYY-MM-DD) and set to midnight in user's timezone
+  // For now, use UTC midnight - can be enhanced with timezone support later
+  const isoDate = `${year}-${month}-${day}T00:00:00.000Z`;
+  return isoDate;
+}
+
+/**
+ * Build idempotency key for Robinhood trade.
+ */
+function buildRobinhoodIdempotencyKey(
+  activityDate: string,
+  description: string,
+  transCode: string,
+  quantity: string,
+  price: string,
+  amount: string,
+): string {
+  // Simple hash-like key: concatenate all fields
+  const key = `${activityDate}|${description}|${transCode}|${quantity}|${price}|${amount}`;
+  // In production, you might want to use a proper hash function
+  return key;
+}
+
 function robinhoodDetect({
   headers,
+  sampleRows,
 }: {
   headers: string[];
   sampleRows: any[];
 }): DetectionResult | null {
-  const ok =
-    hasAll(headers, ['Date', 'Symbol', 'Side', 'Quantity', 'Price']) ||
-    hasAll(headers, ['Date', 'Time', 'Symbol', 'Side', 'Quantity', 'Price']);
-  if (!ok) return null;
-  const headerMap: Record<string, string> = {
-    date: 'Date',
-    time: 'Time',
-    symbol: 'Symbol',
-    side: 'Side',
-    quantity: 'Quantity',
-    price: 'Price',
-    fees: 'Fees',
-  };
+  // Check for Robinhood Activity CSV format
+  // Required headers: "Activity Date","Process Date","Settle Date","Instrument","Description","Trans Code","Quantity","Price","Amount"
+  const requiredHeaders = [
+    'Activity Date',
+    'Process Date',
+    'Settle Date',
+    'Instrument',
+    'Description',
+    'Trans Code',
+    'Quantity',
+    'Price',
+    'Amount',
+  ];
+  
+  const headerLower = headers.map(h => h.toLowerCase().trim());
+  const requiredLower = requiredHeaders.map(h => h.toLowerCase().trim());
+  
+  // Check if all required headers are present (case-insensitive)
+  const hasAllRequired = requiredLower.every(req => 
+    headerLower.some(h => h === req || h.includes(req.replace(' ', '')))
+  );
+  
+  if (!hasAllRequired) {
+    // Fallback to old format detection for backward compatibility
+    const ok =
+      hasAll(headers, ['Date', 'Symbol', 'Side', 'Quantity', 'Price']) ||
+      hasAll(headers, ['Date', 'Time', 'Symbol', 'Side', 'Quantity', 'Price']);
+    if (!ok) return null;
+    
+    const headerMap: Record<string, string> = {
+      date: 'Date',
+      time: 'Time',
+      symbol: 'Symbol',
+      side: 'Side',
+      quantity: 'Quantity',
+      price: 'Price',
+      fees: 'Fees',
+    };
+    return {
+      brokerId: 'robinhood',
+      assetClass: 'stocks',
+      schemaId: 'robinhood-trades',
+      confidence: 0.7,
+      headerMap,
+      warnings: [],
+    };
+  }
+  
+  // Detect asset class from sample rows
+  let assetClass: DetectionResult['assetClass'] = 'stocks';
+  for (const row of sampleRows.slice(0, 10)) {
+    const transCode = String(row['Trans Code'] || row['trans code'] || '').toUpperCase();
+    const description = String(row['Description'] || row['description'] || '').toUpperCase();
+    
+    if (transCode === 'BTO' || transCode === 'STC' || description.includes(' CALL ') || description.includes(' PUT ')) {
+      assetClass = 'options';
+      break;
+    }
+  }
+  
+  // Build header map for Activity CSV format
+  const headerMap: Record<string, string> = {};
+  headers.forEach((h, idx) => {
+    const lower = h.toLowerCase().trim();
+    if (lower.includes('activity date')) headerMap['activityDate'] = h;
+    else if (lower.includes('process date')) headerMap['processDate'] = h;
+    else if (lower.includes('settle date')) headerMap['settleDate'] = h;
+    else if (lower.includes('instrument')) headerMap['instrument'] = h;
+    else if (lower.includes('description')) headerMap['description'] = h;
+    else if (lower.includes('trans code')) headerMap['transCode'] = h;
+    else if (lower.includes('quantity')) headerMap['quantity'] = h;
+    else if (lower.includes('price')) headerMap['price'] = h;
+    else if (lower.includes('amount')) headerMap['amount'] = h;
+  });
+  
   return {
     brokerId: 'robinhood',
-    assetClass: 'stocks',
-    schemaId: 'robinhood-trades',
-    confidence: 0.8,
+    assetClass,
+    schemaId: 'robinhood-activity-csv',
+    confidence: 0.95,
     headerMap,
     warnings: [],
   };
@@ -596,34 +765,206 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
   const errors: any[] = [];
   const warnings: string[] = [];
   const get = (r: any, k: string) => r[headerMap?.[k] || k];
-  rows.forEach((r: any, i: number) => {
-    try {
-      let symbol = String(get(r, 'symbol') || '')
-        .toUpperCase()
-        .trim();
-      const { side, qty } = normalizeSideAndQuantity(
-        get(r, 'side'),
-        parseNumber(get(r, 'quantity')),
-      );
-      const price = parseNumber(get(r, 'price'));
-      const dtRaw = [get(r, 'date'), get(r, 'time')].filter(Boolean).join(' ');
-      const execTime = normalizeExecTime(dtRaw, userTimezone);
-      const fees = sumFees(r, ['fees', 'Fee', 'Commission'], headerMap);
-      fills.push({
-        sourceBroker: 'robinhood',
-        assetClass: assetClass || 'stocks',
-        symbol,
-        quantity: qty,
-        price,
-        execTime,
-        fees,
-        side,
-        raw: r,
-      });
-    } catch (e: any) {
-      errors.push({ row: i + 1, message: e?.message || 'Row parse error' });
-    }
-  });
+  
+  // Check if this is the Activity CSV format (has 'transCode' in headerMap)
+  const isActivityFormat = headerMap?.['transCode'] || headerMap?.['Trans Code'];
+  
+  if (isActivityFormat) {
+    // Parse Activity CSV format
+    rows.forEach((r: any, i: number) => {
+      try {
+        // Skip empty rows or rows with mismatched column count
+        const rowValues = Object.values(r);
+        if (rowValues.length === 0 || rowValues.every(v => !v || String(v).trim() === '')) {
+          return; // Skip empty rows
+        }
+        
+        // Get field values by header map
+        const activityDateStr = String(get(r, 'activityDate') || '').trim();
+        const processDateStr = String(get(r, 'processDate') || '').trim();
+        const settleDateStr = String(get(r, 'settleDate') || '').trim();
+        const instrument = String(get(r, 'instrument') || '').trim();
+        const description = String(get(r, 'description') || '').trim();
+        const transCode = String(get(r, 'transCode') || '').trim().toUpperCase();
+        const quantityStr = String(get(r, 'quantity') || '').trim();
+        const priceStr = String(get(r, 'price') || '').trim();
+        const amountStr = String(get(r, 'amount') || '').trim();
+        
+        // Skip rows without Trans Code (footer/disclaimer rows)
+        if (!transCode) {
+          return;
+        }
+        
+        // Skip non-trade rows (for now)
+        // Trade codes: BTO, STC, Buy, Sell (case-insensitive)
+        // Non-trade codes: ACH, RTP, DCF, GOLD, INT, CDIV, REC, OEXP
+        // TODO: Handle OEXP (option expiration) in a later iteration for proper option-expiry auto-closing
+        const tradeCodes = ['BTO', 'STC', 'BUY', 'SELL'];
+        if (!tradeCodes.includes(transCode)) {
+          // Log as ignored for debugging (non-trade row)
+          return;
+        }
+        
+        // Skip disclaimer/footer rows
+        if (description.toLowerCase().includes('the data provided is for your convenience') ||
+            description.toLowerCase().includes('does not include robinhood crypto') ||
+            description.toLowerCase().includes('does not include robinhood spending')) {
+          return;
+        }
+        
+        // Parse date (use Activity Date as execution date)
+        const execTime = parseActivityDate(activityDateStr, userTimezone);
+        
+        // Parse quantity
+        let quantity = 0;
+        if (quantityStr && quantityStr.trim() !== '') {
+          // Skip OEXP quantities like "5S" for now (those rows are skipped anyway)
+          const qtyNum = Number.parseFloat(quantityStr.replace(/[^0-9.-]/g, ''));
+          if (!Number.isNaN(qtyNum)) {
+            quantity = qtyNum;
+          }
+        }
+        
+        if (quantity === 0) {
+          // Skip rows with zero quantity
+          return;
+        }
+        
+        // Parse price and amount
+        const price = parseMoney(priceStr);
+        const grossAmount = parseMoney(amountStr);
+        
+        if (price === null || grossAmount === null) {
+          errors.push({ row: i + 1, message: `Invalid price or amount: price=${priceStr}, amount=${amountStr}` });
+          return;
+        }
+        
+        // Determine side and asset type
+        let side: 'BUY' | 'SELL' | 'SHORT' | 'COVER' = 'BUY';
+        let detectedAssetClass: 'stocks' | 'options' | 'futures' | 'crypto' = assetClass || 'stocks';
+        
+        // Map Trans Code to side
+        // BTO = Buy To Open (options), Buy = Stock/ETF buy
+        // STC = Sell To Close (options), Sell = Stock/ETF sell
+        if (transCode === 'BTO' || transCode === 'BUY') {
+          side = 'BUY';
+          quantity = Math.abs(quantity); // Ensure positive for buys
+        } else if (transCode === 'STC' || transCode === 'SELL') {
+          side = 'SELL';
+          quantity = -Math.abs(quantity); // Negative for sells (following convention)
+        } else {
+          // Should not reach here due to earlier filter, but handle gracefully
+          return;
+        }
+        
+        // Detect if this is an option trade
+        const optionInfo = parseRobinhoodOptionDescription(description);
+        const isOption = transCode === 'BTO' || transCode === 'STC' || 
+                        optionInfo.underlying !== undefined ||
+                        description.toUpperCase().includes(' CALL ') ||
+                        description.toUpperCase().includes(' PUT ');
+        
+        if (isOption) {
+          detectedAssetClass = 'options';
+        }
+        
+        // Determine symbol
+        let symbol = instrument.toUpperCase().trim();
+        let underlying: string | undefined;
+        let expiry: string | undefined;
+        let strike: number | undefined;
+        let right: 'C' | 'P' | undefined;
+        
+        if (isOption && optionInfo.underlying) {
+          underlying = optionInfo.underlying;
+          expiry = optionInfo.expiry;
+          strike = optionInfo.strike_price;
+          right = optionInfo.option_type === 'CALL' ? 'C' : 'P';
+          // Use underlying as symbol, or construct option symbol if needed
+          symbol = underlying;
+        } else if (!symbol && instrument.trim() === '') {
+          // Try to extract symbol from description for stock trades
+          // Example: "Bought 10.0000 AAPL @ 175.00"
+          const buyMatch = description.match(/Bought\s+[\d.]+\s+([A-Z]+)\s+@/i);
+          const sellMatch = description.match(/Sold\s+[\d.]+\s+([A-Z]+)\s+@/i);
+          const extractedSymbol = (buyMatch?.[1] || sellMatch?.[1] || '').toUpperCase();
+          if (extractedSymbol) {
+            symbol = extractedSymbol;
+          }
+        }
+        
+        if (!symbol) {
+          errors.push({ row: i + 1, message: `Could not determine symbol from instrument or description` });
+          return;
+        }
+        
+        // Build idempotency key
+        const idempotencyKey = buildRobinhoodIdempotencyKey(
+          activityDateStr,
+          description,
+          transCode,
+          quantityStr,
+          priceStr,
+          amountStr,
+        );
+        
+        // Create normalized fill
+        const fill: NormalizedFill = {
+          sourceBroker: 'robinhood',
+          assetClass: detectedAssetClass,
+          symbol,
+          underlying,
+          expiry,
+          strike,
+          right,
+          quantity,
+          price,
+          fees: 0, // Robinhood doesn't break out fees separately in Activity CSV
+          currency: 'USD',
+          side,
+          execTime,
+          tradeIdExternal: idempotencyKey,
+          notes: description, // Store original description as notes
+          raw: r,
+        };
+        
+        fills.push(fill);
+      } catch (e: any) {
+        errors.push({ row: i + 1, message: e?.message || 'Row parse error' });
+      }
+    });
+  } else {
+    // Fallback to old format parsing for backward compatibility
+    rows.forEach((r: any, i: number) => {
+      try {
+        let symbol = String(get(r, 'symbol') || '')
+          .toUpperCase()
+          .trim();
+        const { side, qty } = normalizeSideAndQuantity(
+          get(r, 'side'),
+          parseNumber(get(r, 'quantity')),
+        );
+        const price = parseNumber(get(r, 'price'));
+        const dtRaw = [get(r, 'date'), get(r, 'time')].filter(Boolean).join(' ');
+        const execTime = normalizeExecTime(dtRaw, userTimezone);
+        const fees = sumFees(r, ['fees', 'Fee', 'Commission'], headerMap);
+        fills.push({
+          sourceBroker: 'robinhood',
+          assetClass: assetClass || 'stocks',
+          symbol,
+          quantity: qty,
+          price,
+          execTime,
+          fees,
+          side,
+          raw: r,
+        });
+      } catch (e: any) {
+        errors.push({ row: i + 1, message: e?.message || 'Row parse error' });
+      }
+    });
+  }
+  
   return { fills, warnings, errors };
 }
 
