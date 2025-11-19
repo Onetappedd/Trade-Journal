@@ -47,6 +47,7 @@ import {
   LayoutDashboard,
   CreditCard,
   HelpCircle,
+  X,
 } from "lucide-react"
 import { useTheme } from "./theme-provider"
 import { useAuth } from "@/providers/auth-provider"
@@ -242,8 +243,22 @@ function AppHeader() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 bg-slate-900 border-slate-800 z-[100]">
-            <div className="p-3 border-b border-slate-800">
+            <div className="p-3 border-b border-slate-800 flex items-center justify-between">
               <h3 className="font-semibold text-white">Notifications</h3>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toast({
+                    title: "Notifications cleared",
+                    description: "All notifications have been cleared",
+                  })
+                }}
+                className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-md p-1 transition-colors"
+                aria-label="Clear all notifications"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <div className="max-h-64 overflow-y-auto">
               <div className="p-3 border-b border-slate-800/50">
