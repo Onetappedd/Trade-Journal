@@ -64,13 +64,25 @@ export default async function DashboardPage() {
   ) || 0
 
   // Calculate manual trade metrics
+  // Handle null/undefined values safely
   const dayPnL = trades?.filter(t => {
-    const tradeDate = new Date(t.entry_date || t.created_at)
+    const tradeDate = t.entry_date ? new Date(t.entry_date) : (t.created_at ? new Date(t.created_at) : null)
+    if (!tradeDate) return false
     const today = new Date()
     return tradeDate.toDateString() === today.toDateString()
-  }).reduce((sum, t) => sum + (t.pnl || 0), 0) || 0
+  }).reduce((sum, t) => {
+    const pnl = t.pnl ?? t.realized_pnl ?? 0
+    return sum + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
+  }, 0) || 0
 
-  const manualPortfolioValue = trades?.reduce((sum, t) => sum + (t.entry_price * t.quantity), 0) || 0
+  const manualPortfolioValue = trades?.reduce((sum, t) => {
+    const price = t.entry_price ?? 0
+    const qty = t.quantity ?? 0
+    if (typeof price === 'number' && typeof qty === 'number' && !isNaN(price) && !isNaN(qty)) {
+      return sum + (price * qty)
+    }
+    return sum
+  }, 0) || 0
 
   // Combine broker + manual data
   const totalPortfolioValue = brokerPortfolioValue + manualPortfolioValue
