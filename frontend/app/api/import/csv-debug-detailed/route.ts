@@ -61,8 +61,9 @@ export async function POST(request: NextRequest) {
         to_line: 201 // Get first 200 rows + header
       });
       
-      // Extract headers from first record keys
-      const headers = records.length > 0 ? Object.keys(records[0]) : [];
+      // Extract headers from first record keys and clean them (remove quotes)
+      const rawHeaders = records.length > 0 ? Object.keys(records[0]) : [];
+      const headers = rawHeaders.map(h => String(h || '').replace(/^["']|["']$/g, '').trim());
       const sampleRows = records.slice(0, 200);
       
       console.log('Parsed headers:', headers);
