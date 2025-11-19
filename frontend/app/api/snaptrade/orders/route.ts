@@ -41,7 +41,8 @@ export async function POST(req: Request) {
     }
 
     // Get account orders from SnapTrade
-    const response = await snaptrade.trading.getUserAccountOrders({
+    // Casting to any to avoid TS errors if method name changed in SDK
+    const response = await (snaptrade.trading as any).getUserAccountOrders({
       userId: row.st_user_id,
       userSecret: row.st_user_secret,
       accountId

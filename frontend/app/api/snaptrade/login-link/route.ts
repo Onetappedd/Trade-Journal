@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     // Returns a short-lived redirectURI (expires in ~5 minutes)
     return NextResponse.json({ 
-      redirectURI: response.data.redirectURI 
+      redirectURI: (response.data as any).redirectURI 
     });
 
   } catch (error: any) {

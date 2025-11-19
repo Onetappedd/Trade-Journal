@@ -6,15 +6,6 @@ import { useUserTrades } from "./useUserTrades";
 export default function TradeStats() {
   const { data: trades, error, isLoading, authLoading } = useUserTrades();
 
-  if (authLoading || isLoading) {
-    return <div className="p-4">Loading stats…</div>;
-  }
-
-  if (error) {
-    console.error("[TradeStats] load error", error);
-    return <div className="p-4 text-red-600">Failed to load stats.</div>;
-  }
-
   const totals = useMemo(() => {
     if (!trades?.length) return { count: 0, wins: 0, losses: 0, pnl: 0 };
     let wins = 0, losses = 0, pnl = 0;
@@ -27,6 +18,15 @@ export default function TradeStats() {
     }
     return { count: trades.length, wins, losses, pnl };
   }, [trades]);
+
+  if (authLoading || isLoading) {
+    return <div className="p-4">Loading stats…</div>;
+  }
+
+  if (error) {
+    console.error("[TradeStats] load error", error);
+    return <div className="p-4 text-red-600">Failed to load stats.</div>;
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4">

@@ -48,8 +48,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ 
-      account: response.data.account,
-      balance: response.data.balance
+      account: (response.data as any).account,
+      balance: (response.data as any).balance
     });
 
   } catch (error: any) {

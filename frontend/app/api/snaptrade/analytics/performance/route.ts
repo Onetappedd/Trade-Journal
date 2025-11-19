@@ -83,13 +83,13 @@ export async function GET(request: NextRequest) {
 
     for (const account of accounts) {
       try {
-        const response = await snaptrade.accountInformation.getUserAccountActivities({
+        const response = await snaptrade.transactionsAndReporting.getActivities({
           userId: snaptradeUser.st_user_id,
           userSecret: snaptradeUser.st_user_secret,
-          accountId: account.account_id,
+          accounts: account.account_id,
           startDate,
           endDate
-        });
+        } as any);
 
         allActivities.push(...response.data);
       } catch (error) {

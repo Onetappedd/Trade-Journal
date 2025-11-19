@@ -46,10 +46,10 @@ export async function POST(req: Request) {
     const response = await snaptrade.transactionsAndReporting.getActivities({
       userId: row.st_user_id,
       userSecret: row.st_user_secret,
-      accountId,
+      accounts: accountId,
       ...(startDate && { startDate }),
       ...(endDate && { endDate })
-    });
+    } as any);
 
     return NextResponse.json({ 
       activities: response.data 

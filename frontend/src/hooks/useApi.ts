@@ -48,13 +48,13 @@ export function useApi<T = any>(options: UseApiOptions = {}): UseApiReturn<T> {
       const { supabase } = await import('@/lib/supabase/client');
       const { data: { session } } = await supabase.auth.getSession();
       
-      const headers: HeadersInit = {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...requestOptions.headers,
+        ...requestOptions.headers as Record<string, string>,
       };
 
       if (session?.access_token) {
-        headers.Authorization = `Bearer ${session.access_token}`;
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
       const response = await fetch(url, {
@@ -223,6 +223,16 @@ export function useApiQuery<T = any>(options: UseApiOptions = {}) {
 export function useApiUpload<T = any>(options: UseApiOptions = {}) {
   const api = useApi<T>(options);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { addToast } = useToast();
+  
+  // Local state for upload specific handling if needed, 
+  // but mostly we want to return what api returns.
+  // However, api.data/error are read-only. 
+  // We need to duplicate state or just use api.execute?
+  // The original code tried to set api's state. 
+  // Let's just manage our own state for upload result.
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   
   const upload = useCallback(async (
     url: string,
@@ -230,6 +240,8 @@ export function useApiUpload<T = any>(options: UseApiOptions = {}) {
     onProgress?: (progress: number) => void
   ): Promise<T | null> => {
     setUploadProgress(0);
+    setData(null);
+    setError(null);
     
     const formData = new FormData();
     formData.append('file', file);
@@ -299,10 +311,14 @@ export function useApiUpload<T = any>(options: UseApiOptions = {}) {
       
       return null;
     }
-  }, [api, options]);
+  }, [options, addToast]);
   
   return {
-    ...api,
+    data, // Return local data
+    loading: uploadProgress > 0 && uploadProgress < 100, // approximate loading
+    error, // Return local error
+    execute: api.execute, // Keep api.execute available if needed
+    reset: api.reset,
     upload,
     uploadProgress
   };

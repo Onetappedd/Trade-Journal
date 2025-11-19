@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { List } from 'react-window';
+import * as ReactWindow from 'react-window';
+const List = (ReactWindow as any).FixedSizeList || (ReactWindow as any).default?.FixedSizeList || (ReactWindow as any).List;
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -358,7 +359,7 @@ export function VirtualizedTradesTable({
               itemData={listData}
               overscanCount={5}
             >
-              {ListItem}
+              {ListItem as any}
             </List>
           ) : (
             <div className="flex items-center justify-center h-40 text-slate-400">

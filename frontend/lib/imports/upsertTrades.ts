@@ -409,7 +409,7 @@ export async function getExistingTrades(
       return new Set();
     }
 
-    return new Set(data?.map(trade => trade.idempotency_key) || []);
+    return new Set(data?.map((trade: any) => trade.idempotency_key) || []);
   } catch (error) {
     console.error('Error fetching existing trades:', error);
     return new Set();

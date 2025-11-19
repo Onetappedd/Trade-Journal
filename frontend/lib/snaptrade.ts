@@ -40,22 +40,25 @@ export interface Account {
   number: string;
   name?: string;
   type?: string;
-  brokerageAuthorization: string;
+  brokerageAuthorization?: string;
   syncDate?: string;
+  [key: string]: any;
 }
 
 export interface Balance {
   total?: number;
   cash?: number;
   currency?: string;
+  [key: string]: any;
 }
 
 export interface Position {
   symbol: string;
-  quantity: number;
-  averagePrice: number;
-  marketValue: number;
+  quantity?: number;
+  averagePrice?: number;
+  marketValue?: number;
   currency?: string;
+  [key: string]: any;
 }
 
 /**
@@ -93,7 +96,7 @@ export async function getConnectionPortalUrl(
     userSecret
   });
 
-  return response.data.redirectURI || '';
+  return (response.data as any).redirectURI || '';
 }
 
 /**
@@ -111,7 +114,7 @@ export async function listBrokerageAuthorizations(
     userSecret
   });
 
-  return response.data as BrokerageAuthorization[];
+  return response.data as unknown as BrokerageAuthorization[];
 }
 
 /**
@@ -129,7 +132,7 @@ export async function getUserAccounts(
     userSecret
   });
 
-  return response.data as Account[];
+  return response.data as unknown as Account[];
 }
 
 /**
@@ -151,8 +154,8 @@ export async function getAccountBalance(
   });
 
   return {
-    account: response.data.account as Account,
-    balance: response.data.balance as Balance
+    account: (response.data as any).account as Account,
+    balance: (response.data as any).balance as Balance
   };
 }
 
@@ -174,7 +177,7 @@ export async function getAccountPositions(
     accountId
   });
 
-  return response.data as Position[];
+  return response.data as unknown as Position[];
 }
 
 /**

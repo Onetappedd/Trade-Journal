@@ -70,7 +70,7 @@ export function parseBrokerLocalToUtc(
     const match = trimmed.match(format);
     if (match) {
       try {
-        let date: Date;
+        let date: Date | undefined;
         
         if (format === formats[0] || format === formats[1]) {
           // MM/DD/YYYY with timezone

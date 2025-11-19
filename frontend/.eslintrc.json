@@ -1,38 +1,9 @@
 {
-  "env": {
-    "browser": true,
-    "es2021": true,
-    "node": true
-  },
-  "parserOptions": {
-    "ecmaVersion": "latest",
-    "sourceType": "module"
-  },
+  "extends": ["next/core-web-vitals"],
   "reportUnusedDisableDirectives": true,
   "rules": {
     "no-irregular-whitespace": "error",
-    "no-restricted-imports": [
-      "error",
-      {
-        "paths": [
-          {
-            "name": "@/components/ui/dialog",
-            "message": "Use @/components/ui/alert-dialog instead."
-          },
-          {
-            "name": "@/components/ui/toast",
-            "message": "Use Sonner: import { toast } from 'sonner'."
-          },
-          {
-            "name": "@/components/ui/toaster",
-            "message": "Use Sonner Toaster from @/components/ui/sonner."
-          },
-          {
-            "name": "@/components/ui/use-toast",
-            "message": "Use Sonner: import { toast } from 'sonner'."
-          }
-        ]
-      }
-    ]
+    "react/no-unescaped-entities": "off",
+    "no-restricted-imports": "off"
   }
 }

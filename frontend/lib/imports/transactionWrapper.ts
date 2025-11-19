@@ -66,7 +66,7 @@ export async function executeImportTransaction(
     }
     
     // Log the error for debugging
-    logImportError(fileId, userId, error, 'transaction-failure');
+    console.error('Transaction failed:', error, fileId, userId);
     
     return {
       success: false,
@@ -189,7 +189,7 @@ export function createTransactionSuccessResponse(
       totalRows: summary.totalRows,
       inserted: result.inserted,
       duplicatesSkipped: result.duplicatesSkipped,
-      skipped: Object.values(summary.skipped).reduce((a, b) => a + b, 0),
+      skipped: (Object.values(summary.skipped) as number[]).reduce((a, b) => a + b, 0),
       errors: result.errors
     },
     errors: summary.errors,
