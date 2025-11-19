@@ -298,7 +298,9 @@ async function processCSVAsync(
             columns: true,
             skip_empty_lines: true,
             trim: true,
-            delimiter: delimiter
+            delimiter: delimiter,
+            relax_column_count: true, // Allow inconsistent column counts
+            relax_quotes: true // Be more lenient with quotes
           });
 
           if (records.length > MAX_ROWS) {

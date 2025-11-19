@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
         skip_empty_lines: true,
         trim: true,
         delimiter: delimiter,
-        to_line: 201 // Get first 200 rows + header
+        to_line: 201, // Get first 200 rows + header
+        relax_column_count: true, // Allow inconsistent column counts (some rows might be malformed)
+        relax_quotes: true // Be more lenient with quotes
       });
       
       // Extract headers from first record keys and clean them (remove quotes)
@@ -103,7 +105,9 @@ export async function POST(request: NextRequest) {
             columns: true,
             skip_empty_lines: true,
             trim: true,
-            delimiter: delimiter
+            delimiter: delimiter,
+            relax_column_count: true, // Allow inconsistent column counts
+            relax_quotes: true // Be more lenient with quotes
           });
 
           // Parse using adapter
