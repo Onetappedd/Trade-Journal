@@ -134,9 +134,9 @@ export async function POST(request: NextRequest) {
       relax_quotes: true
     });
     
-    const rawHeaders = sampleRecords.length > 0 ? Object.keys(sampleRecords[0]) : [];
+    const rawHeaders = sampleRecords.length > 0 ? Object.keys(sampleRecords[0] as Record<string, any>) : [];
     const headers = rawHeaders.map(h => String(h || '').replace(/^["']|["']$/g, '').trim());
-    const sampleRows = sampleRecords.slice(0, 200);
+    const sampleRows = sampleRecords.slice(0, 200) as any[];
     
     console.log('Parsed headers:', headers);
     console.log('Sample rows:', sampleRows.length);
