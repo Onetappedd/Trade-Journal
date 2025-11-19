@@ -35,8 +35,7 @@ export default function ChartFrame({
     >
       {/* ResponsiveContainer needs a sized parent. We provide a hard height. */}
       <ResponsiveContainer width="100%" height="100%">
-        {/* @ts-expect-error Recharts children */}
-        {children}
+        {children as any}
       </ResponsiveContainer>
     </div>
   );
