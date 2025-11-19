@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -175,7 +174,6 @@ function AppHeader() {
   const { user, signOut, supabase } = useAuth()
   const { toast } = useToast()
   const [username, setUsername] = useState<string | null>(null)
-  const router = usePathname()
 
   // Fetch username from profiles table
   useEffect(() => {
