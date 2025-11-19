@@ -4,6 +4,15 @@ import { z } from 'zod';
 import { createHash } from 'crypto';
 import { parse } from 'csv-parse/sync';
 import { revalidateTag } from 'next/cache';
+import { detectAdapter, parseCsvSample } from '@/lib/import/parsing/engine';
+import { registerAdapter, robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
+
+// Register all adapters
+registerAdapter(robinhoodAdapter);
+registerAdapter(webullAdapter);
+registerAdapter(ibkrAdapter);
+registerAdapter(schwabAdapter);
+registerAdapter(fidelityAdapter);
 
 // File size limits
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -259,44 +268,140 @@ async function processCSVAsync(
       .update({ status: 'processing', progress: 0 })
       .eq('id', importRunId);
 
-    // Read and parse CSV
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const csvContent = fileBuffer.toString('utf-8');
-    
-    const records = parse(csvContent, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true
-    });
+    // Detect broker format using parsing engine
+    let detection = null;
+    let fills: any[] = [];
+    let parseErrors: Array<{ row: number; message: string }> = [];
+    let parseWarnings: string[] = [];
 
-    if (records.length > MAX_ROWS) {
-      throw new Error(`Too many rows. Maximum is ${MAX_ROWS}`);
+    try {
+      // Use parsing engine to detect and parse
+      const { headers, sampleRows } = await parseCsvSample(file, 200);
+      detection = detectAdapter(headers, sampleRows);
+      
+      if (detection) {
+        console.log(`Detected broker: ${detection.brokerId} with confidence ${detection.confidence}`);
+        
+        // Get the adapter
+        const adapters = [robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter];
+        const adapter = adapters.find(a => a.id === detection!.brokerId);
+        
+        if (adapter) {
+          // Parse full CSV
+          const fileBuffer = Buffer.from(await file.arrayBuffer());
+          const csvContent = fileBuffer.toString('utf-8');
+          
+          const records = parse(csvContent, {
+            columns: true,
+            skip_empty_lines: true,
+            trim: true
+          });
+
+          if (records.length > MAX_ROWS) {
+            throw new Error(`Too many rows. Maximum is ${MAX_ROWS}`);
+          }
+
+          // Parse using adapter
+          const parseResult = adapter.parse({
+            rows: records,
+            headerMap: detection.headerMap,
+            userTimezone: 'UTC',
+            assetClass: detection.assetClass
+          });
+
+          fills = parseResult.fills;
+          parseErrors = parseResult.errors;
+          parseWarnings = parseResult.warnings;
+
+          console.log(`Parsed ${fills.length} fills, ${parseErrors.length} errors, ${parseWarnings.length} warnings`);
+        }
+      }
+    } catch (detectionError) {
+      console.error('Detection/parsing error:', detectionError);
+      // Fall back to simple parsing if detection fails
+    }
+
+    // If no fills from adapter, fall back to simple parsing
+    if (fills.length === 0) {
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      const csvContent = fileBuffer.toString('utf-8');
+      
+      const records = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true
+      });
+
+      if (records.length > MAX_ROWS) {
+        throw new Error(`Too many rows. Maximum is ${MAX_ROWS}`);
+      }
+
+      // Use old normalization for backward compatibility
+      fills = records.map((row: any, idx: number) => {
+        try {
+          const normalizedRow = normalizeRowDataSync(row, importRequest);
+          return {
+            sourceBroker: importRequest.broker || 'csv',
+            assetClass: 'stocks' as const,
+            symbol: normalizedRow.symbol,
+            quantity: normalizedRow.quantity,
+            price: normalizedRow.price,
+            execTime: normalizedRow.entry_date || new Date().toISOString(),
+            side: normalizedRow.side,
+            fees: normalizedRow.fees || 0,
+            raw: row
+          };
+        } catch (e) {
+          parseErrors.push({ row: idx + 1, message: e instanceof Error ? e.message : 'Parse error' });
+          return null;
+        }
+      }).filter(Boolean);
     }
 
     // Update total rows
     await supabase
       .from('import_runs')
-      .update({ total_rows: records.length })
+      .update({ total_rows: fills.length })
       .eq('id', importRunId);
 
     let processedRows = 0;
     let inserted = 0;
     let skipped = 0;
-    let errors = 0;
-    const errorMessages: string[] = [];
+    let errors = parseErrors.length;
+    const errorMessages: string[] = parseErrors.map(e => `Row ${e.row}: ${e.message}`);
 
-    // Process in chunks
+    // Process fills in chunks
     const CHUNK_SIZE = 100;
-    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-      const chunk = records.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < fills.length; i += CHUNK_SIZE) {
+      const chunk = fills.slice(i, i + CHUNK_SIZE);
       
-      for (const row of chunk) {
+      for (const fill of chunk) {
         try {
-          // Normalize row data
-          const normalizedRow = await normalizeRowData(row as Record<string, any>, importRequest);
+          // Convert NormalizedFill to trade data
+          const tradeData = {
+            user_id: userId,
+            row_hash: computeRowHashFromFill(fill, userId, detection?.brokerId || importRequest.broker || 'csv'),
+            broker: detection?.brokerId || importRequest.broker || 'csv',
+            broker_trade_id: fill.tradeIdExternal || fill.orderId,
+            import_run_id: importRunId,
+            symbol: fill.symbol,
+            side: fill.side || (fill.quantity >= 0 ? 'BUY' : 'SELL'),
+            quantity: Math.abs(fill.quantity),
+            entry_price: fill.price,
+            exit_price: null,
+            entry_date: fill.execTime,
+            exit_date: null,
+            status: 'closed',
+            notes: fill.notes || null,
+            asset_type: fill.assetClass === 'options' ? 'OPTION' : fill.assetClass === 'crypto' ? 'CRYPTO' : 'EQUITY',
+            underlying_symbol: fill.underlying || null,
+            option_expiration: fill.expiry || null,
+            option_strike: fill.strike || null,
+            option_type: fill.right === 'C' ? 'CALL' : fill.right === 'P' ? 'PUT' : null
+          };
           
           // Compute row hash for idempotency
-          const rowHash = computeRowHash(normalizedRow, userId, importRequest.broker || 'csv');
+          const rowHash = tradeData.row_hash;
           
           // Check for existing row
           const { data: existing } = await supabase
@@ -309,24 +414,6 @@ async function processCSVAsync(
           if (existing && importRequest.options?.skipDuplicates) {
             skipped++;
           } else {
-            // Insert or update trade - using correct schema columns
-            const tradeData = {
-              user_id: userId,
-              row_hash: rowHash,
-              broker: importRequest.broker || 'csv',
-              broker_trade_id: normalizedRow.broker_trade_id,
-              import_run_id: importRunId,
-              symbol: normalizedRow.symbol,
-              side: normalizedRow.side,
-              quantity: normalizedRow.quantity,
-              entry_price: normalizedRow.price,
-              exit_price: normalizedRow.exit_price,
-              entry_date: normalizedRow.entry_date,
-              exit_date: normalizedRow.exit_date,
-              status: normalizedRow.status || 'closed',
-              notes: normalizedRow.notes || null
-            };
-
             if (existing) {
               await supabase
                 .from('trades')
@@ -348,7 +435,7 @@ async function processCSVAsync(
       }
 
       // Update progress
-      const progress = Math.round((processedRows / records.length) * 100);
+      const progress = Math.round((processedRows / fills.length) * 100);
       await supabase
         .from('import_runs')
         .update({ 
@@ -393,12 +480,12 @@ async function processCSVAsync(
 }
 
 /**
- * Normalize row data according to preset and options
+ * Normalize row data according to preset and options (sync version for fallback)
  */
-async function normalizeRowData(
+function normalizeRowDataSync(
   row: Record<string, any>, 
   importRequest: z.infer<typeof ImportRequestSchema>
-): Promise<Record<string, any>> {
+): Record<string, any> {
   const normalized: Record<string, any> = {};
 
   // Apply mapping if provided
@@ -432,6 +519,25 @@ async function normalizeRowData(
   }
 
   return normalized;
+}
+
+/**
+ * Compute row hash from NormalizedFill
+ */
+function computeRowHashFromFill(fill: any, userId: string, broker: string): string {
+  const normalizedRow = {
+    user_id: userId,
+    broker,
+    symbol: fill.symbol?.toString().toUpperCase(),
+    side: fill.side?.toString().toLowerCase(),
+    quantity: fill.quantity,
+    price: fill.price,
+    date: fill.execTime,
+    broker_trade_id: fill.tradeIdExternal || fill.orderId
+  };
+
+  const hashInput = JSON.stringify(normalizedRow, Object.keys(normalizedRow).sort());
+  return createHash('sha256').update(hashInput).digest('hex');
 }
 
 /**
