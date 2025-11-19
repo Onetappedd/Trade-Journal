@@ -186,14 +186,17 @@ function AppHeader() {
             .from('profiles')
             .select('username')
             .eq('id', user.id)
-            .single()
+            .maybeSingle() // Use maybeSingle instead of single to avoid errors if no profile exists
           
           if (!error && data?.username) {
             setUsername(data.username)
+          } else if (error) {
+            // Log error but don't throw - username is optional
+            console.log('Error fetching username:', error.message)
           }
         } catch (error) {
           // Username not set yet, that's okay
-          console.log('No username found in profile')
+          console.log('No username found in profile:', error)
         }
       }
     }

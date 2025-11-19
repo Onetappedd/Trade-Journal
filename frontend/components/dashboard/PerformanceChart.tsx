@@ -57,7 +57,7 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
             <YAxis />
             <Tooltip
               formatter={(value: any, name: string) => [
-                `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                `$${(value === null || value === undefined || isNaN(Number(value)) ? 0 : Number(value)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 name === 'value' ? 'Your Portfolio' : 'S&P 500',
               ]}
             />

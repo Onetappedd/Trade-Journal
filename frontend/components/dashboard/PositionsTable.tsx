@@ -75,6 +75,9 @@ export function PositionsTable() {
 
   const formatCurrency = (value: number) => {
     const prefix = value >= 0 ? '' : '-';
+    if (value === null || value === undefined || isNaN(value)) {
+      return '$0.00';
+    }
     return `${prefix}$${Math.abs(value).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

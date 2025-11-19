@@ -32,12 +32,14 @@ export default async function DashboardPage() {
   )
 
   // Fetch manual trade data from database
+  // Note: Using entry_date, entry_price, quantity columns that match our import schema
   const { data: trades, error: tradesError } = await supabase
     .from('trades')
     .select('*')
     .eq('user_id', user.id)
+    .order('entry_date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(1000) // Increase limit to show more trades
 
   if (tradesError) {
     console.error('Error fetching trades:', tradesError)

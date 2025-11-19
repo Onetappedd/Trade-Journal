@@ -15,7 +15,10 @@ interface DashboardStatsSimpleProps {
 }
 
 export function DashboardStatsSimple({ stats }: DashboardStatsSimpleProps) {
-  const formatCurrency = (value: number, showSign: boolean = false) => {
+  const formatCurrency = (value: number | null | undefined, showSign: boolean = false) => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return '$0.00';
+    }
     const sign = value < 0 ? '-' : showSign ? '+' : '';
     return `${sign}${Math.abs(value).toLocaleString('en-US', {
       minimumFractionDigits: 2,
