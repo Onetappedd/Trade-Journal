@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +44,9 @@ import {
   LogOut,
   Search,
   Bell,
+  LayoutDashboard,
+  CreditCard,
+  HelpCircle,
 } from "lucide-react"
 import { useTheme } from "./theme-provider"
 import { useAuth } from "@/providers/auth-provider"
@@ -168,8 +172,33 @@ function AppSidebar() {
 
 function AppHeader() {
   const { setTheme, theme } = useTheme()
-  const { user, signOut } = useAuth()
+  const { user, signOut, supabase } = useAuth()
   const { toast } = useToast()
+  const [username, setUsername] = useState<string | null>(null)
+  const router = usePathname()
+
+  // Fetch username from profiles table
+  useEffect(() => {
+    async function fetchUsername() {
+      if (user && supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', user.id)
+            .single()
+          
+          if (!error && data?.username) {
+            setUsername(data.username)
+          }
+        } catch (error) {
+          // Username not set yet, that's okay
+          console.log('No username found in profile')
+        }
+      }
+    }
+    fetchUsername()
+  }, [user, supabase])
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-800/50 bg-slate-950/95 px-4">
@@ -315,34 +344,88 @@ function AppHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800" align="end" forceMount>
-            <div className="flex items-center justify-start gap-2 p-2">
-              <div className="flex flex-col space-y-1 leading-none">
-                <p className="font-medium text-white">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</p>
-                <p className="w-[200px] truncate text-sm text-slate-400">{user?.email}</p>
+            {/* User Info Header */}
+            <div className="flex items-center justify-start gap-2 p-3 border-b border-slate-800">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={user?.user_metadata?.avatar_url} alt="User" />
+                <AvatarFallback className="bg-emerald-600 text-white font-medium text-sm">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col space-y-0.5 leading-none min-w-0 flex-1">
+                <p className="font-semibold text-white truncate">
+                  {username ? `@${username}` : user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+                </p>
+                <p className="w-full truncate text-xs text-slate-400">{user?.email}</p>
               </div>
             </div>
+            
             <DropdownMenuSeparator className="bg-slate-800" />
+            
+            {/* Navigation Items */}
             <DropdownMenuItem asChild>
-              <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+              <Link href="/dashboard" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                <span>Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/profile" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
+            
             <DropdownMenuItem asChild>
               <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </Link>
             </DropdownMenuItem>
+            
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/billing" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+                <CreditCard className="mr-2 h-4 w-4" />
+                <span>Billing</span>
+              </Link>
+            </DropdownMenuItem>
+            
             <DropdownMenuSeparator className="bg-slate-800" />
+            
             <DropdownMenuItem 
-              className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-slate-800"
+              className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800"
               onClick={() => {
                 toast({
-                  title: "Signing out...",
-                  description: "You have been signed out successfully",
+                  title: "Help & Support",
+                  description: "Contact support@riskr.net for assistance",
                 })
-                signOut()
+              }}
+            >
+              <HelpCircle className="mr-2 h-4 w-4" />
+              <span>Help & Support</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator className="bg-slate-800" />
+            
+            <DropdownMenuItem 
+              className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-slate-800 focus:text-red-300 focus:bg-slate-800"
+              onClick={async () => {
+                try {
+                  await signOut()
+                  toast({
+                    title: "Signed out",
+                    description: "You have been signed out successfully",
+                  })
+                  // Redirect to login page
+                  window.location.href = '/auth/login'
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to sign out. Please try again.",
+                    variant: "destructive"
+                  })
+                }
               }}
             >
               <LogOut className="mr-2 h-4 w-4" />
