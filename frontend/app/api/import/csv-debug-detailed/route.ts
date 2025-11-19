@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
       });
       
       // Extract headers from first record keys and clean them (remove quotes)
-      const rawHeaders = records.length > 0 ? Object.keys(records[0]) : [];
+      const rawHeaders = records.length > 0 ? Object.keys(records[0] as Record<string, any>) : [];
       const headers = rawHeaders.map(h => String(h || '').replace(/^["']|["']$/g, '').trim());
-      const sampleRows = records.slice(0, 200);
+      const sampleRows = records.slice(0, 200) as any[];
       
       console.log('Parsed headers:', headers);
       console.log('Sample rows count:', sampleRows.length);
