@@ -243,6 +243,8 @@ export async function POST(request: NextRequest) {
           const externalId = fill.tradeIdExternal || fill.orderId || `${fill.symbol}_${fill.execTime}_${normalizedSide}`;
           
           // Convert NormalizedFill to trade data - using the schema from test_idempotency_functionality.sql
+          // Note: We need to set both old schema fields (avg_open_price, qty_opened) and new schema fields (entry_price, quantity)
+          // to satisfy any CHECK constraints that might exist
           const tradeData: any = {
             user_id: user.id,
             symbol: fill.symbol,
@@ -259,6 +261,10 @@ export async function POST(request: NextRequest) {
             executed_at: fill.execTime || new Date().toISOString(),
             row_hash: computeRowHashFromFill(fill, user.id, detection?.brokerId || 'csv'),
             import_run_id: importRun.id,
+            // Also set old schema fields to satisfy CHECK constraints
+            avg_open_price: price, // Required by CHECK constraint: avg_open_price > 0
+            qty_opened: quantity,  // Required by CHECK constraint: qty_opened > 0
+            status: 'closed', // Required NOT NULL field
             meta: {
               rowIndex: fill.raw?.rowIndex || i + 1,
               source: fill.sourceBroker || 'csv',
@@ -331,7 +337,10 @@ export async function POST(request: NextRequest) {
                   hint: insertError.hint
                 });
                 console.error(`[Import] Trade data that failed:`, JSON.stringify(tradeData, null, 2));
-                throw new Error(`Insert failed: ${insertError.message} (code: ${insertError.code})`);
+                // Don't throw - log and continue to process other trades
+                errorCount++;
+                errorMessages.push(`Trade ${tradeData.symbol}: ${insertError.message} (code: ${insertError.code})`);
+                continue; // Skip this trade and continue with the next one
               }
               
               if (insertedData && insertedData.length > 0) {
