@@ -754,19 +754,25 @@ function robinhoodDetect({
   }
   
   // Build header map for Activity CSV format
+  // Map internal keys to actual CSV header names
   const headerMap: Record<string, string> = {};
-  headers.forEach((h, idx) => {
+  headers.forEach((h) => {
     const lower = h.toLowerCase().trim();
-    if (lower.includes('activity date')) headerMap['activityDate'] = h;
-    else if (lower.includes('process date')) headerMap['processDate'] = h;
-    else if (lower.includes('settle date')) headerMap['settleDate'] = h;
-    else if (lower.includes('instrument')) headerMap['instrument'] = h;
-    else if (lower.includes('description')) headerMap['description'] = h;
-    else if (lower.includes('trans code')) headerMap['transCode'] = h;
-    else if (lower.includes('quantity')) headerMap['quantity'] = h;
-    else if (lower.includes('price')) headerMap['price'] = h;
-    else if (lower.includes('amount')) headerMap['amount'] = h;
+    if (lower.includes('activity date') || lower === 'activity date') headerMap['activityDate'] = h;
+    else if (lower.includes('process date') || lower === 'process date') headerMap['processDate'] = h;
+    else if (lower.includes('settle date') || lower === 'settle date') headerMap['settleDate'] = h;
+    else if (lower.includes('instrument') || lower === 'instrument') headerMap['instrument'] = h;
+    else if (lower.includes('description') || lower === 'description') headerMap['description'] = h;
+    else if (lower.includes('trans code') || lower === 'trans code') headerMap['transCode'] = h;
+    else if (lower.includes('quantity') || lower === 'quantity') headerMap['quantity'] = h;
+    else if (lower.includes('price') || lower === 'price') headerMap['price'] = h;
+    else if (lower.includes('amount') || lower === 'amount') headerMap['amount'] = h;
   });
+  
+  // Debug: log header map in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Robinhood header map:', headerMap);
+  }
   
   return {
     brokerId: 'robinhood',
@@ -782,7 +788,14 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
   const fills: NormalizedFill[] = [];
   const errors: any[] = [];
   const warnings: string[] = [];
-  const get = (r: any, k: string) => r[headerMap?.[k] || k];
+  const get = (r: any, k: string) => {
+    const headerName = headerMap?.[k];
+    if (headerName) {
+      return r[headerName];
+    }
+    // Fallback: try the key directly, or try case variations
+    return r[k] || r[headerMap?.[k.toLowerCase()]] || r[k.toLowerCase()] || r[k.toUpperCase()];
+  };
   
   // Check if this is the Activity CSV format (has 'transCode' in headerMap)
   const isActivityFormat = headerMap?.['transCode'] || headerMap?.['Trans Code'];
@@ -797,6 +810,12 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
           return; // Skip empty rows
         }
         
+        // Debug first row in development
+        if (i === 0 && process.env.NODE_ENV === 'development') {
+          console.log('First row keys:', Object.keys(r));
+          console.log('First row data:', r);
+        }
+        
         // Get field values by header map
         const activityDateStr = String(get(r, 'activityDate') || '').trim();
         const processDateStr = String(get(r, 'processDate') || '').trim();
@@ -807,6 +826,11 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
         const quantityStr = String(get(r, 'quantity') || '').trim();
         const priceStr = String(get(r, 'price') || '').trim();
         const amountStr = String(get(r, 'amount') || '').trim();
+        
+        // Debug first row parsing in development
+        if (i === 0 && process.env.NODE_ENV === 'development') {
+          console.log('Parsed values:', { activityDateStr, instrument, description, transCode, quantityStr, priceStr, amountStr });
+        }
         
         // Skip rows without Trans Code (footer/disclaimer rows)
         if (!transCode) {
