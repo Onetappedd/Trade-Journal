@@ -43,7 +43,10 @@ export default async function CalendarPage() {
   console.log('[Calendar Page] Calendar data days:', Object.keys(calendarData.dailyData).length);
   console.log('[Calendar Page] Total P&L:', calendarData.totalRealizedPnL);
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return '$0.00';
+    }
     const prefix = value >= 0 ? '+' : '';
     return `${prefix}$${Math.abs(value).toLocaleString('en-US', {
       minimumFractionDigits: 2,

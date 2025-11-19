@@ -371,7 +371,7 @@ export default function DashboardClient({
                                 'bg-slate-600/40 text-slate-200'
                           }`}>{e.severity}</span>
                           <span className="text-sm text-slate-200 flex-1 mx-3 truncate">{e.details}</span>
-                          <span className="text-xs text-slate-400">{new Date(e.at).toLocaleString()}</span>
+                          <span className="text-xs text-slate-400">{e.at ? new Date(e.at).toLocaleString() : 'N/A'}</span>
                         </div>
                       ))}
                       {!(dashboardData.riskEvents ?? []).length && <p className="text-slate-400 text-sm">No recent events.</p>}
@@ -395,7 +395,7 @@ export default function DashboardClient({
                               int.status === 'needs_auth' ? 'bg-amber-500/20 text-amber-200' :
                                 'bg-red-500/20 text-red-300'
                           }`}>{int.status.replace('_', ' ')}</span>
-                          {int.lastSync && <span className="text-slate-500 text-xs">• synced {new Date(int.lastSync).toLocaleString()}</span>}
+                          {int.lastSync && <span className="text-slate-500 text-xs">• synced {int.lastSync ? new Date(int.lastSync).toLocaleString() : 'N/A'}</span>}
                           {int.status !== 'connected' && (
                             <Button variant="ghost" size="sm" onClick={() => router.push('/settings/integrations')}>Connect</Button>
                           )}
