@@ -87,14 +87,26 @@ export type ChartDataPoint = {
 }
 
 // Formatting helpers
-export const fmtUSD = (n: number) => 
-  n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+export const fmtUSD = (n: number | null | undefined) => {
+  if (n === null || n === undefined || isNaN(n)) {
+    return '$0.00'
+  }
+  return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+}
 
-export const fmtPct = (n: number, digits = 1) => 
-  `${(n * 100).toFixed(digits)}%`
+export const fmtPct = (n: number | null | undefined, digits = 1) => {
+  if (n === null || n === undefined || isNaN(n)) {
+    return '0.0%'
+  }
+  return `${(n * 100).toFixed(digits)}%`
+}
 
-export const withSignUSD = (n: number) => 
-  `${n >= 0 ? '+' : ''}${fmtUSD(n)}`
+export const withSignUSD = (n: number | null | undefined) => {
+  if (n === null || n === undefined || isNaN(n)) {
+    return '$0.00'
+  }
+  return `${n >= 0 ? '+' : ''}${fmtUSD(n)}`
+}
 
 // Color mapping for categories
 export const CATEGORY_COLORS: Record<string, string> = {
