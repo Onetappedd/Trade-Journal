@@ -29,11 +29,15 @@ export async function GET() {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .maybeSingle() // Use maybeSingle instead of single to avoid errors when profile doesn't exist
 
-    if (profileError && profileError.code !== 'PGRST116') {
+    if (profileError) {
       console.error('Profile fetch error:', profileError)
-      return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+      // Don't return 500 if profile just doesn't exist - that's okay
+      if (profileError.code !== 'PGRST116') {
+        return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+      }
+      // Profile doesn't exist, continue with empty profile
     }
 
     // If no profile exists, return user data with empty profile fields

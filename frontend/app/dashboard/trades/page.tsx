@@ -209,7 +209,7 @@ export default function TradesPage() {
                       {row.status.toUpperCase()}
                     </Badge>
                   </TableCell>
-                  <TableCell>{row.qty_opened.toLocaleString()}</TableCell>
+                  <TableCell>{(row.qty_opened ?? 0).toLocaleString()}</TableCell>
                   <TableCell>{formatCurrency(row.avg_open_price)}</TableCell>
                   <TableCell>{formatCurrency(row.avg_close_price)}</TableCell>
                   <TableCell>{format(new Date(row.opened_at), 'MMM dd, yyyy')}</TableCell>
