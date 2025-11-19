@@ -229,64 +229,119 @@ export async function POST(request: NextRequest) {
           // Convert execTime (ISO timestamp) to DATE for entry_date
           const entryDate = fill.execTime ? fill.execTime.split('T')[0] : null;
           
-          // Convert NormalizedFill to trade data
-          const tradeData = {
+          // Ensure price and quantity are valid numbers
+          const price = fill.price && !isNaN(fill.price) ? fill.price : 0;
+          const quantity = fill.quantity && !isNaN(fill.quantity) ? Math.abs(fill.quantity) : 0;
+          
+          if (price <= 0 || quantity <= 0) {
+            console.warn(`[Import] Skipping trade with invalid price (${price}) or quantity (${quantity}):`, fill);
+            skippedCount++;
+            continue;
+          }
+          
+          // Build external_id from fill data
+          const externalId = fill.tradeIdExternal || fill.orderId || `${fill.symbol}_${fill.execTime}_${normalizedSide}`;
+          
+          // Convert NormalizedFill to trade data - using the schema from test_idempotency_functionality.sql
+          const tradeData: any = {
             user_id: user.id,
-            row_hash: computeRowHashFromFill(fill, user.id, detection?.brokerId || 'csv'),
-            broker: detection?.brokerId || 'csv',
-            broker_trade_id: fill.tradeIdExternal || fill.orderId,
-            import_run_id: importRun.id,
             symbol: fill.symbol,
+            symbol_raw: fill.symbol, // Use symbol as symbol_raw if not provided
             side: normalizedSide,
-            quantity: Math.abs(fill.quantity),
-            entry_price: fill.price,
-            exit_price: null,
+            quantity: quantity,
+            entry_price: price,
             entry_date: entryDate,
-            exit_date: null,
-            status: 'closed',
-            notes: fill.notes || null,
+            broker: detection?.brokerId || 'csv',
+            external_id: externalId,
             asset_type: assetType,
-            underlying_symbol: fill.underlying || null,
-            option_expiration: fill.expiry || null,
-            option_strike: fill.strike || null,
-            option_type: fill.right === 'C' ? 'CALL' : fill.right === 'P' ? 'PUT' : null
+            fees: fill.fees || 0,
+            commission: 0, // Default to 0 if not provided
+            executed_at: fill.execTime || new Date().toISOString(),
+            row_hash: computeRowHashFromFill(fill, user.id, detection?.brokerId || 'csv'),
+            import_run_id: importRun.id,
+            meta: {
+              rowIndex: fill.raw?.rowIndex || i + 1,
+              source: fill.sourceBroker || 'csv',
+              originalDescription: fill.notes || null,
+              underlying: fill.underlying || null,
+              expiry: fill.expiry || null,
+              strike: fill.strike || null,
+              optionType: fill.right || null,
+            }
           };
           
-          // Check for existing row
-          const { data: existing } = await supabase
+          // Add option-specific fields if this is an option
+          if (assetType === 'option') {
+            if (fill.underlying) tradeData.underlying_symbol = fill.underlying;
+            if (fill.expiry) tradeData.option_expiration = fill.expiry;
+            if (fill.strike) tradeData.option_strike = fill.strike;
+            if (fill.right) {
+              tradeData.option_type = fill.right === 'C' ? 'CALL' : fill.right === 'P' ? 'PUT' : null;
+            }
+          }
+          
+          // Add notes if available
+          if (fill.notes) {
+            tradeData.notes = fill.notes;
+          }
+          
+          // Check for existing row using row_hash
+          const { data: existing, error: checkError } = await supabase
             .from('trades')
             .select('id')
             .eq('user_id', user.id)
             .eq('row_hash', tradeData.row_hash)
-            .single();
+            .maybeSingle();
+          
+          if (checkError) {
+            console.error(`[Import] Error checking for existing trade:`, checkError);
+            throw new Error(`Check failed: ${checkError.message}`);
+          }
           
           if (existing && requestData.options?.skipDuplicates) {
             skippedCount++;
+            console.log(`[Import] Skipping duplicate trade: ${tradeData.symbol} (row_hash: ${tradeData.row_hash})`);
           } else {
             if (existing) {
+              // Update existing trade
               const { error: updateError } = await supabase
                 .from('trades')
                 .update(tradeData)
                 .eq('id', existing.id);
               
               if (updateError) {
+                console.error(`[Import] Update error for trade ${tradeData.symbol}:`, updateError);
+                console.error(`[Import] Trade data:`, JSON.stringify(tradeData, null, 2));
                 throw new Error(`Update failed: ${updateError.message}`);
               }
+              insertedCount++;
             } else {
-              const { error: insertError } = await supabase
+              // Insert new trade
+              const { data: insertedData, error: insertError } = await supabase
                 .from('trades')
                 .insert(tradeData)
                 .select();
               
               if (insertError) {
                 console.error(`[Import] Insert error for trade ${tradeData.symbol}:`, insertError);
-                throw new Error(`Insert failed: ${insertError.message}`);
+                console.error(`[Import] Insert error details:`, {
+                  code: insertError.code,
+                  message: insertError.message,
+                  details: insertError.details,
+                  hint: insertError.hint
+                });
+                console.error(`[Import] Trade data that failed:`, JSON.stringify(tradeData, null, 2));
+                throw new Error(`Insert failed: ${insertError.message} (code: ${insertError.code})`);
               }
-            }
-            insertedCount++;
-            
-            if (insertedCount % 50 === 0) {
-              console.log(`[Import] Progress: ${insertedCount} trades inserted so far...`);
+              
+              if (insertedData && insertedData.length > 0) {
+                insertedCount++;
+                if (insertedCount % 50 === 0) {
+                  console.log(`[Import] Progress: ${insertedCount} trades inserted so far...`);
+                }
+              } else {
+                console.warn(`[Import] Insert returned no data for trade ${tradeData.symbol}`);
+              }
             }
           }
         } catch (error) {
