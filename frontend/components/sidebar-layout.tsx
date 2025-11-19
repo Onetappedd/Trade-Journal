@@ -200,7 +200,7 @@ function AppHeader() {
   }, [user, supabase])
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-800/50 bg-slate-950/95 px-4">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-slate-800/50 bg-slate-950/95 px-4 relative z-10">
       <SidebarTrigger className="h-9 w-9 text-slate-300 hover:text-white hover:bg-slate-800/50 border border-slate-700/50 rounded-md transition-all duration-200 hover:border-emerald-500/50" />
       
       {/* Search Bar */}
@@ -233,7 +233,8 @@ function AppHeader() {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50"
+              className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50 pointer-events-auto"
+              type="button"
             >
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
@@ -242,7 +243,7 @@ function AppHeader() {
               <span className="sr-only">Notifications</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 bg-slate-900 border-slate-800">
+          <DropdownMenuContent align="end" className="w-80 bg-slate-900 border-slate-800 z-[100]">
             <div className="p-3 border-b border-slate-800">
               <h3 className="font-semibold text-white">Notifications</h3>
             </div>
@@ -281,13 +282,13 @@ function AppHeader() {
         {/* Theme Toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-300 hover:text-white hover:bg-slate-800/50">
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-300 hover:text-white hover:bg-slate-800/50 pointer-events-auto" type="button">
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[140px] bg-slate-900 border-slate-800">
+          <DropdownMenuContent align="end" className="min-w-[140px] bg-slate-900 border-slate-800 z-[100]">
             <DropdownMenuItem 
               onClick={() => {
                 setTheme("light")
@@ -333,7 +334,7 @@ function AppHeader() {
         {/* User Avatar */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 pointer-events-auto" type="button">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.user_metadata?.avatar_url} alt="User" />
                 <AvatarFallback className="bg-emerald-600 text-white font-medium text-sm">
@@ -342,7 +343,7 @@ function AppHeader() {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800" align="end" forceMount>
+          <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 z-[100]" align="end">
             {/* User Info Header */}
             <div className="flex items-center justify-start gap-2 p-3 border-b border-slate-800">
               <Avatar className="h-10 w-10">
@@ -362,29 +363,29 @@ function AppHeader() {
             <DropdownMenuSeparator className="bg-slate-800" />
             
             {/* Navigation Items */}
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+            <DropdownMenuItem className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+              <Link href="/dashboard" className="flex items-center w-full">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 <span>Dashboard</span>
               </Link>
             </DropdownMenuItem>
             
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/profile" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+            <DropdownMenuItem className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+              <Link href="/dashboard/profile" className="flex items-center w-full">
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
             
-            <DropdownMenuItem asChild>
-              <Link href="/settings" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+            <DropdownMenuItem className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+              <Link href="/settings" className="flex items-center w-full">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </Link>
             </DropdownMenuItem>
             
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/billing" className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+            <DropdownMenuItem className="cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800">
+              <Link href="/dashboard/billing" className="flex items-center w-full">
                 <CreditCard className="mr-2 h-4 w-4" />
                 <span>Billing</span>
               </Link>
