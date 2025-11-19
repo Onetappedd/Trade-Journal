@@ -260,6 +260,10 @@ async function processCSVAsync(
       .update({ status: 'processing', progress: 0 })
       .eq('id', importRunId);
 
+    // Read file once
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const csvContent = fileBuffer.toString('utf-8');
+    
     // Detect broker format using parsing engine
     let detection = null;
     let fills: any[] = [];
@@ -267,8 +271,13 @@ async function processCSVAsync(
     let parseWarnings: string[] = [];
 
     try {
-      // Use parsing engine to detect and parse
-      const { headers, sampleRows } = await parseCsvSample(file, 200);
+      // Create a File-like object for parseCsvSample (it needs a File object)
+      // In Node.js, we can create a Blob and convert it to File
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const fileForDetection = new File([blob], file.name, { type: 'text/csv' });
+      
+      // Use parsing engine to detect
+      const { headers, sampleRows } = await parseCsvSample(fileForDetection, 200);
       detection = detectAdapter(headers, sampleRows);
       
       if (detection) {
@@ -280,9 +289,6 @@ async function processCSVAsync(
         
         if (adapter) {
           // Parse full CSV
-          const fileBuffer = Buffer.from(await file.arrayBuffer());
-          const csvContent = fileBuffer.toString('utf-8');
-          
           const records = parse(csvContent, {
             columns: true,
             skip_empty_lines: true,
@@ -315,9 +321,6 @@ async function processCSVAsync(
 
     // If no fills from adapter, fall back to simple parsing
     if (fills.length === 0) {
-      const fileBuffer = Buffer.from(await file.arrayBuffer());
-      const csvContent = fileBuffer.toString('utf-8');
-      
       const records = parse(csvContent, {
         columns: true,
         skip_empty_lines: true,
