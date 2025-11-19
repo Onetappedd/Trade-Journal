@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { parse } from 'csv-parse/sync';
+import { detectAdapter, robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
+import { createHash } from 'crypto';
 
 export const dynamic = 'force-dynamic';
+
+// Helper to compute row hash for idempotency
+function computeRowHashFromFill(fill: any, userId: string, broker: string): string {
+  const key = `${userId}|${broker}|${fill.execTime}|${fill.symbol}|${fill.side}|${fill.quantity}|${fill.price}|${fill.underlying || ''}|${fill.expiry || ''}|${fill.strike || ''}|${fill.right || ''}`;
+  return createHash('sha256').update(key).digest('hex');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,101 +113,171 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
     
-    // Read and parse CSV
-    const csvText = await file.text();
-    const lines = csvText.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    // Read CSV content
+    const csvContent = await file.text();
     
-    console.log('CSV parsed, lines:', lines.length);
-    console.log('Headers:', headers);
+    // Detect delimiter
+    const firstLine = csvContent.split('\n')[0] || '';
+    const hasTabs = firstLine.includes('\t');
+    const delimiter = hasTabs ? '\t' : ',';
     
-    // Parse and insert trades
-    let insertedCount = 0;
-    let skippedCount = 0;
-    let errorCount = 0;
+    console.log('Detected delimiter:', delimiter === '\t' ? 'TAB' : 'COMMA');
     
-    console.log('Starting to process', lines.length - 1, 'rows');
+    // Parse CSV to get headers and sample rows for detection
+    const sampleRecords = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+      delimiter: delimiter,
+      to_line: 201, // First 200 rows + header
+      relax_column_count: true,
+      relax_quotes: true
+    });
     
-    for (let i = 1; i < lines.length; i++) {
-      try {
-        const values = lines[i].split(',').map(v => v.trim());
-        const row: Record<string, string> = {};
-        
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
+    const rawHeaders = sampleRecords.length > 0 ? Object.keys(sampleRecords[0]) : [];
+    const headers = rawHeaders.map(h => String(h || '').replace(/^["']|["']$/g, '').trim());
+    const sampleRows = sampleRecords.slice(0, 200);
+    
+    console.log('Parsed headers:', headers);
+    console.log('Sample rows:', sampleRows.length);
+    
+    // Detect broker adapter
+    const detection = detectAdapter(headers, sampleRows);
+    console.log('Detection result:', detection);
+    
+    let fills: any[] = [];
+    let parseErrors: Array<{ row: number; message: string }> = [];
+    
+    if (detection) {
+      console.log(`Detected broker: ${detection.brokerId} with confidence ${detection.confidence}`);
+      
+      // Get the adapter
+      const adapters = [robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter];
+      const adapter = adapters.find(a => a.id === detection.brokerId);
+      
+      if (adapter) {
+        // Parse full CSV
+        const records = parse(csvContent, {
+          columns: true,
+          skip_empty_lines: true,
+          trim: true,
+          delimiter: delimiter,
+          relax_column_count: true,
+          relax_quotes: true
         });
         
-        // Enhanced mapping for Webull and other brokers
-        const symbol = row.symbol || row.ticker || row.instrument || row.stock || '';
-        const side = (row.side || row.action || row.type || row.direction || '').toLowerCase();
+        console.log(`Parsing ${records.length} rows with adapter ${adapter.id}`);
         
-        // Handle Webull's "total qty" column and quantity parsing
-        const quantityStr = row['total qty'] || row.quantity || row.shares || row.size || row.qty || '0';
-        const quantity = parseFloat(quantityStr);
+        // Parse using adapter
+        const parseResult = adapter.parse({
+          rows: records,
+          headerMap: detection.headerMap,
+          userTimezone: 'UTC',
+          assetClass: detection.assetClass
+        });
         
-        // Handle Webull's price format with @ symbol (e.g., "@3.51" -> "3.51")
-        const priceStr = row.price || row.price_per_share || row.amount || row.value || '0';
-        const cleanPriceStr = priceStr.replace('@', '').trim();
-        const price = parseFloat(cleanPriceStr);
+        fills = parseResult.fills;
+        parseErrors = parseResult.errors;
         
-        // Handle Webull's date format and use filled time if available
-        const dateStr = row['filled time'] || row['placed time'] || row.date || row.trade_date || row.time || row.timestamp || new Date().toISOString().split('T')[0];
-        const date = dateStr.split(' ')[0]; // Extract just the date part (MM/DD/YYYY)
-        
-        // Check if trade is filled (not cancelled)
-        const status = row.status || '';
-        const isFilled = status.toLowerCase() === 'filled';
-        
-        console.log(`Row ${i}: symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}, date=${date}, status=${status}, filled=${isFilled}`);
-        
-        if (symbol && side && quantity > 0 && price > 0 && isFilled) {
-          console.log(`Valid trade found: ${symbol} ${side} ${quantity} @ ${price}`);
-          
-          // Calculate P&L (simplified - you might want more sophisticated calculation)
-          const pnl = side === 'sell' ? (price - parseFloat(row.entry_price || '0')) * quantity : 0;
-          
+        console.log(`Parsed ${fills.length} fills, ${parseErrors.length} errors`);
+      }
+    }
+    
+    if (fills.length === 0) {
+      console.warn('No fills parsed, returning error');
+      return NextResponse.json({
+        success: false,
+        error: 'No trades could be parsed from CSV. Please check the file format.',
+        stats: {
+          totalRows: 0,
+          inserted: 0,
+          skipped: 0,
+          errors: parseErrors.length
+        }
+      }, { status: 400 });
+    }
+    
+    // Insert trades into database
+    let insertedCount = 0;
+    let skippedCount = 0;
+    let errorCount = parseErrors.length;
+    const errorMessages: string[] = parseErrors.map(e => `Row ${e.row}: ${e.message}`);
+    
+    console.log(`Starting to insert ${fills.length} trades`);
+    
+    // Process fills in chunks
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < fills.length; i += CHUNK_SIZE) {
+      const chunk = fills.slice(i, i + CHUNK_SIZE);
+      
+      for (const fill of chunk) {
+        try {
+          // Convert NormalizedFill to trade data
           const tradeData = {
             user_id: user.id,
-            symbol: symbol.toUpperCase(),
-            side: side === 'buy' ? 'buy' : 'sell',
-            quantity,
-            entry_price: price,
-            exit_price: side === 'sell' ? price : null,
-            entry_date: date,
-            exit_date: side === 'sell' ? date : null,
-            status: side === 'sell' ? 'closed' : 'open',
-            pnl: pnl,
-            broker: 'csv',
+            row_hash: computeRowHashFromFill(fill, user.id, detection?.brokerId || 'csv'),
+            broker: detection?.brokerId || 'csv',
+            broker_trade_id: fill.tradeIdExternal || fill.orderId,
             import_run_id: importRun.id,
-            row_hash: `${user.id}_${symbol}_${side}_${quantity}_${price}_${date}`
+            symbol: fill.symbol,
+            side: fill.side || (fill.quantity >= 0 ? 'BUY' : 'SELL'),
+            quantity: Math.abs(fill.quantity),
+            entry_price: fill.price,
+            exit_price: null,
+            entry_date: fill.execTime,
+            exit_date: null,
+            status: 'closed',
+            notes: fill.notes || null,
+            asset_type: fill.assetClass === 'options' ? 'OPTION' : fill.assetClass === 'crypto' ? 'CRYPTO' : 'EQUITY',
+            underlying_symbol: fill.underlying || null,
+            option_expiration: fill.expiry || null,
+            option_strike: fill.strike || null,
+            option_type: fill.right === 'C' ? 'CALL' : fill.right === 'P' ? 'PUT' : null
           };
           
-          console.log('Inserting trade:', tradeData);
-          
-          const { data: insertData, error: insertError } = await supabase
+          // Check for existing row
+          const { data: existing } = await supabase
             .from('trades')
-            .insert(tradeData)
-            .select();
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('row_hash', tradeData.row_hash)
+            .single();
           
-          if (insertError) {
-            console.error('Error inserting trade:', insertError);
-            errorCount++;
+          if (existing && requestData.options?.skipDuplicates) {
+            skippedCount++;
           } else {
-            console.log('Trade inserted successfully:', insertData);
+            if (existing) {
+              const { error: updateError } = await supabase
+                .from('trades')
+                .update(tradeData)
+                .eq('id', existing.id);
+              
+              if (updateError) {
+                throw new Error(`Update failed: ${updateError.message}`);
+              }
+            } else {
+              const { error: insertError } = await supabase
+                .from('trades')
+                .insert(tradeData)
+                .select();
+              
+              if (insertError) {
+                console.error(`[Import] Insert error for trade ${tradeData.symbol}:`, insertError);
+                throw new Error(`Insert failed: ${insertError.message}`);
+              }
+            }
             insertedCount++;
+            
+            if (insertedCount % 50 === 0) {
+              console.log(`[Import] Progress: ${insertedCount} trades inserted so far...`);
+            }
           }
-        } else {
-          const skipReason = !symbol ? 'no symbol' : 
-                           !side ? 'no side' : 
-                           quantity <= 0 ? 'invalid quantity' : 
-                           price <= 0 ? 'invalid price' : 
-                           !isFilled ? 'not filled' : 'unknown';
-          console.log(`Skipped row ${i}: ${skipReason} - symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}, status=${status}`);
-          skippedCount++;
+        } catch (error) {
+          errorCount++;
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          errorMessages.push(`Fill ${i + 1}: ${errorMsg}`);
+          console.error(`[Import] Error processing fill ${i + 1}:`, errorMsg);
         }
-      } catch (error) {
-        console.error('Error processing row:', error);
-        errorCount++;
       }
     }
     
@@ -222,7 +301,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Import completed successfully');
     console.log('Final stats:', {
-      totalRows: lines.length - 1,
+      totalRows: fills.length,
       inserted: insertedCount,
       skipped: skippedCount,
       errors: errorCount
@@ -233,7 +312,7 @@ export async function POST(request: NextRequest) {
       importRunId: importRun.id,
       message: 'CSV import completed successfully',
       stats: {
-        totalRows: lines.length - 1,
+        totalRows: fills.length,
         inserted: insertedCount,
         skipped: skippedCount,
         errors: errorCount
