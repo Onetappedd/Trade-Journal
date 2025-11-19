@@ -46,38 +46,38 @@ export default function TradeList({ limit, showHeader = true }: TradeListProps) 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTrades();
-  }, []);
+    const fetchTrades = async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-  const fetchTrades = async () => {
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        if (!user) return;
 
-      if (!user) return;
+        let query = supabase
+          .from('trades')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
-      let query = supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        if (limit) {
+          query = query.limit(limit);
+        }
 
-      if (limit) {
-        query = query.limit(limit);
+        const { data, error } = await query;
+
+        if (error) throw error;
+        setTrades(data || []);
+      } catch (error) {
+        console.error('Error fetching trades:', error);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setTrades(data || []);
-    } catch (error) {
-      console.error('Error fetching trades:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchTrades();
+  }, [limit]);
 
   const calculatePnL = (trade: Trade) => {
     if (!trade.avg_close_price) return null;

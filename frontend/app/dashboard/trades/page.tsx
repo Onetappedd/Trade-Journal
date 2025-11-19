@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,11 +65,7 @@ export default function TradesPage() {
     limit: 100,
   });
 
-  useEffect(() => {
-    fetchTrades();
-  }, [q.symbol, q.asset, q.from, q.to, q.page]);
-
-  async function fetchTrades() {
+  const fetchTrades = useCallback(async () => {
     if (!session) return;
     
     setLoading(true);
@@ -109,7 +105,11 @@ export default function TradesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [session, q]);
+
+  useEffect(() => {
+    fetchTrades();
+  }, [fetchTrades]);
 
   const formatCurrency = (amount: number | null) => {
     if (amount === null || amount === undefined) return '-';
