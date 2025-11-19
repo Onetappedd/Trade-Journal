@@ -212,6 +212,23 @@ export async function POST(request: NextRequest) {
       
       for (const fill of chunk) {
         try {
+          // Convert side to lowercase (database constraint requires 'buy' or 'sell')
+          const sideLower = (fill.side || (fill.quantity >= 0 ? 'BUY' : 'SELL')).toLowerCase();
+          const normalizedSide = sideLower === 'buy' ? 'buy' : sideLower === 'sell' ? 'sell' : 'buy';
+          
+          // Convert asset_type to lowercase (database constraint requires 'equity', 'option', or 'futures')
+          let assetType = 'equity'; // default
+          if (fill.assetClass === 'options') {
+            assetType = 'option';
+          } else if (fill.assetClass === 'futures') {
+            assetType = 'futures';
+          } else if (fill.assetClass === 'crypto') {
+            assetType = 'equity'; // crypto not in constraint, treat as equity
+          }
+          
+          // Convert execTime (ISO timestamp) to DATE for entry_date
+          const entryDate = fill.execTime ? fill.execTime.split('T')[0] : null;
+          
           // Convert NormalizedFill to trade data
           const tradeData = {
             user_id: user.id,
@@ -220,15 +237,15 @@ export async function POST(request: NextRequest) {
             broker_trade_id: fill.tradeIdExternal || fill.orderId,
             import_run_id: importRun.id,
             symbol: fill.symbol,
-            side: fill.side || (fill.quantity >= 0 ? 'BUY' : 'SELL'),
+            side: normalizedSide,
             quantity: Math.abs(fill.quantity),
             entry_price: fill.price,
             exit_price: null,
-            entry_date: fill.execTime,
+            entry_date: entryDate,
             exit_date: null,
             status: 'closed',
             notes: fill.notes || null,
-            asset_type: fill.assetClass === 'options' ? 'OPTION' : fill.assetClass === 'crypto' ? 'CRYPTO' : 'EQUITY',
+            asset_type: assetType,
             underlying_symbol: fill.underlying || null,
             option_expiration: fill.expiry || null,
             option_strike: fill.strike || null,
