@@ -4,15 +4,7 @@ import { z } from 'zod';
 import { createHash } from 'crypto';
 import { parse } from 'csv-parse/sync';
 import { revalidateTag } from 'next/cache';
-import { detectAdapter, parseCsvSample } from '@/lib/import/parsing/engine';
-import { registerAdapter, robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
-
-// Register all adapters
-registerAdapter(robinhoodAdapter);
-registerAdapter(webullAdapter);
-registerAdapter(ibkrAdapter);
-registerAdapter(schwabAdapter);
-registerAdapter(fidelityAdapter);
+import { detectAdapter, parseCsvSample, robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
 
 // File size limits
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
