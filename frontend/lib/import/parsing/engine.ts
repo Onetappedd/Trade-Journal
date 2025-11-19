@@ -690,17 +690,27 @@ function robinhoodDetect({
   ];
   
   // Clean headers: remove quotes and trim
-  const headerLower = headers.map(h => h.replace(/^["']|["']$/g, '').toLowerCase().trim());
+  const headerLower = headers.map(h => String(h || '').replace(/^["']|["']$/g, '').toLowerCase().trim());
   const requiredLower = requiredHeaders.map(h => h.toLowerCase().trim());
+  
+  // Debug: log headers for troubleshooting
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Robinhood detection - Headers received:', headers);
+    console.log('Robinhood detection - Headers cleaned:', headerLower);
+  }
   
   // Check if all required headers are present (case-insensitive)
   // Match exact or contains (for variations like "ActivityDate" vs "Activity Date")
   const hasAllRequired = requiredLower.every(req => {
     const reqNoSpace = req.replace(/\s+/g, '');
-    return headerLower.some(h => {
+    const found = headerLower.some(h => {
       const hNoSpace = h.replace(/\s+/g, '');
       return h === req || hNoSpace === reqNoSpace || h.includes(req) || h.includes(reqNoSpace);
     });
+    if (!found && process.env.NODE_ENV === 'development') {
+      console.log(`Robinhood detection - Missing header: "${req}"`);
+    }
+    return found;
   });
   
   if (!hasAllRequired) {
