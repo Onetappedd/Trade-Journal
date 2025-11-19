@@ -288,11 +288,17 @@ async function processCSVAsync(
         const adapter = adapters.find(a => a.id === detection!.brokerId);
         
         if (adapter) {
+          // Detect delimiter (tab or comma)
+          const firstLine = csvContent.split('\n')[0] || '';
+          const hasTabs = firstLine.includes('\t');
+          const delimiter = hasTabs ? '\t' : ',';
+          
           // Parse full CSV
           const records = parse(csvContent, {
             columns: true,
             skip_empty_lines: true,
-            trim: true
+            trim: true,
+            delimiter: delimiter
           });
 
           if (records.length > MAX_ROWS) {
@@ -321,10 +327,16 @@ async function processCSVAsync(
 
     // If no fills from adapter, fall back to simple parsing
     if (fills.length === 0) {
+      // Detect delimiter for fallback parse
+      const firstLine = csvContent.split('\n')[0] || '';
+      const hasTabs = firstLine.includes('\t');
+      const delimiter = hasTabs ? '\t' : ',';
+      
       const records = parse(csvContent, {
         columns: true,
         skip_empty_lines: true,
-        trim: true
+        trim: true,
+        delimiter: delimiter
       });
 
       if (records.length > MAX_ROWS) {

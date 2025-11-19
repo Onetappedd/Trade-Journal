@@ -52,12 +52,20 @@ export async function POST(request: NextRequest) {
     let parseErrors: Array<{ row: number; message: string }> = [];
     
     try {
+      // Detect delimiter (tab or comma)
+      const firstLine = csvContent.split('\n')[0] || '';
+      const hasTabs = firstLine.includes('\t');
+      const delimiter = hasTabs ? '\t' : ',';
+      
+      console.log('Detected delimiter:', delimiter === '\t' ? 'TAB' : 'COMMA');
+      
       // Parse CSV directly from string content (more reliable in server context)
       // Use csv-parse to get headers and sample rows
       const records = parse(csvContent, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
+        delimiter: delimiter,
         to_line: 201 // Get first 200 rows + header
       });
       
@@ -65,6 +73,8 @@ export async function POST(request: NextRequest) {
       const rawHeaders = records.length > 0 ? Object.keys(records[0] as Record<string, any>) : [];
       const headers = rawHeaders.map(h => String(h || '').replace(/^["']|["']$/g, '').trim());
       const sampleRows = records.slice(0, 200) as any[];
+      
+      console.log('Parsed headers after cleaning:', headers);
       
       console.log('Parsed headers:', headers);
       console.log('Sample rows count:', sampleRows.length);
@@ -83,11 +93,17 @@ export async function POST(request: NextRequest) {
         const adapter = adapters.find(a => a.id === detection!.brokerId);
         
         if (adapter) {
+          // Detect delimiter for full parse
+          const firstLine = csvContent.split('\n')[0] || '';
+          const hasTabs = firstLine.includes('\t');
+          const delimiter = hasTabs ? '\t' : ',';
+          
           // Parse full CSV
           const records = parse(csvContent, {
             columns: true,
             skip_empty_lines: true,
-            trim: true
+            trim: true,
+            delimiter: delimiter
           });
 
           // Parse using adapter
