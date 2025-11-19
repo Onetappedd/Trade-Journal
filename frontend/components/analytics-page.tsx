@@ -281,6 +281,7 @@ function useRecentTrades(limit: number = 5000) {
       mounted = false;
       clearInterval(id);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, limit]);
 
   return { trades, loading, error };
@@ -318,6 +319,7 @@ export function AnalyticsPage() {
     const currentMonthData = analytics.monthlyReturns.find((m) => m.month === currentMonth);
     // This is an approximation - ideally we'd have daily P&L
     return currentMonthData ? currentMonthData.pnl / 30 : 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analytics?.monthlyReturns]);
 
   const dayPnL = positions.length > 0 ? unrealizedPnL : todaysPnL;

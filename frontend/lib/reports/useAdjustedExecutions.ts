@@ -156,7 +156,7 @@ export function useAdjustedExecutions(
         symbolsWithAdjustments: Array.from(symbolsWithAdjustments)
       }
     };
-  }, [executions, asOfDate, enableAdjustments, adjustmentDirection]);
+  }, [executions, enableAdjustments, adjustmentDirection]);
 }
 
 /**

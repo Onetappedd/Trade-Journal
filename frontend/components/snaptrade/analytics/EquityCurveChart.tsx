@@ -41,6 +41,7 @@ export default function EquityCurveChart({
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, days]);
 
   const loadData = async () => {

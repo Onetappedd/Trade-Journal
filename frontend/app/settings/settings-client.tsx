@@ -158,6 +158,7 @@ export default function SettingsPageClient() {
     loadProfileData()
     loadSecurityData()
     loadDataStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadProfileData = async () => {

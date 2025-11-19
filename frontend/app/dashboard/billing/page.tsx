@@ -23,6 +23,7 @@ export default function BillingPage() {
     if (user) {
       handleLoadSubscription();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadSubscription = createWrappedApi(

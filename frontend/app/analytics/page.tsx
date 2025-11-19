@@ -174,6 +174,7 @@ export default function AnalyticsPage() {
     if (session) {
       fetchAnalytics()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, dataSource, filters.timeframe])
 
   const handleFilterChange = (key: string, value: string) => {

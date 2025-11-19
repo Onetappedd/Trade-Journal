@@ -27,7 +27,6 @@ export async function invokeEdge(path: string, body: unknown) {
       data = res.data;
     }
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
       console.log(`[invokeEdge]`, path, 'status:', status, 'duration:', Date.now() - start, 'ms');
     }
     if (status >= 400)
@@ -35,7 +34,6 @@ export async function invokeEdge(path: string, body: unknown) {
     return data;
   } catch (err: any) {
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
       console.warn(`[invokeEdge]`, path, 'status:', status, 'error:', err);
     }
     throw Object.assign(new Error(err?.message || 'Edge function error'), { status });

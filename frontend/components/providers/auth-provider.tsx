@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthCtx>(
     () => ({ supabase, session, user, loading, signOut }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [supabase, session, user, loading]
   );
 

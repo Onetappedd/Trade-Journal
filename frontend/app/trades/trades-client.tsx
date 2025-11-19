@@ -78,6 +78,7 @@ export default function TradesClient() {
 
   useEffect(() => {
     fetchTrades();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

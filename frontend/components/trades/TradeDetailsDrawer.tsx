@@ -132,6 +132,7 @@ export function TradeRowDetailsDrawer({ trade, onClose }: { trade: TradeRow | nu
         {TABS.map(t => (
           <button
             key={t}
+            role="tab"
             className={`px-4 py-2 font-medium aria-[selected=true]:border-b-2 aria-[selected=true]:border-primary focus:outline-none focus:ring-2 focus:ring-ring ${tab === t ? 'border-b-2 border-primary bg-background' : ''}`}
             aria-selected={tab===t}
             tabIndex={0}

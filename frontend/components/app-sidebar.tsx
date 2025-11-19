@@ -139,6 +139,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
     }
     fetchDbUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   return (

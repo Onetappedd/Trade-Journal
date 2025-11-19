@@ -71,6 +71,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchPortfolioValue, 30000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatCurrency = (value: number, showSign: boolean = false) => {

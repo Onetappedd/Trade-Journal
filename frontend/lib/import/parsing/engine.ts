@@ -1215,10 +1215,12 @@ export async function detectAndParseFromCsv(file: File, assetHint?: DetectionRes
   return { detection, headers, sampleRows };
 }
 
-export default {
+const parsingEngine = {
   registerAdapter,
   getAdapters,
   detectAdapter,
   parseCsvSample,
   detectAndParseFromCsv,
 };
+
+export default parsingEngine;

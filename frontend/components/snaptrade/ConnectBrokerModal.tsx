@@ -49,6 +49,7 @@ export default function ConnectBrokerModal({
     if (isOpen && !redirectURI) {
       generateLoginLink();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   useEffect(() => {
@@ -77,6 +78,7 @@ export default function ConnectBrokerModal({
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onSuccess, onError]);
 
   const generateLoginLink = async () => {

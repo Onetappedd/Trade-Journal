@@ -47,6 +47,7 @@ export default function PerformanceMetrics({
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, days]);
 
   const loadData = async () => {

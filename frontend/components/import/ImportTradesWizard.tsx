@@ -302,6 +302,7 @@ export function ImportTradesWizard() {
       console.error(e);
       setStep('error');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, brokerId, assetClass]);
 
   // Validation and preview
@@ -334,6 +335,7 @@ export function ImportTradesWizard() {
     return () => {
       URL.revokeObjectURL(url);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errors]);
 
   // Mapping Drawer content

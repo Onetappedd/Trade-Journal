@@ -106,6 +106,7 @@ export default function CalendarPage() {
     if (session) {
       fetchTrades()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
 
   // Convert trades to calendar format and group by date

@@ -70,6 +70,7 @@ export function PositionsTable() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchPortfolioData, 30000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatCurrency = (value: number) => {

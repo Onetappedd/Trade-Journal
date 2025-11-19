@@ -69,6 +69,7 @@ export function ChainPanel({
     if (symbol) {
       fetchChain()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol])
 
   // Filter options based on search

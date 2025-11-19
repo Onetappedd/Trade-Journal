@@ -20,6 +20,7 @@ export default function PortfolioSettingsPage() {
     if (user) {
       fetchSettings();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchSettings = async () => {

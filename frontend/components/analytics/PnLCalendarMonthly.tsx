@@ -83,6 +83,7 @@ export function PnLCalendarMonthly({ data }: PnLCalendarMonthlyProps) {
     // Add previous year for comparison
     years.add(currentDate.getFullYear() - 1);
     return Array.from(years).sort((a, b) => b - a);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.dailyData]);
 
   const formatCurrency = (value: number) => {

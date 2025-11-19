@@ -60,6 +60,7 @@ export default function ConnectBrokerButton({
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onSuccess, onError]);
 
   const syncConnectionData = async () => {

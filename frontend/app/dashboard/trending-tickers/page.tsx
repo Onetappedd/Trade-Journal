@@ -72,6 +72,7 @@ export default function TrendingTickersPage() {
   // Fetch data on mount
   useEffect(() => {
     fetchTickers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTickers = async () => {

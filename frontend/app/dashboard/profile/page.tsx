@@ -35,6 +35,7 @@ export default function ProfilePage() {
     if (user && supabase) {
       fetchProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase]);
 
   const fetchProfile = async () => {

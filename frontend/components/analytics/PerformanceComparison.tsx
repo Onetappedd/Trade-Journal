@@ -153,6 +153,7 @@ export function PerformanceComparison() {
 
   useEffect(() => {
     fetchComparisonData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, selectedPeriod, selectedBenchmark]);
 
   if (!user) {

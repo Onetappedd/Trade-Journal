@@ -4,6 +4,7 @@
   "rules": {
     "no-irregular-whitespace": "error",
     "react/no-unescaped-entities": "off",
-    "no-restricted-imports": "off"
+    "no-restricted-imports": "off",
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
   }
 }
