@@ -230,18 +230,16 @@ function AppHeader() {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50 pointer-events-auto"
+            <button 
               type="button"
+              className="h-9 w-9 p-0 relative text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-md flex items-center justify-center"
             >
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
                 3
               </span>
               <span className="sr-only">Notifications</span>
-            </Button>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 bg-slate-900 border-slate-800 z-[100]">
             <div className="p-3 border-b border-slate-800">
@@ -282,11 +280,14 @@ function AppHeader() {
         {/* Theme Toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-300 hover:text-white hover:bg-slate-800/50 pointer-events-auto" type="button">
+            <button 
+              type="button"
+              className="h-9 w-9 p-0 text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-md flex items-center justify-center relative"
+            >
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
-            </Button>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[140px] bg-slate-900 border-slate-800 z-[100]">
             <DropdownMenuItem 
@@ -334,14 +335,17 @@ function AppHeader() {
         {/* User Avatar */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 pointer-events-auto" type="button">
+            <button 
+              type="button"
+              className="relative h-9 w-9 rounded-full p-0 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-950"
+            >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.user_metadata?.avatar_url} alt="User" />
                 <AvatarFallback className="bg-emerald-600 text-white font-medium text-sm">
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
-            </Button>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 z-[100]" align="end">
             {/* User Info Header */}
