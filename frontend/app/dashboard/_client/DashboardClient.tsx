@@ -10,8 +10,14 @@ import { DashboardData, Trade, Position, Timeframe, CATEGORY_COLORS, fmtUSD, wit
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RPieChart, Pie, Cell } from 'recharts'
 
 // ------------ Helpers ------------
-const fmtPct0 = (n: number) => `${(n * 100).toFixed(0)}%`
-const fmtPct1 = (n: number) => `${(n * 100).toFixed(1)}%`
+const fmtPct0 = (n: number | null | undefined) => {
+  if (n === null || n === undefined || isNaN(n)) return '0%'
+  return `${(n * 100).toFixed(0)}%`
+}
+const fmtPct1 = (n: number | null | undefined) => {
+  if (n === null || n === undefined || isNaN(n)) return '0.0%'
+  return `${(n * 100).toFixed(1)}%`
+}
 
 const startOfWeek = () => {
   const d = new Date()
@@ -39,7 +45,8 @@ function mergeDailySeries(trades: Trade[]) {
   for (const t of trades) {
     const when = new Date(t.closedAt ?? t.openedAt ?? Date.now())
     const key = when.toISOString().slice(0, 10)
-    map.set(key, (map.get(key) ?? 0) + (t.pnl ?? 0))
+    const pnl = (t.pnl !== null && t.pnl !== undefined && !isNaN(t.pnl)) ? t.pnl : 0
+    map.set(key, (map.get(key) ?? 0) + pnl)
   }
   const sorted = [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
   let cum = 0
@@ -123,11 +130,13 @@ export default function DashboardClient({
       // Optional: merge provided series by date key
       const map = new Map<string, { dateLabel: string; daily?: number; cum?: number }>()
       for (const d of dashboardData.dailyPnlSeries) {
-        map.set(d.t, { dateLabel: d.t, daily: d.pnl })
+        const pnl = (d.pnl !== null && d.pnl !== undefined && !isNaN(d.pnl)) ? d.pnl : 0
+        map.set(d.t, { dateLabel: d.t, daily: pnl })
       }
       for (const c of dashboardData.cumPnlSeries) {
         const prev = map.get(c.t) ?? { dateLabel: c.t }
-        map.set(c.t, { ...prev, cum: c.pnl })
+        const pnl = (c.pnl !== null && c.pnl !== undefined && !isNaN(c.pnl)) ? c.pnl : 0
+        map.set(c.t, { ...prev, cum: pnl })
       }
       return [...map.values()].sort((a, b) => a.dateLabel.localeCompare(b.dateLabel))
     }
@@ -137,7 +146,8 @@ export default function DashboardClient({
   const allocation = useMemo(() => {
     const pos = dashboardData?.positions ?? []
     const byCat = pos.reduce((acc, p) => {
-      acc[p.category] = (acc[p.category] ?? 0) + p.value
+      const val = (p.value !== null && p.value !== undefined && !isNaN(p.value)) ? p.value : 0
+      acc[p.category] = (acc[p.category] ?? 0) + val
       return acc
     }, {} as Record<string, number>)
     const total = Object.values(byCat).reduce((a, b) => a + b, 0)
