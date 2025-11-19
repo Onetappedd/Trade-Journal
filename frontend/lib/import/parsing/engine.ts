@@ -219,7 +219,9 @@ export async function parseCsvSample(
       complete: (res) => {
         const headers = (res.meta?.fields || []) as string[];
         const rows = (res.data || []) as any[];
-        resolve({ headers, sampleRows: rows });
+        // Clean headers: remove any quotes that might have been preserved
+        const cleanedHeaders = headers.map(h => String(h || '').replace(/^["']|["']$/g, '').trim());
+        resolve({ headers: cleanedHeaders, sampleRows: rows });
       },
       error: (err) => reject(err),
     });
