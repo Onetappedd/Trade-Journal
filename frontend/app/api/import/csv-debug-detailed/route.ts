@@ -52,12 +52,19 @@ export async function POST(request: NextRequest) {
     let parseErrors: Array<{ row: number; message: string }> = [];
     
     try {
-      // Create a File-like object for parseCsvSample
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const fileForDetection = new File([blob], file.name, { type: 'text/csv' });
+      // Parse CSV directly from string content (more reliable in server context)
+      // Use csv-parse to get headers and sample rows
+      const records = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        to_line: 201 // Get first 200 rows + header
+      });
       
-      // Detect broker format
-      const { headers, sampleRows } = await parseCsvSample(fileForDetection, 200);
+      // Extract headers from first record keys
+      const headers = records.length > 0 ? Object.keys(records[0]) : [];
+      const sampleRows = records.slice(0, 200);
+      
       console.log('Parsed headers:', headers);
       console.log('Sample rows count:', sampleRows.length);
       if (sampleRows.length > 0) {
