@@ -2,15 +2,10 @@
 
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 
-// Dynamic import for react-window to handle module resolution issues
-let FixedSizeList: any = null;
-try {
-  const ReactWindow = require('react-window');
-  FixedSizeList = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
-} catch (e) {
-  // Fallback if react-window is not available
-  console.warn('react-window not available, using fallback rendering');
-}
+// Import react-window with type assertion to handle module resolution
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ReactWindow = require('react-window') as any;
+const FixedSizeList = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
