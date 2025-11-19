@@ -58,10 +58,17 @@ export async function POST(request: NextRequest) {
       
       // Detect broker format
       const { headers, sampleRows } = await parseCsvSample(fileForDetection, 200);
+      console.log('Parsed headers:', headers);
+      console.log('Sample rows count:', sampleRows.length);
+      if (sampleRows.length > 0) {
+        console.log('First sample row:', sampleRows[0]);
+      }
+      
       detection = detectAdapter(headers, sampleRows);
       
       if (detection) {
         console.log(`Detected broker: ${detection.brokerId} with confidence ${detection.confidence}`);
+        console.log('Header map:', detection.headerMap);
         
         // Get the adapter
         const adapters = [robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter];

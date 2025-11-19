@@ -689,13 +689,19 @@ function robinhoodDetect({
     'Amount',
   ];
   
-  const headerLower = headers.map(h => h.toLowerCase().trim());
+  // Clean headers: remove quotes and trim
+  const headerLower = headers.map(h => h.replace(/^["']|["']$/g, '').toLowerCase().trim());
   const requiredLower = requiredHeaders.map(h => h.toLowerCase().trim());
   
   // Check if all required headers are present (case-insensitive)
-  const hasAllRequired = requiredLower.every(req => 
-    headerLower.some(h => h === req || h.includes(req.replace(' ', '')))
-  );
+  // Match exact or contains (for variations like "ActivityDate" vs "Activity Date")
+  const hasAllRequired = requiredLower.every(req => {
+    const reqNoSpace = req.replace(/\s+/g, '');
+    return headerLower.some(h => {
+      const hNoSpace = h.replace(/\s+/g, '');
+      return h === req || hNoSpace === reqNoSpace || h.includes(req) || h.includes(reqNoSpace);
+    });
+  });
   
   if (!hasAllRequired) {
     // Fallback to old format detection for backward compatibility
