@@ -422,22 +422,48 @@ async function processCSVAsync(
 
           if (existing && importRequest.options?.skipDuplicates) {
             skipped++;
+            console.log(`[Import] Skipping duplicate trade: ${tradeData.symbol} ${tradeData.side} ${tradeData.quantity} @ ${tradeData.entry_price}`);
           } else {
             if (existing) {
-              await supabase
+              const { error: updateError } = await supabase
                 .from('trades')
                 .update(tradeData)
                 .eq('id', existing.id);
+              
+              if (updateError) {
+                throw new Error(`Update failed: ${updateError.message}`);
+              }
             } else {
-              await supabase
+              const { error: insertError, data: insertData } = await supabase
                 .from('trades')
-                .insert(tradeData);
+                .insert(tradeData)
+                .select();
+              
+              if (insertError) {
+                console.error(`[Import] Insert error for trade ${tradeData.symbol}:`, insertError);
+                throw new Error(`Insert failed: ${insertError.message}`);
+              }
+              
+              if (!insertData || insertData.length === 0) {
+                console.warn(`[Import] Insert returned no data for trade ${tradeData.symbol}`);
+              }
             }
             inserted++;
+            
+            if (inserted % 50 === 0) {
+              console.log(`[Import] Progress: ${inserted} trades inserted so far...`);
+            }
           }
         } catch (error) {
           errors++;
-          errorMessages.push(`Row ${processedRows + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          errorMessages.push(`Row ${processedRows + 1}: ${errorMsg}`);
+          console.error(`[Import] Error processing row ${processedRows + 1}:`, errorMsg);
+          
+          // Log first few errors in detail
+          if (errors <= 5) {
+            console.error(`[Import] Detailed error for row ${processedRows + 1}:`, error);
+          }
         }
         
         processedRows++;
