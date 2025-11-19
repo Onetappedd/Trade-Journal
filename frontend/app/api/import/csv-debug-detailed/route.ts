@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { detectAdapter, parseCsvSample } from '@/lib/import/parsing/engine';
+import { robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
+import { parse } from 'csv-parse/sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,93 +42,113 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
     }
     
-    // Read and parse CSV
-    const csvText = await file.text();
-    const lines = csvText.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    // Read file content
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const csvContent = fileBuffer.toString('utf-8');
     
-    console.log('CSV parsed, lines:', lines.length);
-    console.log('Headers:', headers);
+    // Use parsing engine to detect and parse
+    let detection = null;
+    let fills: any[] = [];
+    let parseErrors: Array<{ row: number; message: string }> = [];
     
-    // Process first 5 rows to show detailed parsing
-    const parsingResults = [];
-    let validTrades = 0;
-    let skippedTrades = 0;
-    
-    for (let i = 1; i < Math.min(6, lines.length); i++) {
-      try {
-        const values = lines[i].split(',').map(v => v.trim());
-        const row: Record<string, string> = {};
+    try {
+      // Create a File-like object for parseCsvSample
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const fileForDetection = new File([blob], file.name, { type: 'text/csv' });
+      
+      // Detect broker format
+      const { headers, sampleRows } = await parseCsvSample(fileForDetection, 200);
+      detection = detectAdapter(headers, sampleRows);
+      
+      if (detection) {
+        console.log(`Detected broker: ${detection.brokerId} with confidence ${detection.confidence}`);
         
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
+        // Get the adapter
+        const adapters = [robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter];
+        const adapter = adapters.find(a => a.id === detection!.brokerId);
         
-        // Enhanced mapping for Webull
-        const symbol = row.symbol || '';
-        const side = (row.side || '').toLowerCase();
-        
-        // Handle Webull's "total qty" column
-        const quantityStr = row['total qty'] || '0';
-        const quantity = parseFloat(quantityStr);
-        
-        // Handle Webull's price format with @ symbol
-        const priceStr = row.price || '0';
-        const cleanPriceStr = priceStr.replace('@', '').trim();
-        const price = parseFloat(cleanPriceStr);
-        
-        // Handle Webull's date format
-        const dateStr = row['filled time'] || row['placed time'] || '';
-        const date = dateStr.split(' ')[0]; // Extract just the date part
-        
-        // Check if trade is filled
-        const status = row.status || '';
-        const isFilled = status.toLowerCase() === 'filled';
-        
-        const isValid = symbol && side && quantity > 0 && price > 0 && isFilled;
-        
-        if (isValid) {
-          validTrades++;
-        } else {
-          skippedTrades++;
+        if (adapter) {
+          // Parse full CSV
+          const records = parse(csvContent, {
+            columns: true,
+            skip_empty_lines: true,
+            trim: true
+          });
+
+          // Parse using adapter
+          const parseResult = adapter.parse({
+            rows: records,
+            headerMap: detection.headerMap,
+            userTimezone: 'UTC',
+            assetClass: detection.assetClass
+          });
+
+          fills = parseResult.fills;
+          parseErrors = parseResult.errors;
+
+          console.log(`Parsed ${fills.length} fills, ${parseErrors.length} errors`);
         }
-        
-        parsingResults.push({
-          row: i,
-          symbol,
-          side,
-          quantity,
-          price,
-          date,
-          status,
-          isFilled,
-          isValid,
-          rawData: row
-        });
-        
-        console.log(`Row ${i}: symbol=${symbol}, side=${side}, quantity=${quantity}, price=${price}, date=${date}, status=${status}, filled=${isFilled}, valid=${isValid}`);
-        
-      } catch (error) {
-        console.error(`Error processing row ${i}:`, error);
-        parsingResults.push({
-          row: i,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          rawData: {}
-        });
       }
+    } catch (detectionError) {
+      console.error('Detection/parsing error:', detectionError);
     }
+    
+    // Build response in expected format
+    const importableTradesPreview = fills.slice(0, 10).map((fill, idx) => ({
+      externalId: fill.tradeIdExternal || fill.orderId || `trade-${idx}`,
+      broker: fill.sourceBroker || 'unknown',
+      symbolRaw: fill.raw?.Instrument || fill.raw?.Symbol || fill.symbol || '',
+      symbol: fill.symbol || '',
+      assetType: fill.assetClass || 'stocks',
+      side: fill.side || 'BUY',
+      quantity: Math.abs(fill.quantity),
+      price: fill.price,
+      fees: fill.fees || 0,
+      commission: fill.fees || 0,
+      status: 'filled',
+      executedAt: fill.execTime,
+      meta: {
+        rowIndex: idx + 1,
+        source: 'csv'
+      }
+    }));
+    
+    const skippedRowsPreview = parseErrors.slice(0, 10).map(err => ({
+      rowIndex: err.row,
+      reason: err.message,
+      symbolRaw: '',
+      status: 'error',
+      filled: 'no',
+      price: '0'
+    }));
     
     return NextResponse.json({
       success: true,
-      debug: {
-        totalLines: lines.length,
-        headers: headers,
-        parsingResults: parsingResults,
-        summary: {
-          validTrades,
-          skippedTrades,
-          totalProcessed: parsingResults.length
+      profiling: {
+        totalRows: fills.length + parseErrors.length,
+        headerRows: 1,
+        parsedRows: fills.length + parseErrors.length,
+        filledRows: fills.length,
+        importedRows: fills.length,
+        skipped: {
+          cancelled: 0,
+          zeroQty: 0,
+          zeroPrice: 0,
+          badDate: 0,
+          parseError: parseErrors.length
         }
+      },
+      importableTradesPreview,
+      skippedRowsPreview,
+      message: `Found ${fills.length} importable trades from ${detection?.brokerId || 'unknown'} broker`,
+      debug: {
+        detection: detection ? {
+          brokerId: detection.brokerId,
+          confidence: detection.confidence,
+          assetClass: detection.assetClass
+        } : null,
+        totalFills: fills.length,
+        totalErrors: parseErrors.length
       }
     });
 
