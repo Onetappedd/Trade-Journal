@@ -111,6 +111,9 @@ export async function POST(request: NextRequest) {
           });
 
           // Parse using adapter
+          console.log(`[csv-debug-detailed] Parsing ${records.length} rows with adapter ${adapter.id}`);
+          console.log(`[csv-debug-detailed] Header map:`, detection.headerMap);
+          
           const parseResult = adapter.parse({
             rows: records,
             headerMap: detection.headerMap,
@@ -120,8 +123,8 @@ export async function POST(request: NextRequest) {
 
           fills = parseResult.fills;
           parseErrors = parseResult.errors;
-
-          console.log(`Parsed ${fills.length} fills, ${parseErrors.length} errors`);
+          
+          console.log(`[csv-debug-detailed] Parse result: ${fills.length} fills, ${parseErrors.length} errors`);
         }
       }
     } catch (detectionError) {
