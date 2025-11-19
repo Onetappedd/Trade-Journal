@@ -192,6 +192,10 @@ export default function LoginForm() {
         provider: 'google',
         options: {
           redirectTo,
+          queryParams: {
+            // This helps Google show your domain name in the consent screen
+            hd: 'riskr.net', // Hint to Google about the domain
+          },
         },
       });
       if (error) {

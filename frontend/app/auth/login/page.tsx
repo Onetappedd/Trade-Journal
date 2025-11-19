@@ -102,18 +102,35 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsSubmitting(true)
     try {
-      // TODO: Implement Google OAuth
-      toast({
-        title: "Google Login",
-        description: "Google authentication is coming soon!",
+      if (!supabase) {
+        throw new Error('Authentication service not available')
+      }
+      
+      const redirectTo = process.env.NEXT_PUBLIC_SITE_URL 
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+        : `${window.location.origin}/auth/callback`
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            // This helps Google show your domain name in the consent screen
+            hd: 'riskr.net', // Hint to Google about the domain
+          },
+        },
       })
+      
+      if (error) {
+        throw error
+      }
+      // On success, Supabase will redirect, so no need to set loading false here
     } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: "Google authentication failed. Please try again.",
+        description: error.message || "Google authentication failed. Please try again.",
         variant: "destructive"
       })
-    } finally {
       setIsSubmitting(false)
     }
   }
