@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseWithToken } from '@/lib/supabase/server';
 import { z } from 'zod';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { parse } from 'csv-parse/sync';
 import { revalidateTag } from 'next/cache';
 import { detectAdapter, parseCsvSample, robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
+import { matchUserTrades } from '@/lib/matching/engine';
 
 // File size limits
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -386,65 +387,53 @@ async function processCSVAsync(
       
       for (const fill of chunk) {
         try {
-          // Convert side to lowercase (database constraint requires 'buy' or 'sell')
-          const sideLower = (fill.side || (fill.quantity >= 0 ? 'BUY' : 'SELL')).toLowerCase();
-          const normalizedSide = sideLower === 'buy' ? 'buy' : sideLower === 'sell' ? 'sell' : 'buy';
-          
-          // Convert asset_type to lowercase (database constraint requires 'equity', 'option', or 'futures')
-          let assetType = 'equity'; // default
-          if (fill.assetClass === 'options') {
-            assetType = 'option';
-          } else if (fill.assetClass === 'futures') {
-            assetType = 'futures';
-          } else if (fill.assetClass === 'crypto') {
-            assetType = 'equity'; // crypto not in constraint, treat as equity
-          }
-          
-          // Convert execTime (ISO timestamp) to DATE for entry_date
-          const entryDate = fill.execTime ? fill.execTime.split('T')[0] : null;
-          
-          // Convert NormalizedFill to trade data
-          const tradeData = {
+          // Convert NormalizedFill to execution data for executions_normalized table
+          // This table holds raw executions which will be paired by the matching engine
+          const executionData = {
             user_id: userId,
-            row_hash: computeRowHashFromFill(fill, userId, detection?.brokerId || importRequest.broker || 'csv'),
-            broker: detection?.brokerId || importRequest.broker || 'csv',
-            broker_trade_id: fill.tradeIdExternal || fill.orderId,
-            import_run_id: importRunId,
+            source_import_run_id: importRunId,
+            broker_account_id: null, // Can be populated if we have broker account info
+            instrument_type: fill.assetClass === 'options' ? 'option' : 
+                             fill.assetClass === 'futures' ? 'futures' : 
+                             fill.assetClass === 'crypto' ? 'crypto' : 'equity',
             symbol: fill.symbol,
-            side: normalizedSide,
+            side: (fill.side || (fill.quantity >= 0 ? 'buy' : 'sell')).toLowerCase(),
             quantity: Math.abs(fill.quantity),
-            entry_price: fill.price,
-            exit_price: null,
-            entry_date: entryDate,
-            exit_date: null,
-            status: 'closed',
+            price: fill.price,
+            fees: fill.fees || 0,
+            currency: fill.currency || 'USD',
+            timestamp: fill.execTime || new Date().toISOString(),
+            venue: detection?.brokerId || importRequest.broker || 'csv',
+            order_id: fill.orderId || fill.tradeIdExternal || randomUUID(),
+            exec_id: fill.tradeIdExternal || randomUUID(),
+            multiplier: fill.assetClass === 'options' ? 100 : 1,
+            expiry: fill.expiry || null,
+            strike: fill.strike || null,
+            option_type: fill.right === 'C' || fill.right === 'CALL' ? 'C' : 
+                         fill.right === 'P' || fill.right === 'PUT' ? 'P' : null,
+            underlying: fill.underlying || null,
             notes: fill.notes || null,
-            asset_type: assetType,
-            underlying_symbol: fill.underlying || null,
-            option_expiration: fill.expiry || null,
-            option_strike: fill.strike || null,
-            option_type: fill.right === 'C' ? 'CALL' : fill.right === 'P' ? 'PUT' : null
+            unique_hash: computeRowHashFromFill(fill, userId, detection?.brokerId || importRequest.broker || 'csv')
           };
           
-          // Compute row hash for idempotency
-          const rowHash = tradeData.row_hash;
+          const rowHash = executionData.unique_hash;
           
-          // Check for existing row
+          // Check for existing execution using unique_hash
           const { data: existing } = await supabase
-            .from('trades')
+            .from('executions_normalized')
             .select('id')
             .eq('user_id', userId)
-            .eq('row_hash', rowHash)
-            .single();
+            .eq('unique_hash', rowHash)
+            .maybeSingle();
 
           if (existing && importRequest.options?.skipDuplicates) {
             skipped++;
-            console.log(`[Import] Skipping duplicate trade: ${tradeData.symbol} ${tradeData.side} ${tradeData.quantity} @ ${tradeData.entry_price}`);
+            console.log(`[Import] Skipping duplicate execution: ${executionData.symbol} ${executionData.side} ${executionData.quantity} @ ${executionData.price}`);
           } else {
             if (existing) {
               const { error: updateError } = await supabase
-                .from('trades')
-                .update(tradeData)
+                .from('executions_normalized')
+                .update(executionData)
                 .eq('id', existing.id);
               
               if (updateError) {
@@ -452,23 +441,19 @@ async function processCSVAsync(
               }
             } else {
               const { error: insertError, data: insertData } = await supabase
-                .from('trades')
-                .insert(tradeData)
+                .from('executions_normalized')
+                .insert(executionData)
                 .select();
               
               if (insertError) {
-                console.error(`[Import] Insert error for trade ${tradeData.symbol}:`, insertError);
+                console.error(`[Import] Insert error for execution ${executionData.symbol}:`, insertError);
                 throw new Error(`Insert failed: ${insertError.message}`);
-              }
-              
-              if (!insertData || insertData.length === 0) {
-                console.warn(`[Import] Insert returned no data for trade ${tradeData.symbol}`);
               }
             }
             inserted++;
             
             if (inserted % 50 === 0) {
-              console.log(`[Import] Progress: ${inserted} trades inserted so far...`);
+              console.log(`[Import] Progress: ${inserted} executions inserted so far...`);
             }
           }
         } catch (error) {
@@ -512,8 +497,20 @@ async function processCSVAsync(
       })
       .eq('id', importRunId);
 
-    // Enqueue matching jobs
-    await enqueueMatchingJobs(importRunId, userId, supabase);
+    // Run matching engine immediately to pair executions into trades
+    console.log('[Import] Running matching engine for import run:', importRunId);
+    try {
+      const matchResult = await matchUserTrades({
+        userId,
+        sinceImportRunId: importRunId,
+        supabase
+      });
+      console.log('[Import] Matching completed:', matchResult);
+    } catch (matchError) {
+      console.error('[Import] Matching engine failed:', matchError);
+      // We don't fail the import run if matching fails, but we log it
+      // User can retry matching from UI
+    }
 
     // Revalidate KPI cache after import completion
     revalidateTag('kpi');
