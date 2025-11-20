@@ -120,15 +120,35 @@ export async function POST(request: NextRequest) {
 
     const importRunId = runData.id;
 
-    // Start background processing
-    processCSVAsync(file, importRunId, user.id, importRequest, supabase);
-
-    return NextResponse.json({
-      success: true,
-      importRunId,
-      status: 'queued',
-      message: 'Import queued successfully'
-    });
+    // Process CSV synchronously to return stats immediately
+    // This provides better UX but may be slower for very large files
+    try {
+      const result = await processCSVAsync(file, importRunId, user.id, importRequest, supabase);
+      
+      return NextResponse.json({
+        success: true,
+        importRunId,
+        status: 'completed',
+        message: 'Import completed successfully',
+        stats: {
+          inserted: result.inserted,
+          skipped: result.skipped,
+          errors: result.errors,
+          totalRows: result.totalRows
+        }
+      });
+    } catch (processError: any) {
+      // Update import run status to failed
+      await supabase
+        .from('import_runs')
+        .update({
+          status: 'failed',
+          errors: [processError instanceof Error ? processError.message : 'Unknown error']
+        })
+        .eq('id', importRunId);
+      
+      throw processError; // Re-throw to be caught by outer catch
+    }
 
   } catch (error: any) {
     console.error('CSV import error:', error);
@@ -253,7 +273,7 @@ async function processCSVAsync(
   userId: string, 
   importRequest: z.infer<typeof ImportRequestSchema>,
   supabase: any
-) {
+): Promise<{ inserted: number; skipped: number; errors: number; totalRows: number }> {
   try {
     // Update status to processing
     await supabase
@@ -414,9 +434,12 @@ async function processCSVAsync(
             user_id: userId,
             source_import_run_id: importRunId,
             broker_account_id: null, // Can be populated if we have broker account info
+            // Map assetClass to database instrument_type
+            // Database only allows: 'equity', 'option', 'futures'
+            // Parsing engine uses: 'stocks', 'options', 'futures', 'crypto'
             instrument_type: fill.assetClass === 'options' ? 'option' : 
                              fill.assetClass === 'futures' ? 'futures' : 
-                             fill.assetClass === 'crypto' ? 'crypto' : 'equity',
+                             'equity', // 'stocks' and 'crypto' both map to 'equity'
             symbol: fill.symbol,
             side: (fill.side || (fill.quantity >= 0 ? 'buy' : 'sell')).toLowerCase(),
             quantity: Math.abs(fill.quantity),
@@ -536,6 +559,14 @@ async function processCSVAsync(
     // Revalidate KPI cache after import completion
     revalidateTag('kpi');
 
+    // Return stats for immediate response
+    return {
+      inserted,
+      skipped,
+      errors,
+      totalRows: fills.length
+    };
+
   } catch (error) {
     console.error('CSV processing error:', error);
     
@@ -546,6 +577,9 @@ async function processCSVAsync(
         errors: [error instanceof Error ? error.message : 'Unknown error']
       })
       .eq('id', importRunId);
+    
+    // Re-throw to be handled by caller
+    throw error;
   }
 }
 

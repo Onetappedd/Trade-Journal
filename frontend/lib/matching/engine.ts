@@ -153,9 +153,10 @@ export async function matchUserTrades({
     }
 
     // Split executions by instrument type
-    const equityExecutions = executions.filter(e => e.instrument_type === 'stock' || e.instrument_type === 'equity');
+    // Note: Database schema only allows 'equity', 'option', 'futures' (not 'stock' or 'future')
+    const equityExecutions = executions.filter(e => e.instrument_type === 'equity');
     const optionExecutions = executions.filter(e => e.instrument_type === 'option');
-    const futureExecutions = executions.filter(e => e.instrument_type === 'future' || e.instrument_type === 'futures');
+    const futureExecutions = executions.filter(e => e.instrument_type === 'futures');
 
     console.log(`Split executions: ${equityExecutions.length} equity, ${optionExecutions.length} options, ${futureExecutions.length} futures`);
 
