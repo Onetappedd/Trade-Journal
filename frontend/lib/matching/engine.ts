@@ -719,13 +719,52 @@ async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void
   
   console.log('Upserting trade:', tradeData);
   
+  // Use upsert with group_key as the conflict resolution key
+  // If group_key doesn't exist as a unique constraint, we'll need to check manually
   const { error } = await supabase
     .from('trades')
-    .insert(tradeData);
+    .upsert(tradeData, { 
+      onConflict: 'group_key',
+      ignoreDuplicates: false 
+    });
     
   if (error) {
-    console.error('Error upserting trade:', error);
-    console.error('Trade data:', tradeData);
-    throw error;
+    // If upsert fails due to no conflict target, try insert with manual check
+    if (error.code === 'PGRST116' || error.message?.includes('conflict')) {
+      // Check if trade exists by group_key
+      const { data: existing } = await supabase
+        .from('trades')
+        .select('id')
+        .eq('user_id', trade.user_id)
+        .eq('group_key', trade.group_key)
+        .maybeSingle();
+      
+      if (existing) {
+        // Update existing
+        const { error: updateError } = await supabase
+          .from('trades')
+          .update(tradeData)
+          .eq('id', existing.id);
+        
+        if (updateError) {
+          console.error('Error updating trade:', updateError);
+          throw updateError;
+        }
+      } else {
+        // Insert new
+        const { error: insertError } = await supabase
+          .from('trades')
+          .insert(tradeData);
+        
+        if (insertError) {
+          console.error('Error inserting trade:', insertError);
+          throw insertError;
+        }
+      }
+    } else {
+      console.error('Error upserting trade:', error);
+      console.error('Trade data:', tradeData);
+      throw error;
+    }
   }
 }

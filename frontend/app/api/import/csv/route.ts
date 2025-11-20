@@ -272,14 +272,35 @@ async function processCSVAsync(
     let parseWarnings: string[] = [];
 
     try {
-      // Create a File-like object for parseCsvSample (it needs a File object)
-      // In Node.js, we can create a Blob and convert it to File
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const fileForDetection = new File([blob], file.name, { type: 'text/csv' });
+      // Detect delimiter first
+      const firstLine = csvContent.split('\n')[0] || '';
+      const hasTabs = firstLine.includes('\t');
+      const delimiter = hasTabs ? '\t' : ',';
+      
+      // Parse a sample of the CSV to get headers and sample rows for detection
+      const sampleRecords = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        delimiter: delimiter,
+        relax_column_count: true,
+        relax_quotes: true,
+        to_line: 201 // Get first 200 rows + header
+      });
+      
+      // Extract headers from the first record's keys
+      const headers = sampleRecords.length > 0 
+        ? Object.keys(sampleRecords[0] as Record<string, any>)
+        : [];
+      
+      // Clean headers: remove quotes
+      const cleanedHeaders = headers.map(h => String(h || '').replace(/^["']|["']$/g, '').trim());
+      
+      // Get sample rows (first 200)
+      const sampleRows = sampleRecords.slice(0, 200);
       
       // Use parsing engine to detect
-      const { headers, sampleRows } = await parseCsvSample(fileForDetection, 200);
-      detection = detectAdapter(headers, sampleRows);
+      detection = detectAdapter(cleanedHeaders, sampleRows);
       
       if (detection) {
         console.log(`Detected broker: ${detection.brokerId} with confidence ${detection.confidence}`);
