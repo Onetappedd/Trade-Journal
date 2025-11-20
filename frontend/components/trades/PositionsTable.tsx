@@ -38,8 +38,8 @@ export function PositionsTable({ positions }: PositionsTableProps) {
   };
 
   const getPositionDescription = (position: TradeGroup) => {
-    if (position.asset_type === 'option') {
-      return `${position.underlying || position.symbol} ${position.strike_price} ${position.option_type?.toUpperCase()} ${position.expiration_date}`;
+    if (position.asset_type === 'option' && (position.strike_price || position.expiration_date)) {
+      return `${position.underlying || position.symbol} ${position.strike_price || ''} ${position.option_type?.toUpperCase() || ''} ${position.expiration_date || ''}`;
     }
     return position.symbol;
   };

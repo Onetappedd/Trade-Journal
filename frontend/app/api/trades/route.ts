@@ -82,10 +82,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get trades data (temporarily bypassing cache to debug)
-    console.log('Calling getTrades...');
+    // Get trades data
     const tradesData = await getTrades(user.id, params, supabase);
-    console.log('getTrades returned:', tradesData ? 'data' : 'null');
 
     return NextResponse.json(createApiSuccess(tradesData));
 
