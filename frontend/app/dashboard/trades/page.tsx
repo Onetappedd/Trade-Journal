@@ -96,9 +96,10 @@ export default function TradesPage() {
         throw new Error(err?.message || 'Failed to load trades');
       }
 
-      const data: TradesResponse = await res.json();
-      setRows(data.items);
-      setTotal(data.total ?? data.items.length);
+      const json = await res.json();
+      const data = json.data || json; // Handle wrapped response
+      setRows(data.items || []);
+      setTotal(data.total ?? data.items?.length ?? 0);
     } catch (err: any) {
       setError(err.message);
       toast.error('Failed to load trades', { description: err.message });
