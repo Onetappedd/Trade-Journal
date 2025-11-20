@@ -3,6 +3,8 @@ import { createSupabaseWithToken } from '@/lib/supabase/server';
 import { createApiError, createApiSuccess, ERROR_CODES } from '@/src/types/api';
 import { unstable_cache } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+
 interface TradesQueryParams {
   page?: number;
   limit?: number;
@@ -164,14 +166,20 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     query = query.eq('asset_type', asset_type);
   }
   
+  // Note: Supabase doesn't support OR across different columns easily
+  // We'll filter by entry_date first (for imported trades), then fallback to opened_at
+  // For date_from, we want trades where ANY of these dates >= date_from
+  // For date_to, we want trades where ANY of these dates <= date_to
+  // Since we can't do OR easily, we'll just filter by entry_date (most common for imports)
+  // and opened_at as fallback
   if (date_from) {
-    // Check both opened_at and entry_date
-    query = query.or(`opened_at.gte.${date_from},entry_date.gte.${date_from},executed_at.gte.${date_from}`);
+    // Use entry_date first (for imported trades), then opened_at as fallback
+    query = query.or(`entry_date.gte.${date_from},executed_at.gte.${date_from},opened_at.gte.${date_from}`);
   }
   
   if (date_to) {
-    // Check both opened_at and entry_date
-    query = query.or(`opened_at.lte.${date_to},entry_date.lte.${date_to},executed_at.lte.${date_to}`);
+    // Use entry_date first (for imported trades), then opened_at as fallback
+    query = query.or(`entry_date.lte.${date_to},executed_at.lte.${date_to},opened_at.lte.${date_to}`);
   }
 
   // Apply sorting
