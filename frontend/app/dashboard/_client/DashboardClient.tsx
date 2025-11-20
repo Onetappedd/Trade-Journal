@@ -358,8 +358,8 @@ export default function DashboardClient({
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-white font-medium">{fmtUSD(t.price)}</p>
-                          <p className={`text-sm ${t.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(t.pnl)}</p>
+                          <p className="text-white font-medium">{fmtUSD(typeof t.price === 'string' ? parseFloat(t.price) : (t.price ?? t.entry_price ?? 0))}</p>
+                          <p className={`text-sm ${(typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0))}</p>
                         </div>
                       </div>
                     ))}
