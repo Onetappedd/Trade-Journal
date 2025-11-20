@@ -89,8 +89,14 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Trades API error:', error);
+    console.error('Error stack:', error?.stack);
+    console.error('Error details:', {
+      message: error?.message,
+      name: error?.name,
+      cause: error?.cause
+    });
     return NextResponse.json(
-      createApiError(ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to fetch trades', error.message),
+      createApiError(ERROR_CODES.INTERNAL_SERVER_ERROR, 'Failed to fetch trades', error?.message || String(error)),
       { status: 500 }
     );
   }
@@ -237,6 +243,12 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
 
   if (tradesError) {
     console.error('Trades fetch error:', tradesError);
+    console.error('Trades error details:', {
+      message: tradesError?.message,
+      code: tradesError?.code,
+      details: tradesError?.details,
+      hint: tradesError?.hint
+    });
     // Return empty result instead of throwing error
     return {
       items: [], // Use 'items' to match TradesResponse interface
