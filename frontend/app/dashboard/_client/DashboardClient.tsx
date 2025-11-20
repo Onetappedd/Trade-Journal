@@ -116,7 +116,7 @@ export default function DashboardClient({
         const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
         return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
       }, 0)
-  }, [dashboardData?.trades]), [dashboardData?.trades])
+  }, [dashboardData?.trades])
 
   const mtdPnL = useMemo(() => {
     const start = startOfMonth()
