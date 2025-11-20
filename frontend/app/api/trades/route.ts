@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const params: TradesQueryParams = {
       page: parseInt(searchParams.get('page') || '1'),
       limit: Math.min(parseInt(searchParams.get('limit') || '50'), 100), // Cap at 100
-      sort: searchParams.get('sort') || 'opened_at',
+      sort: searchParams.get('sort') || 'entry_date', // Default to entry_date for imported trades
       direction: (searchParams.get('direction') as 'asc' | 'desc') || 'desc',
       symbol: searchParams.get('symbol') || undefined,
       side: searchParams.get('side') || undefined,
@@ -132,10 +132,18 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       executed_at,
       closed_at,
       exit_date,
+      exit_price,
       status,
       asset_type,
+      instrument_type,
       avg_open_price,
-      qty_opened
+      avg_close_price,
+      qty_opened,
+      qty_closed,
+      realized_pnl,
+      fees,
+      created_at,
+      updated_at
     `)
     .eq('user_id', userId);
 
