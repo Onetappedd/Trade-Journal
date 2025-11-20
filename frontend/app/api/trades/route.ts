@@ -166,19 +166,16 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     query = query.eq('asset_type', asset_type);
   }
   
-  // Note: Supabase doesn't support OR across different columns easily
-  // We'll filter by entry_date first (for imported trades), then fallback to opened_at
-  // For date_from, we want trades where ANY of these dates >= date_from
-  // For date_to, we want trades where ANY of these dates <= date_to
-  // Since we can't do OR easily, we'll just filter by entry_date (most common for imports)
-  // and opened_at as fallback
+  // Date filtering: prioritize entry_date (for imported trades), fallback to executed_at or opened_at
+  // Since Supabase OR syntax can be tricky, we'll filter by entry_date primarily
+  // and let nulls fall through (they'll be caught by executed_at/opened_at in sorting)
   if (date_from) {
-    // Use entry_date first (for imported trades), then opened_at as fallback
+    // Filter by entry_date first, but also check executed_at and opened_at
+    // Use OR to match any of these date columns
     query = query.or(`entry_date.gte.${date_from},executed_at.gte.${date_from},opened_at.gte.${date_from}`);
   }
   
   if (date_to) {
-    // Use entry_date first (for imported trades), then opened_at as fallback
     query = query.or(`entry_date.lte.${date_to},executed_at.lte.${date_to},opened_at.lte.${date_to}`);
   }
 
