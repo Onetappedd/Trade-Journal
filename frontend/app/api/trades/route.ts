@@ -166,17 +166,15 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     query = query.eq('asset_type', asset_type);
   }
   
-  // Date filtering: prioritize entry_date (for imported trades), fallback to executed_at or opened_at
-  // Since Supabase OR syntax can be tricky, we'll filter by entry_date primarily
-  // and let nulls fall through (they'll be caught by executed_at/opened_at in sorting)
+  // Date filtering: For simplicity, we'll only filter by entry_date when date filters are provided
+  // This avoids complex OR logic that can cause issues in Supabase
+  // Trades without entry_date will still be included (not filtered out)
   if (date_from) {
-    // Filter by entry_date first, but also check executed_at and opened_at
-    // Use OR to match any of these date columns
-    query = query.or(`entry_date.gte.${date_from},executed_at.gte.${date_from},opened_at.gte.${date_from}`);
+    query = query.gte('entry_date', date_from);
   }
   
   if (date_to) {
-    query = query.or(`entry_date.lte.${date_to},executed_at.lte.${date_to},opened_at.lte.${date_to}`);
+    query = query.lte('entry_date', date_to);
   }
 
   // Apply sorting
@@ -211,10 +209,10 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     countQuery = countQuery.eq('asset_type', asset_type);
   }
   if (date_from) {
-    countQuery = countQuery.or(`entry_date.gte.${date_from},executed_at.gte.${date_from},opened_at.gte.${date_from}`);
+    countQuery = countQuery.gte('entry_date', date_from);
   }
   if (date_to) {
-    countQuery = countQuery.or(`entry_date.lte.${date_to},executed_at.lte.${date_to},opened_at.lte.${date_to}`);
+    countQuery = countQuery.lte('entry_date', date_to);
   }
   
   const { count: totalCount, error: countError } = await countQuery;
