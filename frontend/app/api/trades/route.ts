@@ -191,19 +191,33 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   }
 
   // Get total count for pagination
-  const { count: totalCount, error: countError } = await supabase
+  // Build count query with same filters as main query
+  let countQuery = supabase
     .from('trades')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .modify((query: any) => {
-      if (symbol) query = query.ilike('symbol', `%${symbol}%`);
-      if (side) query = query.eq('side', side);
-      if (status) query = query.eq('status', status);
-      if (asset_type) query = query.eq('asset_type', asset_type);
-      if (date_from) query = query.or(`opened_at.gte.${date_from},entry_date.gte.${date_from},executed_at.gte.${date_from}`);
-      if (date_to) query = query.or(`opened_at.lte.${date_to},entry_date.lte.${date_to},executed_at.lte.${date_to}`);
-      return query;
-    });
+    .eq('user_id', userId);
+  
+  // Apply same filters as main query
+  if (symbol) {
+    countQuery = countQuery.ilike('symbol', `%${symbol}%`);
+  }
+  if (side) {
+    countQuery = countQuery.eq('side', side);
+  }
+  if (status) {
+    countQuery = countQuery.eq('status', status);
+  }
+  if (asset_type) {
+    countQuery = countQuery.eq('asset_type', asset_type);
+  }
+  if (date_from) {
+    countQuery = countQuery.or(`entry_date.gte.${date_from},executed_at.gte.${date_from},opened_at.gte.${date_from}`);
+  }
+  if (date_to) {
+    countQuery = countQuery.or(`entry_date.lte.${date_to},executed_at.lte.${date_to},opened_at.lte.${date_to}`);
+  }
+  
+  const { count: totalCount, error: countError } = await countQuery;
 
   if (countError) {
     console.error('Trades count error:', countError);
