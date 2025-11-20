@@ -249,7 +249,7 @@ export function FunctionalCSVImporter() {
       }));
 
       // Use final import endpoint
-      const apiEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-final' : '/api/import/csv-fixed';
+      const apiEndpoint = brokerPreset === 'webull' ? '/api/import/csv-webull-final' : '/api/import/csv';
       const uploadResponse = await fetch(apiEndpoint, {
         method: 'POST',
         body: formData,
