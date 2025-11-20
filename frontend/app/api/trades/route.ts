@@ -83,7 +83,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get trades data (temporarily bypassing cache to debug)
+    console.log('Calling getTrades...');
     const tradesData = await getTrades(user.id, params, supabase);
+    console.log('getTrades returned:', tradesData ? 'data' : 'null');
 
     return NextResponse.json(createApiSuccess(tradesData));
 
@@ -127,32 +129,7 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   // Use COALESCE to handle both old schema (opened_at, avg_open_price, qty_opened) and new schema (entry_date, entry_price, quantity)
   let query = supabase
     .from('trades')
-    .select(`
-      id,
-      symbol,
-      side,
-      quantity,
-      entry_price,
-      price,
-      pnl,
-      opened_at,
-      entry_date,
-      executed_at,
-      closed_at,
-      exit_date,
-      exit_price,
-      status,
-      asset_type,
-      instrument_type,
-      avg_open_price,
-      avg_close_price,
-      qty_opened,
-      qty_closed,
-      realized_pnl,
-      fees,
-      created_at,
-      updated_at
-    `)
+    .select('*') // Simplify to * for debugging to avoid column issues
     .eq('user_id', userId);
 
   // Apply filters
