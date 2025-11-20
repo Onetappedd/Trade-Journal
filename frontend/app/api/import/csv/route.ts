@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createHash, randomUUID } from 'crypto';
 import { parse } from 'csv-parse/sync';
 import { revalidateTag } from 'next/cache';
-import { detectAdapter, parseCsvSample, robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
+import { detectAdapter, robinhoodAdapter, webullAdapter, ibkrAdapter, schwabAdapter, fidelityAdapter } from '@/lib/import/parsing/engine';
 import { matchUserTrades } from '@/lib/matching/engine';
 
 // File size limits
