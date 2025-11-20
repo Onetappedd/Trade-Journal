@@ -89,10 +89,25 @@ export default async function DashboardPage() {
   const totalPortfolioValue = brokerPortfolioValue + manualPortfolioValue
   const hasBrokerData = brokerVerification?.is_broker_verified || false
 
+  // Transform trades to match DashboardData Trade type
+  // Map database fields to Trade interface (price, quantity, pnl, openedAt, closedAt)
+  const transformedTrades = (trades || []).map((t: any) => ({
+    id: t.id,
+    symbol: t.symbol,
+    side: t.side as 'buy' | 'sell',
+    quantity: typeof t.quantity === 'string' ? parseFloat(t.quantity) : (t.quantity ?? 0),
+    price: typeof t.entry_price === 'string' ? parseFloat(t.entry_price) : (t.entry_price ?? t.price ?? 0),
+    pnl: typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? t.realized_pnl ?? 0),
+    openedAt: t.opened_at ?? t.executed_at ?? t.entry_date ?? new Date().toISOString(),
+    closedAt: t.closed_at ?? t.exit_date ?? null,
+    strategy: t.strategy ?? null,
+    noteCount: t.noteCount ?? 0,
+  }));
+
   const dashboardData: DashboardData = {
     dayPnL,
     portfolioValue: totalPortfolioValue,
-    trades: trades || [],
+    trades: transformedTrades,
     positions: [], // TODO: Calculate from trades
     risk: { 
       maxDrawdownPct: 0, // TODO: Calculate from trades
