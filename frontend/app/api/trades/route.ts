@@ -82,8 +82,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get cached trades data or fetch fresh
-    const tradesData = await getCachedTrades(user.id, params, supabase);
+    // Get trades data (temporarily bypassing cache to debug)
+    const tradesData = await getTrades(user.id, params, supabase);
 
     return NextResponse.json(createApiSuccess(tradesData));
 
