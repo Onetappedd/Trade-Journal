@@ -102,21 +102,30 @@ export default function DashboardClient({
     const end = endOfDay(new Date())
     return (dashboardData?.trades ?? [])
       .filter(t => inRange(new Date(t.closedAt ?? t.openedAt ?? Date.now()), start, end))
-      .reduce((a, t) => a + (t.pnl ?? 0), 0)
+      .reduce((a, t) => {
+        const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
+        return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
+      }, 0)
   }, [dashboardData?.trades])
 
   const wtdPnL = useMemo(() => {
     const start = startOfWeek()
     return (dashboardData?.trades ?? [])
       .filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= start)
-      .reduce((a, t) => a + (t.pnl ?? 0), 0)
-  }, [dashboardData?.trades])
+      .reduce((a, t) => {
+        const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
+        return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
+      }, 0)
+  }, [dashboardData?.trades]), [dashboardData?.trades])
 
   const mtdPnL = useMemo(() => {
     const start = startOfMonth()
     return (dashboardData?.trades ?? [])
       .filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= start)
-      .reduce((a, t) => a + (t.pnl ?? 0), 0)
+      .reduce((a, t) => {
+        const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
+        return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
+      }, 0)
   }, [dashboardData?.trades])
 
   const winRate20 = useMemo(() => {

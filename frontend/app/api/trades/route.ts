@@ -196,8 +196,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     console.error('Trades count error:', countError);
     // Return empty result instead of throwing error
     return {
-      trades: [],
-      totalCount: 0,
+      items: [], // Use 'items' to match TradesResponse interface
+      total: 0,
       page,
       limit,
       totalPages: 0,

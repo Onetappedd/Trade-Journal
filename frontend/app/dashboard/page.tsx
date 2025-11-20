@@ -76,8 +76,9 @@ export default async function DashboardPage() {
   }, 0) || 0
 
   const manualPortfolioValue = trades?.reduce((sum, t) => {
-    const price = t.entry_price ?? 0
-    const qty = t.quantity ?? 0
+    // Handle both string and number types (PostgreSQL NUMERIC returns as string in JSON)
+    const price = typeof t.entry_price === 'string' ? parseFloat(t.entry_price) : (t.entry_price ?? 0)
+    const qty = typeof t.quantity === 'string' ? parseFloat(t.quantity) : (t.quantity ?? 0)
     if (typeof price === 'number' && typeof qty === 'number' && !isNaN(price) && !isNaN(qty)) {
       return sum + (price * qty)
     }
