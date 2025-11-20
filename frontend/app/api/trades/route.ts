@@ -116,6 +116,7 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   const offset = ((page || 1) - 1) * (limit || 20);
 
   // Build base query
+  // Use COALESCE to handle both old schema (opened_at, avg_open_price, qty_opened) and new schema (entry_date, entry_price, quantity)
   let query = supabase
     .from('trades')
     .select(`
@@ -123,12 +124,18 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       symbol,
       side,
       quantity,
+      entry_price,
       price,
       pnl,
       opened_at,
+      entry_date,
+      executed_at,
       closed_at,
+      exit_date,
       status,
-      asset_type
+      asset_type,
+      avg_open_price,
+      qty_opened
     `)
     .eq('user_id', userId);
 
@@ -150,17 +157,25 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   }
   
   if (date_from) {
-    query = query.gte('opened_at', date_from);
+    // Check both opened_at and entry_date
+    query = query.or(`opened_at.gte.${date_from},entry_date.gte.${date_from},executed_at.gte.${date_from}`);
   }
   
   if (date_to) {
-    query = query.lte('opened_at', date_to);
+    // Check both opened_at and entry_date
+    query = query.or(`opened_at.lte.${date_to},entry_date.lte.${date_to},executed_at.lte.${date_to}`);
   }
 
   // Apply sorting
-  const validSortFields = ['symbol', 'side', 'quantity', 'price', 'pnl', 'opened_at', 'closed_at', 'status'];
-  const sortField = (sort && validSortFields.includes(sort)) ? sort : 'opened_at';
-  query = query.order(sortField, { ascending: direction === 'asc' });
+  // Default to entry_date or executed_at for imported trades, fallback to opened_at
+  const validSortFields = ['symbol', 'side', 'quantity', 'price', 'entry_price', 'pnl', 'opened_at', 'entry_date', 'executed_at', 'closed_at', 'exit_date', 'status'];
+  const sortField = (sort && validSortFields.includes(sort)) ? sort : 'entry_date';
+  // If sorting by entry_date but it's null, also sort by executed_at or opened_at
+  query = query.order(sortField, { ascending: direction === 'asc', nullsFirst: false });
+  if (sortField === 'entry_date') {
+    query = query.order('executed_at', { ascending: direction === 'asc', nullsFirst: false });
+    query = query.order('opened_at', { ascending: direction === 'asc', nullsFirst: false });
+  }
 
   // Get total count for pagination
   const { count: totalCount, error: countError } = await supabase
@@ -172,8 +187,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       if (side) query = query.eq('side', side);
       if (status) query = query.eq('status', status);
       if (asset_type) query = query.eq('asset_type', asset_type);
-      if (date_from) query = query.gte('opened_at', date_from);
-      if (date_to) query = query.lte('opened_at', date_to);
+      if (date_from) query = query.or(`opened_at.gte.${date_from},entry_date.gte.${date_from},executed_at.gte.${date_from}`);
+      if (date_to) query = query.or(`opened_at.lte.${date_to},entry_date.lte.${date_to},executed_at.lte.${date_to}`);
       return query;
     });
 
@@ -199,8 +214,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     console.error('Trades fetch error:', tradesError);
     // Return empty result instead of throwing error
     return {
-      trades: [],
-      totalCount: 0,
+      items: [], // Use 'items' to match TradesResponse interface
+      total: 0,
       page,
       limit,
       totalPages: 0,
@@ -209,9 +224,22 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     };
   }
 
+  // Transform trades to match TradeRow interface
+  // Map new schema (quantity, entry_price) to old schema (qty_opened, avg_open_price) for compatibility
+  const transformedTrades = (trades || []).map((trade: any) => ({
+    ...trade,
+    qty_opened: trade.qty_opened ?? trade.quantity ?? 0,
+    avg_open_price: trade.avg_open_price ?? trade.entry_price ?? trade.price ?? 0,
+    opened_at: trade.opened_at ?? trade.executed_at ?? trade.entry_date ?? new Date().toISOString(),
+    closed_at: trade.closed_at ?? trade.exit_date ?? null,
+    avg_close_price: trade.avg_close_price ?? trade.exit_price ?? null,
+    qty_closed: trade.qty_closed ?? null,
+    instrument_type: trade.instrument_type ?? trade.asset_type ?? 'equity',
+  }));
+
   return {
-    trades: trades || [],
-    totalCount: totalCount || 0,
+    items: transformedTrades, // Use 'items' to match TradesResponse interface
+    total: totalCount || 0,
     page,
     limit,
     totalPages: Math.ceil((totalCount || 0) / (limit || 20)),

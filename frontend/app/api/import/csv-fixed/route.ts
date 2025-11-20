@@ -250,21 +250,22 @@ export async function POST(request: NextRequest) {
             symbol: fill.symbol,
             symbol_raw: fill.symbol, // Use symbol as symbol_raw if not provided
             side: normalizedSide,
-            quantity: quantity,
-            entry_price: price,
+            quantity: Number(quantity), // Ensure it's a number, not a string
+            entry_price: Number(price), // Ensure it's a number, not a string
             entry_date: entryDate,
             broker: detection?.brokerId || 'csv',
             external_id: externalId,
             asset_type: assetType,
-            fees: fill.fees || 0,
+            fees: Number(fill.fees || 0), // Ensure it's a number
             commission: 0, // Default to 0 if not provided
             executed_at: fill.execTime || new Date().toISOString(),
             row_hash: computeRowHashFromFill(fill, user.id, detection?.brokerId || 'csv'),
             import_run_id: importRun.id,
             // Also set old schema fields to satisfy CHECK constraints
-            avg_open_price: price, // Required by CHECK constraint: avg_open_price > 0
-            qty_opened: quantity,  // Required by CHECK constraint: qty_opened > 0
-            status: 'closed', // Required NOT NULL field
+            avg_open_price: Number(price), // Required by CHECK constraint: avg_open_price > 0
+            qty_opened: Number(quantity),  // Required by CHECK constraint: qty_opened > 0
+            status: 'closed', // Required NOT NULL field - imported trades are closed
+            opened_at: fill.execTime || new Date().toISOString(), // Set opened_at for compatibility
             meta: {
               rowIndex: fill.raw?.rowIndex || i + 1,
               source: fill.sourceBroker || 'csv',
