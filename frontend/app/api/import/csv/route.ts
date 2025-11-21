@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const supabase = createSupabaseWithToken(request);
+    const supabase = await createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const supabase = createSupabaseWithToken(request);
+    const supabase = await createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {

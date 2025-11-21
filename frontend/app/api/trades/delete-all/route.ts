@@ -13,7 +13,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Create client with user token for authentication
-    const supabase = createSupabaseWithToken(request);
+    const supabase = await createSupabaseWithToken(request);
 
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();

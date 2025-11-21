@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('Auth header found, creating Supabase client...');
-    const supabase = createSupabaseWithToken(request);
+    const supabase = await createSupabaseWithToken(request);
 
     console.log('Getting user...');
     const { data: { user }, error: authError } = await supabase.auth.getUser();

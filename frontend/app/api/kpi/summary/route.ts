@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createSupabaseWithToken(request);
+    const supabase = await createSupabaseWithToken(request);
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {

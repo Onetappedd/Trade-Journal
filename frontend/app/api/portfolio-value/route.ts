@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
     }
 
-    const supabase = createSupabaseWithToken(req);
+    const supabase = await createSupabaseWithToken(req);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {

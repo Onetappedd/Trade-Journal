@@ -9,7 +9,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ ok: false, code: 'UNAUTHORIZED', message: 'No authorization token provided' }, { status: 401 })
     }
 
-    const supabase = createSupabaseWithToken(request)
+    const supabase = await createSupabaseWithToken(request)
 
     const body = await request.json()
     const { first_name, last_name, username, bio } = body

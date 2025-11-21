@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createSupabaseWithToken(request)
+    const supabase = await createSupabaseWithToken(request)
 
     const body = await request.json()
     const { planId } = body

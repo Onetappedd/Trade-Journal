@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const supabase = createSupabaseWithToken(request);
+    const supabase = await createSupabaseWithToken(request);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

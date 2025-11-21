@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1]
-    const supabase = createSupabaseWithToken(request)
+    const supabase = await createSupabaseWithToken(request)
 
     const body = await request.json()
     const { exportType } = body

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1]
-    const supabase = createSupabaseWithToken(request)
+    const supabase = await createSupabaseWithToken(request)
 
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
