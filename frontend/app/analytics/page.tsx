@@ -58,6 +58,10 @@ interface TradeAnalytics {
     date: string;
     value: number;
   }>;
+  benchmarks?: {
+    spy?: Array<{ date: string; value: number }>;
+    qqq?: Array<{ date: string; value: number }>;
+  };
   monthlyReturns: Array<{
     month: string;
     pnl: number;
@@ -535,14 +539,50 @@ export default function AnalyticsPage() {
                 <div className="h-64 sm:h-96 bg-slate-800/30 rounded-lg border border-slate-700/50 mb-6 relative">
                   {analytics?.equityCurve && analytics.equityCurve.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <RechartsLineChart data={analytics.equityCurve.map(point => ({
-                        date: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        value: point.value,
-                        dateFull: point.date
-                      }))}>
+                      <RechartsLineChart data={(() => {
+                        // Merge portfolio and benchmark data by date
+                        const dataMap = new Map<string, { date: string; dateLabel: string; portfolio?: number; spy?: number; qqq?: number }>();
+                        
+                        // Add portfolio data
+                        analytics.equityCurve.forEach(point => {
+                          const dateKey = point.date.split('T')[0];
+                          const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          dataMap.set(dateKey, { date: point.date, dateLabel, portfolio: point.value });
+                        });
+                        
+                        // Add SPY benchmark data
+                        if (analytics.benchmarks?.spy) {
+                          analytics.benchmarks.spy.forEach(point => {
+                            const dateKey = point.date.split('T')[0];
+                            const existing = dataMap.get(dateKey);
+                            if (existing) {
+                              existing.spy = point.value;
+                            } else {
+                              const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              dataMap.set(dateKey, { date: point.date, dateLabel, spy: point.value });
+                            }
+                          });
+                        }
+                        
+                        // Add QQQ benchmark data
+                        if (analytics.benchmarks?.qqq) {
+                          analytics.benchmarks.qqq.forEach(point => {
+                            const dateKey = point.date.split('T')[0];
+                            const existing = dataMap.get(dateKey);
+                            if (existing) {
+                              existing.qqq = point.value;
+                            } else {
+                              const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              dataMap.set(dateKey, { date: point.date, dateLabel, qqq: point.value });
+                            }
+                          });
+                        }
+                        
+                        return Array.from(dataMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                      })()}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                         <XAxis 
-                          dataKey="date" 
+                          dataKey="dateLabel" 
                           stroke="#94a3b8"
                           style={{ fontSize: '12px' }}
                           tick={{ fill: '#94a3b8' }}
@@ -561,16 +601,45 @@ export default function AnalyticsPage() {
                             color: '#f1f5f9'
                           }}
                           labelStyle={{ color: '#94a3b8' }}
-                          formatter={(value: number) => [`$${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, 'Portfolio Value']}
+                          formatter={(value: number, name: string) => {
+                            if (value === null || value === undefined) return null;
+                            return [`$${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, name];
+                          }}
+                        />
+                        <Legend 
+                          wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }}
+                          iconType="line"
                         />
                         <Line 
                           type="monotone" 
-                          dataKey="value" 
+                          dataKey="portfolio" 
                           stroke="#10b981" 
                           strokeWidth={2}
                           dot={false}
-                          name="Portfolio Value"
+                          name="Portfolio"
                         />
+                        {analytics.benchmarks?.spy && analytics.benchmarks.spy.length > 0 && (
+                          <Line 
+                            type="monotone" 
+                            dataKey="spy" 
+                            stroke="#3b82f6" 
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={false}
+                            name="SPY"
+                          />
+                        )}
+                        {analytics.benchmarks?.qqq && analytics.benchmarks.qqq.length > 0 && (
+                          <Line 
+                            type="monotone" 
+                            dataKey="qqq" 
+                            stroke="#8b5cf6" 
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={false}
+                            name="QQQ"
+                          />
+                        )}
                       </RechartsLineChart>
                     </ResponsiveContainer>
                   ) : (

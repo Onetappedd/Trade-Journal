@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseWithToken } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
+import { polygonService } from '@/lib/polygon-api';
 
 export const dynamic = 'force-dynamic'
 
@@ -307,6 +308,101 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fetch benchmark data (SPY and QQQ) if we have an equity curve
+    let benchmarks: {
+      spy?: Array<{ date: string; value: number }>;
+      qqq?: Array<{ date: string; value: number }>;
+    } = {};
+    
+    if (manualMetrics.equityCurve.length > 0) {
+      try {
+        const firstDate = manualMetrics.equityCurve[0].date;
+        const lastDate = manualMetrics.equityCurve[manualMetrics.equityCurve.length - 1].date;
+        const startDate = new Date(firstDate).toISOString().split('T')[0];
+        const endDate = new Date(lastDate).toISOString().split('T')[0];
+        const startingValue = manualMetrics.equityCurve[0].value;
+
+        // Fetch SPY and QQQ data in parallel
+        const [spyData, qqqData] = await Promise.all([
+          polygonService.getHistoricalData('SPY', 1, 'day', startDate, endDate).catch(() => []),
+          polygonService.getHistoricalData('QQQ', 1, 'day', startDate, endDate).catch(() => []),
+        ]);
+
+        // Normalize benchmarks to start from the same value as the portfolio
+        const normalizeBenchmark = (data: any[], symbol: string) => {
+          if (!data || data.length === 0) return [];
+          
+          // Find the first data point that matches or is closest to the portfolio start date
+          const startDateObj = new Date(startDate);
+          let firstPrice = null;
+          let firstIndex = 0;
+          
+          for (let i = 0; i < data.length; i++) {
+            const barDate = new Date(data[i].t);
+            if (barDate >= startDateObj) {
+              firstPrice = data[i].c; // Use closing price
+              firstIndex = i;
+              break;
+            }
+          }
+          
+          // If no exact match, use the first available price
+          if (firstPrice === null && data.length > 0) {
+            firstPrice = data[0].c;
+            firstIndex = 0;
+          }
+          
+          if (firstPrice === null || firstPrice === 0) return [];
+          
+          // Normalize: scale all prices so the first price equals startingValue
+          const scaleFactor = startingValue / firstPrice;
+          
+          // Create normalized equity curve matching portfolio dates
+          const normalized: Array<{ date: string; value: number }> = [];
+          const portfolioDates = new Set(manualMetrics.equityCurve.map(p => p.date.split('T')[0]));
+          
+          // Create a map of dates to prices for interpolation
+          const priceMap = new Map<string, number>();
+          for (let i = firstIndex; i < data.length; i++) {
+            const barDate = new Date(data[i].t).toISOString().split('T')[0];
+            priceMap.set(barDate, data[i].c * scaleFactor);
+          }
+          
+          // Match portfolio dates with benchmark prices
+          for (const portfolioPoint of manualMetrics.equityCurve) {
+            const portfolioDate = portfolioPoint.date.split('T')[0];
+            
+            // Find the closest benchmark price (use previous day's price if exact match not found)
+            let benchmarkPrice = null;
+            for (let offset = 0; offset < 5; offset++) {
+              const checkDate = new Date(portfolioDate);
+              checkDate.setDate(checkDate.getDate() - offset);
+              const checkDateStr = checkDate.toISOString().split('T')[0];
+              if (priceMap.has(checkDateStr)) {
+                benchmarkPrice = priceMap.get(checkDateStr)!;
+                break;
+              }
+            }
+            
+            if (benchmarkPrice !== null) {
+              normalized.push({
+                date: portfolioPoint.date,
+                value: benchmarkPrice,
+              });
+            }
+          }
+          
+          return normalized;
+        };
+
+        benchmarks.spy = normalizeBenchmark(spyData, 'SPY');
+        benchmarks.qqq = normalizeBenchmark(qqqData, 'QQQ');
+      } catch (error) {
+        console.error('Error fetching benchmark data:', error);
+        // Continue without benchmarks if fetch fails
+      }
+    }
+
     // Combine metrics based on data source preference
     let combinedAnalytics;
 
@@ -349,6 +445,11 @@ export async function GET(request: NextRequest) {
         hasManualData,
         totalPortfolioValue: brokerMetrics.totalValue + (manualMetrics.totalPnL || 0),
       };
+    }
+
+    // Add benchmarks to the response
+    if (Object.keys(benchmarks).length > 0) {
+      (combinedAnalytics as any).benchmarks = benchmarks;
     }
 
     return NextResponse.json({
