@@ -120,27 +120,20 @@ export function runBootstrapSimulation(params: BootstrapParams): MonteCarloResul
     });
   }
 
-  // Pick 3 random paths for visualization
-  const samplePaths: MonteCarloPathPoint[][] = [];
-  const numSamplePaths = Math.min(3, iterations);
-  const selectedIndices = new Set<number>();
+  // Return ALL paths for visualization (will be rendered with low opacity)
+  const allPathsFormatted: MonteCarloPathPoint[][] = [];
   
-  while (selectedIndices.size < numSamplePaths) {
-    const idx = Math.floor(Math.random() * iterations);
-    selectedIndices.add(idx);
-  }
-
-  for (const idx of selectedIndices) {
+  for (let idx = 0; idx < allPaths.length; idx++) {
     const path = allPaths[idx].map((equity, tradeIndex) => ({
       tradeIndex,
       equity,
     }));
-    samplePaths.push(path);
+    allPathsFormatted.push(path);
   }
 
   return {
     summary,
-    samplePaths,
+    samplePaths: allPathsFormatted, // Now contains all paths, not just 3
     ruinProbability: ruinedCount / iterations,
     endEquityDistribution: finalEquities,
   };
@@ -228,27 +221,20 @@ export function runParametricSimulation(params: ParametricParams): MonteCarloRes
     });
   }
 
-  // Pick 3 random paths for visualization
-  const samplePaths: MonteCarloPathPoint[][] = [];
-  const numSamplePaths = Math.min(3, iterations);
-  const selectedIndices = new Set<number>();
+  // Return ALL paths for visualization (will be rendered with low opacity)
+  const allPathsFormatted: MonteCarloPathPoint[][] = [];
   
-  while (selectedIndices.size < numSamplePaths) {
-    const idx = Math.floor(Math.random() * iterations);
-    selectedIndices.add(idx);
-  }
-
-  for (const idx of selectedIndices) {
+  for (let idx = 0; idx < allPaths.length; idx++) {
     const path = allPaths[idx].map((equity, tradeIndex) => ({
       tradeIndex,
       equity,
     }));
-    samplePaths.push(path);
+    allPathsFormatted.push(path);
   }
 
   return {
     summary,
-    samplePaths,
+    samplePaths: allPathsFormatted, // Now contains all paths, not just 3
     ruinProbability: ruinedCount / iterations,
     endEquityDistribution: finalEquities,
   };

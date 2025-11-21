@@ -18,6 +18,8 @@ import {
   Play,
   RefreshCw,
   BarChart3,
+  DollarSign,
+  Percent,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -70,6 +72,7 @@ export default function MonteCarloSimulator() {
   const [result, setResult] = useState<MonteCarloResult | null>(null);
   const [stats, setStats] = useState<MonteCarloStats | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showPercentage, setShowPercentage] = useState(false); // Toggle for $ vs %
 
   // Parametric mode controls
   const [winRate, setWinRate] = useState(50); // 0-100
@@ -230,32 +233,52 @@ export default function MonteCarloSimulator() {
   const profitablePaths = result?.endEquityDistribution.filter(e => e > (stats?.startEquity || 0)).length || 0;
   const profitablePercent = result ? (profitablePaths / result.endEquityDistribution.length) * 100 : 0;
 
-  // Prepare chart data
-  const chartData = result?.summary.map(point => ({
-    tradeIndex: point.tradeIndex,
-    p10: point.p10,
-    p25: point.p25,
-    p50: point.p50,
-    p75: point.p75,
-    p90: point.p90,
-  })) || [];
+  // Calculate percentage change helper
+  const calculatePercentChange = (current: number, start: number) => {
+    if (start === 0) return 0;
+    return ((current - start) / start) * 100;
+  };
 
-  // Prepare sample paths data
-  const samplePathsData = result?.samplePaths.map((path, idx) => 
-    path.map(p => ({
-      tradeIndex: p.tradeIndex,
-      [`path${idx}`]: p.equity,
-    }))
-  ) || [];
+  const startEquity = stats?.startEquity || 10000;
 
-  // Merge sample paths into chart data
-  const mergedChartData = chartData.map((point, idx) => {
+  // Prepare chart data with $ or % transformation
+  const chartData = result?.summary.map(point => {
+    if (showPercentage) {
+      return {
+        tradeIndex: point.tradeIndex,
+        p10: calculatePercentChange(point.p10, startEquity),
+        p25: calculatePercentChange(point.p25, startEquity),
+        p50: calculatePercentChange(point.p50, startEquity),
+        p75: calculatePercentChange(point.p75, startEquity),
+        p90: calculatePercentChange(point.p90, startEquity),
+      };
+    } else {
+      return {
+        tradeIndex: point.tradeIndex,
+        p10: point.p10,
+        p25: point.p25,
+        p50: point.p50,
+        p75: point.p75,
+        p90: point.p90,
+      };
+    }
+  }) || [];
+
+  // Merge all paths into chart data for visualization
+  // Transform to percentage if needed
+  const mergedChartDataWithPaths = chartData.map((point, idx) => {
     const merged: any = { ...point };
-    samplePathsData.forEach((path, pathIdx) => {
+    
+    // Add all path values at this trade index
+    result?.samplePaths.forEach((path, pathIdx) => {
       if (path[idx]) {
-        merged[`path${pathIdx}`] = path[idx][`path${pathIdx}`];
+        const pathValue = showPercentage 
+          ? calculatePercentChange(path[idx].equity, startEquity)
+          : path[idx].equity;
+        merged[`path${pathIdx}`] = pathValue;
       }
     });
+    
     return merged;
   });
 
@@ -289,8 +312,28 @@ export default function MonteCarloSimulator() {
           <>
             {/* Chart */}
             <div className="h-96 bg-slate-800/30 rounded-lg border border-slate-700/50 p-4">
+              <div className="flex items-center justify-end mb-2">
+                <div className="flex items-center space-x-1 bg-slate-800/50 rounded-lg p-1">
+                  <Button
+                    size="sm"
+                    variant={!showPercentage ? "default" : "ghost"}
+                    onClick={() => setShowPercentage(false)}
+                    className={`h-7 px-2 text-xs ${!showPercentage ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"}`}
+                  >
+                    <DollarSign className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={showPercentage ? "default" : "ghost"}
+                    onClick={() => setShowPercentage(true)}
+                    className={`h-7 px-2 text-xs ${showPercentage ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"}`}
+                  >
+                    <Percent className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mergedChartData}>
+                <LineChart data={mergedChartDataWithPaths}>
                   <defs>
                     <linearGradient id="colorP10P90" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
@@ -313,8 +356,16 @@ export default function MonteCarloSimulator() {
                     stroke="#94a3b8"
                     style={{ fontSize: '12px' }}
                     tick={{ fill: '#94a3b8' }}
-                    tickFormatter={(value) => formatCurrency(value)}
-                    label={{ value: 'Equity ($)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                    tickFormatter={(value) => showPercentage 
+                      ? `${value.toFixed(1)}%` 
+                      : formatCurrency(value)
+                    }
+                    label={{ 
+                      value: showPercentage ? 'Equity (%)' : 'Equity ($)', 
+                      angle: -90, 
+                      position: 'insideLeft', 
+                      fill: '#94a3b8' 
+                    }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -323,7 +374,10 @@ export default function MonteCarloSimulator() {
                       borderRadius: '8px',
                       color: '#f1f5f9',
                     }}
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) => showPercentage 
+                      ? `${value.toFixed(2)}%` 
+                      : formatCurrency(value)
+                    }
                     labelFormatter={(label) => `Trade ${label}`}
                   />
                   <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }} />
@@ -372,21 +426,22 @@ export default function MonteCarloSimulator() {
                     name="Median (50th percentile)"
                   />
                   
-                  {/* Sample paths */}
-                  {result.samplePaths.map((_, idx) => (
+                  {/* All wealth paths - rendered with very low opacity to form a "cloud" effect */}
+                  {result?.samplePaths.map((_, idx) => (
                     <Line
-                      key={`path${idx}`}
+                      key={`allpath${idx}`}
                       type="monotone"
                       dataKey={`path${idx}`}
                       stroke="#64748b"
-                      strokeWidth={1}
-                      strokeDasharray="2 2"
+                      strokeWidth={0.5}
                       dot={false}
-                      name={`Sample Path ${idx + 1}`}
+                      isAnimationActive={false} // Disable animation for performance with many paths
                       connectNulls={false}
+                      strokeOpacity={0.08} // Very low opacity so paths form a cloud
+                      name={idx === 0 ? `${result.samplePaths.length} Simulation Paths` : undefined} // Only show in legend once
                     />
                   ))}
-                </AreaChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
 
