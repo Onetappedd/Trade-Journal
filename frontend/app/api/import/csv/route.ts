@@ -480,31 +480,26 @@ async function processCSVAsync(
             skipped++;
             console.log(`[Import] Skipping duplicate execution: ${executionData.symbol} ${executionData.side} ${executionData.quantity} @ ${executionData.price}`);
           } else {
-            if (existing) {
-              const { error: updateError } = await supabase
-                .from('executions_normalized')
-                .update(executionData)
-                .eq('id', existing.id);
-              
-              if (updateError) {
-                throw new Error(`Update failed: ${updateError.message}`);
-              }
-            } else {
-              const { error: insertError, data: insertData } = await supabase
-                .from('executions_normalized')
-                .insert(executionData)
-                .select();
-              
-              if (insertError) {
-                console.error(`[Import] Insert error for execution ${executionData.symbol}:`, insertError);
-                console.error(`[Import] Execution data that failed:`, JSON.stringify(executionData, null, 2));
-                throw new Error(`Insert failed: ${insertError.message} (code: ${insertError.code}, details: ${insertError.details})`);
-              }
+            // Use upsert to handle both insert and update cases
+            // This prevents duplicate key errors if the row already exists
+            const { error: upsertError, data: upsertData } = await supabase
+              .from('executions_normalized')
+              .upsert(executionData, {
+                onConflict: 'unique_hash',
+                ignoreDuplicates: false
+              })
+              .select();
+            
+            if (upsertError) {
+              console.error(`[Import] Upsert error for execution ${executionData.symbol}:`, upsertError);
+              console.error(`[Import] Execution data that failed:`, JSON.stringify(executionData, null, 2));
+              throw new Error(`Upsert failed: ${upsertError.message} (code: ${upsertError.code}, details: ${upsertError.details})`);
             }
+            
             inserted++;
             
             if (inserted % 50 === 0) {
-              console.log(`[Import] Progress: ${inserted} executions inserted so far...`);
+              console.log(`[Import] Progress: ${inserted} executions inserted/updated so far...`);
             }
           }
         } catch (error) {
