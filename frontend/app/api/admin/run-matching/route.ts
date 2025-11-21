@@ -23,11 +23,18 @@ export async function GET(request: NextRequest) {
     // If deleteExisting is true, delete all existing trades for this user first
     if (deleteExisting) {
       console.log(`Deleting all existing trades for user ${userId}...`);
-      const { error: deleteError, count } = await supabase
+      
+      // First, get the count of trades to delete
+      const { count } = await supabase
+        .from('trades')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      // Then delete them
+      const { error: deleteError } = await supabase
         .from('trades')
         .delete()
-        .eq('user_id', userId)
-        .select('*', { count: 'exact', head: true });
+        .eq('user_id', userId);
       
       if (deleteError) {
         console.error('Error deleting trades:', deleteError);
