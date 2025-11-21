@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const startTime = Date.now();
-    const results: Array<{ symbol: string; count: number }> = [];
+        const startTime = Date.now();
+        const results: Array<{ symbol: string; count: number; error?: string }> = [];
 
     // Determine date range
     const now = new Date();
