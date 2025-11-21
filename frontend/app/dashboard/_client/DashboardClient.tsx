@@ -388,9 +388,13 @@ export default function DashboardClient({
                             <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
                             <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                           </linearGradient>
-                          <linearGradient id="colorDaily" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="colorDailyPositive" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                          </linearGradient>
+                          <linearGradient id="colorDailyNegative" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.2}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
@@ -427,9 +431,14 @@ export default function DashboardClient({
                             padding: '12px'
                           }}
                           labelStyle={{ color: '#94a3b8', marginBottom: '8px' }}
-                          formatter={(value: number, name: string) => {
-                            if (name === 'cum') return [`$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Cumulative P&L']
-                            if (name === 'daily') return [`$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Daily P&L']
+                          formatter={(value: any, name: string) => {
+                            const numValue = typeof value === 'number' ? value : parseFloat(value) || 0
+                            if (name === 'cum') {
+                              return [`$${numValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, 'Cumulative P&L']
+                            }
+                            if (name === 'daily') {
+                              return [`$${numValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, 'Daily P&L']
+                            }
                             return value
                           }}
                         />
@@ -450,10 +459,19 @@ export default function DashboardClient({
                         <Bar 
                           yAxisId="left" 
                           dataKey="daily" 
-                          fill="url(#colorDaily)"
                           radius={[4, 4, 0, 0]}
                           name="Daily P&L"
-                        />
+                        >
+                          {chartData.map((entry: any, index: number) => {
+                            const dailyValue = entry.daily || 0
+                            const fillColor = dailyValue >= 0 
+                              ? 'url(#colorDailyPositive)' 
+                              : 'url(#colorDailyNegative)'
+                            return (
+                              <Cell key={`bar-cell-${index}`} fill={fillColor} />
+                            )
+                          })}
+                        </Bar>
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
