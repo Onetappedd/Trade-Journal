@@ -726,9 +726,9 @@ export default function AnalyticsPage() {
                             // Fallback to label if payload not available
                             return label;
                           }}
-                          formatter={(value: number | null | undefined, name: string) => {
+                          formatter={(value: any, name: string) => {
                             // Show benchmark values even if portfolio value is null/undefined
-                            if (value === null || value === undefined) {
+                            if (value === null || value === undefined || typeof value !== 'number') {
                               // Only hide if it's the portfolio and we're in a gap period
                               // Benchmarks should always show if they have a value
                               return null;
