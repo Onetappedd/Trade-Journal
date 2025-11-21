@@ -492,17 +492,12 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
             
             // Calculate P&L: (sell_price - buy_price) * quantity * multiplier
             // For options, the price is per contract, so we multiply by quantity and multiplier
-            // The multiplier is typically 100 for standard options
-            // Use the multiplier from buy (should be same as sell, but buy is more reliable)
-            const multiplier = buy.multiplier || sell.multiplier || 100;
+            // The multiplier is ALWAYS 100 for standard options (regardless of what's stored in DB)
+            // This ensures correct P&L calculation even if old data has multiplier=1
+            const multiplier = 100; // Always use 100 for options
             const matchedQty = Math.min(buy.quantity, sell.quantity);
             const priceDiff = sell.price - buy.price;
             const legPnL = priceDiff * matchedQty * multiplier;
-            
-            // Debug logging for option P&L calculation
-            if (multiplier !== 100) {
-              console.log(`[Option P&L] Using multiplier ${multiplier} for ${buy.symbol} ${buy.strike}${buy.option_type}`);
-            }
             
             totalPnL += legPnL;
             
