@@ -95,11 +95,23 @@ export async function GET(request: NextRequest) {
           volume?: number | null;
         };
 
+        console.log(`[Benchmarks Cron] Calling yahooFinance.historical for ${symbol} with options:`, JSON.stringify(queryOptions));
         const historical = (await yahooFinance.historical(symbol, queryOptions)) as QuoteType[] | null | undefined;
+        console.log(`[Benchmarks Cron] Received response for ${symbol}:`, {
+          isNull: historical === null,
+          isUndefined: historical === undefined,
+          isArray: Array.isArray(historical),
+          length: Array.isArray(historical) ? historical.length : 'N/A',
+          type: typeof historical
+        });
 
         // Type guard: ensure historical is an array
         if (!historical || !Array.isArray(historical) || historical.length === 0) {
-          console.warn(`[Benchmarks Cron] No data returned for ${symbol}`);
+          console.warn(`[Benchmarks Cron] No data returned for ${symbol}`, {
+            historical,
+            isArray: Array.isArray(historical),
+            length: Array.isArray(historical) ? historical.length : 'N/A'
+          });
           results.push({ symbol, count: 0 });
           continue;
         }
@@ -147,7 +159,8 @@ export async function GET(request: NextRequest) {
         }
       } catch (symbolError: any) {
         console.error(`[Benchmarks Cron] Error fetching ${symbol}:`, symbolError);
-        results.push({ symbol, count: 0 });
+        console.error(`[Benchmarks Cron] Error stack:`, symbolError?.stack);
+        results.push({ symbol, count: 0, error: symbolError?.message || String(symbolError) });
       }
     }
 
