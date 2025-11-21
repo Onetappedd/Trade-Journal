@@ -53,7 +53,7 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 export default function CalendarPage() {
   const { session } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<"monthly" | "weekly">("monthly")
+  const [viewMode, setViewMode] = useState<"monthly" | "weekly" | "yearly">("monthly")
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
   const [trades, setTrades] = useState<TradeRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -203,21 +203,24 @@ export default function CalendarPage() {
     // If P&L is exactly 0 but there are trades, show a neutral color
     if (pnl === 0) return "bg-slate-600"
 
-    // Calculate intensity with a minimum opacity to ensure visibility
-    // Scale: $0-$500 = 30-60% opacity, $500-$2000 = 60-100% opacity
+    // Calculate intensity with brighter, more visible colors
+    // Scale: $0-$100 = 50-70% opacity, $100-$500 = 70-85% opacity, $500+ = 85-100% opacity
     const absPnL = Math.abs(pnl)
     let intensity: number
     
-    if (absPnL <= 500) {
-      // Small P&L: 30% to 60% opacity
-      intensity = 0.3 + (absPnL / 500) * 0.3
+    if (absPnL <= 100) {
+      // Very small P&L: 50% to 70% opacity (brighter minimum)
+      intensity = 0.5 + (absPnL / 100) * 0.2
+    } else if (absPnL <= 500) {
+      // Small P&L: 70% to 85% opacity
+      intensity = 0.7 + ((absPnL - 100) / 400) * 0.15
     } else {
-      // Larger P&L: 60% to 100% opacity
-      intensity = 0.6 + Math.min((absPnL - 500) / 2000, 1) * 0.4
+      // Larger P&L: 85% to 100% opacity (very bright)
+      intensity = 0.85 + Math.min((absPnL - 500) / 1500, 1) * 0.15
     }
     
-    // Ensure minimum 30% opacity for visibility
-    intensity = Math.max(intensity, 0.3)
+    // Ensure minimum 50% opacity for better visibility
+    intensity = Math.max(intensity, 0.5)
     const opacity = Math.round(intensity * 100)
 
     if (pnl > 0) {
@@ -243,6 +246,16 @@ export default function CalendarPage() {
       newDate.setDate(currentDate.getDate() - 7)
     } else {
       newDate.setDate(currentDate.getDate() + 7)
+    }
+    setCurrentDate(newDate)
+  }
+
+  const navigateYear = (direction: "prev" | "next") => {
+    const newDate = new Date(currentDate)
+    if (direction === "prev") {
+      newDate.setFullYear(currentDate.getFullYear() - 1)
+    } else {
+      newDate.setFullYear(currentDate.getFullYear() + 1)
     }
     setCurrentDate(newDate)
   }
@@ -372,6 +385,92 @@ export default function CalendarPage() {
     )
   }
 
+  const renderYearView = () => {
+    const year = currentDate.getFullYear()
+    const months = []
+    
+    for (let month = 0; month < 12; month++) {
+      const monthDate = new Date(year, month, 1)
+      const days = getDaysInMonth(monthDate)
+      
+      months.push(
+        <div key={month} className="space-y-2">
+          <h3 className="text-sm font-semibold text-slate-300 mb-2">{MONTHS[month]}</h3>
+          <div className="grid grid-cols-7 gap-0.5 text-xs">
+            {/* Day headers */}
+            {DAYS.map((day) => (
+              <div key={day} className="p-1 text-center font-medium text-slate-500 text-[10px]">
+                {day[0]}
+              </div>
+            ))}
+            
+            {/* Calendar days */}
+            {days.map((day, index) => {
+              if (!day) {
+                return <div key={index} className="aspect-square" />
+              }
+
+              const dateKey = formatDateKey(year, month, day)
+              const dayPnL = dailyPnL[dateKey] ?? 0
+              const dayTrades = tradesByDate[dateKey] || []
+              const hasTrades = dayTrades.length > 0
+
+              return (
+                <div
+                  key={day}
+                  className={`aspect-square border border-slate-700/30 rounded text-[10px] p-0.5 cursor-pointer transition-all hover:border-slate-600 relative ${getPnLColor(dayPnL, hasTrades)}`}
+                  onMouseEnter={() => setHoveredDay(dateKey)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  title={`${MONTHS[month]} ${day}, ${year}: ${dayPnL > 0 ? '+' : ''}$${dayPnL.toLocaleString()}`}
+                >
+                  <div className="text-[9px] font-medium text-white/90">{day}</div>
+                  {dayTrades.length > 0 && (
+                    <div className="absolute bottom-0.5 right-0.5">
+                      <div className="h-0.5 w-0.5 bg-white rounded-full opacity-80" />
+                    </div>
+                  )}
+
+                  {/* Hover tooltip */}
+                  {hoveredDay === dateKey && dayTrades.length > 0 && (
+                    <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl min-w-48">
+                      <div className="text-sm font-medium text-white mb-2">
+                        {MONTHS[month]} {day}, {year}
+                      </div>
+                      <div className="space-y-1">
+                        {dayTrades.map((trade, i) => (
+                          <div key={i} className="flex justify-between items-center text-xs">
+                            <span className="text-slate-300">{trade.symbol}</span>
+                            <span className={trade.pnl > 0 ? "text-emerald-400" : "text-red-400"}>
+                              {trade.pnl > 0 ? "+" : ""}${trade.pnl.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="border-t border-slate-700 pt-1 mt-1">
+                          <div className="flex justify-between items-center text-sm font-medium">
+                            <span className="text-white">Total P&L:</span>
+                            <span className={dayPnL > 0 ? "text-emerald-400" : "text-red-400"}>
+                              {dayPnL > 0 ? "+" : ""}${dayPnL.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )
+    }
+    
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {months}
+      </div>
+    )
+  }
+
   // Check if we have any trades to show
   const hasTrades = trades.length > 0
 
@@ -435,6 +534,15 @@ export default function CalendarPage() {
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Weekly
                 </Button>
+                <Button
+                  variant={viewMode === "yearly" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("yearly")}
+                  className={viewMode === "yearly" ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-white"}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Yearly
+                </Button>
               </div>
             </div>
           </div>
@@ -445,7 +553,11 @@ export default function CalendarPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => (viewMode === "monthly" ? navigateMonth("prev") : navigateWeek("prev"))}
+                onClick={() => {
+                  if (viewMode === "monthly") navigateMonth("prev")
+                  else if (viewMode === "weekly") navigateWeek("prev")
+                  else navigateYear("prev")
+                }}
                 className="text-slate-400 hover:text-white"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -454,13 +566,19 @@ export default function CalendarPage() {
               <h2 className="text-lg sm:text-xl font-semibold text-white">
                 {viewMode === "monthly"
                   ? `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
-                  : `Week of ${getWeekDays(currentDate)[0].toLocaleDateString()}`}
+                  : viewMode === "weekly"
+                  ? `Week of ${getWeekDays(currentDate)[0].toLocaleDateString()}`
+                  : `${currentDate.getFullYear()}`}
               </h2>
 
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => (viewMode === "monthly" ? navigateMonth("next") : navigateWeek("next"))}
+                onClick={() => {
+                  if (viewMode === "monthly") navigateMonth("next")
+                  else if (viewMode === "weekly") navigateWeek("next")
+                  else navigateYear("next")
+                }}
                 className="text-slate-400 hover:text-white"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -493,7 +611,7 @@ export default function CalendarPage() {
         {/* Calendar Grid */}
         <Card className="bg-slate-900/50 border-slate-800/50">
           <CardContent className="p-4 sm:p-6">
-            {viewMode === "monthly" ? renderMonthView() : renderWeekView()}
+            {viewMode === "monthly" ? renderMonthView() : viewMode === "weekly" ? renderWeekView() : renderYearView()}
           </CardContent>
         </Card>
 
