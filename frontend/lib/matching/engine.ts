@@ -148,11 +148,11 @@ export async function matchUserTrades({
     console.log(`Found ${executions?.length || 0} executions for user ${userId}`);
     
     // Debug: Check multiplier values for options
-    const optionExecutions = executions?.filter((e: any) => e.instrument_type === 'option') || [];
-    if (optionExecutions.length > 0) {
-      const multipliers = optionExecutions.map((e: any) => e.multiplier).filter((m: any) => m !== null && m !== undefined);
+    const optionExecsForDebug = executions?.filter((e: any) => e.instrument_type === 'option') || [];
+    if (optionExecsForDebug.length > 0) {
+      const multipliers = optionExecsForDebug.map((e: any) => e.multiplier).filter((m: any) => m !== null && m !== undefined);
       const uniqueMultipliers = [...new Set(multipliers)];
-      console.log(`[Matching] Option executions found: ${optionExecutions.length}, multipliers: ${uniqueMultipliers.join(', ') || 'none set'}`);
+      console.log(`[Matching] Option executions found: ${optionExecsForDebug.length}, multipliers: ${uniqueMultipliers.join(', ') || 'none set'}`);
       if (uniqueMultipliers.length > 0 && !uniqueMultipliers.includes(100)) {
         console.warn(`[Matching] Warning: Option multiplier is not 100! Found: ${uniqueMultipliers.join(', ')}`);
       }
