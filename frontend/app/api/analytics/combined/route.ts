@@ -340,7 +340,7 @@ export async function GET(request: NextRequest) {
 
           // Normalize benchmarks to start from the same value as the portfolio
           const normalizeBenchmark = (
-            rows: Array<{ date: string; adjusted_close: number }>,
+            rows: Array<{ date: string; adjusted_close: number | string }>,
             symbol: string
           ) => {
             if (!rows || rows.length === 0) return [];
@@ -354,10 +354,11 @@ export async function GET(request: NextRequest) {
               const rowDate = new Date(rows[i].date);
               if (rowDate >= startDateObj) {
                 // Parse adjusted_close (may be string from NUMERIC type)
+                const adjustedClose = rows[i].adjusted_close;
                 firstPrice =
-                  typeof rows[i].adjusted_close === 'string'
-                    ? parseFloat(rows[i].adjusted_close)
-                    : rows[i].adjusted_close;
+                  typeof adjustedClose === 'string'
+                    ? parseFloat(adjustedClose)
+                    : adjustedClose;
                 firstIndex = i;
                 break;
               }
@@ -365,10 +366,11 @@ export async function GET(request: NextRequest) {
 
             // If no exact match, use the first available price
             if (firstPrice === null && rows.length > 0) {
+              const adjustedClose = rows[0].adjusted_close;
               firstPrice =
-                typeof rows[0].adjusted_close === 'string'
-                  ? parseFloat(rows[0].adjusted_close)
-                  : rows[0].adjusted_close;
+                typeof adjustedClose === 'string'
+                  ? parseFloat(adjustedClose)
+                  : adjustedClose;
               firstIndex = 0;
             }
 
@@ -381,10 +383,11 @@ export async function GET(request: NextRequest) {
             const priceMap = new Map<string, number>();
             for (let i = firstIndex; i < rows.length; i++) {
               const rowDate = rows[i].date;
+              const adjustedClose = rows[i].adjusted_close;
               const adjClose =
-                typeof rows[i].adjusted_close === 'string'
-                  ? parseFloat(rows[i].adjusted_close)
-                  : rows[i].adjusted_close;
+                typeof adjustedClose === 'string'
+                  ? parseFloat(adjustedClose)
+                  : adjustedClose;
               priceMap.set(rowDate, adjClose * scaleFactor);
             }
 
