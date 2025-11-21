@@ -270,25 +270,12 @@ export default function MonteCarloSimulator() {
     const maxBand = Math.max(...summary.map(p => p.p90));
     
     // Also check actual path extremes (from the 1/4 of paths we're showing)
+    // Use percentile bands as base, paths will be clipped anyway
     let pathMin = minBand;
     let pathMax = maxBand;
     
-    if (result.samplePaths && result.samplePaths.length > 0) {
-      // Get extremes from the paths we're actually rendering (every 4th path)
-      const renderedPaths = result.samplePaths.filter((_, idx) => idx % 4 === 0);
-      const allPathValues: number[] = [];
-      
-      renderedPaths.forEach(path => {
-        path.forEach(point => {
-          allPathValues.push(point.equity);
-        });
-      });
-      
-      if (allPathValues.length > 0) {
-        pathMin = Math.min(pathMin, ...allPathValues);
-        pathMax = Math.max(pathMax, ...allPathValues);
-      }
-    }
+    // Don't iterate through all paths here - it can cause stack overflow
+    // The percentile bands already represent the distribution, and we'll clip paths anyway
     
     // Calculate Y-axis bounds using the most extreme values
     let yMin = Math.max(0, Math.min(pathMin, startEquity * 0.5) * 0.9);
