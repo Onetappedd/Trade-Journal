@@ -176,6 +176,11 @@ export async function GET(request: NextRequest) {
       totalRows,
       duration,
       timestamp: new Date().toISOString(),
+      debug: {
+        period1: period1.toISOString(),
+        period2: period2.toISOString(),
+        isBackfill
+      }
     });
   } catch (error: any) {
     console.error('[Benchmarks Cron] Fatal error:', error);
