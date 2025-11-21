@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Upload, Settings, TrendingUp, DollarSign, Target, Shield, History, PieChart, LineChart, MoreHorizontal, Plus, BarChart3 } from 'lucide-react'
 import { DashboardData, Trade, Position, Timeframe, CATEGORY_COLORS, fmtUSD, withSignUSD } from '@/types/dashboard'
-import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RPieChart, Pie, Cell, Area, AreaChart, Legend } from 'recharts'
+import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RPieChart, Pie, Cell, Area, Legend } from 'recharts'
 
 // ------------ Helpers ------------
 const fmtPct0 = (n: number | null | undefined) => {
