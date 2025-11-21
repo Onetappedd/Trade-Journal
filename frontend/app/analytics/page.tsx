@@ -570,7 +570,7 @@ export default function AnalyticsPage() {
                         // Add portfolio data
                         analytics.equityCurve.forEach(point => {
                           const dateKey = point.date.split('T')[0];
-                          const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                           const value = showPercentage 
                             ? ((point.value - initialValue) / initialValue) * 100 
                             : point.value;
@@ -588,7 +588,7 @@ export default function AnalyticsPage() {
                             if (existing) {
                               existing.spy = value;
                             } else {
-                              const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                               dataMap.set(dateKey, { date: point.date, dateLabel, spy: value });
                             }
                           });
@@ -605,13 +605,41 @@ export default function AnalyticsPage() {
                             if (existing) {
                               existing.qqq = value;
                             } else {
-                              const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                              const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                               dataMap.set(dateKey, { date: point.date, dateLabel, qqq: value });
                             }
                           });
                         }
                         
-                        return Array.from(dataMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                        // Sort data by date
+                        const sortedData = Array.from(dataMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                        
+                        // Detect gaps and insert null values to break the line
+                        // If there's more than 30 days between consecutive points, insert null to break the line
+                        const GAP_THRESHOLD_DAYS = 30;
+                        const dataWithGaps: Array<{ date: string; dateLabel: string; portfolio?: number | null; spy?: number | null; qqq?: number | null }> = [];
+                        
+                        for (let i = 0; i < sortedData.length; i++) {
+                          if (i > 0) {
+                            const prevDate = new Date(sortedData[i - 1].date);
+                            const currDate = new Date(sortedData[i].date);
+                            const daysDiff = Math.floor((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+                            
+                            if (daysDiff > GAP_THRESHOLD_DAYS) {
+                              // Insert a null point to break the line
+                              dataWithGaps.push({
+                                date: sortedData[i - 1].date,
+                                dateLabel: sortedData[i - 1].dateLabel,
+                                portfolio: null,
+                                spy: null,
+                                qqq: null,
+                              });
+                            }
+                          }
+                          dataWithGaps.push(sortedData[i]);
+                        }
+                        
+                        return dataWithGaps;
                       })()}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                         <XAxis 
@@ -637,6 +665,15 @@ export default function AnalyticsPage() {
                             color: '#f1f5f9'
                           }}
                           labelStyle={{ color: '#94a3b8' }}
+                          labelFormatter={(label, payload) => {
+                            // Use the payload to get the full date
+                            if (payload && payload.length > 0 && payload[0].payload?.date) {
+                              const date = new Date(payload[0].payload.date);
+                              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            }
+                            // Fallback to label if payload not available
+                            return label;
+                          }}
                           formatter={(value: number, name: string) => {
                             if (value === null || value === undefined) return null;
                             if (showPercentage) {
@@ -656,6 +693,7 @@ export default function AnalyticsPage() {
                           strokeWidth={2}
                           dot={false}
                           name="Portfolio"
+                          connectNulls={false}
                         />
                         {analytics.benchmarks?.spy && analytics.benchmarks.spy.length > 0 && (
                           <Line 
@@ -666,6 +704,7 @@ export default function AnalyticsPage() {
                             strokeDasharray="5 5"
                             dot={false}
                             name="SPY"
+                            connectNulls={false}
                           />
                         )}
                         {analytics.benchmarks?.qqq && analytics.benchmarks.qqq.length > 0 && (
@@ -677,6 +716,7 @@ export default function AnalyticsPage() {
                             strokeDasharray="5 5"
                             dot={false}
                             name="QQQ"
+                            connectNulls={false}
                           />
                         )}
                       </RechartsLineChart>
