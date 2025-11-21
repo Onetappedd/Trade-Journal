@@ -85,8 +85,10 @@ export default function CalendarPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setTrades(data.trades || [])
+        const result = await response.json()
+        // API returns { success: true, data: { items: [...], total: ... } }
+        const trades = result?.data?.items || result?.trades || []
+        setTrades(trades)
       } else {
         throw new Error('Failed to fetch trades')
       }

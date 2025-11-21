@@ -69,7 +69,7 @@ export default function DashboardClient({
 
   const router = useRouter()
   const [dashboardData, setDashboardData] = useState<DashboardData>(initialData)
-  const [timeframe, setTimeframe] = useState<Timeframe>('today')
+  const [timeframe, setTimeframe] = useState<Timeframe>('all')
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | null>(null)
   const [loading, setLoading] = useState(false) // for refetch or ws
 

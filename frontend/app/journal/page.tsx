@@ -84,11 +84,13 @@ export default function JournalPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setTrades(data.trades || [])
+        const result = await response.json()
+        // API returns { success: true, data: { items: [...], total: ... } }
+        const trades = result?.data?.items || result?.trades || []
+        setTrades(trades)
         
         // Convert trades to journal entries
-        const journalEntries = data.trades?.map(convertTradeToJournalEntry) || []
+        const journalEntries = trades.map(convertTradeToJournalEntry)
         setEntries(journalEntries)
       } else {
         throw new Error('Failed to fetch trades')
