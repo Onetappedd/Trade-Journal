@@ -56,6 +56,11 @@ interface Trade {
   row_hash?: string;
   created_at?: string;
   updated_at?: string;
+  // Option-specific fields
+  underlying_symbol?: string;
+  option_expiration?: string;
+  option_strike?: number;
+  option_type?: string;
 }
 
 interface Position {
