@@ -32,12 +32,12 @@ export default async function DashboardPage() {
   )
 
   // Fetch manual trade data from database
-  // Note: Using entry_date, entry_price, quantity columns that match our import schema
+  // Note: Matching engine uses opened_at, avg_open_price, qty_opened, realized_pnl, instrument_type
   const { data: trades, error: tradesError } = await supabase
     .from('trades')
     .select('*')
     .eq('user_id', user.id)
-    .order('entry_date', { ascending: false, nullsFirst: false })
+    .order('opened_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(1000) // Increase limit to show more trades
 
@@ -66,19 +66,28 @@ export default async function DashboardPage() {
   // Calculate manual trade metrics
   // Handle null/undefined values safely
   const dayPnL = trades?.filter(t => {
-    const tradeDate = t.entry_date ? new Date(t.entry_date) : (t.created_at ? new Date(t.created_at) : null)
+    const tradeDate = t.opened_at ? new Date(t.opened_at) : (t.created_at ? new Date(t.created_at) : null)
     if (!tradeDate) return false
     const today = new Date()
     return tradeDate.toDateString() === today.toDateString()
   }).reduce((sum, t) => {
-    const pnl = t.pnl ?? t.realized_pnl ?? 0
+    // Handle both string and number types (PostgreSQL NUMERIC returns as string in JSON)
+    const pnl = typeof (t.realized_pnl ?? t.pnl) === 'string' 
+      ? parseFloat(t.realized_pnl ?? t.pnl ?? '0') 
+      : (t.realized_pnl ?? t.pnl ?? 0)
     return sum + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
   }, 0) || 0
 
   const manualPortfolioValue = trades?.reduce((sum, t) => {
     // Handle both string and number types (PostgreSQL NUMERIC returns as string in JSON)
-    const price = typeof t.entry_price === 'string' ? parseFloat(t.entry_price) : (t.entry_price ?? 0)
-    const qty = typeof t.quantity === 'string' ? parseFloat(t.quantity) : (t.quantity ?? 0)
+    // Use avg_open_price (matching engine) or fallback to entry_price/price
+    const price = typeof (t.avg_open_price ?? t.entry_price ?? t.price) === 'string' 
+      ? parseFloat(t.avg_open_price ?? t.entry_price ?? t.price ?? '0') 
+      : (t.avg_open_price ?? t.entry_price ?? t.price ?? 0)
+    // Use qty_opened (matching engine) or fallback to quantity
+    const qty = typeof (t.qty_opened ?? t.quantity) === 'string' 
+      ? parseFloat(t.qty_opened ?? t.quantity ?? '0') 
+      : (t.qty_opened ?? t.quantity ?? 0)
     if (typeof price === 'number' && typeof qty === 'number' && !isNaN(price) && !isNaN(qty)) {
       return sum + (price * qty)
     }
@@ -91,13 +100,21 @@ export default async function DashboardPage() {
 
   // Transform trades to match DashboardData Trade type
   // Map database fields to Trade interface (price, quantity, pnl, openedAt, closedAt)
+  // Handle both matching engine schema (opened_at, avg_open_price, qty_opened, realized_pnl) 
+  // and legacy schema (entry_date, entry_price, quantity, pnl)
   const transformedTrades = (trades || []).map((t: any) => ({
     id: t.id,
-    symbol: t.symbol,
-    side: t.side as 'buy' | 'sell',
-    quantity: typeof t.quantity === 'string' ? parseFloat(t.quantity) : (t.quantity ?? 0),
-    price: typeof t.entry_price === 'string' ? parseFloat(t.entry_price) : (t.entry_price ?? t.price ?? 0),
-    pnl: typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? t.realized_pnl ?? 0),
+    symbol: t.symbol || 'UNKNOWN',
+    side: (t.side || 'buy') as 'buy' | 'sell',
+    quantity: typeof (t.qty_opened ?? t.quantity) === 'string' 
+      ? parseFloat(t.qty_opened ?? t.quantity ?? '0') 
+      : (t.qty_opened ?? t.quantity ?? 0),
+    price: typeof (t.avg_open_price ?? t.entry_price ?? t.price) === 'string' 
+      ? parseFloat(t.avg_open_price ?? t.entry_price ?? t.price ?? '0') 
+      : (t.avg_open_price ?? t.entry_price ?? t.price ?? 0),
+    pnl: typeof (t.realized_pnl ?? t.pnl) === 'string' 
+      ? parseFloat(t.realized_pnl ?? t.pnl ?? '0') 
+      : (t.realized_pnl ?? t.pnl ?? 0),
     openedAt: t.opened_at ?? t.executed_at ?? t.entry_date ?? new Date().toISOString(),
     closedAt: t.closed_at ?? t.exit_date ?? null,
     strategy: t.strategy ?? null,

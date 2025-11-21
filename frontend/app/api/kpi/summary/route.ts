@@ -93,27 +93,19 @@ async function getKPISummary(
   const dateRange = getDateRange(filters.period);
   
   // Build query for trades
+  // Use matching engine schema: opened_at, avg_open_price, qty_opened, realized_pnl, instrument_type
+  // Also support legacy schema: entry_date, entry_price, quantity, pnl, asset_type
   let query = supabase
     .from('trades')
-    .select(`
-      id,
-      symbol,
-      side,
-      quantity,
-      price,
-      pnl,
-      opened_at,
-      closed_at,
-      asset_type,
-      status
-    `)
+    .select('*') // Select all columns to handle both schemas
     .eq('user_id', userId)
     .gte('opened_at', dateRange.start)
     .lte('opened_at', dateRange.end);
 
   // Apply filters
   if (filters.assetType !== 'all') {
-    query = query.eq('asset_type', filters.assetType);
+    // Handle both instrument_type (matching engine) and asset_type (legacy)
+    query = query.or(`instrument_type.eq.${filters.assetType},asset_type.eq.${filters.assetType}`);
   }
   
   if (filters.symbol) {
@@ -132,8 +124,26 @@ async function getKPISummary(
     return getEmptyKPISummary(dateRange);
   }
 
+  // Transform trades to normalize column names (handle both schemas)
+  const normalizedTrades = trades.map((t: any) => ({
+    ...t,
+    quantity: typeof (t.qty_opened ?? t.quantity) === 'string' 
+      ? parseFloat(t.qty_opened ?? t.quantity ?? '0') 
+      : (t.qty_opened ?? t.quantity ?? 0),
+    price: typeof (t.avg_open_price ?? t.entry_price ?? t.price) === 'string' 
+      ? parseFloat(t.avg_open_price ?? t.entry_price ?? t.price ?? '0') 
+      : (t.avg_open_price ?? t.entry_price ?? t.price ?? 0),
+    pnl: typeof (t.realized_pnl ?? t.pnl) === 'string' 
+      ? parseFloat(t.realized_pnl ?? t.pnl ?? '0') 
+      : (t.realized_pnl ?? t.pnl ?? 0),
+    asset_type: t.instrument_type ?? t.asset_type ?? 'equity',
+    opened_at: t.opened_at ?? t.entry_date ?? t.executed_at ?? new Date().toISOString(),
+    closed_at: t.closed_at ?? t.exit_date ?? null,
+    status: t.status || (t.closed_at ? 'closed' : 'open'),
+  }));
+
   // Calculate KPIs server-side
-  const kpis = calculateKPIs(trades);
+  const kpis = calculateKPIs(normalizedTrades);
 
   return {
     totalPnl: kpis.totalPnl,

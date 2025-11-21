@@ -44,11 +44,13 @@ export async function GET(request: NextRequest) {
     const timeframe = searchParams.get('timeframe') || '3M';
 
     // 1. Fetch manually imported trades
+    // Use opened_at (matching engine) or fallback to created_at
     const { data: manualTrades, error: tradesError } = await supabase
       .from('trades')
       .select('*')
       .eq('user_id', user.id)
-      .order('executed_at', { ascending: false });
+      .order('opened_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false });
 
     if (tradesError) {
       console.error('Error fetching manual trades:', tradesError);
@@ -122,7 +124,18 @@ export async function GET(request: NextRequest) {
     };
 
     if (hasManualData && manualTrades) {
-      const closedTrades = manualTrades.filter(t => t.status === 'closed');
+      // Normalize trades to handle both matching engine schema and legacy schema
+      const normalizedTrades = manualTrades.map((t: any) => ({
+        ...t,
+        pnl: typeof (t.realized_pnl ?? t.pnl) === 'string' 
+          ? parseFloat(t.realized_pnl ?? t.pnl ?? '0') 
+          : (t.realized_pnl ?? t.pnl ?? 0),
+        executed_at: t.opened_at ?? t.executed_at ?? t.entry_date ?? t.created_at,
+        closed_at: t.closed_at ?? t.exit_date ?? null,
+        status: t.status || (t.closed_at ? 'closed' : 'open'),
+      }));
+
+      const closedTrades = normalizedTrades.filter(t => t.status === 'closed');
       manualMetrics.totalTrades = closedTrades.length;
 
       const pnlValues = closedTrades.map(t => t.pnl || 0);
@@ -150,18 +163,21 @@ export async function GET(request: NextRequest) {
 
       // Build equity curve from cumulative realized P&L
       const startingCapital = 10000; // Default starting capital
-      const sortedTrades = [...closedTrades].sort((a, b) => 
-        new Date(a.executed_at || a.closed_at).getTime() - new Date(b.executed_at || b.closed_at).getTime()
-      );
+      const sortedTrades = [...closedTrades].sort((a, b) => {
+        const dateA = a.closed_at || a.executed_at || a.opened_at || a.created_at;
+        const dateB = b.closed_at || b.executed_at || b.opened_at || b.created_at;
+        return new Date(dateA).getTime() - new Date(dateB).getTime();
+      });
       
       let cumPnL = 0;
+      const firstTradeDate = sortedTrades[0]?.closed_at || sortedTrades[0]?.executed_at || sortedTrades[0]?.opened_at || sortedTrades[0]?.created_at;
       const equityCurve: Array<{ date: string; value: number }> = [
-        { date: sortedTrades[0]?.executed_at || sortedTrades[0]?.closed_at, value: startingCapital }
+        { date: firstTradeDate, value: startingCapital }
       ];
       
       sortedTrades.forEach(trade => {
         cumPnL += trade.pnl || 0;
-        const tradeDate = trade.executed_at || trade.closed_at;
+        const tradeDate = trade.closed_at || trade.executed_at || trade.opened_at || trade.created_at;
         if (tradeDate) {
           equityCurve.push({
             date: tradeDate,
@@ -198,7 +214,8 @@ export async function GET(request: NextRequest) {
       // Calculate monthly returns
       const monthlyMap: { [key: string]: { pnl: number; trades: number } } = {};
       closedTrades.forEach(trade => {
-        const date = new Date(trade.executed_at);
+        const tradeDate = trade.closed_at || trade.executed_at || trade.opened_at || trade.created_at;
+        const date = new Date(tradeDate);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         
         if (!monthlyMap[monthKey]) {
