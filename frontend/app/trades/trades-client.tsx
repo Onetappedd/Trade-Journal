@@ -63,11 +63,16 @@ export default function TradesClient() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setTrades(data.trades || []);
-        setFilteredTrades(data.trades || []);
+        const result = await response.json();
+        // API returns { success: true, data: { items: [...], total: ... } }
+        const trades = result?.data?.items || result?.trades || [];
+        console.log(`[Trades Client] Fetched ${trades.length} trades`);
+        setTrades(trades);
+        setFilteredTrades(trades);
       } else {
-        console.error('Failed to fetch trades');
+        console.error('Failed to fetch trades:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
       }
     } catch (error) {
       console.error('Error fetching trades:', error);
