@@ -150,11 +150,14 @@ export default function AnalyticsPage() {
     
     try {
       // Use the new combined analytics endpoint with selected data source
-      const response = await fetch(`/api/analytics/combined?source=${dataSource}&timeframe=${filters.timeframe}`, {
+      // Add cache-busting timestamp to ensure fresh data
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/analytics/combined?source=${dataSource}&timeframe=${filters.timeframe}&_t=${timestamp}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
+        cache: 'no-store', // Ensure no caching
       })
       
       if (!response.ok) {

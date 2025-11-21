@@ -257,6 +257,7 @@ export default function MonteCarloSimulator() {
   const actualStartEquity = stats?.startEquity || 10000;
 
   // Calculate Y-axis domain based on true extremes with soft cap
+  // Include both percentile bands AND actual path extremes
   let yAxisDomain: [number, number] | undefined = undefined;
   let isCapped = false;
 
@@ -268,9 +269,30 @@ export default function MonteCarloSimulator() {
     const minBand = Math.min(...summary.map(p => p.p10));
     const maxBand = Math.max(...summary.map(p => p.p90));
     
-    // Calculate Y-axis bounds
-    let yMin = Math.max(0, Math.min(minBand, startEquity * 0.5) * 0.9);
-    let yMax = maxBand * 1.1;
+    // Also check actual path extremes (from the 1/4 of paths we're showing)
+    let pathMin = minBand;
+    let pathMax = maxBand;
+    
+    if (result.samplePaths && result.samplePaths.length > 0) {
+      // Get extremes from the paths we're actually rendering (every 4th path)
+      const renderedPaths = result.samplePaths.filter((_, idx) => idx % 4 === 0);
+      const allPathValues: number[] = [];
+      
+      renderedPaths.forEach(path => {
+        path.forEach(point => {
+          allPathValues.push(point.equity);
+        });
+      });
+      
+      if (allPathValues.length > 0) {
+        pathMin = Math.min(pathMin, ...allPathValues);
+        pathMax = Math.max(pathMax, ...allPathValues);
+      }
+    }
+    
+    // Calculate Y-axis bounds using the most extreme values
+    let yMin = Math.max(0, Math.min(pathMin, startEquity * 0.5) * 0.9);
+    let yMax = pathMax * 1.1;
     
     // Apply soft cap at 5x starting equity
     const maxMultiple = 5;
@@ -317,7 +339,11 @@ export default function MonteCarloSimulator() {
   }) || [];
 
   // Merge only 1/4 of paths into chart data for visualization (to reduce clutter)
-  // Transform to percentage if needed
+  // Transform to percentage if needed, and clip values that exceed the cap
+  const maxMultiple = 5;
+  const dollarCap = actualStartEquity * maxMultiple;
+  const percentCap = 400; // 4x = 400%
+  
   const mergedChartDataWithPaths = chartData.map((point, idx) => {
     const merged: any = { ...point };
     
@@ -325,9 +351,18 @@ export default function MonteCarloSimulator() {
     result?.samplePaths.forEach((path, pathIdx) => {
       // Show only every 4th path (1/4 of total paths)
       if (pathIdx % 4 === 0 && path[idx]) {
-        const pathValue = showPercentage 
-          ? calculatePercentChange(path[idx].equity, actualStartEquity)
-          : path[idx].equity;
+        let pathValue: number;
+        
+        if (showPercentage) {
+          pathValue = calculatePercentChange(path[idx].equity, actualStartEquity);
+          // Clip to -100% to +400%
+          pathValue = Math.max(-100, Math.min(percentCap, pathValue));
+        } else {
+          pathValue = path[idx].equity;
+          // Clip to 0 to 5x starting equity
+          pathValue = Math.max(0, Math.min(dollarCap, pathValue));
+        }
+        
         merged[`path${pathIdx}`] = pathValue;
       }
     });
