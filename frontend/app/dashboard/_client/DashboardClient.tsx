@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Upload, Settings, TrendingUp, DollarSign, Target, Shield, History, PieChart, LineChart, MoreHorizontal, Plus, BarChart3 } from 'lucide-react'
 import { DashboardData, Trade, Position, Timeframe, CATEGORY_COLORS, fmtUSD, withSignUSD } from '@/types/dashboard'
-import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RPieChart, Pie, Cell } from 'recharts'
+import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RPieChart, Pie, Cell, Area, AreaChart, Legend } from 'recharts'
 
 // ------------ Helpers ------------
 const fmtPct0 = (n: number | null | undefined) => {
@@ -98,42 +98,33 @@ export default function DashboardClient({
     })
   }, [dashboardData?.trades, fromDate, toDate])
 
-  const todayPnL = useMemo(() => {
-    const start = new Date(); start.setHours(0, 0, 0, 0)
-    const end = endOfDay(new Date())
-    return (dashboardData?.trades ?? [])
-      .filter(t => inRange(new Date(t.closedAt ?? t.openedAt ?? Date.now()), start, end))
-      .reduce((a, t) => {
-        const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
-        return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
-      }, 0)
-  }, [dashboardData?.trades])
+  // Calculate P&L based on filtered trades (respects timeframe)
+  const periodPnL = useMemo(() => {
+    return filteredTrades.reduce((a, t) => {
+      const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
+      return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
+    }, 0)
+  }, [filteredTrades])
 
-  const wtdPnL = useMemo(() => {
-    const start = startOfWeek()
-    return (dashboardData?.trades ?? [])
-      .filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= start)
-      .reduce((a, t) => {
-        const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
-        return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
-      }, 0)
-  }, [dashboardData?.trades])
+  // Calculate portfolio value from filtered trades
+  const periodPortfolioValue = useMemo(() => {
+    return filteredTrades.reduce((sum, t) => {
+      const price = typeof t.price === 'string' ? parseFloat(t.price) : (t.price ?? 0)
+      const qty = typeof t.quantity === 'string' ? parseFloat(t.quantity) : (t.quantity ?? 0)
+      return sum + (price * qty)
+    }, 0)
+  }, [filteredTrades])
 
-  const mtdPnL = useMemo(() => {
-    const start = startOfMonth()
-    return (dashboardData?.trades ?? [])
-      .filter(t => new Date(t.closedAt ?? t.openedAt ?? Date.now()) >= start)
-      .reduce((a, t) => {
-        const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
-        return a + (typeof pnl === 'number' && !isNaN(pnl) ? pnl : 0)
-      }, 0)
-  }, [dashboardData?.trades])
-
-  const winRate20 = useMemo(() => {
-    const last20 = (dashboardData?.trades ?? []).slice(-20)
-    if (!last20.length) return 0
-    return last20.filter(t => (t.pnl ?? 0) > 0).length / last20.length
-  }, [dashboardData?.trades])
+  // Calculate win rate from filtered closed trades
+  const periodWinRate = useMemo(() => {
+    const closedTrades = filteredTrades.filter(t => t.closedAt && t.pnl !== null && t.pnl !== undefined)
+    if (closedTrades.length === 0) return 0
+    const winningTrades = closedTrades.filter(t => {
+      const pnl = typeof t.pnl === 'string' ? parseFloat(t.pnl) : (t.pnl ?? 0)
+      return pnl > 0
+    })
+    return winningTrades.length / closedTrades.length
+  }, [filteredTrades])
 
   // Calculate risk metrics from filtered trades
   const riskMetrics = useMemo(() => {
@@ -208,7 +199,12 @@ export default function DashboardClient({
       }
       return [...map.values()].sort((a, b) => a.dateLabel.localeCompare(b.dateLabel))
     }
-    return mergeDailySeries(filteredTrades)
+    const data = mergeDailySeries(filteredTrades)
+    // Format dates better for display
+    return data.map(d => ({
+      ...d,
+      dateLabel: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }))
   }, [dashboardData?.dailyPnlSeries, dashboardData?.cumPnlSeries, filteredTrades])
 
   const allocation = useMemo(() => {
@@ -312,12 +308,18 @@ export default function DashboardClient({
           <>
             {/* KPI Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <Card data-testid="kpi-day-pnl" className="bg-slate-900 border-slate-800">
+              <Card data-testid="kpi-period-pnl" className="bg-slate-900 border-slate-800">
                 <CardContent className="p-5 min-h-[110px]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-400 text-sm">Today's P&L</p>
-                      <p className={`text-2xl font-bold ${todayPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(todayPnL)}</p>
+                      <p className="text-slate-400 text-sm">
+                        {timeframe === 'today' ? "Today's P&L" : 
+                         timeframe === 'wtd' ? "WTD P&L" :
+                         timeframe === 'mtd' ? "MTD P&L" :
+                         timeframe === 'ytd' ? "YTD P&L" :
+                         "Total P&L"}
+                      </p>
+                      <p className={`text-2xl font-bold ${periodPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(periodPnL)}</p>
                     </div>
                     <div className="h-10 w-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
                       <TrendingUp className="h-5 w-5 text-emerald-400" />
@@ -331,7 +333,7 @@ export default function DashboardClient({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-slate-400 text-sm">Portfolio Value</p>
-                      <p className="text-2xl font-bold text-white">{fmtUSD(dashboardData.portfolioValue)}</p>
+                      <p className="text-2xl font-bold text-white">{fmtUSD(periodPortfolioValue || dashboardData.portfolioValue)}</p>
                     </div>
                     <div className="h-10 w-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
                       <DollarSign className="h-5 w-5 text-blue-400" />
@@ -340,29 +342,29 @@ export default function DashboardClient({
                 </CardContent>
               </Card>
 
-              <Card data-testid="kpi-mtd" className="bg-slate-900 border-slate-800">
+              <Card data-testid="kpi-winrate" className="bg-slate-900 border-slate-800">
                 <CardContent className="p-5 min-h-[110px]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-400 text-sm">MTD P&L</p>
-                      <p className={`text-2xl font-bold ${mtdPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{withSignUSD(mtdPnL)}</p>
+                      <p className="text-slate-400 text-sm">Win Rate</p>
+                      <p className="text-2xl font-bold text-white">{fmtPct0(periodWinRate)}</p>
                     </div>
-                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Target className="h-5 w-5 text-orange-400" />
+                    <div className="h-10 w-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <Target className="h-5 w-5 text-purple-400" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card data-testid="kpi-winrate20" className="bg-slate-900 border-slate-800">
+              <Card data-testid="kpi-total-trades" className="bg-slate-900 border-slate-800">
                 <CardContent className="p-5 min-h-[110px]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-slate-400 text-sm">Win Rate (last 20)</p>
-                      <p className="text-2xl font-bold text-white">{fmtPct0(winRate20)}</p>
+                      <p className="text-slate-400 text-sm">Total Trades</p>
+                      <p className="text-2xl font-bold text-white">{filteredTrades.length}</p>
                     </div>
-                    <div className="h-10 w-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-purple-400" />
+                    <div className="h-10 w-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                      <Shield className="h-5 w-5 text-orange-400" />
                     </div>
                   </div>
                 </CardContent>
@@ -378,16 +380,80 @@ export default function DashboardClient({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div data-testid="chart-portfolio" className="h-72">
-                    <ResponsiveContainer>
-                      <ComposedChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="dateLabel" />
-                        <YAxis yAxisId="left" />
-                        <YAxis yAxisId="right" orientation="right" />
-                        <Tooltip />
-                        <Bar yAxisId="left" dataKey="daily" />
-                        <Line yAxisId="right" type="monotone" dataKey="cum" dot={false} />
+                  <div data-testid="chart-portfolio" className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorCum" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorDaily" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        <XAxis 
+                          dataKey="dateLabel" 
+                          stroke="#94a3b8"
+                          style={{ fontSize: '12px' }}
+                          tick={{ fill: '#94a3b8' }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                        />
+                        <YAxis 
+                          yAxisId="left"
+                          stroke="#94a3b8"
+                          style={{ fontSize: '12px' }}
+                          tick={{ fill: '#94a3b8' }}
+                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                        />
+                        <YAxis 
+                          yAxisId="right" 
+                          orientation="right"
+                          stroke="#94a3b8"
+                          style={{ fontSize: '12px' }}
+                          tick={{ fill: '#94a3b8' }}
+                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#1e293b', 
+                            border: '1px solid #334155',
+                            borderRadius: '8px',
+                            color: '#f1f5f9',
+                            padding: '12px'
+                          }}
+                          labelStyle={{ color: '#94a3b8', marginBottom: '8px' }}
+                          formatter={(value: number, name: string) => {
+                            if (name === 'cum') return [`$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Cumulative P&L']
+                            if (name === 'daily') return [`$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Daily P&L']
+                            return value
+                          }}
+                        />
+                        <Legend 
+                          wrapperStyle={{ color: '#94a3b8', fontSize: '12px', paddingTop: '20px' }}
+                          iconType="line"
+                        />
+                        <Area
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="cum"
+                          stroke="#10b981"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#colorCum)"
+                          name="Cumulative P&L"
+                        />
+                        <Bar 
+                          yAxisId="left" 
+                          dataKey="daily" 
+                          fill="url(#colorDaily)"
+                          radius={[4, 4, 0, 0]}
+                          name="Daily P&L"
+                        />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
