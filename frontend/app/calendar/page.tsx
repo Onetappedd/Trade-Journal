@@ -60,13 +60,26 @@ export default function CalendarPage() {
 
   // Convert TradeRow to calendar format
   const convertTradeToCalendarFormat = (trade: TradeRow) => {
-    const openedAt = new Date(trade.opened_at)
-    const date = openedAt.toISOString().split("T")[0]
+    // For closed trades, use closed_at (when P&L was realized)
+    // For open trades, use opened_at (but they won't have realized_pnl)
+    const tradeDate = trade.closed_at || trade.opened_at
+    const dateObj = new Date(tradeDate)
+    const date = dateObj.toISOString().split("T")[0]
+    
+    // Handle realized_pnl: can be number, string (from PostgreSQL NUMERIC), null, or undefined
+    let pnl = 0
+    if (trade.realized_pnl !== null && trade.realized_pnl !== undefined) {
+      if (typeof trade.realized_pnl === 'string') {
+        pnl = parseFloat(trade.realized_pnl) || 0
+      } else if (typeof trade.realized_pnl === 'number') {
+        pnl = trade.realized_pnl
+      }
+    }
     
     return {
       date,
       symbol: trade.symbol,
-      pnl: trade.realized_pnl || 0,
+      pnl,
       side: trade.qty_opened > 0 ? "BUY" : "SELL"
     }
   }
@@ -183,15 +196,34 @@ export default function CalendarPage() {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
   }
 
-  const getPnLColor = (pnl: number) => {
-    if (pnl === 0) return "bg-slate-700"
+  const getPnLColor = (pnl: number, hasTrades: boolean) => {
+    // If no trades for this day, show gray
+    if (!hasTrades) return "bg-slate-700"
+    
+    // If P&L is exactly 0 but there are trades, show a neutral color
+    if (pnl === 0) return "bg-slate-600"
 
-    const intensity = Math.min(Math.abs(pnl) / 2000, 1) // Max intensity at $2000
+    // Calculate intensity with a minimum opacity to ensure visibility
+    // Scale: $0-$500 = 30-60% opacity, $500-$2000 = 60-100% opacity
+    const absPnL = Math.abs(pnl)
+    let intensity: number
+    
+    if (absPnL <= 500) {
+      // Small P&L: 30% to 60% opacity
+      intensity = 0.3 + (absPnL / 500) * 0.3
+    } else {
+      // Larger P&L: 60% to 100% opacity
+      intensity = 0.6 + Math.min((absPnL - 500) / 2000, 1) * 0.4
+    }
+    
+    // Ensure minimum 30% opacity for visibility
+    intensity = Math.max(intensity, 0.3)
+    const opacity = Math.round(intensity * 100)
 
     if (pnl > 0) {
-      return `bg-emerald-500/${Math.round(intensity * 100)}`
+      return `bg-emerald-500/${opacity}`
     } else {
-      return `bg-red-500/${Math.round(intensity * 100)}`
+      return `bg-red-500/${opacity}`
     }
   }
 
@@ -234,13 +266,14 @@ export default function CalendarPage() {
           }
 
           const dateKey = formatDateKey(currentDate.getFullYear(), currentDate.getMonth(), day)
-          const dayPnL = dailyPnL[dateKey] || 0
+          const dayPnL = dailyPnL[dateKey] ?? 0
           const dayTrades = tradesByDate[dateKey] || []
+          const hasTrades = dayTrades.length > 0
 
           return (
             <div
               key={day}
-              className={`aspect-square border border-slate-700/50 rounded-lg p-1 sm:p-2 cursor-pointer transition-all hover:border-slate-600 relative ${getPnLColor(dayPnL)}`}
+              className={`aspect-square border border-slate-700/50 rounded-lg p-1 sm:p-2 cursor-pointer transition-all hover:border-slate-600 relative ${getPnLColor(dayPnL, hasTrades)}`}
               onMouseEnter={() => setHoveredDay(dateKey)}
               onMouseLeave={() => setHoveredDay(null)}
             >
@@ -291,8 +324,9 @@ export default function CalendarPage() {
       <div className="grid grid-cols-7 gap-2 sm:gap-4">
         {weekDays.map((day, index) => {
           const dateKey = formatDateKey(day.getFullYear(), day.getMonth(), day.getDate())
-          const dayPnL = dailyPnL[dateKey] || 0
+          const dayPnL = dailyPnL[dateKey] ?? 0
           const dayTrades = tradesByDate[dateKey] || []
+          const hasTrades = dayTrades.length > 0
 
           return (
             <div key={index} className="space-y-2">
@@ -302,7 +336,7 @@ export default function CalendarPage() {
               </div>
 
               <Card
-                className={`bg-slate-900/50 border-slate-800/50 min-h-32 cursor-pointer transition-all hover:border-slate-600 ${getPnLColor(dayPnL)}`}
+                className={`bg-slate-900/50 border-slate-800/50 min-h-32 cursor-pointer transition-all hover:border-slate-600 ${getPnLColor(dayPnL, hasTrades)}`}
                 onMouseEnter={() => setHoveredDay(dateKey)}
                 onMouseLeave={() => setHoveredDay(null)}
               >
