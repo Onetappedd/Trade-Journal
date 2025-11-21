@@ -699,6 +699,10 @@ export default function AnalyticsPage() {
                           stroke="#94a3b8"
                           style={{ fontSize: '12px' }}
                           tick={{ fill: '#94a3b8' }}
+                          padding={{ left: 10, right: 10 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
                         />
                         <YAxis 
                           stroke="#94a3b8"
@@ -708,6 +712,8 @@ export default function AnalyticsPage() {
                             ? `${value.toFixed(1)}%` 
                             : `$${value.toLocaleString()}`
                           }
+                          padding={{ top: 10, bottom: 10 }}
+                          width={80}
                         />
                         <Tooltip 
                           contentStyle={{ 
@@ -754,7 +760,7 @@ export default function AnalyticsPage() {
                         />
                         {analytics.benchmarks?.spy && analytics.benchmarks.spy.length > 0 && (
                           <Line 
-                            type="monotone" 
+                            type="linear" 
                             dataKey="spy" 
                             stroke="#3b82f6" 
                             strokeWidth={2}
@@ -765,7 +771,7 @@ export default function AnalyticsPage() {
                         )}
                         {analytics.benchmarks?.qqq && analytics.benchmarks.qqq.length > 0 && (
                           <Line 
-                            type="monotone" 
+                            type="linear" 
                             dataKey="qqq" 
                             stroke="#8b5cf6" 
                             strokeWidth={2}

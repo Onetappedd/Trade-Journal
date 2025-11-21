@@ -424,29 +424,38 @@ export async function GET(request: NextRequest) {
               priceMap.set(rowDate, adjClose * scaleFactor);
             }
 
-            // Match portfolio dates with benchmark prices
+            // Create continuous benchmark series from startDate to today (not just portfolio dates)
             const normalized: Array<{ date: string; value: number }> = [];
-            for (const portfolioPoint of manualMetrics.equityCurve) {
-              const portfolioDate = portfolioPoint.date.split('T')[0];
-
-              // Find the closest benchmark price (use previous day's price if exact match not found)
-              let benchmarkPrice: number | null = null;
-              for (let offset = 0; offset < 5; offset++) {
-                const checkDate = new Date(portfolioDate);
-                checkDate.setDate(checkDate.getDate() - offset);
-                const checkDateStr = checkDate.toISOString().split('T')[0];
-                if (priceMap.has(checkDateStr)) {
-                  benchmarkPrice = priceMap.get(checkDateStr)!;
-                  break;
-                }
-              }
-
-              if (benchmarkPrice !== null) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const endDate = today.toISOString().split('T')[0];
+            
+            // Start from the first benchmark date (or portfolio start date, whichever is later)
+            const benchmarkStartDate = rows[firstIndex]?.date || startDate;
+            const currentDate = new Date(benchmarkStartDate);
+            let lastKnownPrice: number | null = null;
+            
+            // Iterate through all dates from start to today
+            while (currentDate <= today) {
+              const dateStr = currentDate.toISOString().split('T')[0];
+              
+              // Check if we have a price for this date
+              if (priceMap.has(dateStr)) {
+                lastKnownPrice = priceMap.get(dateStr)!;
                 normalized.push({
-                  date: portfolioPoint.date,
-                  value: benchmarkPrice,
+                  date: dateStr,
+                  value: lastKnownPrice,
+                });
+              } else if (lastKnownPrice !== null) {
+                // If no price for this date but we have a previous price, use the last known price (flat line)
+                normalized.push({
+                  date: dateStr,
+                  value: lastKnownPrice,
                 });
               }
+              
+              // Move to next day
+              currentDate.setDate(currentDate.getDate() + 1);
             }
 
             return normalized;

@@ -187,10 +187,12 @@ export default function MonteCarloSimulator() {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
 
-  // Calculate percentage change
+  // Calculate percentage change (capped at -100% minimum since you can't lose more than 100%)
   const calculatePercentChange = (current: number, start: number) => {
     if (start === 0) return 0;
-    return ((current - start) / start) * 100;
+    const percent = ((current - start) / start) * 100;
+    // Cap at -100% minimum (you can't lose more than 100% of your investment)
+    return Math.max(percent, -100);
   };
 
   if (!isExpanded) {
@@ -259,14 +261,15 @@ export default function MonteCarloSimulator() {
     }
   }) || [];
 
-  // Merge all paths into chart data for visualization
+  // Merge only 1/4 of paths into chart data for visualization (to reduce clutter)
   // Transform to percentage if needed
   const mergedChartDataWithPaths = chartData.map((point, idx) => {
     const merged: any = { ...point };
     
-    // Add all path values at this trade index
+    // Add only 1/4 of path values (every 4th path) to reduce clutter
     result?.samplePaths.forEach((path, pathIdx) => {
-      if (path[idx]) {
+      // Show only every 4th path (1/4 of total paths)
+      if (pathIdx % 4 === 0 && path[idx]) {
         const pathValue = showPercentage 
           ? calculatePercentChange(path[idx].equity, actualStartEquity)
           : path[idx].equity;
@@ -345,7 +348,14 @@ export default function MonteCarloSimulator() {
                     stroke="#94a3b8"
                     style={{ fontSize: '12px' }}
                     tick={{ fill: '#94a3b8' }}
-                    label={{ value: 'Trade Number', position: 'insideBottom', offset: -5, fill: '#94a3b8' }}
+                    label={{ 
+                      value: 'Trade Number', 
+                      position: 'insideBottom', 
+                      offset: -10, 
+                      fill: '#94a3b8',
+                      style: { textAnchor: 'middle' }
+                    }}
+                    padding={{ left: 10, right: 10 }}
                   />
                   <YAxis
                     stroke="#94a3b8"
@@ -359,8 +369,11 @@ export default function MonteCarloSimulator() {
                       value: showPercentage ? 'Equity (%)' : 'Equity ($)', 
                       angle: -90, 
                       position: 'insideLeft', 
-                      fill: '#94a3b8' 
+                      offset: 10,
+                      fill: '#94a3b8',
+                      style: { textAnchor: 'middle' }
                     }}
+                    padding={{ top: 10, bottom: 10 }}
                   />
                   <Tooltip
                     contentStyle={{
@@ -449,21 +462,25 @@ export default function MonteCarloSimulator() {
                     name="Median (50th percentile)"
                   />
                   
-                  {/* All wealth paths - rendered with very low opacity to form a "cloud" effect */}
-                  {result?.samplePaths.map((_, idx) => (
-                    <Line
-                      key={`allpath${idx}`}
-                      type="monotone"
-                      dataKey={`path${idx}`}
-                      stroke="#64748b"
-                      strokeWidth={0.5}
-                      dot={false}
-                      isAnimationActive={false} // Disable animation for performance with many paths
-                      connectNulls={false}
-                      strokeOpacity={0.08} // Very low opacity so paths form a cloud
-                      name="" // Empty name to prevent it from showing in legend
-                    />
-                  ))}
+                  {/* Show only 1/4 of wealth paths (every 4th path) to reduce clutter */}
+                  {result?.samplePaths.map((_, idx) => {
+                    // Only render every 4th path (1/4 of total)
+                    if (idx % 4 !== 0) return null;
+                    return (
+                      <Line
+                        key={`allpath${idx}`}
+                        type="monotone"
+                        dataKey={`path${idx}`}
+                        stroke="#64748b"
+                        strokeWidth={0.5}
+                        dot={false}
+                        isAnimationActive={false} // Disable animation for performance
+                        connectNulls={false}
+                        strokeOpacity={0.15} // Slightly higher opacity since we're showing fewer paths
+                        name="" // Empty name to prevent it from showing in legend
+                      />
+                    );
+                  })}
                 </LineChart>
               </ResponsiveContainer>
             </div>
