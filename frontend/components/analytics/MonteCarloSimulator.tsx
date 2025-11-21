@@ -256,6 +256,43 @@ export default function MonteCarloSimulator() {
   // Get the actual starting equity from stats (used for percentage calculations)
   const actualStartEquity = stats?.startEquity || 10000;
 
+  // Calculate Y-axis domain based on true extremes with soft cap
+  let yAxisDomain: [number, number] | undefined = undefined;
+  let isCapped = false;
+
+  if (result && result.summary.length > 0) {
+    const summary = result.summary;
+    const startEquity = summary[0]?.p50 ?? actualStartEquity;
+    
+    // Get true extremes from percentile bands
+    const minBand = Math.min(...summary.map(p => p.p10));
+    const maxBand = Math.max(...summary.map(p => p.p90));
+    
+    // Calculate Y-axis bounds
+    let yMin = Math.max(0, Math.min(minBand, startEquity * 0.5) * 0.9);
+    let yMax = maxBand * 1.1;
+    
+    // Apply soft cap at 5x starting equity
+    const maxMultiple = 5;
+    const cap = startEquity * maxMultiple;
+    if (yMax > cap) {
+      yMax = cap;
+      isCapped = true;
+    }
+    
+    // Transform to percentage if needed
+    if (showPercentage) {
+      yMin = calculatePercentChange(yMin, actualStartEquity);
+      yMax = calculatePercentChange(yMax, actualStartEquity);
+      // For percentage, cap at reasonable bounds (-100% to +400%)
+      yMin = Math.max(-100, yMin);
+      yMax = Math.min(400, yMax); // 4x = 400%
+      if (yMax >= 400) isCapped = true;
+    }
+    
+    yAxisDomain = [yMin, yMax];
+  }
+
   // Prepare chart data with $ or % transformation
   const chartData = result?.summary.map(point => {
     if (showPercentage) {
@@ -392,6 +429,7 @@ export default function MonteCarloSimulator() {
                       style: { textAnchor: 'middle' }
                     }}
                     padding={{ top: 10, bottom: 10 }}
+                    domain={yAxisDomain}
                   />
                   <Tooltip
                     contentStyle={{
@@ -501,6 +539,11 @@ export default function MonteCarloSimulator() {
                   })}
                 </LineChart>
               </ResponsiveContainer>
+              {isCapped && (
+                <p className="text-xs text-slate-500 mt-2 text-center">
+                  Some simulated paths end above the visible range. See summary stats for the full distribution.
+                </p>
+              )}
             </div>
 
             {/* Summary Cards */}

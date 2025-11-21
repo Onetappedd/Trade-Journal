@@ -70,9 +70,9 @@ export async function GET(request: NextRequest) {
       period1 = new Date('2020-01-01');
       console.log(`[Benchmarks Cron] Backfill mode: fetching from ${period1.toISOString()} to ${period2.toISOString()}`);
     } else {
-      // Normal mode: fetch last 7 days
-      period1 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      console.log(`[Benchmarks Cron] Incremental mode: fetching last 7 days`);
+      // Normal mode: fetch last 30 days to ensure we catch any missed updates
+      period1 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      console.log(`[Benchmarks Cron] Incremental mode: fetching last 30 days`);
     }
 
     // Fetch data for each symbol
