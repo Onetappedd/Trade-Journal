@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import DashboardClient from './_client/DashboardClient'
 import { DashboardData } from '@/types/dashboard'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const cookieStore = cookies()
   const supabase = createServerClient(
