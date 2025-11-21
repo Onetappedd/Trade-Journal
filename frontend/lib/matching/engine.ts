@@ -208,7 +208,8 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
     let trades: Trade[] = [];
 
     for (const exec of symbolExecs) {
-      const qty = exec.side === 'sell' || exec.side === 'short' ? -exec.quantity : exec.quantity;
+      // Use Math.abs to ensure we start with a positive magnitude, then apply sign based on side
+      const qty = (exec.side === 'sell' || exec.side === 'short') ? -Math.abs(exec.quantity) : Math.abs(exec.quantity);
       const cost = qty * exec.price;
       
       if (position === 0) {
@@ -372,7 +373,8 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       
       for (const exec of window) {
         const legKey = `${exec.strike}-${exec.option_type === 'C' ? 'call' : 'put'}-${exec.side}`;
-        const qty = exec.side === 'sell' ? -exec.quantity : exec.quantity;
+        // Use Math.abs to ensure we start with a positive magnitude, then apply sign based on side
+        const qty = exec.side === 'sell' ? -Math.abs(exec.quantity) : Math.abs(exec.quantity);
         const cost = qty * exec.price * exec.multiplier;
         
         // Track opened quantity (positive quantities from buys)
@@ -563,7 +565,8 @@ async function matchFutures(executions: Execution[], supabase: SupabaseClient): 
     let trades: Trade[] = [];
 
     for (const exec of symbolExecs) {
-      const qty = exec.side === 'sell' ? -exec.quantity : exec.quantity;
+      // Use Math.abs to ensure we start with a positive magnitude, then apply sign based on side
+      const qty = exec.side === 'sell' ? -Math.abs(exec.quantity) : Math.abs(exec.quantity);
       const cost = qty * exec.price * exec.multiplier;
       
       if (position === 0) {
