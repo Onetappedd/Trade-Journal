@@ -612,6 +612,30 @@ export default function AnalyticsPage() {
                           });
                         }
                         
+                        // Create separate maps for benchmark data to look up actual values for any date
+                        const spyDataMap = new Map<string, number>();
+                        const qqqDataMap = new Map<string, number>();
+                        
+                        if (analytics.benchmarks?.spy) {
+                          analytics.benchmarks.spy.forEach(point => {
+                            const dateKey = point.date.split('T')[0];
+                            const value = showPercentage 
+                              ? ((point.value - spyInitial) / spyInitial) * 100 
+                              : point.value;
+                            spyDataMap.set(dateKey, value);
+                          });
+                        }
+                        
+                        if (analytics.benchmarks?.qqq) {
+                          analytics.benchmarks.qqq.forEach(point => {
+                            const dateKey = point.date.split('T')[0];
+                            const value = showPercentage 
+                              ? ((point.value - qqqInitial) / qqqInitial) * 100 
+                              : point.value;
+                            qqqDataMap.set(dateKey, value);
+                          });
+                        }
+                        
                         // Sort data by date
                         const sortedData = Array.from(dataMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                         
@@ -619,22 +643,22 @@ export default function AnalyticsPage() {
                           return [];
                         }
                         
-                        // Fill gaps with flat lines (last known value) instead of breaking the line
+                        // Fill gaps with flat lines for portfolio, but use actual benchmark values
                         // Create a continuous series from first to last date
                         const startDate = new Date(sortedData[0].date);
                         const endDate = new Date(sortedData[sortedData.length - 1].date);
                         const continuousData: Array<{ date: string; dateLabel: string; portfolio?: number; spy?: number; qqq?: number }> = [];
                         
-                        // Track last known values for each series
+                        // Track last known portfolio value (for flat lines during no-trade periods)
                         let lastPortfolio: number | undefined = sortedData[0].portfolio;
-                        let lastSpy: number | undefined = sortedData[0].spy;
-                        let lastQqq: number | undefined = sortedData[0].qqq;
                         
-                        // Create a map of existing data points for quick lookup
-                        const existingDataMap = new Map<string, typeof sortedData[0]>();
+                        // Create a map of existing portfolio data points for quick lookup
+                        const portfolioDataMap = new Map<string, number>();
                         sortedData.forEach(point => {
                           const dateKey = point.date.split('T')[0];
-                          existingDataMap.set(dateKey, point);
+                          if (point.portfolio !== undefined) {
+                            portfolioDataMap.set(dateKey, point.portfolio);
+                          }
                         });
                         
                         // Generate continuous daily data
@@ -643,30 +667,23 @@ export default function AnalyticsPage() {
                           const dateKey = currentDate.toISOString().split('T')[0];
                           const dateLabel = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                           
-                          const existingPoint = existingDataMap.get(dateKey);
-                          
-                          if (existingPoint) {
-                            // Use the actual data point
-                            lastPortfolio = existingPoint.portfolio;
-                            lastSpy = existingPoint.spy;
-                            lastQqq = existingPoint.qqq;
-                            continuousData.push({
-                              date: dateKey,
-                              dateLabel,
-                              portfolio: lastPortfolio,
-                              spy: lastSpy,
-                              qqq: lastQqq,
-                            });
-                          } else {
-                            // Fill gap with last known value (flat line)
-                            continuousData.push({
-                              date: dateKey,
-                              dateLabel,
-                              portfolio: lastPortfolio,
-                              spy: lastSpy,
-                              qqq: lastQqq,
-                            });
+                          // Portfolio: use actual value if available, otherwise use last known (flat line)
+                          const portfolioValue = portfolioDataMap.get(dateKey);
+                          if (portfolioValue !== undefined) {
+                            lastPortfolio = portfolioValue;
                           }
+                          
+                          // Benchmarks: use actual value if available (they should have daily data)
+                          const spyValue = spyDataMap.get(dateKey);
+                          const qqqValue = qqqDataMap.get(dateKey);
+                          
+                          continuousData.push({
+                            date: dateKey,
+                            dateLabel,
+                            portfolio: lastPortfolio,
+                            spy: spyValue,
+                            qqq: qqqValue,
+                          });
                           
                           // Move to next day
                           currentDate.setDate(currentDate.getDate() + 1);
