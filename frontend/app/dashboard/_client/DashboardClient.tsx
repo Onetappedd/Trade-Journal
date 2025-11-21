@@ -570,10 +570,10 @@ export default function DashboardClient({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex justify-between"><span className="text-slate-400">Max Drawdown</span><span className="text-white font-medium">-{fmtPct1(riskMetrics.maxDrawdownPct)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Max Drawdown</span><span className="text-white font-medium">-{riskMetrics.maxDrawdownPct.toFixed(1)}%</span></div>
                     <div className="flex justify-between"><span className="text-slate-400">Sharpe Ratio</span><span className="text-white font-medium">{riskMetrics.sharpe.toFixed(2)}</span></div>
                     <div className="flex justify-between"><span className="text-slate-400">Beta</span><span className="text-white font-medium">{dashboardData.risk.beta.toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">Volatility</span><span className="text-white font-medium">{fmtPct1(riskMetrics.volPct)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Volatility</span><span className="text-white font-medium">{riskMetrics.volPct.toFixed(1)}%</span></div>
                   </div>
                   <div className="mt-5">
                     <p className="text-slate-300 font-medium mb-2">Recent Risk Events</p>
