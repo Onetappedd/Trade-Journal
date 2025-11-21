@@ -33,6 +33,17 @@ interface Trade {
   opened_at: string;
   closed_at?: string;
   asset_type: string;
+  instrument_type?: string;
+  option_strike?: number | null;
+  option_expiry?: string | null;
+  option_type?: string | null;
+  legs?: Array<{
+    strike?: number;
+    expiry?: string;
+    type?: 'call' | 'put';
+    qty?: number;
+    avg_price?: number;
+  }>;
 }
 
 export default function TradesClient() {
@@ -277,30 +288,53 @@ export default function TradesClient() {
                   <TableHead>Quantity</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>P&L</TableHead>
+                  <TableHead>Contract</TableHead>
                   <TableHead>Opened</TableHead>
                   <TableHead>Closed</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTrades.map((trade) => (
-                  <TableRow key={trade.id}>
-                    <TableCell className="font-medium">{trade.symbol || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Badge className={getSideColor(trade.side || 'buy')}>
-                        {(trade.side || 'buy').toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{trade.quantity || 0}</TableCell>
-                    <TableCell>{formatCurrency(trade.price || 0)}</TableCell>
-                    <TableCell className={getPnlColor(trade.pnl || 0)}>
-                      {formatCurrency(trade.pnl || 0)}
-                    </TableCell>
-                    <TableCell>{trade.opened_at ? formatDate(trade.opened_at) : 'N/A'}</TableCell>
-                    <TableCell>
-                      {trade.closed_at ? formatDate(trade.closed_at) : 'Open'}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredTrades.map((trade) => {
+                  const isOption = (trade.instrument_type || trade.asset_type) === 'option';
+                  const strike = trade.option_strike;
+                  const expiry = trade.option_expiry;
+                  const optionType = trade.option_type;
+                  
+                  // Format option contract display
+                  const formatOptionContract = () => {
+                    if (!isOption || !strike || !expiry || !optionType) return '—';
+                    const expiryDate = new Date(expiry);
+                    const formattedExpiry = expiryDate.toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    });
+                    return `${optionType} $${strike.toFixed(2)} ${formattedExpiry}`;
+                  };
+                  
+                  return (
+                    <TableRow key={trade.id}>
+                      <TableCell className="font-medium">{trade.symbol || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge className={getSideColor(trade.side || 'buy')}>
+                          {(trade.side || 'buy').toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{trade.quantity || 0}</TableCell>
+                      <TableCell>{formatCurrency(trade.price || 0)}</TableCell>
+                      <TableCell className={getPnlColor(trade.pnl || 0)}>
+                        {formatCurrency(trade.pnl || 0)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatOptionContract()}
+                      </TableCell>
+                      <TableCell>{trade.opened_at ? formatDate(trade.opened_at) : 'N/A'}</TableCell>
+                      <TableCell>
+                        {trade.closed_at ? formatDate(trade.closed_at) : 'Open'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

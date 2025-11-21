@@ -58,9 +58,11 @@ export async function POST(request: NextRequest) {
       supabase
     });
 
-    // Revalidate cache
+    // Revalidate cache for all affected pages
     revalidateTag('trades');
     revalidateTag('kpi');
+    revalidateTag('analytics');
+    revalidateTag('dashboard');
 
     return NextResponse.json({ 
       success: true, 

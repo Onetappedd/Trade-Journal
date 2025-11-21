@@ -271,38 +271,68 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   // Transform trades to match TradeRow interface
   // Map new schema (quantity, entry_price) to old schema (qty_opened, avg_open_price) for compatibility
   // Also convert string numbers from PostgreSQL NUMERIC to actual numbers
-  const transformedTrades = (trades || []).map((trade: any) => ({
-    ...trade,
-    symbol: trade.symbol || 'UNKNOWN', // Ensure symbol is never null
-    side: trade.side || 'buy', // Ensure side is never null
-    qty_opened: typeof (trade.qty_opened ?? trade.quantity) === 'string' 
-      ? parseFloat(trade.qty_opened ?? trade.quantity ?? '0') 
-      : (trade.qty_opened ?? trade.quantity ?? 0),
-    quantity: typeof (trade.qty_opened ?? trade.quantity) === 'string' 
-      ? parseFloat(trade.qty_opened ?? trade.quantity ?? '0') 
-      : (trade.qty_opened ?? trade.quantity ?? 0),
-    avg_open_price: typeof (trade.avg_open_price ?? trade.entry_price ?? trade.price) === 'string'
-      ? parseFloat(trade.avg_open_price ?? trade.entry_price ?? trade.price ?? '0')
-      : (trade.avg_open_price ?? trade.entry_price ?? trade.price ?? 0),
-    price: typeof (trade.avg_open_price ?? trade.entry_price ?? trade.price) === 'string'
-      ? parseFloat(trade.avg_open_price ?? trade.entry_price ?? trade.price ?? '0')
-      : (trade.avg_open_price ?? trade.entry_price ?? trade.price ?? 0),
-    opened_at: trade.opened_at ?? trade.executed_at ?? trade.entry_date ?? new Date().toISOString(),
-    closed_at: trade.closed_at ?? trade.exit_date ?? null,
-    avg_close_price: typeof (trade.avg_close_price ?? trade.exit_price) === 'string'
-      ? parseFloat(trade.avg_close_price ?? trade.exit_price ?? '0')
-      : (trade.avg_close_price ?? trade.exit_price ?? null),
-    qty_closed: typeof trade.qty_closed === 'string' ? parseFloat(trade.qty_closed) : (trade.qty_closed ?? null),
-    realized_pnl: typeof (trade.realized_pnl ?? trade.pnl) === 'string'
-      ? parseFloat(trade.realized_pnl ?? trade.pnl ?? '0')
-      : (trade.realized_pnl ?? trade.pnl ?? null),
-    pnl: typeof (trade.realized_pnl ?? trade.pnl) === 'string'
-      ? parseFloat(trade.realized_pnl ?? trade.pnl ?? '0')
-      : (trade.realized_pnl ?? trade.pnl ?? null),
-    fees: typeof trade.fees === 'string' ? parseFloat(trade.fees) : (trade.fees ?? null),
-    instrument_type: trade.instrument_type ?? trade.asset_type ?? 'equity',
-    asset_type: trade.instrument_type ?? trade.asset_type ?? 'equity',
-  }));
+  const transformedTrades = (trades || []).map((trade: any) => {
+    // Parse option fields from legs or direct columns
+    const legs = trade.legs || [];
+    let optionStrike: number | null = null;
+    let optionExpiry: string | null = null;
+    let optionType: string | null = null;
+    
+    if (trade.instrument_type === 'option') {
+      // Try to get from direct columns first (if migration was applied)
+      optionStrike = trade.option_strike 
+        ? (typeof trade.option_strike === 'string' ? parseFloat(trade.option_strike) : trade.option_strike)
+        : null;
+      optionExpiry = trade.option_expiration || null;
+      optionType = trade.option_type || null;
+      
+      // Fallback to legs array if direct columns are not available
+      if (!optionStrike && legs.length > 0) {
+        const firstLeg = legs[0];
+        optionStrike = firstLeg.strike || null;
+        optionExpiry = firstLeg.expiry || null;
+        optionType = firstLeg.type === 'call' ? 'CALL' : firstLeg.type === 'put' ? 'PUT' : null;
+      }
+    }
+    
+    return {
+      ...trade,
+      symbol: trade.symbol || 'UNKNOWN', // Ensure symbol is never null
+      side: trade.side || 'buy', // Ensure side is never null
+      qty_opened: typeof (trade.qty_opened ?? trade.quantity) === 'string' 
+        ? parseFloat(trade.qty_opened ?? trade.quantity ?? '0') 
+        : (trade.qty_opened ?? trade.quantity ?? 0),
+      quantity: typeof (trade.qty_opened ?? trade.quantity) === 'string' 
+        ? parseFloat(trade.qty_opened ?? trade.quantity ?? '0') 
+        : (trade.qty_opened ?? trade.quantity ?? 0),
+      avg_open_price: typeof (trade.avg_open_price ?? trade.entry_price ?? trade.price) === 'string'
+        ? parseFloat(trade.avg_open_price ?? trade.entry_price ?? trade.price ?? '0')
+        : (trade.avg_open_price ?? trade.entry_price ?? trade.price ?? 0),
+      price: typeof (trade.avg_open_price ?? trade.entry_price ?? trade.price) === 'string'
+        ? parseFloat(trade.avg_open_price ?? trade.entry_price ?? trade.price ?? '0')
+        : (trade.avg_open_price ?? trade.entry_price ?? trade.price ?? 0),
+      opened_at: trade.opened_at ?? trade.executed_at ?? trade.entry_date ?? new Date().toISOString(),
+      closed_at: trade.closed_at ?? trade.exit_date ?? null,
+      avg_close_price: typeof (trade.avg_close_price ?? trade.exit_price) === 'string'
+        ? parseFloat(trade.avg_close_price ?? trade.exit_price ?? '0')
+        : (trade.avg_close_price ?? trade.exit_price ?? null),
+      qty_closed: typeof trade.qty_closed === 'string' ? parseFloat(trade.qty_closed) : (trade.qty_closed ?? null),
+      realized_pnl: typeof (trade.realized_pnl ?? trade.pnl) === 'string'
+        ? parseFloat(trade.realized_pnl ?? trade.pnl ?? '0')
+        : (trade.realized_pnl ?? trade.pnl ?? null),
+      pnl: typeof (trade.realized_pnl ?? trade.pnl) === 'string'
+        ? parseFloat(trade.realized_pnl ?? trade.pnl ?? '0')
+        : (trade.realized_pnl ?? trade.pnl ?? null),
+      fees: typeof trade.fees === 'string' ? parseFloat(trade.fees) : (trade.fees ?? null),
+      instrument_type: trade.instrument_type ?? trade.asset_type ?? 'equity',
+      asset_type: trade.instrument_type ?? trade.asset_type ?? 'equity',
+      // Option-specific fields
+      option_strike: optionStrike,
+      option_expiry: optionExpiry,
+      option_type: optionType,
+      legs: legs,
+    };
+  });
 
   return {
     items: transformedTrades, // Use 'items' to match TradesResponse interface

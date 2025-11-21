@@ -473,7 +473,10 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
             
             // Calculate P&L: (sell_price - buy_price) * quantity * multiplier
             // For options, the price is per contract, so we multiply by quantity and multiplier
-            const legPnL = (sell.price - buy.price) * Math.min(buy.quantity, sell.quantity) * buy.multiplier;
+            // The multiplier is typically 100 for standard options
+            const matchedQty = Math.min(buy.quantity, sell.quantity);
+            const priceDiff = sell.price - buy.price;
+            const legPnL = priceDiff * matchedQty * (buy.multiplier || 100);
             totalPnL += legPnL;
             
             // Reduce quantities
@@ -502,6 +505,12 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         ? (totalOpenedQty > 0 ? totalOpenedQty : totalQuantity) // Use tracked opened quantity or fallback to totalQuantity
         : Math.abs(netPosition); // For open trades, use net position
       
+      // Extract option details from first leg for database columns
+      const firstLeg = legsArray.length > 0 ? legsArray[0] : null;
+      const optionStrike = firstLeg?.strike || null;
+      const optionExpiry = firstLeg?.expiry || expiry || null;
+      const optionType = firstLeg?.type === 'call' ? 'CALL' : firstLeg?.type === 'put' ? 'PUT' : null;
+      
       const trade: Trade = {
         user_id: window[0].user_id,
         group_key: generateGroupKey(underlying, firstExecId),
@@ -519,6 +528,11 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         legs: legsArray,
         ingestion_run_id: window[0].source_import_run_id,
         row_hash: undefined, // Set to undefined for now
+        // Add option-specific fields for database columns
+        underlying_symbol: underlying,
+        option_expiration: optionExpiry,
+        option_strike: optionStrike,
+        option_type: optionType,
       };
       
       await upsertTrade(trade, supabase);
