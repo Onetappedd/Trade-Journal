@@ -35,7 +35,7 @@ const ImportRequestSchema = z.object({
 
 interface ImportStatus {
   id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'partial' | 'success' | 'failed';
   progress: number;
   totalRows: number;
   processedRows: number;
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         source: importRequest.broker || 'csv',
-        status: 'queued',
+        status: 'pending',
         file_name: importRequest.fileName,
         file_size: importRequest.fileSize,
         options: importRequest.options || {}
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         importRunId,
-        status: 'completed',
+        status: 'success',
         message: 'Import completed successfully',
         stats: {
           inserted: result.inserted,
@@ -531,7 +531,7 @@ async function processCSVAsync(
     await supabase
       .from('import_runs')
       .update({
-        status: 'completed',
+        status: 'success',
         progress: 100,
         result: {
           inserted,
@@ -680,7 +680,7 @@ async function enqueueMatchingJobs(importRunId: string, userId: string, supabase
           import_run_id: importRunId,
           symbol: symbols[0],
           date: key.split('_')[1],
-          status: 'queued'
+          status: 'pending'
         });
     }
   } catch (error) {
