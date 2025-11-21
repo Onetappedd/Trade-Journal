@@ -749,21 +749,14 @@ export default function AnalyticsPage() {
                           wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }}
                           iconType="line"
                         />
-                        <Line 
-                          type="monotone" 
-                          dataKey="portfolio" 
-                          stroke="#10b981" 
-                          strokeWidth={2}
-                          dot={false}
-                          name="Portfolio"
-                          connectNulls={true}
-                        />
+                        {/* Benchmarks rendered first (behind portfolio line) with transparency */}
                         {analytics.benchmarks?.spy && analytics.benchmarks.spy.length > 0 && (
                           <Line 
                             type="linear" 
                             dataKey="spy" 
                             stroke="#3b82f6" 
                             strokeWidth={2}
+                            strokeOpacity={0.4}
                             dot={false}
                             name="SPY"
                             connectNulls={true}
@@ -775,11 +768,22 @@ export default function AnalyticsPage() {
                             dataKey="qqq" 
                             stroke="#8b5cf6" 
                             strokeWidth={2}
+                            strokeOpacity={0.4}
                             dot={false}
                             name="QQQ"
                             connectNulls={true}
                           />
                         )}
+                        {/* Portfolio line rendered last (on top) */}
+                        <Line 
+                          type="monotone" 
+                          dataKey="portfolio" 
+                          stroke="#10b981" 
+                          strokeWidth={3}
+                          dot={false}
+                          name="Portfolio"
+                          connectNulls={true}
+                        />
                       </RechartsLineChart>
                     </ResponsiveContainer>
                   ) : (

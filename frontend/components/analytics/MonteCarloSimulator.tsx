@@ -117,6 +117,24 @@ export default function MonteCarloSimulator() {
       const data = await response.json();
       setResult(data.result);
       setStats(data.stats);
+      
+      // Populate inputs with user's actual stats from their trades
+      if (data.stats.winRate !== undefined) {
+        setWinRate(parseFloat((data.stats.winRate * 100).toFixed(1))); // Convert 0-1 to 0-100
+      }
+      if (data.stats.avgWinR !== undefined) {
+        setAvgWinR(parseFloat(data.stats.avgWinR.toFixed(2)));
+      }
+      if (data.stats.avgLossR !== undefined) {
+        setAvgLossR(parseFloat(data.stats.avgLossR.toFixed(2)));
+      }
+      if (data.stats.riskPct !== undefined) {
+        setRiskPct(data.stats.riskPct);
+      }
+      if (data.stats.startEquity !== undefined) {
+        setStartEquity(data.stats.startEquity);
+      }
+      
       setIsExpanded(true);
     } catch (error: any) {
       setHasError(true);

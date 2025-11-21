@@ -435,6 +435,15 @@ export async function GET(request: NextRequest) {
             const currentDate = new Date(benchmarkStartDate);
             let lastKnownPrice: number | null = null;
             
+            // Ensure we have at least one price before starting
+            if (rows.length > 0 && firstIndex < rows.length) {
+              const firstRow = rows[firstIndex];
+              const firstAdjClose = firstRow.adjusted_close;
+              lastKnownPrice = typeof firstAdjClose === 'string' 
+                ? parseFloat(firstAdjClose) * scaleFactor
+                : firstAdjClose * scaleFactor;
+            }
+            
             // Iterate through all dates from start to today
             while (currentDate <= today) {
               const dateStr = currentDate.toISOString().split('T')[0];
@@ -448,6 +457,7 @@ export async function GET(request: NextRequest) {
                 });
               } else if (lastKnownPrice !== null) {
                 // If no price for this date but we have a previous price, use the last known price (flat line)
+                // This ensures benchmarks continue to today even if there's no new data
                 normalized.push({
                   date: dateStr,
                   value: lastKnownPrice,
