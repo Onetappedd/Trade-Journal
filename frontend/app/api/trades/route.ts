@@ -114,17 +114,18 @@ export async function GET(request: NextRequest) {
 
 /**
  * Get cached trades data
+ * NOTE: Caching disabled for now to ensure fresh data after imports
  */
-const getCachedTrades = unstable_cache(
-  async (userId: string, params: TradesQueryParams, supabase: any) => {
-    return getTrades(userId, params, supabase);
-  },
-  ['trades'],
-  {
-    tags: ['trades', 'user'],
-    revalidate: 60 // 1 minute cache
-  }
-);
+// const getCachedTrades = unstable_cache(
+//   async (userId: string, params: TradesQueryParams, supabase: any) => {
+//     return getTrades(userId, params, supabase);
+//   },
+//   ['trades'],
+//   {
+//     tags: ['trades', 'user'],
+//     revalidate: 60 // 1 minute cache
+//   }
+// );
 
 /**
  * Get trades with server-side filtering and sorting

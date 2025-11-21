@@ -561,8 +561,10 @@ async function processCSVAsync(
       // User can retry matching from UI
     }
 
-    // Revalidate KPI cache after import completion
+    // Revalidate caches after import completion
     revalidateTag('kpi');
+    revalidateTag('trades');
+    revalidateTag('user');
 
     // Return stats for immediate response
     return {
