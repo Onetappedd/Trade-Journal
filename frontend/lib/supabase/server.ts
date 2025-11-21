@@ -59,22 +59,9 @@ export async function createSupabaseWithToken(request: NextRequest) {
     }
   );
   
-  // Manually set the session using the access token
-  // We create a minimal session object that Supabase can use for RLS
-  try {
-    // Validate the token by getting the user - this will use the Authorization header
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.error('[Supabase] Auth validation error:', authError);
-      // The token might still work for RLS even if getUser fails
-      // Individual routes will handle auth errors
-    }
-  } catch (error) {
-    console.error('[Supabase] Error validating token:', error);
-    // Continue anyway - the token in headers should still work for RLS
-  }
-  
+  // The Authorization header in global.headers will be used for all requests
+  // This includes RLS policy checks, so we don't need to set a session
+  // Individual routes will validate the user by calling getUser()
   return supabase;
 }
 
