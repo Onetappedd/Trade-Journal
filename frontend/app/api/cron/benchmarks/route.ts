@@ -93,9 +93,11 @@ export async function GET(request: NextRequest) {
         }
 
         // TypeScript now knows historical is an array
+        // yahoo-finance2 returns an array of quote objects
         const historicalArray = historical as Array<{
           date: Date | string;
           close: number | null;
+          adjClose?: number | null;
           adjustedClose?: number | null;
           volume?: number | null;
         }>;
@@ -116,7 +118,7 @@ export async function GET(request: NextRequest) {
               symbol,
               date: dateStr,
               close: quote.close,
-              adjusted_close: quote.adjClose ?? quote.close,
+              adjusted_close: (quote.adjClose ?? quote.adjustedClose ?? quote.close) as number,
               volume: quote.volume ?? null,
             };
           });
