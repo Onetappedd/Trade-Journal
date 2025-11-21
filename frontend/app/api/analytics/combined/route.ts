@@ -349,10 +349,12 @@ export async function GET(request: NextRequest) {
         const firstDate = manualMetrics.equityCurve[0].date;
         const lastDate = manualMetrics.equityCurve[manualMetrics.equityCurve.length - 1].date;
         const startDate = new Date(firstDate).toISOString().split('T')[0];
-        const endDate = new Date(lastDate).toISOString().split('T')[0];
+        // Use today's date instead of last trade date to ensure benchmarks go to current day
+        const today = new Date();
+        const endDate = today.toISOString().split('T')[0];
         const startingValue = manualMetrics.equityCurve[0].value;
 
-        // Query benchmark_prices table for SPY and QQQ in the user's date range
+        // Query benchmark_prices table for SPY and QQQ in the user's date range (up to today)
         const { data: benchmarkRows, error: benchmarkError } = await supabaseAdmin
           .from('benchmark_prices')
           .select('date, symbol, adjusted_close')

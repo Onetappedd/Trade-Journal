@@ -644,9 +644,11 @@ export default function AnalyticsPage() {
                         }
                         
                         // Fill gaps with flat lines for portfolio, but use actual benchmark values
-                        // Create a continuous series from first to last date
+                        // Create a continuous series from first date to today (not just last trade date)
                         const startDate = new Date(sortedData[0].date);
-                        const endDate = new Date(sortedData[sortedData.length - 1].date);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0); // Normalize to start of day
+                        const endDate = today;
                         const continuousData: Array<{ date: string; dateLabel: string; portfolio?: number; spy?: number; qqq?: number }> = [];
                         
                         // Track last known portfolio value (for flat lines during no-trade periods)
@@ -724,8 +726,13 @@ export default function AnalyticsPage() {
                             // Fallback to label if payload not available
                             return label;
                           }}
-                          formatter={(value: number, name: string) => {
-                            if (value === null || value === undefined) return null;
+                          formatter={(value: number | null | undefined, name: string) => {
+                            // Show benchmark values even if portfolio value is null/undefined
+                            if (value === null || value === undefined) {
+                              // Only hide if it's the portfolio and we're in a gap period
+                              // Benchmarks should always show if they have a value
+                              return null;
+                            }
                             if (showPercentage) {
                               return [`${value.toFixed(2)}%`, name];
                             }
@@ -751,7 +758,6 @@ export default function AnalyticsPage() {
                             dataKey="spy" 
                             stroke="#3b82f6" 
                             strokeWidth={2}
-                            strokeDasharray="5 5"
                             dot={false}
                             name="SPY"
                             connectNulls={true}
@@ -763,7 +769,6 @@ export default function AnalyticsPage() {
                             dataKey="qqq" 
                             stroke="#8b5cf6" 
                             strokeWidth={2}
-                            strokeDasharray="5 5"
                             dot={false}
                             name="QQQ"
                             connectNulls={true}
