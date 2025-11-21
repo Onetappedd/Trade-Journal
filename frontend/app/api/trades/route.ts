@@ -54,17 +54,27 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
+    
+    // Handle both 'page' and 'offset' for compatibility
+    const offset = searchParams.get('offset');
+    const pageParam = searchParams.get('page');
+    const limitParam = searchParams.get('limit') || '50';
+    const limit = Math.min(parseInt(limitParam), 100); // Cap at 100
+    const page = offset ? Math.floor(parseInt(offset) / limit) + 1 : (pageParam ? parseInt(pageParam) : 1);
+    
     const params: TradesQueryParams = {
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: Math.min(parseInt(searchParams.get('limit') || '50'), 100), // Cap at 100
+      page,
+      limit,
       sort: searchParams.get('sort') || 'opened_at', // Default to opened_at (matching engine schema)
       direction: (searchParams.get('direction') as 'asc' | 'desc') || 'desc',
       symbol: searchParams.get('symbol') || undefined,
       side: searchParams.get('side') || undefined,
       status: searchParams.get('status') || undefined,
-      asset_type: searchParams.get('asset_type') || undefined,
-      date_from: searchParams.get('date_from') || undefined,
-      date_to: searchParams.get('date_to') || undefined,
+      // Handle both 'asset_type' and 'asset' for compatibility
+      asset_type: searchParams.get('asset_type') || searchParams.get('asset') || undefined,
+      // Handle both 'date_from'/'date_to' and 'from'/'to' for compatibility
+      date_from: searchParams.get('date_from') || searchParams.get('from') || undefined,
+      date_to: searchParams.get('date_to') || searchParams.get('to') || undefined,
     };
 
     // Validate parameters
