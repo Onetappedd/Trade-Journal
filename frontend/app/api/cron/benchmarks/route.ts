@@ -85,14 +85,23 @@ export async function GET(request: NextRequest) {
 
         const historical = await yahooFinance.historical(symbol, queryOptions);
 
+        // Type guard: ensure historical is an array
         if (!historical || !Array.isArray(historical) || historical.length === 0) {
           console.warn(`[Benchmarks Cron] No data returned for ${symbol}`);
           results.push({ symbol, count: 0 });
           continue;
         }
 
+        // TypeScript now knows historical is an array
+        const historicalArray = historical as Array<{
+          date: Date | string;
+          close: number | null;
+          adjustedClose?: number | null;
+          volume?: number | null;
+        }>;
+
         // Map Yahoo Finance response to database schema
-        const rows = historical
+        const rows = historicalArray
           .filter((quote) => {
             // Filter out rows missing required fields
             return quote.date && quote.close !== null && quote.close !== undefined;
