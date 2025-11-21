@@ -511,9 +511,9 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       
       // Extract option details from first leg for database columns
       const firstLeg = legsArray.length > 0 ? legsArray[0] : null;
-      const optionStrike = firstLeg?.strike || null;
-      const optionExpiry = firstLeg?.expiry || expiry || null;
-      const optionType = firstLeg?.type === 'call' ? 'CALL' : firstLeg?.type === 'put' ? 'PUT' : null;
+      const optionStrike = firstLeg?.strike || undefined;
+      const optionExpiry = firstLeg?.expiry || expiry || undefined;
+      const optionType = firstLeg?.type === 'call' ? 'CALL' : firstLeg?.type === 'put' ? 'PUT' : undefined;
       
       const trade: Trade = {
         user_id: window[0].user_id,
