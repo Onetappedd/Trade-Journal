@@ -19,10 +19,17 @@ export async function GET(request: NextRequest) {
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       // Use token-based authentication for API requests
+      const token = authHeader.replace('Bearer ', '');
+      
+      // Create Supabase client with token for RLS
       supabase = await createSupabaseWithToken(request);
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      
+      // Verify the token by calling getUser with the token
+      // This validates the JWT and returns the user
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
       if (authError || !authUser) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        console.error('[Analytics] Auth error:', authError);
+        return NextResponse.json({ error: 'Unauthorized', details: authError?.message }, { status: 401 });
       }
       user = authUser;
     } else {
