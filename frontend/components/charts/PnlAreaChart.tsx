@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Group } from '@visx/group';
-import { AreaClosed, Line, Bar } from '@visx/shape';
+import { AreaClosed, Line, LinePath, Bar } from '@visx/shape';
 import { curveMonotoneX } from '@visx/curve';
 import { GridRows, GridColumns } from '@visx/grid';
 import { scaleTime, scaleLinear } from '@visx/scale';
@@ -20,6 +20,11 @@ interface PnlDataPoint {
   value: number;
 }
 
+interface BenchmarkData {
+  spy?: Array<{ date: string; value: number }>;
+  qqq?: Array<{ date: string; value: number }>;
+}
+
 interface PnlAreaChartProps {
   data: PnlDataPoint[];
   width: number;
@@ -27,6 +32,9 @@ interface PnlAreaChartProps {
   margin?: { top: number; right: number; bottom: number; left: number };
   mode?: 'realized' | 'total';
   fallbackUsed?: boolean;
+  benchmarks?: BenchmarkData;
+  showSpy?: boolean;
+  showQqq?: boolean;
 }
 
 const getDate = (d: PnlDataPoint) => new Date(d.date);
@@ -49,6 +57,9 @@ export default function PnlAreaChart({
   margin = { top: 20, right: 20, bottom: 40, left: 60 },
   mode = 'realized',
   fallbackUsed = false,
+  benchmarks,
+  showSpy = false,
+  showQqq = false,
 }: PnlAreaChartProps) {
   const {
     tooltipData,
@@ -79,10 +90,19 @@ export default function PnlAreaChart({
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
+  // Collect all dates including benchmarks for proper date scale
+  const allDates: Date[] = [...data.map(getDate)];
+  if (showSpy && benchmarks?.spy) {
+    allDates.push(...benchmarks.spy.map(d => new Date(d.date)));
+  }
+  if (showQqq && benchmarks?.qqq) {
+    allDates.push(...benchmarks.qqq.map(d => new Date(d.date)));
+  }
+  
   // Create scales
   const dateScale = scaleTime({
     range: [margin.left, innerWidth + margin.left],
-    domain: extent(data, getDate) as [Date, Date],
+    domain: extent(allDates) as [Date, Date],
   });
 
   // Ensure scale includes zero and has nice ticks
@@ -219,6 +239,34 @@ export default function PnlAreaChart({
                 curve={curveMonotoneX}
               />
             </g>
+          )}
+          
+          {/* SPY Benchmark Line */}
+          {showSpy && benchmarks?.spy && benchmarks.spy.length > 0 && (
+            <LinePath
+              data={benchmarks.spy}
+              x={(d) => dateScale(new Date(d.date)) ?? 0}
+              y={(d) => pnlValueScale(d.value) ?? 0}
+              stroke="#3b82f6"
+              strokeWidth={2}
+              strokeDasharray="5,5"
+              curve={curveMonotoneX}
+              opacity={0.8}
+            />
+          )}
+          
+          {/* QQQ Benchmark Line */}
+          {showQqq && benchmarks?.qqq && benchmarks.qqq.length > 0 && (
+            <LinePath
+              data={benchmarks.qqq}
+              x={(d) => dateScale(new Date(d.date)) ?? 0}
+              y={(d) => pnlValueScale(d.value) ?? 0}
+              stroke="#8b5cf6"
+              strokeWidth={2}
+              strokeDasharray="5,5"
+              curve={curveMonotoneX}
+              opacity={0.8}
+            />
           )}
           
           {/* Y-axis (P&L values) */}

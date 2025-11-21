@@ -1,11 +1,19 @@
 'use client';
 
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ParentSize } from '@visx/responsive';
 import PnlAreaChart from './PnlAreaChart';
 import { RangeFilter } from './RangeFilter';
 import { PnlSummaryBar } from './PnlSummaryBar';
 import { usePnlData, type GenericTrade, type PnlDataResult } from '@/hooks/usePnlData';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+
+interface BenchmarkData {
+  spy?: Array<{ date: string; value: number }>;
+  qqq?: Array<{ date: string; value: number }>;
+}
 
 interface PnlChartWrapperProps {
   trades: GenericTrade[];
@@ -16,6 +24,7 @@ interface PnlChartWrapperProps {
   variant?: 'dashboard' | 'analytics';
   showSummaryBar?: boolean;
   showTradeCounts?: boolean;
+  benchmarks?: BenchmarkData;
 }
 
 export function PnlChartWrapper({
@@ -27,9 +36,14 @@ export function PnlChartWrapper({
   variant = 'dashboard',
   showSummaryBar = true,
   showTradeCounts = true,
+  benchmarks,
 }: PnlChartWrapperProps) {
   // Use the shared hook for consistent data preparation
   const pnlData: PnlDataResult = usePnlData(trades);
+  
+  // State for benchmark toggles
+  const [showSpy, setShowSpy] = React.useState(false);
+  const [showQqq, setShowQqq] = React.useState(false);
 
   return (
     <Card className={className}>
@@ -46,7 +60,38 @@ export function PnlChartWrapper({
               )}
             </CardDescription>
           </div>
-          <RangeFilter availableDataPoints={pnlData.totalDataPoints} />
+          <div className="flex items-center gap-4">
+            {/* Benchmark Toggles */}
+            {benchmarks && (benchmarks.spy || benchmarks.qqq) && (
+              <div className="flex items-center gap-3">
+                {benchmarks.spy && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="show-spy"
+                      checked={showSpy}
+                      onCheckedChange={(checked) => setShowSpy(checked === true)}
+                    />
+                    <Label htmlFor="show-spy" className="text-sm cursor-pointer">
+                      SPY
+                    </Label>
+                  </div>
+                )}
+                {benchmarks.qqq && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="show-qqq"
+                      checked={showQqq}
+                      onCheckedChange={(checked) => setShowQqq(checked === true)}
+                    />
+                    <Label htmlFor="show-qqq" className="text-sm cursor-pointer">
+                      QQQ
+                    </Label>
+                  </div>
+                )}
+              </div>
+            )}
+            <RangeFilter availableDataPoints={pnlData.totalDataPoints} />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -71,6 +116,9 @@ export function PnlChartWrapper({
                   margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
                   mode={pnlData.mode}
                   fallbackUsed={pnlData.fallbackUsed}
+                  benchmarks={benchmarks}
+                  showSpy={showSpy}
+                  showQqq={showQqq}
                 />
               )}
             </ParentSize>

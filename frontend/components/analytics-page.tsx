@@ -655,7 +655,7 @@ export function AnalyticsPage() {
       </div>
 
       {/* P&L Chart */}
-      <AnalyticsPnl trades={recentTrades} />
+      <AnalyticsPnl trades={recentTrades} benchmarks={analytics?.benchmarks} />
 
       {/* Asset Allocation */}
       <div className="grid grid-cols-1 xl:grid-cols-1 gap-4 mt-4">

@@ -36,6 +36,11 @@ export interface PortfolioAnalytics {
     pnl: number;
     winRate: number;
   }>;
+  benchmarks?: {
+    spy?: Array<{ date: string; value: number }>;
+    qqq?: Array<{ date: string; value: number }>;
+  };
+  equityCurve?: Array<{ date: string; equity: number }>;
 }
 
 const fetcher = async (url: string) => {
@@ -100,8 +105,9 @@ export function usePortfolioPositions(refreshInterval: number = 30000) {
 // Hook for portfolio analytics
 export function usePortfolioAnalytics(refreshInterval: number = 60000) {
   const { session } = useAuth();
-  const { data, error, isLoading, mutate } = useSWR<PortfolioAnalytics>(
-    session ? '/api/portfolio/analytics' : null,
+  // Use the combined analytics endpoint which includes benchmarks
+  const { data, error, isLoading, mutate } = useSWR<{ success: boolean; data: PortfolioAnalytics }>(
+    session ? '/api/analytics/combined?source=combined&timeframe=ALL' : null,
     fetcher,
     {
       refreshInterval,
@@ -111,7 +117,7 @@ export function usePortfolioAnalytics(refreshInterval: number = 60000) {
   );
 
   return {
-    analytics: data,
+    analytics: data?.data || data, // Handle both wrapped and unwrapped responses
     isLoading,
     error,
     refresh: mutate,

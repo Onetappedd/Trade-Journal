@@ -4,12 +4,18 @@ import { PnlChartWrapper } from './PnlChartWrapper';
 import { type GenericTrade } from '@/hooks/usePnlData';
 import { type TradeRow } from '@/types/trade';
 
+interface BenchmarkData {
+  spy?: Array<{ date: string; value: number }>;
+  qqq?: Array<{ date: string; value: number }>;
+}
+
 interface AnalyticsPnlProps {
   trades: TradeRow[];
   className?: string;
+  benchmarks?: BenchmarkData;
 }
 
-export default function AnalyticsPnl({ trades, className = '' }: AnalyticsPnlProps) {
+export default function AnalyticsPnl({ trades, className = '', benchmarks }: AnalyticsPnlProps) {
   // Convert TradeRow to GenericTrade for the shared hook
   const genericTrades: GenericTrade[] = trades.map(trade => ({
     id: trade.id,
@@ -37,6 +43,7 @@ export default function AnalyticsPnl({ trades, className = '' }: AnalyticsPnlPro
       variant="analytics"
       showSummaryBar={true}
       showTradeCounts={true}
+      benchmarks={benchmarks}
     />
   );
 }
