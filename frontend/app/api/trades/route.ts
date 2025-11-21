@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     const params: TradesQueryParams = {
       page: parseInt(searchParams.get('page') || '1'),
       limit: Math.min(parseInt(searchParams.get('limit') || '50'), 100), // Cap at 100
-      sort: searchParams.get('sort') || 'entry_date', // Default to entry_date for imported trades
+      sort: searchParams.get('sort') || 'opened_at', // Default to opened_at (matching engine schema)
       direction: (searchParams.get('direction') as 'asc' | 'desc') || 'desc',
       symbol: searchParams.get('symbol') || undefined,
       side: searchParams.get('side') || undefined,
