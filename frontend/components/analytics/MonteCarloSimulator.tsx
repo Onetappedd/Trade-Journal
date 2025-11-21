@@ -433,7 +433,7 @@ export default function MonteCarloSimulator() {
                       isAnimationActive={false} // Disable animation for performance with many paths
                       connectNulls={false}
                       strokeOpacity={0.08} // Very low opacity so paths form a cloud
-                      name={idx === 0 ? `${result.samplePaths.length} Simulation Paths` : undefined} // Only show in legend once
+                      hide={true} // Hide from legend - paths are shown as a visual cloud, not individual legend entries
                     />
                   ))}
                 </LineChart>
