@@ -100,15 +100,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create import run
+    // Note: source must be one of: 'csv', 'email', 'manual', 'api' (database constraint)
+    // Store broker name in options instead
     const { data: runData, error: runError } = await supabase
       .from('import_runs')
       .insert({
         user_id: user.id,
-        source: importRequest.broker || 'csv',
+        source: 'csv', // Always 'csv' for CSV imports (database constraint)
         status: 'pending',
         file_name: importRequest.fileName,
         file_size: importRequest.fileSize,
-        options: importRequest.options || {}
+        options: {
+          ...(importRequest.options || {}),
+          broker: importRequest.broker || 'csv', // Store broker name in options
+          preset: importRequest.preset
+        }
       })
       .select('id')
       .single();
