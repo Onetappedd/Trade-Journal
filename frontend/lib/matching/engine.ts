@@ -146,6 +146,17 @@ export async function matchUserTrades({
     if (error) throw error;
 
     console.log(`Found ${executions?.length || 0} executions for user ${userId}`);
+    
+    // Debug: Check multiplier values for options
+    const optionExecutions = executions?.filter((e: any) => e.instrument_type === 'option') || [];
+    if (optionExecutions.length > 0) {
+      const multipliers = optionExecutions.map((e: any) => e.multiplier).filter((m: any) => m !== null && m !== undefined);
+      const uniqueMultipliers = [...new Set(multipliers)];
+      console.log(`[Matching] Option executions found: ${optionExecutions.length}, multipliers: ${uniqueMultipliers.join(', ') || 'none set'}`);
+      if (uniqueMultipliers.length > 0 && !uniqueMultipliers.includes(100)) {
+        console.warn(`[Matching] Warning: Option multiplier is not 100! Found: ${uniqueMultipliers.join(', ')}`);
+      }
+    }
 
     // If rebuilding for specific symbols, delete existing trades first
     if (symbols && symbols.length > 0) {
@@ -482,9 +493,17 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
             // Calculate P&L: (sell_price - buy_price) * quantity * multiplier
             // For options, the price is per contract, so we multiply by quantity and multiplier
             // The multiplier is typically 100 for standard options
+            // Use the multiplier from buy (should be same as sell, but buy is more reliable)
+            const multiplier = buy.multiplier || sell.multiplier || 100;
             const matchedQty = Math.min(buy.quantity, sell.quantity);
             const priceDiff = sell.price - buy.price;
-            const legPnL = priceDiff * matchedQty * (buy.multiplier || 100);
+            const legPnL = priceDiff * matchedQty * multiplier;
+            
+            // Debug logging for option P&L calculation
+            if (multiplier !== 100) {
+              console.log(`[Option P&L] Using multiplier ${multiplier} for ${buy.symbol} ${buy.strike}${buy.option_type}`);
+            }
+            
             totalPnL += legPnL;
             
             // Reduce quantities
