@@ -615,32 +615,64 @@ export default function AnalyticsPage() {
                         // Sort data by date
                         const sortedData = Array.from(dataMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                         
-                        // Detect gaps and insert null values to break the line
-                        // If there's more than 30 days between consecutive points, insert null to break the line
-                        const GAP_THRESHOLD_DAYS = 30;
-                        const dataWithGaps: Array<{ date: string; dateLabel: string; portfolio?: number | null; spy?: number | null; qqq?: number | null }> = [];
-                        
-                        for (let i = 0; i < sortedData.length; i++) {
-                          if (i > 0) {
-                            const prevDate = new Date(sortedData[i - 1].date);
-                            const currDate = new Date(sortedData[i].date);
-                            const daysDiff = Math.floor((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
-                            
-                            if (daysDiff > GAP_THRESHOLD_DAYS) {
-                              // Insert a null point to break the line
-                              dataWithGaps.push({
-                                date: sortedData[i - 1].date,
-                                dateLabel: sortedData[i - 1].dateLabel,
-                                portfolio: null,
-                                spy: null,
-                                qqq: null,
-                              });
-                            }
-                          }
-                          dataWithGaps.push(sortedData[i]);
+                        if (sortedData.length === 0) {
+                          return [];
                         }
                         
-                        return dataWithGaps;
+                        // Fill gaps with flat lines (last known value) instead of breaking the line
+                        // Create a continuous series from first to last date
+                        const startDate = new Date(sortedData[0].date);
+                        const endDate = new Date(sortedData[sortedData.length - 1].date);
+                        const continuousData: Array<{ date: string; dateLabel: string; portfolio?: number; spy?: number; qqq?: number }> = [];
+                        
+                        // Track last known values for each series
+                        let lastPortfolio: number | undefined = sortedData[0].portfolio;
+                        let lastSpy: number | undefined = sortedData[0].spy;
+                        let lastQqq: number | undefined = sortedData[0].qqq;
+                        
+                        // Create a map of existing data points for quick lookup
+                        const existingDataMap = new Map<string, typeof sortedData[0]>();
+                        sortedData.forEach(point => {
+                          const dateKey = point.date.split('T')[0];
+                          existingDataMap.set(dateKey, point);
+                        });
+                        
+                        // Generate continuous daily data
+                        const currentDate = new Date(startDate);
+                        while (currentDate <= endDate) {
+                          const dateKey = currentDate.toISOString().split('T')[0];
+                          const dateLabel = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                          
+                          const existingPoint = existingDataMap.get(dateKey);
+                          
+                          if (existingPoint) {
+                            // Use the actual data point
+                            lastPortfolio = existingPoint.portfolio;
+                            lastSpy = existingPoint.spy;
+                            lastQqq = existingPoint.qqq;
+                            continuousData.push({
+                              date: dateKey,
+                              dateLabel,
+                              portfolio: lastPortfolio,
+                              spy: lastSpy,
+                              qqq: lastQqq,
+                            });
+                          } else {
+                            // Fill gap with last known value (flat line)
+                            continuousData.push({
+                              date: dateKey,
+                              dateLabel,
+                              portfolio: lastPortfolio,
+                              spy: lastSpy,
+                              qqq: lastQqq,
+                            });
+                          }
+                          
+                          // Move to next day
+                          currentDate.setDate(currentDate.getDate() + 1);
+                        }
+                        
+                        return continuousData;
                       })()}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                         <XAxis 
@@ -694,7 +726,7 @@ export default function AnalyticsPage() {
                           strokeWidth={2}
                           dot={false}
                           name="Portfolio"
-                          connectNulls={false}
+                          connectNulls={true}
                         />
                         {analytics.benchmarks?.spy && analytics.benchmarks.spy.length > 0 && (
                           <Line 
@@ -705,7 +737,7 @@ export default function AnalyticsPage() {
                             strokeDasharray="5 5"
                             dot={false}
                             name="SPY"
-                            connectNulls={false}
+                            connectNulls={true}
                           />
                         )}
                         {analytics.benchmarks?.qqq && analytics.benchmarks.qqq.length > 0 && (
@@ -717,7 +749,7 @@ export default function AnalyticsPage() {
                             strokeDasharray="5 5"
                             dot={false}
                             name="QQQ"
-                            connectNulls={false}
+                            connectNulls={true}
                           />
                         )}
                       </RechartsLineChart>

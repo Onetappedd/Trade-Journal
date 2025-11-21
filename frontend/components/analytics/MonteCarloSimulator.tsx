@@ -233,24 +233,19 @@ export default function MonteCarloSimulator() {
   const profitablePaths = result?.endEquityDistribution.filter(e => e > (stats?.startEquity || 0)).length || 0;
   const profitablePercent = result ? (profitablePaths / result.endEquityDistribution.length) * 100 : 0;
 
-  // Calculate percentage change helper
-  const calculatePercentChange = (current: number, start: number) => {
-    if (start === 0) return 0;
-    return ((current - start) / start) * 100;
-  };
-
-  const startEquity = stats?.startEquity || 10000;
+  // Get the actual starting equity from stats (used for percentage calculations)
+  const actualStartEquity = stats?.startEquity || 10000;
 
   // Prepare chart data with $ or % transformation
   const chartData = result?.summary.map(point => {
     if (showPercentage) {
       return {
         tradeIndex: point.tradeIndex,
-        p10: calculatePercentChange(point.p10, startEquity),
-        p25: calculatePercentChange(point.p25, startEquity),
-        p50: calculatePercentChange(point.p50, startEquity),
-        p75: calculatePercentChange(point.p75, startEquity),
-        p90: calculatePercentChange(point.p90, startEquity),
+        p10: calculatePercentChange(point.p10, actualStartEquity),
+        p25: calculatePercentChange(point.p25, actualStartEquity),
+        p50: calculatePercentChange(point.p50, actualStartEquity),
+        p75: calculatePercentChange(point.p75, actualStartEquity),
+        p90: calculatePercentChange(point.p90, actualStartEquity),
       };
     } else {
       return {
@@ -273,7 +268,7 @@ export default function MonteCarloSimulator() {
     result?.samplePaths.forEach((path, pathIdx) => {
       if (path[idx]) {
         const pathValue = showPercentage 
-          ? calculatePercentChange(path[idx].equity, startEquity)
+          ? calculatePercentChange(path[idx].equity, actualStartEquity)
           : path[idx].equity;
         merged[`path${pathIdx}`] = pathValue;
       }
