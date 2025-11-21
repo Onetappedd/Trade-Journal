@@ -41,6 +41,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import { ResponsiveContainer, LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, Cell } from 'recharts'
+import MonteCarloSimulator from '@/components/analytics/MonteCarloSimulator'
 
 // Types matching your existing backend
 interface TradeAnalytics {
@@ -756,6 +757,9 @@ export default function AnalyticsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Monte Carlo Simulator */}
+            <MonteCarloSimulator />
 
             {/* Trade Analysis */}
             <Card className="bg-slate-900/50 border-slate-800/50">

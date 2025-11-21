@@ -40,6 +40,10 @@
 
 **Response**: Aggregated analytics metrics (see analytics/page.tsx for structure)
 
+### POST `/api/analytics/monte-carlo-trades`
+
+Monte Carlo simulation endpoint for future wealth projection. See `TJ_FEATURE_MonteCarlo.md` for full documentation.
+
 **Data Aggregation**:
 - Manual trades: from `trades` table
 - Broker data: from `snaptrade_accounts` (holdings, balances)
@@ -54,6 +58,7 @@
 - **Drawdown Chart**: Shows peak-to-trough declines
 - **Performance by Symbol**: Sorted by P&L
 - **Win Rate Chart**: Visual representation of win/loss ratio
+- **Monte Carlo Simulator**: Trade-level future wealth projection with "cone of uncertainty" chart (see `TJ_FEATURE_MonteCarlo.md` for details)
 
 ---
 

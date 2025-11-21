@@ -196,37 +196,42 @@ export default function CalendarPage() {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
   }
 
-  const getPnLColor = (pnl: number, hasTrades: boolean) => {
+  const getPnLColorStyle = (pnl: number, hasTrades: boolean): React.CSSProperties => {
     // If no trades for this day, show gray
-    if (!hasTrades) return "bg-slate-700"
+    if (!hasTrades) {
+      return { backgroundColor: 'rgb(51 65 85)' } // slate-700
+    }
     
     // If P&L is exactly 0 but there are trades, show a neutral color
-    if (pnl === 0) return "bg-slate-600"
+    if (pnl === 0) {
+      return { backgroundColor: 'rgb(71 85 105)' } // slate-600
+    }
 
     // Calculate intensity with brighter, more visible colors
     // Scale: $0-$100 = 50-70% opacity, $100-$500 = 70-85% opacity, $500+ = 85-100% opacity
     const absPnL = Math.abs(pnl)
-    let intensity: number
+    let opacity: number
     
     if (absPnL <= 100) {
       // Very small P&L: 50% to 70% opacity (brighter minimum)
-      intensity = 0.5 + (absPnL / 100) * 0.2
+      opacity = 0.5 + (absPnL / 100) * 0.2
     } else if (absPnL <= 500) {
       // Small P&L: 70% to 85% opacity
-      intensity = 0.7 + ((absPnL - 100) / 400) * 0.15
+      opacity = 0.7 + ((absPnL - 100) / 400) * 0.15
     } else {
       // Larger P&L: 85% to 100% opacity (very bright)
-      intensity = 0.85 + Math.min((absPnL - 500) / 1500, 1) * 0.15
+      opacity = 0.85 + Math.min((absPnL - 500) / 1500, 1) * 0.15
     }
     
     // Ensure minimum 50% opacity for better visibility
-    intensity = Math.max(intensity, 0.5)
-    const opacity = Math.round(intensity * 100)
+    opacity = Math.max(opacity, 0.5)
 
     if (pnl > 0) {
-      return `bg-emerald-500/${opacity}`
+      // emerald-500: rgb(16 185 129)
+      return { backgroundColor: `rgba(16, 185, 129, ${opacity})` }
     } else {
-      return `bg-red-500/${opacity}`
+      // red-500: rgb(239 68 68)
+      return { backgroundColor: `rgba(239, 68, 68, ${opacity})` }
     }
   }
 
@@ -286,7 +291,8 @@ export default function CalendarPage() {
           return (
             <div
               key={day}
-              className={`aspect-square border border-slate-700/50 rounded-lg p-1 sm:p-2 cursor-pointer transition-all hover:border-slate-600 relative ${getPnLColor(dayPnL, hasTrades)}`}
+              className="aspect-square border border-slate-700/50 rounded-lg p-1 sm:p-2 cursor-pointer transition-all hover:border-slate-600 relative"
+              style={getPnLColorStyle(dayPnL, hasTrades)}
               onMouseEnter={() => setHoveredDay(dateKey)}
               onMouseLeave={() => setHoveredDay(null)}
             >
@@ -349,7 +355,8 @@ export default function CalendarPage() {
               </div>
 
               <Card
-                className={`bg-slate-900/50 border-slate-800/50 min-h-32 cursor-pointer transition-all hover:border-slate-600 ${getPnLColor(dayPnL, hasTrades)}`}
+                className="border-slate-800/50 min-h-32 cursor-pointer transition-all hover:border-slate-600"
+                style={getPnLColorStyle(dayPnL, hasTrades)}
                 onMouseEnter={() => setHoveredDay(dateKey)}
                 onMouseLeave={() => setHoveredDay(null)}
               >
@@ -418,7 +425,8 @@ export default function CalendarPage() {
               return (
                 <div
                   key={day}
-                  className={`aspect-square border border-slate-700/30 rounded text-[10px] p-0.5 cursor-pointer transition-all hover:border-slate-600 relative ${getPnLColor(dayPnL, hasTrades)}`}
+                  className="aspect-square border border-slate-700/30 rounded text-[10px] p-0.5 cursor-pointer transition-all hover:border-slate-600 relative"
+                  style={getPnLColorStyle(dayPnL, hasTrades)}
                   onMouseEnter={() => setHoveredDay(dateKey)}
                   onMouseLeave={() => setHoveredDay(null)}
                   title={`${MONTHS[month]} ${day}, ${year}: ${dayPnL > 0 ? '+' : ''}$${dayPnL.toLocaleString()}`}
