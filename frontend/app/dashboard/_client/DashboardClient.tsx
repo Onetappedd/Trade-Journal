@@ -129,60 +129,86 @@ export default function DashboardClient({
   // Calculate risk metrics from filtered trades
   const riskMetrics = useMemo(() => {
     const closedFiltered = filteredTrades.filter(t => t.closedAt && t.pnl !== null && t.pnl !== undefined)
-    const returns = closedFiltered.map(t => t.pnl || 0)
     
-    if (returns.length === 0) {
+    if (closedFiltered.length === 0) {
       return {
         maxDrawdownPct: dashboardData?.risk?.maxDrawdownPct ?? 0,
         sharpe: dashboardData?.risk?.sharpe ?? 0,
         volPct: dashboardData?.risk?.volPct ?? 0,
+        beta: dashboardData?.risk?.beta ?? 0,
       }
     }
     
-    // Calculate Sharpe ratio
+    // Calculate equity curve from cumulative P&L
+    const startingCapital = dashboardData?.portfolioValue ? Math.max(dashboardData.portfolioValue - periodPnL, 1000) : 10000
+    const sortedTrades = [...closedFiltered].sort((a, b) => {
+      const dateA = new Date(a.closedAt || a.openedAt || Date.now())
+      const dateB = new Date(b.closedAt || b.openedAt || Date.now())
+      return dateA.getTime() - dateB.getTime()
+    })
+    
+    let cumulativeValue = startingCapital
+    const equityCurve: number[] = [startingCapital]
+    
+    for (const trade of sortedTrades) {
+      cumulativeValue += trade.pnl || 0
+      equityCurve.push(Math.max(cumulativeValue, 0.01)) // Ensure positive values
+    }
+    
+    // Calculate percentage returns (daily returns from equity curve)
+    const dailyReturns: number[] = []
+    for (let i = 1; i < equityCurve.length; i++) {
+      const prevValue = equityCurve[i - 1]
+      const currValue = equityCurve[i]
+      if (prevValue > 0) {
+        const dailyReturn = (currValue - prevValue) / prevValue
+        dailyReturns.push(dailyReturn)
+      }
+    }
+    
+    // Calculate Sharpe ratio from daily returns
     let sharpe = 0
-    if (returns.length > 1) {
-      const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length
-      const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
+    if (dailyReturns.length > 1) {
+      const avgReturn = dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length
+      const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (dailyReturns.length - 1)
       const stdDev = Math.sqrt(variance)
       sharpe = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252) : 0 // Annualized
     }
     
-    // Calculate max drawdown
+    // Calculate max drawdown from equity curve
     let maxDrawdownPct = 0
-    let peak = 0
-    let maxDrawdown = 0
-    let runningPnL = 0
+    let peak = equityCurve[0]
     
-    for (const pnl of returns) {
-      runningPnL += pnl
-      if (runningPnL > peak) {
-        peak = runningPnL
+    for (let i = 0; i < equityCurve.length; i++) {
+      const value = equityCurve[i]
+      if (value > peak) {
+        peak = value
       }
-      const drawdown = peak - runningPnL
-      if (drawdown > maxDrawdown) {
-        maxDrawdown = drawdown
+      if (peak > 0) {
+        const drawdownPct = ((peak - value) / peak) * 100
+        if (drawdownPct > maxDrawdownPct) {
+          maxDrawdownPct = drawdownPct
+        }
       }
     }
     
-    maxDrawdownPct = peak !== 0 ? (maxDrawdown / peak) * 100 : 0
-    
-    // Calculate volatility
+    // Calculate volatility (annualized) from daily returns
     let volPct = 0
-    if (returns.length > 1) {
-      const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length
-      const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
+    if (dailyReturns.length > 1) {
+      const avgReturn = dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length
+      const variance = dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (dailyReturns.length - 1)
       const stdDev = Math.sqrt(variance)
-      const avgPortfolioValue = dashboardData?.portfolioValue || 10000
-      volPct = avgPortfolioValue > 0 ? (stdDev / avgPortfolioValue) * 100 : 0
+      // Annualize volatility: stdDev * sqrt(252) * 100 for percentage
+      volPct = stdDev * Math.sqrt(252) * 100
     }
     
     return {
       maxDrawdownPct,
       sharpe,
       volPct,
+      beta: dashboardData?.risk?.beta ?? 0,
     }
-  }, [filteredTrades, dashboardData?.risk, dashboardData?.portfolioValue])
+  }, [filteredTrades, dashboardData?.risk, dashboardData?.portfolioValue, periodPnL])
 
   const chartData = useMemo(() => {
     if (dashboardData?.dailyPnlSeries && dashboardData?.cumPnlSeries) {

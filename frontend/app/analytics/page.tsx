@@ -40,6 +40,7 @@ import {
   RotateCcw,
   AlertTriangle,
 } from "lucide-react"
+import { ResponsiveContainer, LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, Cell } from 'recharts'
 
 // Types matching your existing backend
 interface TradeAnalytics {
@@ -53,6 +54,10 @@ interface TradeAnalytics {
   profitFactor: number;
   sharpeRatio: number;
   maxDrawdown: number;
+  equityCurve?: Array<{
+    date: string;
+    value: number;
+  }>;
   monthlyReturns: Array<{
     month: string;
     pnl: number;
@@ -375,13 +380,32 @@ export default function AnalyticsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-slate-400 text-sm font-medium">Total Return</p>
-                    <p className={`text-2xl font-bold ${(analytics?.totalPnL || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {analytics?.totalPnL ? ((analytics.totalPnL || 0) >= 0 ? '+' : '') + analytics.totalPnL.toFixed(2) : 'N/A'}
-                    </p>
-                    <p className="text-sm text-slate-400 flex items-center mt-1">
-                      <ArrowUpRight className="h-3 w-3 mr-1" />
-                      vs {filters.benchmark}: +8.2%
-                    </p>
+                    {(() => {
+                      // Calculate percentage return from equity curve if available, otherwise use default
+                      let returnPercent = 0
+                      if (analytics?.equityCurve && analytics.equityCurve.length > 0) {
+                        const startingValue = analytics.equityCurve[0].value
+                        const endingValue = analytics.equityCurve[analytics.equityCurve.length - 1].value
+                        if (startingValue > 0) {
+                          returnPercent = ((endingValue - startingValue) / startingValue) * 100
+                        }
+                      } else if (analytics?.totalPnL !== undefined) {
+                        // Fallback: use default starting capital
+                        const startingCapital = 10000
+                        returnPercent = startingCapital > 0 ? (analytics.totalPnL / startingCapital) * 100 : 0
+                      }
+                      return (
+                        <>
+                          <p className={`text-2xl font-bold ${returnPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {returnPercent >= 0 ? '+' : ''}{returnPercent.toFixed(2)}%
+                          </p>
+                          <p className="text-sm text-slate-400 flex items-center mt-1">
+                            <ArrowUpRight className="h-3 w-3 mr-1" />
+                            vs {filters.benchmark}: +8.2%
+                          </p>
+                        </>
+                      )
+                    })()}
                   </div>
                   <div className="h-12 w-12 rounded-xl bg-emerald-950/50 flex items-center justify-center">
                     <TrendingUp className="h-6 w-6 text-emerald-400" />
@@ -508,32 +532,58 @@ export default function AnalyticsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="h-64 sm:h-96 bg-slate-800/30 rounded-lg border border-slate-700/50 flex items-center justify-center mb-6 relative group">
-                  <div className="text-center space-y-3">
-                    <LineChart className="h-12 w-12 sm:h-16 sm:w-16 text-emerald-400 mx-auto" />
-                    <div>
-                      <p className="text-base sm:text-lg font-semibold text-white">Interactive Performance Chart</p>
-                      <p className="text-xs sm:text-sm text-slate-400">
-                        {chartMode === "overlay"
-                          ? "Portfolio + Benchmark Overlay"
-                          : "Portfolio vs Benchmark Comparison"}
-                      </p>
-                      {zoomEnabled && (
-                        <p className="text-xs text-emerald-400 mt-2 flex items-center justify-center">
-                          <MousePointer2 className="h-3 w-3 mr-1" />
-                          Zoom mode enabled - drag to select range
-                        </p>
-                      )}
+                <div className="h-64 sm:h-96 bg-slate-800/30 rounded-lg border border-slate-700/50 mb-6 relative">
+                  {analytics?.equityCurve && analytics.equityCurve.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsLineChart data={analytics.equityCurve.map(point => ({
+                        date: new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        value: point.value,
+                        dateFull: point.date
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="#94a3b8"
+                          style={{ fontSize: '12px' }}
+                          tick={{ fill: '#94a3b8' }}
+                        />
+                        <YAxis 
+                          stroke="#94a3b8"
+                          style={{ fontSize: '12px' }}
+                          tick={{ fill: '#94a3b8' }}
+                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#1e293b', 
+                            border: '1px solid #334155',
+                            borderRadius: '8px',
+                            color: '#f1f5f9'
+                          }}
+                          labelStyle={{ color: '#94a3b8' }}
+                          formatter={(value: number) => [`$${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, 'Portfolio Value']}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="value" 
+                          stroke="#10b981" 
+                          strokeWidth={2}
+                          dot={false}
+                          name="Portfolio Value"
+                        />
+                      </RechartsLineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center space-y-3">
+                        <LineChart className="h-12 w-12 sm:h-16 sm:w-16 text-slate-500 mx-auto" />
+                        <div>
+                          <p className="text-base sm:text-lg font-semibold text-slate-400">No chart data available</p>
+                          <p className="text-xs sm:text-sm text-slate-500">Import trades to see performance charts</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="absolute top-4 left-4 bg-slate-900/90 border border-slate-700/50 rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="text-xs space-y-1">
-                      <div className="text-slate-400">Dec 15, 2024</div>
-                      <div className="text-emerald-400">Portfolio: {analytics?.totalPnL?.toFixed(2) || 'N/A'}</div>
-                      <div className="text-blue-400">{filters.benchmark}: +12.3%</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -642,12 +692,55 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
 
-                <div className="h-32 sm:h-48 bg-slate-800/30 rounded-lg border border-slate-700/50 flex items-center justify-center">
-                  <div className="text-center space-y-2">
-                    <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 text-purple-400 mx-auto" />
-                    <p className="text-xs sm:text-sm text-slate-400">P&L Distribution & Trade Heatmap</p>
+                {analytics?.performanceBySymbol && analytics.performanceBySymbol.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="h-64 bg-slate-800/30 rounded-lg border border-slate-700/50 p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analytics.performanceBySymbol.slice(0, 10).map(item => ({
+                          symbol: item.symbol,
+                          pnl: item.pnl
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                          <XAxis 
+                            dataKey="symbol" 
+                            stroke="#94a3b8"
+                            style={{ fontSize: '12px' }}
+                            tick={{ fill: '#94a3b8' }}
+                          />
+                          <YAxis 
+                            stroke="#94a3b8"
+                            style={{ fontSize: '12px' }}
+                            tick={{ fill: '#94a3b8' }}
+                            tickFormatter={(value) => `$${value.toLocaleString()}`}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: '#1e293b', 
+                              border: '1px solid #334155',
+                              borderRadius: '8px',
+                              color: '#f1f5f9'
+                            }}
+                            labelStyle={{ color: '#94a3b8' }}
+                            formatter={(value: number) => [`$${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, 'P&L']}
+                          />
+                          <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                            {analytics.performanceBySymbol.slice(0, 10).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#10b981' : '#ef4444'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <p className="text-xs text-slate-400 text-center">P&L Distribution by Symbol (Top 10)</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="h-32 sm:h-48 bg-slate-800/30 rounded-lg border border-slate-700/50 flex items-center justify-center">
+                    <div className="text-center space-y-2">
+                      <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 text-slate-500 mx-auto" />
+                      <p className="text-xs sm:text-sm text-slate-400">No trade data available for distribution chart</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
