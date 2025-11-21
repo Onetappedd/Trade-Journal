@@ -83,20 +83,7 @@ export async function GET(request: NextRequest) {
           interval: '1d' as const,
         };
 
-        const historical = await yahooFinance.historical(symbol, queryOptions);
-
-        // Type guard: ensure historical is an array
-        // Use type assertion to help TypeScript understand the return type
-        const historicalArray = Array.isArray(historical) ? historical : null;
-        
-        if (!historicalArray || historicalArray.length === 0) {
-          console.warn(`[Benchmarks Cron] No data returned for ${symbol}`);
-          results.push({ symbol, count: 0 });
-          continue;
-        }
-
-        // TypeScript now knows historicalArray is an array
-        // yahoo-finance2 returns an array of quote objects
+        // yahoo-finance2 historical returns an array of quote objects
         type QuoteType = {
           date: Date | string;
           close: number | null;
@@ -104,11 +91,18 @@ export async function GET(request: NextRequest) {
           adjustedClose?: number | null;
           volume?: number | null;
         };
-        
-        const typedHistorical = historicalArray as QuoteType[];
+
+        const historical = (await yahooFinance.historical(symbol, queryOptions)) as QuoteType[] | null | undefined;
+
+        // Type guard: ensure historical is an array
+        if (!historical || !Array.isArray(historical) || historical.length === 0) {
+          console.warn(`[Benchmarks Cron] No data returned for ${symbol}`);
+          results.push({ symbol, count: 0 });
+          continue;
+        }
 
         // Map Yahoo Finance response to database schema
-        const rows = typedHistorical
+        const rows = historical
           .filter((quote) => {
             // Filter out rows missing required fields
             return quote.date && quote.close !== null && quote.close !== undefined;
