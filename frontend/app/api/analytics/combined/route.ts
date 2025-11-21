@@ -7,7 +7,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseWithToken } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
-import { polygonService } from '@/lib/polygon-api';
 
 export const dynamic = 'force-dynamic'
 
@@ -308,7 +307,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch benchmark data (SPY and QQQ) if we have an equity curve
+    // Fetch benchmark data (SPY and QQQ) from Supabase benchmark_prices table
     let benchmarks: {
       spy?: Array<{ date: string; value: number }>;
       qqq?: Array<{ date: string; value: number }>;
@@ -322,84 +321,107 @@ export async function GET(request: NextRequest) {
         const endDate = new Date(lastDate).toISOString().split('T')[0];
         const startingValue = manualMetrics.equityCurve[0].value;
 
-        // Fetch SPY and QQQ data in parallel
-        const [spyData, qqqData] = await Promise.all([
-          polygonService.getHistoricalData('SPY', 1, 'day', startDate, endDate).catch(() => []),
-          polygonService.getHistoricalData('QQQ', 1, 'day', startDate, endDate).catch(() => []),
-        ]);
+        // Query benchmark_prices table for SPY and QQQ in the user's date range
+        const { data: benchmarkRows, error: benchmarkError } = await supabaseAdmin
+          .from('benchmark_prices')
+          .select('date, symbol, adjusted_close')
+          .in('symbol', ['SPY', 'QQQ'])
+          .gte('date', startDate)
+          .lte('date', endDate)
+          .order('date', { ascending: true });
 
-        // Normalize benchmarks to start from the same value as the portfolio
-        const normalizeBenchmark = (data: any[], symbol: string) => {
-          if (!data || data.length === 0) return [];
-          
-          // Find the first data point that matches or is closest to the portfolio start date
-          const startDateObj = new Date(startDate);
-          let firstPrice = null;
-          let firstIndex = 0;
-          
-          for (let i = 0; i < data.length; i++) {
-            const barDate = new Date(data[i].t);
-            if (barDate >= startDateObj) {
-              firstPrice = data[i].c; // Use closing price
-              firstIndex = i;
-              break;
-            }
-          }
-          
-          // If no exact match, use the first available price
-          if (firstPrice === null && data.length > 0) {
-            firstPrice = data[0].c;
-            firstIndex = 0;
-          }
-          
-          if (firstPrice === null || firstPrice === 0) return [];
-          
-          // Normalize: scale all prices so the first price equals startingValue
-          const scaleFactor = startingValue / firstPrice;
-          
-          // Create normalized equity curve matching portfolio dates
-          const normalized: Array<{ date: string; value: number }> = [];
-          const portfolioDates = new Set(manualMetrics.equityCurve.map(p => p.date.split('T')[0]));
-          
-          // Create a map of dates to prices for interpolation
-          const priceMap = new Map<string, number>();
-          for (let i = firstIndex; i < data.length; i++) {
-            const barDate = new Date(data[i].t).toISOString().split('T')[0];
-            priceMap.set(barDate, data[i].c * scaleFactor);
-          }
-          
-          // Match portfolio dates with benchmark prices
-          for (const portfolioPoint of manualMetrics.equityCurve) {
-            const portfolioDate = portfolioPoint.date.split('T')[0];
-            
-            // Find the closest benchmark price (use previous day's price if exact match not found)
-            let benchmarkPrice = null;
-            for (let offset = 0; offset < 5; offset++) {
-              const checkDate = new Date(portfolioDate);
-              checkDate.setDate(checkDate.getDate() - offset);
-              const checkDateStr = checkDate.toISOString().split('T')[0];
-              if (priceMap.has(checkDateStr)) {
-                benchmarkPrice = priceMap.get(checkDateStr)!;
+        if (benchmarkError) {
+          console.error('[Analytics] Error fetching benchmark data:', benchmarkError);
+          // Continue without benchmarks if query fails
+        } else if (benchmarkRows && benchmarkRows.length > 0) {
+          // Group by symbol
+          const spyRows = benchmarkRows.filter((r) => r.symbol === 'SPY');
+          const qqqRows = benchmarkRows.filter((r) => r.symbol === 'QQQ');
+
+          // Normalize benchmarks to start from the same value as the portfolio
+          const normalizeBenchmark = (
+            rows: Array<{ date: string; adjusted_close: number }>,
+            symbol: string
+          ) => {
+            if (!rows || rows.length === 0) return [];
+
+            // Find the first data point that matches or is closest to the portfolio start date
+            const startDateObj = new Date(startDate);
+            let firstPrice: number | null = null;
+            let firstIndex = 0;
+
+            for (let i = 0; i < rows.length; i++) {
+              const rowDate = new Date(rows[i].date);
+              if (rowDate >= startDateObj) {
+                // Parse adjusted_close (may be string from NUMERIC type)
+                firstPrice =
+                  typeof rows[i].adjusted_close === 'string'
+                    ? parseFloat(rows[i].adjusted_close)
+                    : rows[i].adjusted_close;
+                firstIndex = i;
                 break;
               }
             }
-            
-            if (benchmarkPrice !== null) {
-              normalized.push({
-                date: portfolioPoint.date,
-                value: benchmarkPrice,
-              });
-            }
-          }
-          
-          return normalized;
-        };
 
-        benchmarks.spy = normalizeBenchmark(spyData, 'SPY');
-        benchmarks.qqq = normalizeBenchmark(qqqData, 'QQQ');
+            // If no exact match, use the first available price
+            if (firstPrice === null && rows.length > 0) {
+              firstPrice =
+                typeof rows[0].adjusted_close === 'string'
+                  ? parseFloat(rows[0].adjusted_close)
+                  : rows[0].adjusted_close;
+              firstIndex = 0;
+            }
+
+            if (firstPrice === null || firstPrice === 0) return [];
+
+            // Normalize: scale all prices so the first price equals startingValue
+            const scaleFactor = startingValue / firstPrice;
+
+            // Create a map of dates to normalized prices
+            const priceMap = new Map<string, number>();
+            for (let i = firstIndex; i < rows.length; i++) {
+              const rowDate = rows[i].date;
+              const adjClose =
+                typeof rows[i].adjusted_close === 'string'
+                  ? parseFloat(rows[i].adjusted_close)
+                  : rows[i].adjusted_close;
+              priceMap.set(rowDate, adjClose * scaleFactor);
+            }
+
+            // Match portfolio dates with benchmark prices
+            const normalized: Array<{ date: string; value: number }> = [];
+            for (const portfolioPoint of manualMetrics.equityCurve) {
+              const portfolioDate = portfolioPoint.date.split('T')[0];
+
+              // Find the closest benchmark price (use previous day's price if exact match not found)
+              let benchmarkPrice: number | null = null;
+              for (let offset = 0; offset < 5; offset++) {
+                const checkDate = new Date(portfolioDate);
+                checkDate.setDate(checkDate.getDate() - offset);
+                const checkDateStr = checkDate.toISOString().split('T')[0];
+                if (priceMap.has(checkDateStr)) {
+                  benchmarkPrice = priceMap.get(checkDateStr)!;
+                  break;
+                }
+              }
+
+              if (benchmarkPrice !== null) {
+                normalized.push({
+                  date: portfolioPoint.date,
+                  value: benchmarkPrice,
+                });
+              }
+            }
+
+            return normalized;
+          };
+
+          benchmarks.spy = normalizeBenchmark(spyRows, 'SPY');
+          benchmarks.qqq = normalizeBenchmark(qqqRows, 'QQQ');
+        }
       } catch (error) {
-        console.error('Error fetching benchmark data:', error);
-        // Continue without benchmarks if fetch fails
+        console.error('[Analytics] Error processing benchmark data:', error);
+        // Continue without benchmarks if processing fails
       }
     }
 
