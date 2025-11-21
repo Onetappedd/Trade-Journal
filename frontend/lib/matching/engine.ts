@@ -368,11 +368,17 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       let totalFees = 0;
       let firstExecId = '';
       let lastExecId = '';
+      let totalOpenedQty = 0; // Track total quantity that was opened (for closed trades)
       
       for (const exec of window) {
         const legKey = `${exec.strike}-${exec.option_type === 'C' ? 'call' : 'put'}-${exec.side}`;
         const qty = exec.side === 'sell' ? -exec.quantity : exec.quantity;
         const cost = qty * exec.price * exec.multiplier;
+        
+        // Track opened quantity (positive quantities from buys)
+        if (exec.side === 'buy') {
+          totalOpenedQty += exec.quantity;
+        }
         
         if (!legs.has(legKey)) {
           legs.set(legKey, {
@@ -487,6 +493,13 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       const totalOpenValue = legsArray.reduce((sum, leg) => sum + (leg.avg_price * Math.abs(leg.qty)), 0);
       const avgOpenPrice = totalQuantity > 0 ? totalOpenValue / totalQuantity : 0;
       
+      // For qty_opened: use totalOpenedQty (sum of buy quantities) for closed trades,
+      // or netPosition for open trades
+      // For closed trades, netPosition is 0, so we need to use the tracked totalOpenedQty
+      const qtyOpened = status === 'closed' 
+        ? (totalOpenedQty > 0 ? totalOpenedQty : totalQuantity) // Use tracked opened quantity or fallback to totalQuantity
+        : Math.abs(netPosition); // For open trades, use net position
+      
       const trade: Trade = {
         user_id: window[0].user_id,
         group_key: generateGroupKey(underlying, firstExecId),
@@ -495,8 +508,8 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
         status,
         opened_at: window[0].timestamp,
         closed_at: status === 'closed' ? window[window.length - 1].timestamp : undefined,
-        qty_opened: Math.abs(netPosition), // Use absolute quantity
-        qty_closed: status === 'closed' ? Math.abs(netPosition) : 0,
+        qty_opened: qtyOpened > 0 ? qtyOpened : totalQuantity, // Ensure qty_opened > 0
+        qty_closed: status === 'closed' ? qtyOpened : 0, // For closed trades, qty_closed should equal qty_opened
         avg_open_price: avgOpenPrice, // Use calculated average price
         avg_close_price: status === 'closed' ? avgOpenPrice : undefined,
         realized_pnl: realizedPnl,
