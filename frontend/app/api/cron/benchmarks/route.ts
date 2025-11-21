@@ -18,10 +18,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Instantiate yahoo-finance2 (required for v3)
+const yahooFinance = new YahooFinance();
 
 const SYMBOLS = ['SPY', 'QQQ'];
 
