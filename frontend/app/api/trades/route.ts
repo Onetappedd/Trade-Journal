@@ -139,6 +139,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     .from('trades')
     .select('*') // Simplify to * for debugging to avoid column issues
     .eq('user_id', userId);
+  
+  console.log(`[Trades API] Building query for user ${userId}, page ${page}, limit ${limit}, offset ${offset}`);
 
   // Apply filters
   if (symbol) {
