@@ -588,6 +588,7 @@ function parseMoney(value: string | null | undefined): number | null {
  * - "NVDA 6/28/2024 Call $125.00"
  * - "SPY 6/24/2024 Call $545.00"
  * - "AVGO 7/5/2024 Put $1,725.00"
+ * - "Option Expiration for ACB 4/26/2024 Call $9.00" (OEXP format)
  * Returns: { underlying, expiry, option_type, strike_price }
  */
 function parseRobinhoodOptionDescription(description: string): {
@@ -598,18 +599,26 @@ function parseRobinhoodOptionDescription(description: string): {
 } {
   if (!description) return {};
   
-  // Pattern: SYMBOL MM/DD/YYYY Call|Put $STRIKE
+  // Pattern 1: Regular option format - "SYMBOL MM/DD/YYYY Call|Put $STRIKE"
+  // Pattern 2: OEXP format - "Option Expiration for SYMBOL MM/DD/YYYY Call|Put $STRIKE"
   // More flexible regex to handle variations in spacing
   // Example: "NVDA 6/28/2024 Call $125.00" or "AVGO 7/5/2024 Put $1,725.00"
+  // Example: "Option Expiration for ACB 4/26/2024 Call $9.00"
+  
+  // Try OEXP format first (with "Option Expiration for" prefix)
+  const oexpCallMatch = description.match(/Option\s+Expiration\s+for\s+([A-Z.]+)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+Call\s+\$([\d,]+\.?\d*)/i);
+  const oexpPutMatch = description.match(/Option\s+Expiration\s+for\s+([A-Z.]+)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+Put\s+\$([\d,]+\.?\d*)/i);
+  
+  // Try regular format
   const callMatch = description.match(/^([A-Z.]+)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+Call\s+\$([\d,]+\.?\d*)/i);
   const putMatch = description.match(/^([A-Z.]+)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+Put\s+\$([\d,]+\.?\d*)/i);
   
-  const match = callMatch || putMatch;
+  const match = oexpCallMatch || oexpPutMatch || callMatch || putMatch;
   if (!match) return {};
   
   const underlying = match[1].toUpperCase();
   const dateStr = match[2]; // MM/DD/YYYY
-  const optionType = callMatch ? 'CALL' : 'PUT';
+  const optionType = (oexpCallMatch || callMatch) ? 'CALL' : 'PUT';
   const strikeStr = match[3].replace(/,/g, '');
   const strikePrice = Number.parseFloat(strikeStr);
   
@@ -868,11 +877,10 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
           return;
         }
         
-        // Skip non-trade rows (for now)
-        // Trade codes: BTO, STC, Buy, Sell (case-insensitive)
-        // Non-trade codes: ACH, RTP, DCF, GOLD, INT, CDIV, REC, OEXP
-        // TODO: Handle OEXP (option expiration) in a later iteration for proper option-expiry auto-closing
-        const tradeCodes = ['BTO', 'STC', 'BUY', 'SELL'];
+        // Skip non-trade rows
+        // Trade codes: BTO, STC, Buy, Sell, OEXP (option expiration)
+        // Non-trade codes: ACH, RTP, DCF, GOLD, INT, CDIV, REC
+        const tradeCodes = ['BTO', 'STC', 'BUY', 'SELL', 'OEXP'];
         if (!tradeCodes.includes(transCode)) {
           // Log as ignored for debugging (non-trade row)
           return;
@@ -891,7 +899,8 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
         // Parse quantity
         let quantity = 0;
         if (quantityStr && quantityStr.trim() !== '') {
-          // Skip OEXP quantities like "5S" for now (those rows are skipped anyway)
+          // Handle OEXP quantities like "5S" (extract number before "S")
+          // Also handle regular numeric quantities
           const qtyNum = Number.parseFloat(quantityStr.replace(/[^0-9.-]/g, ''));
           if (!Number.isNaN(qtyNum)) {
             quantity = qtyNum;
@@ -904,12 +913,22 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
         }
         
         // Parse price and amount
-        const price = parseMoney(priceStr);
-        const grossAmount = parseMoney(amountStr);
+        // OEXP (option expiration) rows have empty price/amount - set to 0
+        let price: number | null = null;
+        let grossAmount: number | null = null;
         
-        if (price === null || grossAmount === null) {
-          errors.push({ row: i + 1, message: `Invalid price or amount: price=${priceStr}, amount=${amountStr}` });
-          return;
+        if (transCode === 'OEXP') {
+          // Option expiration: price is 0 (expired worthless or exercised)
+          price = 0;
+          grossAmount = 0;
+        } else {
+          price = parseMoney(priceStr);
+          grossAmount = parseMoney(amountStr);
+          
+          if (price === null || grossAmount === null) {
+            errors.push({ row: i + 1, message: `Invalid price or amount: price=${priceStr}, amount=${amountStr}` });
+            return;
+          }
         }
         
         // Determine side and asset type
@@ -919,10 +938,11 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
         // Map Trans Code to side
         // BTO = Buy To Open (options), Buy = Stock/ETF buy
         // STC = Sell To Close (options), Sell = Stock/ETF sell
+        // OEXP = Option Expiration (treat as Sell To Close with price 0)
         if (transCode === 'BTO' || transCode === 'BUY') {
           side = 'BUY';
           quantity = Math.abs(quantity); // Ensure positive for buys
-        } else if (transCode === 'STC' || transCode === 'SELL') {
+        } else if (transCode === 'STC' || transCode === 'SELL' || transCode === 'OEXP') {
           side = 'SELL';
           quantity = -Math.abs(quantity); // Negative for sells (following convention)
         } else {
@@ -931,11 +951,13 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
         }
         
         // Detect if this is an option trade
+        // OEXP always indicates an option expiration
         const optionInfo = parseRobinhoodOptionDescription(description);
-        const isOption = transCode === 'BTO' || transCode === 'STC' || 
+        const isOption = transCode === 'BTO' || transCode === 'STC' || transCode === 'OEXP' ||
                         optionInfo.underlying !== undefined ||
                         description.toUpperCase().includes(' CALL ') ||
-                        description.toUpperCase().includes(' PUT ');
+                        description.toUpperCase().includes(' PUT ') ||
+                        description.toUpperCase().includes('OPTION EXPIRATION');
         
         if (isOption) {
           detectedAssetClass = 'options';
