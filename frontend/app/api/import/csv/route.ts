@@ -497,7 +497,8 @@ async function processCSVAsync(
               
               if (insertError) {
                 console.error(`[Import] Insert error for execution ${executionData.symbol}:`, insertError);
-                throw new Error(`Insert failed: ${insertError.message}`);
+                console.error(`[Import] Execution data that failed:`, JSON.stringify(executionData, null, 2));
+                throw new Error(`Insert failed: ${insertError.message} (code: ${insertError.code}, details: ${insertError.details})`);
               }
             }
             inserted++;
@@ -512,9 +513,12 @@ async function processCSVAsync(
           errorMessages.push(`Row ${processedRows + 1}: ${errorMsg}`);
           console.error(`[Import] Error processing row ${processedRows + 1}:`, errorMsg);
           
-          // Log first few errors in detail
-          if (errors <= 5) {
+          // Log first 10 errors in detail to help debug
+          if (errors <= 10) {
             console.error(`[Import] Detailed error for row ${processedRows + 1}:`, error);
+            if (error instanceof Error && error.stack) {
+              console.error(`[Import] Error stack:`, error.stack);
+            }
           }
         }
         
