@@ -147,26 +147,31 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     query = query.eq('asset_type', asset_type);
   }
   
-  // Date filtering: For simplicity, we'll only filter by entry_date when date filters are provided
-  // This avoids complex OR logic that can cause issues in Supabase
-  // Trades without entry_date will still be included (not filtered out)
+  // Date filtering: Check both entry_date (old schema) and opened_at (matching engine schema)
+  // For now, prioritize opened_at since matching engine uses it
+  // If date filters are provided, filter by opened_at (matching engine schema)
+  // Trades without opened_at will use entry_date if available
   if (date_from) {
-    query = query.gte('entry_date', date_from);
+    // Filter by opened_at first (matching engine), fallback to entry_date (old schema)
+    query = query.or(`opened_at.gte.${date_from},entry_date.gte.${date_from}`);
   }
   
   if (date_to) {
-    query = query.lte('entry_date', date_to);
+    query = query.or(`opened_at.lte.${date_to},entry_date.lte.${date_to}`);
   }
 
   // Apply sorting
-  // Default to entry_date or executed_at for imported trades, fallback to opened_at
+  // Default to opened_at (matching engine uses this) with fallback to entry_date (old schema)
   const validSortFields = ['symbol', 'side', 'quantity', 'price', 'entry_price', 'pnl', 'opened_at', 'entry_date', 'executed_at', 'closed_at', 'exit_date', 'status'];
-  const sortField = (sort && validSortFields.includes(sort)) ? sort : 'entry_date';
-  // If sorting by entry_date but it's null, also sort by executed_at or opened_at
+  const sortField = (sort && validSortFields.includes(sort)) ? sort : 'opened_at'; // Changed default from 'entry_date' to 'opened_at'
+  
+  // Primary sort by the selected field
   query = query.order(sortField, { ascending: direction === 'asc', nullsFirst: false });
-  if (sortField === 'entry_date') {
-    query = query.order('executed_at', { ascending: direction === 'asc', nullsFirst: false });
-    query = query.order('opened_at', { ascending: direction === 'asc', nullsFirst: false });
+  
+  // Add secondary sorts for consistency
+  if (sortField === 'opened_at' || sortField === 'entry_date') {
+    // If sorting by date, add secondary sorts for consistent ordering
+    query = query.order('created_at', { ascending: direction === 'asc', nullsFirst: false });
   }
 
   // Get total count for pagination
@@ -190,10 +195,10 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     countQuery = countQuery.eq('asset_type', asset_type);
   }
   if (date_from) {
-    countQuery = countQuery.gte('entry_date', date_from);
+    countQuery = countQuery.or(`opened_at.gte.${date_from},entry_date.gte.${date_from}`);
   }
   if (date_to) {
-    countQuery = countQuery.lte('entry_date', date_to);
+    countQuery = countQuery.or(`opened_at.lte.${date_to},entry_date.lte.${date_to}`);
   }
   
   const { count: totalCount, error: countError } = await countQuery;
