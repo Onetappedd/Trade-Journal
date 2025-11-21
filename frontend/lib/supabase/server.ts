@@ -35,11 +35,17 @@ export async function createSupabaseWithToken(request: NextRequest) {
     throw new Error('No authorization token provided');
   }
   
-  // Use the standard Supabase JS client
+  // Use the standard Supabase JS client with the token in headers
+  // This allows RLS to work by passing the JWT in the Authorization header
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
       auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -47,16 +53,14 @@ export async function createSupabaseWithToken(request: NextRequest) {
     }
   );
   
-  // Set the session using the access token
-  // This is required for RLS to work properly
-  const { data: { session }, error } = await supabase.auth.setSession({
-    access_token: token,
-    refresh_token: '', // Not needed for API routes, but required by the API
-  });
+  // Validate the token by getting the user
+  // This ensures the token is valid and sets up the auth context for RLS
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   
-  if (error) {
-    console.error('[Supabase] Error setting session:', error);
-    // Don't throw - let the query fail naturally if auth is invalid
+  if (authError || !user) {
+    console.error('[Supabase] Auth validation error:', authError);
+    // Don't throw here - let individual routes handle auth errors
+    // But the client will still have the token in headers for RLS
   }
   
   return supabase;
