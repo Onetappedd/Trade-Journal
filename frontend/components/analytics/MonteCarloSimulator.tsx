@@ -375,7 +375,35 @@ export default function MonteCarloSimulator() {
                     }
                     labelFormatter={(label) => `Trade ${label}`}
                   />
-                  <Legend wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }} />
+                  <Legend 
+                    wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }}
+                    content={({ payload }) => {
+                      // Filter out all path entries from legend
+                      const filteredPayload = payload?.filter((entry) => {
+                        const dataKey = entry.dataKey as string;
+                        return !(typeof dataKey === 'string' && dataKey.startsWith('path'));
+                      });
+                      return (
+                        <ul className="flex flex-wrap gap-4 justify-center">
+                          {filteredPayload?.map((entry, index) => (
+                            <li key={`item-${index}`} className="flex items-center gap-2">
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  width: '14px',
+                                  height: '2px',
+                                  backgroundColor: entry.color as string,
+                                }}
+                              />
+                              <span style={{ color: '#94a3b8', fontSize: '12px' }}>
+                                {entry.value}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    }}
+                  />
                   
                   {/* 10-90 percentile band */}
                   <Area
@@ -433,7 +461,7 @@ export default function MonteCarloSimulator() {
                       isAnimationActive={false} // Disable animation for performance with many paths
                       connectNulls={false}
                       strokeOpacity={0.08} // Very low opacity so paths form a cloud
-                      hide={true} // Hide from legend - paths are shown as a visual cloud, not individual legend entries
+                      name="" // Empty name to prevent it from showing in legend
                     />
                   ))}
                 </LineChart>
