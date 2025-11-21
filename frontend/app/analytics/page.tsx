@@ -94,6 +94,7 @@ export default function AnalyticsPage() {
 
   const [chartMode, setChartMode] = useState("overlay") // overlay vs benchmark
   const [zoomEnabled, setZoomEnabled] = useState(false)
+  const [showPercentage, setShowPercentage] = useState(false) // dollar vs percentage
 
   const charts = [
     { title: "Performance Analysis", component: "performance" },
@@ -506,6 +507,24 @@ export default function AnalyticsPage() {
                     <div className="flex items-center space-x-1 bg-slate-800/50 rounded-lg p-1">
                       <Button
                         size="sm"
+                        variant={!showPercentage ? "default" : "ghost"}
+                        onClick={() => setShowPercentage(false)}
+                        className="h-7 px-2 text-xs"
+                      >
+                        $
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={showPercentage ? "default" : "ghost"}
+                        onClick={() => setShowPercentage(true)}
+                        className="h-7 px-2 text-xs"
+                      >
+                        %
+                      </Button>
+                    </div>
+                    <div className="flex items-center space-x-1 bg-slate-800/50 rounded-lg p-1">
+                      <Button
+                        size="sm"
                         variant={chartMode === "overlay" ? "default" : "ghost"}
                         onClick={() => setChartMode("overlay")}
                         className="h-7 px-2 text-xs"
@@ -543,11 +562,19 @@ export default function AnalyticsPage() {
                         // Merge portfolio and benchmark data by date
                         const dataMap = new Map<string, { date: string; dateLabel: string; portfolio?: number; spy?: number; qqq?: number }>();
                         
+                        // Get initial value for percentage calculation
+                        const initialValue = analytics.equityCurve.length > 0 ? analytics.equityCurve[0].value : 10000;
+                        const spyInitial = analytics.benchmarks?.spy && analytics.benchmarks.spy.length > 0 ? analytics.benchmarks.spy[0].value : initialValue;
+                        const qqqInitial = analytics.benchmarks?.qqq && analytics.benchmarks.qqq.length > 0 ? analytics.benchmarks.qqq[0].value : initialValue;
+                        
                         // Add portfolio data
                         analytics.equityCurve.forEach(point => {
                           const dateKey = point.date.split('T')[0];
                           const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                          dataMap.set(dateKey, { date: point.date, dateLabel, portfolio: point.value });
+                          const value = showPercentage 
+                            ? ((point.value - initialValue) / initialValue) * 100 
+                            : point.value;
+                          dataMap.set(dateKey, { date: point.date, dateLabel, portfolio: value });
                         });
                         
                         // Add SPY benchmark data
@@ -555,11 +582,14 @@ export default function AnalyticsPage() {
                           analytics.benchmarks.spy.forEach(point => {
                             const dateKey = point.date.split('T')[0];
                             const existing = dataMap.get(dateKey);
+                            const value = showPercentage 
+                              ? ((point.value - spyInitial) / spyInitial) * 100 
+                              : point.value;
                             if (existing) {
-                              existing.spy = point.value;
+                              existing.spy = value;
                             } else {
                               const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                              dataMap.set(dateKey, { date: point.date, dateLabel, spy: point.value });
+                              dataMap.set(dateKey, { date: point.date, dateLabel, spy: value });
                             }
                           });
                         }
@@ -569,11 +599,14 @@ export default function AnalyticsPage() {
                           analytics.benchmarks.qqq.forEach(point => {
                             const dateKey = point.date.split('T')[0];
                             const existing = dataMap.get(dateKey);
+                            const value = showPercentage 
+                              ? ((point.value - qqqInitial) / qqqInitial) * 100 
+                              : point.value;
                             if (existing) {
-                              existing.qqq = point.value;
+                              existing.qqq = value;
                             } else {
                               const dateLabel = new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                              dataMap.set(dateKey, { date: point.date, dateLabel, qqq: point.value });
+                              dataMap.set(dateKey, { date: point.date, dateLabel, qqq: value });
                             }
                           });
                         }
@@ -591,7 +624,10 @@ export default function AnalyticsPage() {
                           stroke="#94a3b8"
                           style={{ fontSize: '12px' }}
                           tick={{ fill: '#94a3b8' }}
-                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                          tickFormatter={(value) => showPercentage 
+                            ? `${value.toFixed(1)}%` 
+                            : `$${value.toLocaleString()}`
+                          }
                         />
                         <Tooltip 
                           contentStyle={{ 
@@ -603,6 +639,9 @@ export default function AnalyticsPage() {
                           labelStyle={{ color: '#94a3b8' }}
                           formatter={(value: number, name: string) => {
                             if (value === null || value === undefined) return null;
+                            if (showPercentage) {
+                              return [`${value.toFixed(2)}%`, name];
+                            }
                             return [`$${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, name];
                           }}
                         />
