@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Filter, Download, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, RotateCcw } from 'lucide-react';
 
 interface Trade {
   id: string;
@@ -42,6 +42,7 @@ export default function TradesClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [assetFilter, setAssetFilter] = useState<string>('all');
   const [sideFilter, setSideFilter] = useState<string>('all');
+  const [reMatching, setReMatching] = useState(false);
 
   const supabase = createClient();
 
@@ -136,6 +137,43 @@ export default function TradesClient() {
     return side === 'buy' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400';
   };
 
+  const handleReMatch = async () => {
+    try {
+      setReMatching(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No session found');
+        return;
+      }
+
+      const response = await fetch('/api/trades/re-match', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[Re-match] Success:', data);
+        // Refresh trades after re-matching
+        await fetchTrades();
+        alert(`Re-matching completed! Deleted ${data.deletedTrades} trades and created ${data.result.createdTrades} new trades.`);
+      } else {
+        const error = await response.json();
+        console.error('Re-match failed:', error);
+        alert(`Re-match failed: ${error.error || error.details || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error re-matching trades:', error);
+      alert('Error re-matching trades. Please try again.');
+    } finally {
+      setReMatching(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -154,10 +192,16 @@ export default function TradesClient() {
             View and manage your trading history
           </p>
         </div>
-        <Button onClick={fetchTrades} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleReMatch} variant="outline" size="sm" disabled={reMatching}>
+            <RotateCcw className={`h-4 w-4 mr-2 ${reMatching ? 'animate-spin' : ''}`} />
+            {reMatching ? 'Re-matching...' : 'Re-match Trades'}
+          </Button>
+          <Button onClick={fetchTrades} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
