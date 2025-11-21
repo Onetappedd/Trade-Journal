@@ -205,10 +205,10 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     countQuery = countQuery.eq('asset_type', asset_type);
   }
   if (date_from) {
-    countQuery = countQuery.or(`opened_at.gte.${date_from},entry_date.gte.${date_from}`);
+    countQuery = countQuery.gte('opened_at', date_from);
   }
   if (date_to) {
-    countQuery = countQuery.or(`opened_at.lte.${date_to},entry_date.lte.${date_to}`);
+    countQuery = countQuery.lte('opened_at', date_to);
   }
   
   const { count: totalCount, error: countError } = await countQuery;
@@ -250,6 +250,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       hasPreviousPage: false
     };
   }
+
+  console.log(`[Trades API] Fetched ${trades?.length || 0} trades for user ${userId}, total count: ${totalCount}`);
 
   // Transform trades to match TradeRow interface
   // Map new schema (quantity, entry_price) to old schema (qty_opened, avg_open_price) for compatibility
