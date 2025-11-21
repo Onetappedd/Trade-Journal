@@ -485,7 +485,6 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
             totalPnL += legPnL;
             
             // Reduce quantities
-            const matchedQty = Math.min(buy.quantity, sell.quantity);
             buy.quantity -= matchedQty;
             sell.quantity -= matchedQty;
             
