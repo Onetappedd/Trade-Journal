@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 
         const historical = await yahooFinance.historical(symbol, queryOptions);
 
-        if (!historical || historical.length === 0) {
+        if (!historical || !Array.isArray(historical) || historical.length === 0) {
           console.warn(`[Benchmarks Cron] No data returned for ${symbol}`);
           results.push({ symbol, count: 0 });
           continue;
