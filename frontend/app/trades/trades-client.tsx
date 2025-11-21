@@ -92,7 +92,7 @@ export default function TradesClient() {
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(trade =>
-        trade.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+        trade.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false
       );
     }
 
@@ -240,18 +240,18 @@ export default function TradesClient() {
               <TableBody>
                 {filteredTrades.map((trade) => (
                   <TableRow key={trade.id}>
-                    <TableCell className="font-medium">{trade.symbol}</TableCell>
+                    <TableCell className="font-medium">{trade.symbol || 'N/A'}</TableCell>
                     <TableCell>
-                      <Badge className={getSideColor(trade.side)}>
-                        {trade.side.toUpperCase()}
+                      <Badge className={getSideColor(trade.side || 'buy')}>
+                        {(trade.side || 'buy').toUpperCase()}
                       </Badge>
                     </TableCell>
-                    <TableCell>{trade.quantity}</TableCell>
-                    <TableCell>{formatCurrency(trade.price)}</TableCell>
-                    <TableCell className={getPnlColor(trade.pnl)}>
-                      {formatCurrency(trade.pnl)}
+                    <TableCell>{trade.quantity || 0}</TableCell>
+                    <TableCell>{formatCurrency(trade.price || 0)}</TableCell>
+                    <TableCell className={getPnlColor(trade.pnl || 0)}>
+                      {formatCurrency(trade.pnl || 0)}
                     </TableCell>
-                    <TableCell>{formatDate(trade.opened_at)}</TableCell>
+                    <TableCell>{trade.opened_at ? formatDate(trade.opened_at) : 'N/A'}</TableCell>
                     <TableCell>
                       {trade.closed_at ? formatDate(trade.closed_at) : 'Open'}
                     </TableCell>

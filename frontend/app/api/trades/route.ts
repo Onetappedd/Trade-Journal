@@ -273,10 +273,18 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   // Also convert string numbers from PostgreSQL NUMERIC to actual numbers
   const transformedTrades = (trades || []).map((trade: any) => ({
     ...trade,
+    symbol: trade.symbol || 'UNKNOWN', // Ensure symbol is never null
+    side: trade.side || 'buy', // Ensure side is never null
     qty_opened: typeof (trade.qty_opened ?? trade.quantity) === 'string' 
       ? parseFloat(trade.qty_opened ?? trade.quantity ?? '0') 
       : (trade.qty_opened ?? trade.quantity ?? 0),
+    quantity: typeof (trade.qty_opened ?? trade.quantity) === 'string' 
+      ? parseFloat(trade.qty_opened ?? trade.quantity ?? '0') 
+      : (trade.qty_opened ?? trade.quantity ?? 0),
     avg_open_price: typeof (trade.avg_open_price ?? trade.entry_price ?? trade.price) === 'string'
+      ? parseFloat(trade.avg_open_price ?? trade.entry_price ?? trade.price ?? '0')
+      : (trade.avg_open_price ?? trade.entry_price ?? trade.price ?? 0),
+    price: typeof (trade.avg_open_price ?? trade.entry_price ?? trade.price) === 'string'
       ? parseFloat(trade.avg_open_price ?? trade.entry_price ?? trade.price ?? '0')
       : (trade.avg_open_price ?? trade.entry_price ?? trade.price ?? 0),
     opened_at: trade.opened_at ?? trade.executed_at ?? trade.entry_date ?? new Date().toISOString(),
@@ -288,8 +296,12 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     realized_pnl: typeof (trade.realized_pnl ?? trade.pnl) === 'string'
       ? parseFloat(trade.realized_pnl ?? trade.pnl ?? '0')
       : (trade.realized_pnl ?? trade.pnl ?? null),
+    pnl: typeof (trade.realized_pnl ?? trade.pnl) === 'string'
+      ? parseFloat(trade.realized_pnl ?? trade.pnl ?? '0')
+      : (trade.realized_pnl ?? trade.pnl ?? null),
     fees: typeof trade.fees === 'string' ? parseFloat(trade.fees) : (trade.fees ?? null),
     instrument_type: trade.instrument_type ?? trade.asset_type ?? 'equity',
+    asset_type: trade.instrument_type ?? trade.asset_type ?? 'equity',
   }));
 
   return {
