@@ -49,6 +49,7 @@ interface MonteCarloResult {
   }>>;
   ruinProbability: number;
   endEquityDistribution: number[];
+  p95FinalEquity?: number; // 95th percentile final equity (for Y-axis scaling)
 }
 
 interface MonteCarloStats {
