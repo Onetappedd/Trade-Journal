@@ -123,16 +123,77 @@ export default async function DashboardPage() {
     noteCount: t.noteCount ?? 0,
   }));
 
+  // Calculate risk metrics from closed trades
+  const closedTrades = transformedTrades.filter(t => t.closedAt && t.pnl !== null && t.pnl !== undefined)
+  const returns = closedTrades.map(t => t.pnl || 0)
+  
+  // Calculate Sharpe ratio
+  let sharpe = 0
+  if (returns.length > 1) {
+    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length
+    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
+    const stdDev = Math.sqrt(variance)
+    sharpe = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252) : 0 // Annualized
+  }
+  
+  // Calculate max drawdown
+  let maxDrawdownPct = 0
+  if (returns.length > 0) {
+    let peak = 0
+    let maxDrawdown = 0
+    let runningPnL = 0
+    
+    for (const pnl of returns) {
+      runningPnL += pnl
+      if (runningPnL > peak) {
+        peak = runningPnL
+      }
+      const drawdown = peak - runningPnL
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown
+      }
+    }
+    
+    maxDrawdownPct = peak !== 0 ? (maxDrawdown / peak) * 100 : 0
+  }
+  
+  // Calculate volatility (standard deviation of returns as percentage)
+  let volPct = 0
+  if (returns.length > 1) {
+    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length
+    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
+    const stdDev = Math.sqrt(variance)
+    const avgPortfolioValue = totalPortfolioValue || 10000 // Fallback to 10k if no portfolio value
+    volPct = avgPortfolioValue > 0 ? (stdDev / avgPortfolioValue) * 100 : 0
+  }
+  
+  // Calculate positions from open trades
+  const openTrades = transformedTrades.filter(t => !t.closedAt)
+  const positions = openTrades.map(t => {
+    const price = typeof t.price === 'string' ? parseFloat(t.price) : (t.price ?? 0)
+    const qty = typeof t.quantity === 'string' ? parseFloat(t.quantity) : (t.quantity ?? 0)
+    const value = price * qty
+    // Map instrument_type to category (we'll need to get this from the trade data)
+    const category = 'Stocks' // Default, could be enhanced to check instrument_type
+    return {
+      symbol: t.symbol,
+      quantity: qty,
+      value,
+      category,
+      changePct: 0, // Would need current price to calculate
+    }
+  })
+
   const dashboardData: DashboardData = {
     dayPnL,
     portfolioValue: totalPortfolioValue,
     trades: transformedTrades,
-    positions: [], // TODO: Calculate from trades
+    positions,
     risk: { 
-      maxDrawdownPct: 0, // TODO: Calculate from trades
-      sharpe: 0, 
-      beta: 0, 
-      volPct: 0 
+      maxDrawdownPct,
+      sharpe,
+      beta: 0, // Beta requires benchmark comparison
+      volPct
     },
     integrations: hasBrokerData 
       ? [{ name: 'SnapTrade', status: 'connected' }]

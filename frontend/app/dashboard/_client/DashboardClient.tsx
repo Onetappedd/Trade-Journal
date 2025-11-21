@@ -81,6 +81,7 @@ export default function DashboardClient({
     if (timeframe === 'wtd') return startOfWeek()
     if (timeframe === 'mtd') return startOfMonth()
     if (timeframe === 'ytd') return startOfYear()
+    if (timeframe === 'all') return new Date(0) // Very early date to include all trades
     return customRange?.from ?? startOfMonth()
   }, [timeframe, customRange])
 
@@ -134,6 +135,64 @@ export default function DashboardClient({
     return last20.filter(t => (t.pnl ?? 0) > 0).length / last20.length
   }, [dashboardData?.trades])
 
+  // Calculate risk metrics from filtered trades
+  const riskMetrics = useMemo(() => {
+    const closedFiltered = filteredTrades.filter(t => t.closedAt && t.pnl !== null && t.pnl !== undefined)
+    const returns = closedFiltered.map(t => t.pnl || 0)
+    
+    if (returns.length === 0) {
+      return {
+        maxDrawdownPct: dashboardData?.risk?.maxDrawdownPct ?? 0,
+        sharpe: dashboardData?.risk?.sharpe ?? 0,
+        volPct: dashboardData?.risk?.volPct ?? 0,
+      }
+    }
+    
+    // Calculate Sharpe ratio
+    let sharpe = 0
+    if (returns.length > 1) {
+      const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length
+      const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
+      const stdDev = Math.sqrt(variance)
+      sharpe = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252) : 0 // Annualized
+    }
+    
+    // Calculate max drawdown
+    let maxDrawdownPct = 0
+    let peak = 0
+    let maxDrawdown = 0
+    let runningPnL = 0
+    
+    for (const pnl of returns) {
+      runningPnL += pnl
+      if (runningPnL > peak) {
+        peak = runningPnL
+      }
+      const drawdown = peak - runningPnL
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown
+      }
+    }
+    
+    maxDrawdownPct = peak !== 0 ? (maxDrawdown / peak) * 100 : 0
+    
+    // Calculate volatility
+    let volPct = 0
+    if (returns.length > 1) {
+      const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length
+      const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1)
+      const stdDev = Math.sqrt(variance)
+      const avgPortfolioValue = dashboardData?.portfolioValue || 10000
+      volPct = avgPortfolioValue > 0 ? (stdDev / avgPortfolioValue) * 100 : 0
+    }
+    
+    return {
+      maxDrawdownPct,
+      sharpe,
+      volPct,
+    }
+  }, [filteredTrades, dashboardData?.risk, dashboardData?.portfolioValue])
+
   const chartData = useMemo(() => {
     if (dashboardData?.dailyPnlSeries && dashboardData?.cumPnlSeries) {
       // Optional: merge provided series by date key
@@ -153,20 +212,47 @@ export default function DashboardClient({
   }, [dashboardData?.dailyPnlSeries, dashboardData?.cumPnlSeries, filteredTrades])
 
   const allocation = useMemo(() => {
+    // First try positions, then fall back to calculating from filtered trades
     const pos = dashboardData?.positions ?? []
-    const byCat = pos.reduce((acc, p) => {
-      const val = (p.value !== null && p.value !== undefined && !isNaN(p.value)) ? p.value : 0
-      acc[p.category] = (acc[p.category] ?? 0) + val
+    if (pos.length > 0) {
+      const byCat = pos.reduce((acc, p) => {
+        const val = (p.value !== null && p.value !== undefined && !isNaN(p.value)) ? p.value : 0
+        acc[p.category] = (acc[p.category] ?? 0) + val
+        return acc
+      }, {} as Record<string, number>)
+      const total = Object.values(byCat).reduce((a, b) => a + b, 0)
+      const entries = Object.entries(byCat).map(([category, value]) => ({
+        name: category,
+        value,
+        pct: total ? value / total : 0
+      }))
+      return entries
+    }
+    
+    // Calculate from filtered trades by symbol
+    const bySymbol = filteredTrades.reduce((acc, t) => {
+      const symbol = t.symbol || 'Unknown'
+      const price = typeof t.price === 'string' ? parseFloat(t.price) : (t.price ?? 0)
+      const qty = typeof t.quantity === 'string' ? parseFloat(t.quantity) : (t.quantity ?? 0)
+      const value = price * qty
+      acc[symbol] = (acc[symbol] ?? 0) + value
       return acc
     }, {} as Record<string, number>)
-    const total = Object.values(byCat).reduce((a, b) => a + b, 0)
-    const entries = Object.entries(byCat).map(([category, value]) => ({
-      name: category,
-      value,
-      pct: total ? value / total : 0
-    }))
+    
+    // Group by instrument type (equity, option, etc.) - we'll use symbol as category for now
+    // In a real app, you'd map symbols to categories
+    const total = Object.values(bySymbol).reduce((a, b) => a + b, 0)
+    const entries = Object.entries(bySymbol)
+      .map(([symbol, value]) => ({
+        name: symbol,
+        value,
+        pct: total ? value / total : 0
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10) // Top 10 symbols
+    
     return entries
-  }, [dashboardData?.positions])
+  }, [dashboardData?.positions, filteredTrades])
 
   // ------------ UI ------------
   return (
@@ -190,14 +276,14 @@ export default function DashboardClient({
 
         {/* Timeframe chips */}
         <div className="flex gap-2 mb-6">
-          {(['today', 'wtd', 'mtd', 'ytd'] as Timeframe[]).map(tf => (
+          {(['today', 'wtd', 'mtd', 'ytd', 'all'] as Timeframe[]).map(tf => (
             <Badge
               key={tf}
               data-testid={`chip-${tf}`}
               onClick={() => setTimeframe(tf)}
               className={`cursor-pointer px-3 py-1 ${timeframe === tf ? 'bg-emerald-600' : 'bg-slate-800'}`}
             >
-              {tf.toUpperCase()}
+              {tf === 'all' ? 'ALL TIME' : tf.toUpperCase()}
             </Badge>
           ))}
           {/* Custom would open a date-range picker later */}
@@ -374,10 +460,10 @@ export default function DashboardClient({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex justify-between"><span className="text-slate-400">Max Drawdown</span><span className="text-white font-medium">-{fmtPct1(dashboardData.risk.maxDrawdownPct)}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">Sharpe Ratio</span><span className="text-white font-medium">{dashboardData.risk.sharpe.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Max Drawdown</span><span className="text-white font-medium">-{fmtPct1(riskMetrics.maxDrawdownPct)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Sharpe Ratio</span><span className="text-white font-medium">{riskMetrics.sharpe.toFixed(2)}</span></div>
                     <div className="flex justify-between"><span className="text-slate-400">Beta</span><span className="text-white font-medium">{dashboardData.risk.beta.toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">Volatility</span><span className="text-white font-medium">{fmtPct1(dashboardData.risk.volPct)}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-400">Volatility</span><span className="text-white font-medium">{fmtPct1(riskMetrics.volPct)}</span></div>
                   </div>
                   <div className="mt-5">
                     <p className="text-slate-300 font-medium mb-2">Recent Risk Events</p>

@@ -71,7 +71,7 @@ export type DashboardData = {
   cumPnlSeries?: { t: string; pnl: number }[]
 }
 
-export type Timeframe = 'today' | 'wtd' | 'mtd' | 'ytd' | 'custom'
+export type Timeframe = 'today' | 'wtd' | 'mtd' | 'ytd' | 'all' | 'custom'
 
 export type CustomRange = {
   start: Date
