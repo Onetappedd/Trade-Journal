@@ -234,8 +234,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     .range(offset, offset + (limit || 20) - 1);
 
   if (tradesError) {
-    console.error('Trades fetch error:', tradesError);
-    console.error('Trades error details:', {
+    console.error('[Trades API] Trades fetch error:', tradesError);
+    console.error('[Trades API] Trades error details:', {
       message: tradesError?.message,
       code: tradesError?.code,
       details: tradesError?.details,
@@ -254,6 +254,18 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   }
 
   console.log(`[Trades API] Fetched ${trades?.length || 0} trades for user ${userId}, total count: ${totalCount}`);
+  if (trades && trades.length > 0) {
+    console.log(`[Trades API] Sample trade:`, JSON.stringify(trades[0], null, 2));
+  } else {
+    console.log(`[Trades API] No trades returned - checking RLS and query...`);
+    // Test a simple query to see if RLS is blocking
+    const { data: testData, error: testError } = await supabase
+      .from('trades')
+      .select('id, symbol, opened_at')
+      .eq('user_id', userId)
+      .limit(1);
+    console.log(`[Trades API] Test query result:`, { data: testData, error: testError });
+  }
 
   // Transform trades to match TradeRow interface
   // Map new schema (quantity, entry_price) to old schema (qty_opened, avg_open_price) for compatibility
