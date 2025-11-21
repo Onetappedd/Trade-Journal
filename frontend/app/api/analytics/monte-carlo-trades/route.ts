@@ -24,6 +24,7 @@ interface MonteCarloRequestBody {
   iterations?: number;   // default ~1000
   riskPct?: number;      // default 1
   startEquity?: number;  // default 10000
+  maxRiskCap?: number;   // Maximum risk per trade (liquidity ceiling), default 5000
   // For parametric mode only:
   winRate?: number;      // 0-1 or 0-100 (we'll normalize)
   avgWinR?: number;
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
       iterations = DEFAULT_ITERATIONS,
       riskPct = DEFAULT_RISK_PCT,
       startEquity = DEFAULT_START_EQUITY,
+      maxRiskCap = 5000, // Default: $5,000 max risk per trade (liquidity ceiling)
       winRate: rawWinRate,
       avgWinR,
       avgLossR,
@@ -130,7 +132,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Run bootstrap simulation
+      // Run bootstrap simulation with realistic constraints
       result = runBootstrapSimulation({
         rValues: tradeStats.rValues.map(tr => ({ r: tr.r })),
         startEquity,
@@ -138,6 +140,8 @@ export async function POST(request: NextRequest) {
         numTrades,
         iterations,
         ruinThreshold: startEquity * 0.5, // 50% drawdown = ruin
+        maxRiskCap, // Liquidity ceiling
+        // maxRCap will be calculated as 95th percentile automatically
       });
 
       stats = {
@@ -193,7 +197,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Run parametric simulation
+      // Run parametric simulation with realistic constraints
       result = runParametricSimulation({
         winRate,
         avgWinR,
@@ -203,6 +207,8 @@ export async function POST(request: NextRequest) {
         numTrades,
         iterations,
         ruinThreshold: startEquity * 0.5, // 50% drawdown = ruin
+        maxRiskCap, // Liquidity ceiling
+        maxRCap: 5, // Cap R at 5R for parametric mode
       });
 
       stats = {

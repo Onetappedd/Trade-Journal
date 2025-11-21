@@ -73,6 +73,7 @@ export default function MonteCarloSimulator() {
   const [stats, setStats] = useState<MonteCarloStats | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showPercentage, setShowPercentage] = useState(false); // Toggle for $ vs %
+  const [useLogScale, setUseLogScale] = useState(false); // Toggle for log scale
 
   // Parametric mode controls
   const [winRate, setWinRate] = useState(50); // 0-100
@@ -256,8 +257,8 @@ export default function MonteCarloSimulator() {
   // Get the actual starting equity from stats (used for percentage calculations)
   const actualStartEquity = stats?.startEquity || 10000;
 
-  // Calculate Y-axis domain based on true extremes with soft cap
-  // Include both percentile bands AND actual path extremes
+  // Calculate Y-axis domain using 95th percentile rule (P95 Rule)
+  // Never set Y-axis max to absolute maximum - use 95th percentile instead
   let yAxisDomain: [number, number] | undefined = undefined;
   let isCapped = false;
 
@@ -265,23 +266,24 @@ export default function MonteCarloSimulator() {
     const summary = result.summary;
     const startEquity = summary[0]?.p50 ?? actualStartEquity;
     
-    // Get true extremes from percentile bands
+    // Get min from p10 percentile band
     const minBand = Math.min(...summary.map(p => p.p10));
-    const maxBand = Math.max(...summary.map(p => p.p90));
     
-    // Also check actual path extremes (from the 1/4 of paths we're showing)
-    // Use percentile bands as base, paths will be clipped anyway
-    let pathMin = minBand;
-    let pathMax = maxBand;
+    // Use 95th percentile of final equity for Y-axis max (P95 Rule)
+    // This clips the top 5% of "crazy lucky" paths visually
+    let yMax: number;
+    if (result.p95FinalEquity !== undefined) {
+      yMax = result.p95FinalEquity * 1.1; // 110% of 95th percentile
+    } else {
+      // Fallback: use p90 from summary
+      const maxBand = Math.max(...summary.map(p => p.p90));
+      yMax = maxBand * 1.1;
+    }
     
-    // Don't iterate through all paths here - it can cause stack overflow
-    // The percentile bands already represent the distribution, and we'll clip paths anyway
+    // Calculate Y-axis bounds
+    let yMin = Math.max(0, Math.min(minBand, startEquity * 0.5) * 0.9);
     
-    // Calculate Y-axis bounds using the most extreme values
-    let yMin = Math.max(0, Math.min(pathMin, startEquity * 0.5) * 0.9);
-    let yMax = pathMax * 1.1;
-    
-    // Apply soft cap at 5x starting equity
+    // Apply soft cap at 5x starting equity (additional safety)
     const maxMultiple = 5;
     const cap = startEquity * maxMultiple;
     if (yMax > cap) {
@@ -299,6 +301,12 @@ export default function MonteCarloSimulator() {
       if (yMax >= 400) isCapped = true;
     }
     
+    // For log scale, ensure values are positive and above a minimum
+    if (useLogScale && !showPercentage) {
+      yMin = Math.max(1, yMin); // Log scale requires positive values
+      yMax = Math.max(yMin * 1.1, yMax); // Ensure max > min
+    }
+    
     yAxisDomain = [yMin, yMax];
   }
 
@@ -314,7 +322,7 @@ export default function MonteCarloSimulator() {
         p90: calculatePercentChange(point.p90, actualStartEquity),
       };
     } else {
-      return {
+      const baseData = {
         tradeIndex: point.tradeIndex,
         p10: point.p10,
         p25: point.p25,
@@ -322,6 +330,20 @@ export default function MonteCarloSimulator() {
         p75: point.p75,
         p90: point.p90,
       };
+      
+      // For log scale, clamp values to minimum of 1 (log(0) is undefined)
+      if (useLogScale) {
+        return {
+          ...baseData,
+          p10: Math.max(1, baseData.p10),
+          p25: Math.max(1, baseData.p25),
+          p50: Math.max(1, baseData.p50),
+          p75: Math.max(1, baseData.p75),
+          p90: Math.max(1, baseData.p90),
+        };
+      }
+      
+      return baseData;
     }
   }) || [];
 
@@ -348,6 +370,11 @@ export default function MonteCarloSimulator() {
           pathValue = path[idx].equity;
           // Clip to 0 to 5x starting equity
           pathValue = Math.max(0, Math.min(dollarCap, pathValue));
+          
+          // For log scale, ensure minimum value of 1 (log(0) is undefined)
+          if (useLogScale && pathValue < 1) {
+            pathValue = 1;
+          }
         }
         
         merged[`path${pathIdx}`] = pathValue;
@@ -387,7 +414,7 @@ export default function MonteCarloSimulator() {
           <>
             {/* Chart */}
             <div className="h-96 bg-slate-800/30 rounded-lg border border-slate-700/50 p-4">
-              <div className="flex items-center justify-end mb-2">
+              <div className="flex items-center justify-end mb-2 space-x-2">
                 <div className="flex items-center space-x-1 bg-slate-800/50 rounded-lg p-1">
                   <Button
                     size="sm"
@@ -406,6 +433,17 @@ export default function MonteCarloSimulator() {
                     <Percent className="h-4 w-4" />
                   </Button>
                 </div>
+                {!showPercentage && (
+                  <Button
+                    size="sm"
+                    variant={useLogScale ? "default" : "ghost"}
+                    onClick={() => setUseLogScale(!useLogScale)}
+                    className={`h-7 px-2 text-xs ${useLogScale ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
+                    title="Logarithmic scale (better for exponential growth)"
+                  >
+                    Log
+                  </Button>
+                )}
               </div>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={mergedChartDataWithPaths}>
@@ -438,12 +476,21 @@ export default function MonteCarloSimulator() {
                     stroke="#94a3b8"
                     style={{ fontSize: '12px' }}
                     tick={{ fill: '#94a3b8' }}
-                    tickFormatter={(value) => showPercentage 
-                      ? `${value.toFixed(1)}%` 
-                      : formatCurrency(value)
-                    }
+                    scale={useLogScale && !showPercentage ? 'log' : 'linear'}
+                    tickFormatter={(value) => {
+                      if (showPercentage) {
+                        return `${value.toFixed(1)}%`;
+                      }
+                      if (useLogScale) {
+                        // Format log scale values nicely
+                        if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+                        if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`;
+                        return `$${value.toFixed(0)}`;
+                      }
+                      return formatCurrency(value);
+                    }}
                     label={{ 
-                      value: showPercentage ? 'Equity (%)' : 'Equity ($)', 
+                      value: showPercentage ? 'Equity (%)' : useLogScale ? 'Equity ($, log scale)' : 'Equity ($)', 
                       angle: -90, 
                       position: 'insideLeft', 
                       offset: 10,
