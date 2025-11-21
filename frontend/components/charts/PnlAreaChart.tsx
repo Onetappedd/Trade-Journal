@@ -73,6 +73,36 @@ export default function PnlAreaChart({
     showTooltip,
   } = useTooltip<PnlDataPoint>();
 
+  // Convert to percentage if needed (must be before early return)
+  const transformedData = React.useMemo(() => {
+    if (!data || data.length === 0) return data || [];
+    if (!showPercentage) return data;
+    const firstValue = data[0].value;
+    const baseValue = firstValue !== 0 ? firstValue : initialValue;
+    return data.map(d => ({
+      ...d,
+      value: ((d.value - baseValue) / baseValue) * 100
+    }));
+  }, [data, showPercentage, initialValue]);
+
+  // Transform benchmarks to percentage if needed (must be before early return)
+  const transformedBenchmarks = React.useMemo(() => {
+    if (!showPercentage || !benchmarks) return benchmarks;
+    const firstValue = data && data.length > 0 ? data[0].value : initialValue;
+    const baseValue = firstValue !== 0 ? firstValue : initialValue;
+    
+    return {
+      spy: benchmarks.spy?.map(d => ({
+        ...d,
+        value: ((d.value - baseValue) / baseValue) * 100
+      })),
+      qqq: benchmarks.qqq?.map(d => ({
+        ...d,
+        value: ((d.value - baseValue) / baseValue) * 100
+      }))
+    };
+  }, [benchmarks, showPercentage, data, initialValue]);
+
   // Handle empty data
   if (!data || data.length === 0) {
     return (
@@ -93,35 +123,6 @@ export default function PnlAreaChart({
   // Calculate dimensions
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
-
-  // Convert to percentage if needed
-  const transformedData = React.useMemo(() => {
-    if (!showPercentage || data.length === 0) return data;
-    const firstValue = data[0].value;
-    const baseValue = firstValue !== 0 ? firstValue : initialValue;
-    return data.map(d => ({
-      ...d,
-      value: ((d.value - baseValue) / baseValue) * 100
-    }));
-  }, [data, showPercentage, initialValue]);
-
-  // Transform benchmarks to percentage if needed
-  const transformedBenchmarks = React.useMemo(() => {
-    if (!showPercentage || !benchmarks) return benchmarks;
-    const firstValue = data.length > 0 ? data[0].value : initialValue;
-    const baseValue = firstValue !== 0 ? firstValue : initialValue;
-    
-    return {
-      spy: benchmarks.spy?.map(d => ({
-        ...d,
-        value: ((d.value - baseValue) / baseValue) * 100
-      })),
-      qqq: benchmarks.qqq?.map(d => ({
-        ...d,
-        value: ((d.value - baseValue) / baseValue) * 100
-      }))
-    };
-  }, [benchmarks, showPercentage, data, initialValue]);
 
   // Collect all dates including benchmarks for proper date scale
   const allDates: Date[] = [...transformedData.map(getDate)];
