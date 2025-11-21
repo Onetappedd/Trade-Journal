@@ -347,11 +347,13 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
   let created = 0;
 
   // Group by underlying and expiry
+  // Use a separator that won't conflict with date formats
   const optionGroups = new Map<string, Execution[]>();
   
   for (const exec of executions) {
     if (!exec.underlying || !exec.expiry) continue;
-    const key = `${exec.underlying}-${exec.expiry}`;
+    // Use a separator that won't appear in dates (e.g., "::" or "|")
+    const key = `${exec.underlying}::${exec.expiry}`;
     if (!optionGroups.has(key)) {
       optionGroups.set(key, []);
     }
@@ -361,7 +363,8 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
   console.log(`Grouped into ${optionGroups.size} option groups`);
 
   for (const [key, optionExecs] of optionGroups) {
-    const [underlying, expiry] = key.split('-');
+    // Split by the separator we used (::)
+    const [underlying, expiry] = key.split('::');
     
     // Sort by timestamp
     optionExecs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -512,7 +515,34 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
       // Extract option details from first leg for database columns
       const firstLeg = legsArray.length > 0 ? legsArray[0] : null;
       const optionStrike = firstLeg?.strike || undefined;
-      const optionExpiry = firstLeg?.expiry || expiry || undefined;
+      
+      // Validate and format expiry date (must be YYYY-MM-DD format for PostgreSQL DATE type)
+      let optionExpiry: string | undefined = undefined;
+      const expiryValue = firstLeg?.expiry || expiry || window[0]?.expiry;
+      if (expiryValue) {
+        // Try to parse and validate the date
+        try {
+          const date = new Date(expiryValue);
+          if (!isNaN(date.getTime())) {
+            // Format as YYYY-MM-DD
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            optionExpiry = `${year}-${month}-${day}`;
+          } else {
+            // If it's already in YYYY-MM-DD format, validate it
+            const dateMatch = expiryValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (dateMatch) {
+              optionExpiry = expiryValue;
+            } else {
+              console.warn(`Invalid expiry format: ${expiryValue}, skipping option_expiration`);
+            }
+          }
+        } catch (e) {
+          console.warn(`Error parsing expiry date: ${expiryValue}`, e);
+        }
+      }
+      
       const optionType = firstLeg?.type === 'call' ? 'CALL' : firstLeg?.type === 'put' ? 'PUT' : undefined;
       
       const trade: Trade = {
