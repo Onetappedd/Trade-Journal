@@ -22,7 +22,7 @@ export function getServerSupabase() {
 }
 
 // Alternative function for use in API routes
-export function createSupabaseWithToken(request: NextRequest) {
+export async function createSupabaseWithToken(request: NextRequest) {
   if (typeof window !== 'undefined') {
     throw new Error('createSupabaseWithToken can only be used on the server side');
   }
@@ -34,21 +34,28 @@ export function createSupabaseWithToken(request: NextRequest) {
     throw new Error('No authorization token provided');
   }
   
-  return createServerClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
       cookies: {
         getAll() { return []; },
         setAll() {}
       }
     }
   );
+  
+  // Set the session using the token
+  const { data: { session }, error } = await supabase.auth.setSession({
+    access_token: token,
+    refresh_token: '', // Not needed for API routes
+  });
+  
+  if (error) {
+    console.error('[Supabase] Error setting session:', error);
+  }
+  
+  return supabase;
 }
 
 // Admin client for privileged operations
