@@ -35,6 +35,8 @@ interface PnlAreaChartProps {
   benchmarks?: BenchmarkData;
   showSpy?: boolean;
   showQqq?: boolean;
+  showPercentage?: boolean;
+  initialValue?: number; // Starting value for percentage calculation
 }
 
 const getDate = (d: PnlDataPoint) => new Date(d.date);
@@ -60,6 +62,8 @@ export default function PnlAreaChart({
   benchmarks,
   showSpy = false,
   showQqq = false,
+  showPercentage = false,
+  initialValue = 10000, // Default starting capital
 }: PnlAreaChartProps) {
   const {
     tooltipData,
@@ -90,13 +94,42 @@ export default function PnlAreaChart({
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
+  // Convert to percentage if needed
+  const transformedData = React.useMemo(() => {
+    if (!showPercentage || data.length === 0) return data;
+    const firstValue = data[0].value;
+    const baseValue = firstValue !== 0 ? firstValue : initialValue;
+    return data.map(d => ({
+      ...d,
+      value: ((d.value - baseValue) / baseValue) * 100
+    }));
+  }, [data, showPercentage, initialValue]);
+
+  // Transform benchmarks to percentage if needed
+  const transformedBenchmarks = React.useMemo(() => {
+    if (!showPercentage || !benchmarks) return benchmarks;
+    const firstValue = data.length > 0 ? data[0].value : initialValue;
+    const baseValue = firstValue !== 0 ? firstValue : initialValue;
+    
+    return {
+      spy: benchmarks.spy?.map(d => ({
+        ...d,
+        value: ((d.value - baseValue) / baseValue) * 100
+      })),
+      qqq: benchmarks.qqq?.map(d => ({
+        ...d,
+        value: ((d.value - baseValue) / baseValue) * 100
+      }))
+    };
+  }, [benchmarks, showPercentage, data, initialValue]);
+
   // Collect all dates including benchmarks for proper date scale
-  const allDates: Date[] = [...data.map(getDate)];
-  if (showSpy && benchmarks?.spy) {
-    allDates.push(...benchmarks.spy.map(d => new Date(d.date)));
+  const allDates: Date[] = [...transformedData.map(getDate)];
+  if (showSpy && transformedBenchmarks?.spy) {
+    allDates.push(...transformedBenchmarks.spy.map(d => new Date(d.date)));
   }
-  if (showQqq && benchmarks?.qqq) {
-    allDates.push(...benchmarks.qqq.map(d => new Date(d.date)));
+  if (showQqq && transformedBenchmarks?.qqq) {
+    allDates.push(...transformedBenchmarks.qqq.map(d => new Date(d.date)));
   }
   
   // Create scales
@@ -105,9 +138,18 @@ export default function PnlAreaChart({
     domain: extent(allDates) as [Date, Date],
   });
 
+  // Collect all values including benchmarks for proper scaling
+  const allValues: number[] = [...transformedData.map(getPnlValue)];
+  if (showSpy && transformedBenchmarks?.spy) {
+    allValues.push(...transformedBenchmarks.spy.map(d => d.value));
+  }
+  if (showQqq && transformedBenchmarks?.qqq) {
+    allValues.push(...transformedBenchmarks.qqq.map(d => d.value));
+  }
+  
   // Ensure scale includes zero and has nice ticks
-  const dataMin = min(data, getPnlValue) ?? 0;
-  const dataMax = max(data, getPnlValue) ?? 0;
+  const dataMin = min(allValues) ?? 0;
+  const dataMax = max(allValues) ?? 0;
   
   // Force 0 into the domain for proper baseline
   const domainMin = Math.min(0, dataMin);
@@ -125,17 +167,17 @@ export default function PnlAreaChart({
   // Check if data crosses zero
   const crossesZero = dataMin < 0 && dataMax > 0;
   
-  // Derive two datasets
-  const aboveData = data.map(d => ({ ...d, value: Math.max(d.value, 0) }));
-  const belowData = data.map(d => ({ ...d, value: Math.min(d.value, 0) }));
+  // Derive two datasets from transformed data
+  const aboveData = transformedData.map(d => ({ ...d, value: Math.max(d.value, 0) }));
+  const belowData = transformedData.map(d => ({ ...d, value: Math.min(d.value, 0) }));
 
   // Handle tooltip
   const handleTooltip = (event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
     const { x } = localPoint(event) || { x: 0 };
     const x0 = dateScale.invert(x);
-    const index = bisectDate(data, x0, 1);
-    const d0 = data[index - 1];
-    const d1 = data[index];
+    const index = bisectDate(transformedData, x0, 1);
+    const d0 = transformedData[index - 1];
+    const d1 = transformedData[index];
     let d = d0;
     if (d1 && getDate(d1)) {
       d = x0.valueOf() - getDate(d0).valueOf() > getDate(d1).valueOf() - x0.valueOf() ? d1 : d0;
@@ -242,9 +284,9 @@ export default function PnlAreaChart({
           )}
           
           {/* SPY Benchmark Line */}
-          {showSpy && benchmarks?.spy && benchmarks.spy.length > 0 && (
+          {showSpy && transformedBenchmarks?.spy && transformedBenchmarks.spy.length > 0 && (
             <LinePath
-              data={benchmarks.spy}
+              data={transformedBenchmarks.spy}
               x={(d) => dateScale(new Date(d.date)) ?? 0}
               y={(d) => pnlValueScale(d.value) ?? 0}
               stroke="#3b82f6"
@@ -256,9 +298,9 @@ export default function PnlAreaChart({
           )}
           
           {/* QQQ Benchmark Line */}
-          {showQqq && benchmarks?.qqq && benchmarks.qqq.length > 0 && (
+          {showQqq && transformedBenchmarks?.qqq && transformedBenchmarks.qqq.length > 0 && (
             <LinePath
-              data={benchmarks.qqq}
+              data={transformedBenchmarks.qqq}
               x={(d) => dateScale(new Date(d.date)) ?? 0}
               y={(d) => pnlValueScale(d.value) ?? 0}
               stroke="#8b5cf6"
@@ -282,7 +324,7 @@ export default function PnlAreaChart({
               textAnchor: 'end',
               dy: '0.33em',
             })}
-            tickFormat={(value) => `$${Number(value).toLocaleString()}`}
+            tickFormat={(value) => showPercentage ? `${Number(value).toFixed(1)}%` : `$${Number(value).toLocaleString()}`}
           />
           
           {/* X-axis (dates) */}
@@ -372,7 +414,9 @@ export default function PnlAreaChart({
               whiteSpace: 'nowrap',
             }}
           >
-            {`$${getPnlValue(tooltipData).toLocaleString()}`}
+            {showPercentage 
+              ? `${getPnlValue(tooltipData).toFixed(2)}%`
+              : `$${getPnlValue(tooltipData).toLocaleString()}`}
           </TooltipWithBounds>
           <TooltipWithBounds
             top={innerHeight + margin.top + 15}

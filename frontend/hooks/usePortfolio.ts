@@ -106,7 +106,7 @@ export function usePortfolioPositions(refreshInterval: number = 30000) {
 export function usePortfolioAnalytics(refreshInterval: number = 60000) {
   const { session } = useAuth();
   // Use the combined analytics endpoint which includes benchmarks
-  const { data, error, isLoading, mutate } = useSWR<{ success: boolean; data: PortfolioAnalytics }>(
+  const { data, error, isLoading, mutate } = useSWR<{ success: boolean; data: PortfolioAnalytics } | PortfolioAnalytics>(
     session ? '/api/analytics/combined?source=combined&timeframe=ALL' : null,
     fetcher,
     {
@@ -116,8 +116,11 @@ export function usePortfolioAnalytics(refreshInterval: number = 60000) {
     },
   );
 
+  // Unwrap the response - handle both wrapped { success, data } and direct PortfolioAnalytics
+  const analytics = data && 'success' in data ? data.data : (data as PortfolioAnalytics | undefined);
+
   return {
-    analytics: data?.data || data, // Handle both wrapped and unwrapped responses
+    analytics,
     isLoading,
     error,
     refresh: mutate,

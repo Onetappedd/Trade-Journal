@@ -236,6 +236,9 @@ export async function GET(request: NextRequest) {
 
       // Calculate monthly returns
       const monthlyMap: { [key: string]: { pnl: number; trades: number } } = {};
+      let firstMonth: Date | null = null;
+      let lastMonth: Date | null = null;
+      
       closedTrades.forEach(trade => {
         const tradeDate = trade.closed_at || trade.executed_at || trade.opened_at || trade.created_at;
         const date = new Date(tradeDate);
@@ -247,14 +250,42 @@ export async function GET(request: NextRequest) {
         
         monthlyMap[monthKey].pnl += trade.pnl || 0;
         monthlyMap[monthKey].trades += 1;
+        
+        // Track first and last months
+        if (!firstMonth || date < firstMonth) {
+          firstMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        }
+        if (!lastMonth || date > lastMonth) {
+          lastMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        }
       });
 
-      manualMetrics.monthlyReturns = Object.entries(monthlyMap)
-        .map(([month, data]) => ({
-          month,
-          pnl: data.pnl,
-          trades: data.trades,
-        }))
+      // Fill in gaps between first and last month
+      const filledMonthlyReturns: Array<{ month: string; pnl: number; trades: number }> = [];
+      if (firstMonth && lastMonth) {
+        const current = new Date(firstMonth);
+        const lastMonthDate = new Date(lastMonth);
+        while (current <= lastMonthDate) {
+          const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+          filledMonthlyReturns.push({
+            month: monthKey,
+            pnl: monthlyMap[monthKey]?.pnl || 0,
+            trades: monthlyMap[monthKey]?.trades || 0,
+          });
+          // Move to next month
+          current.setMonth(current.getMonth() + 1);
+        }
+      } else {
+        // Fallback: just use the months with trades
+        filledMonthlyReturns.push(...Object.entries(monthlyMap)
+          .map(([month, data]) => ({
+            month,
+            pnl: data.pnl,
+            trades: data.trades,
+          })));
+      }
+
+      manualMetrics.monthlyReturns = filledMonthlyReturns
         .sort((a, b) => b.month.localeCompare(a.month))
         .slice(0, 12); // Last 12 months
 

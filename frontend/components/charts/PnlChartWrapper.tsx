@@ -44,6 +44,8 @@ export function PnlChartWrapper({
   // State for benchmark toggles
   const [showSpy, setShowSpy] = React.useState(false);
   const [showQqq, setShowQqq] = React.useState(false);
+  // State for dollar/percentage toggle
+  const [showPercentage, setShowPercentage] = React.useState(false);
 
   return (
     <Card className={className}>
@@ -61,6 +63,29 @@ export function PnlChartWrapper({
             </CardDescription>
           </div>
           <div className="flex items-center gap-4">
+            {/* Dollar/Percentage Toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowPercentage(false)}
+                className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                  !showPercentage
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                $
+              </button>
+              <button
+                onClick={() => setShowPercentage(true)}
+                className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                  showPercentage
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                %
+              </button>
+            </div>
             {/* Benchmark Toggles */}
             {benchmarks && (benchmarks.spy || benchmarks.qqq) && (
               <div className="flex items-center gap-3">
@@ -119,6 +144,8 @@ export function PnlChartWrapper({
                   benchmarks={benchmarks}
                   showSpy={showSpy}
                   showQqq={showQqq}
+                  showPercentage={showPercentage}
+                  initialValue={pnlData.filteredData.length > 0 ? pnlData.filteredData[0].value : 10000}
                 />
               )}
             </ParentSize>

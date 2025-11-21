@@ -306,7 +306,7 @@ export function AnalyticsPage() {
   const INITIAL_CAPITAL = 10000;
 
   // Calculate actual portfolio value: initial capital + realized P&L + unrealized P&L
-  const realizedPnL = analytics?.realizedPnL || 0;
+  const realizedPnL = (analytics && 'realizedPnL' in analytics) ? analytics.realizedPnL : 0;
   const unrealizedPnL = posSummary.totalUnrealizedPnL || 0;
   const portfolioValue = INITIAL_CAPITAL + realizedPnL + unrealizedPnL;
 
