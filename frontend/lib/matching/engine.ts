@@ -725,7 +725,7 @@ async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void
   const { error } = await supabase
     .from('trades')
     .upsert(tradeData, { 
-      onConflict: 'group_key',
+      onConflict: 'user_id,group_key',
       ignoreDuplicates: false 
     });
     
