@@ -54,6 +54,8 @@ export default function TradesClient() {
   const [assetFilter, setAssetFilter] = useState<string>('all');
   const [sideFilter, setSideFilter] = useState<string>('all');
   const [reMatching, setReMatching] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [totalTrades, setTotalTrades] = useState<number | null>(null);
 
   const supabase = createClient();
 
@@ -67,7 +69,15 @@ export default function TradesClient() {
         return;
       }
 
-      const response = await fetch('/api/trades', {
+      // Build query with limit parameter
+      const params = new URLSearchParams();
+      if (showAll) {
+        params.set('limit', 'all'); // Request all trades
+      } else {
+        params.set('limit', '50'); // Default pagination
+      }
+      
+      const response = await fetch(`/api/trades?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
@@ -78,9 +88,11 @@ export default function TradesClient() {
         const result = await response.json();
         // API returns { success: true, data: { items: [...], total: ... } }
         const trades = result?.data?.items || result?.trades || [];
-        console.log(`[Trades Client] Fetched ${trades.length} trades`);
+        const total = result?.data?.total || trades.length;
+        console.log(`[Trades Client] Fetched ${trades.length} trades (total: ${total})`);
         setTrades(trades);
         setFilteredTrades(trades);
+        setTotalTrades(total);
       } else {
         console.error('Failed to fetch trades:', response.status, response.statusText);
         const errorText = await response.text();
@@ -96,7 +108,7 @@ export default function TradesClient() {
   useEffect(() => {
     fetchTrades();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showAll]); // Refetch when showAll changes
 
   useEffect(() => {
     let filtered = trades;
@@ -269,10 +281,24 @@ export default function TradesClient() {
       {/* Trades Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Trades</CardTitle>
-          <CardDescription>
-            Showing {filteredTrades.length} of {trades.length} trades
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Trade History</CardTitle>
+              <CardDescription>
+                {showAll 
+                  ? `Showing all ${filteredTrades.length} of ${totalTrades ?? trades.length} trades`
+                  : `Showing ${filteredTrades.length} of ${totalTrades ?? trades.length} trades (${totalTrades ? totalTrades - trades.length : 0} more available)`
+                }
+              </CardDescription>
+            </div>
+            <Button
+              variant={showAll ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? 'Show Less (50)' : 'Show All'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {filteredTrades.length === 0 ? (
