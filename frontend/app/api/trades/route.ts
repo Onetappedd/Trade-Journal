@@ -244,23 +244,37 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     // If limit is "all" (1000000), fetch in batches to get everything
     // Supabase has a default limit of 1000, so we need to fetch in batches
     console.log('[Trades API] Fetching all trades in batches (limit=all)');
+    console.log(`[Trades API] Total count from count query: ${totalCount}`);
+    
     const batchSize = 1000;
     const allTrades: any[] = [];
     let currentOffset = 0;
     let hasMore = true;
     let batchNumber = 0;
+    const maxBatches = Math.ceil((totalCount || 10000) / batchSize) + 1; // Safety limit
     
-    while (hasMore) {
+    while (hasMore && batchNumber < maxBatches) {
       batchNumber++;
+      console.log(`[Trades API] Fetching batch ${batchNumber}: offset ${currentOffset} to ${currentOffset + batchSize - 1}`);
+      
+      // Create a fresh query for each batch by chaining from the base query
       const batchQuery = query.range(currentOffset, currentOffset + batchSize - 1);
       const { data: batch, error: batchError } = await batchQuery;
       
       if (batchError) {
         console.error('[Trades API] Batch fetch error:', batchError);
+        console.error('[Trades API] Error details:', JSON.stringify(batchError, null, 2));
         break;
       }
       
-      if (!batch || batch.length === 0) {
+      if (!batch) {
+        console.log(`[Trades API] Batch ${batchNumber}: null data returned`);
+        hasMore = false;
+        break;
+      }
+      
+      if (batch.length === 0) {
+        console.log(`[Trades API] Batch ${batchNumber}: empty array returned, reached end`);
         hasMore = false;
         break;
       }
@@ -270,16 +284,26 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       
       // If we got less than batchSize, we've reached the end
       if (batch.length < batchSize) {
+        console.log(`[Trades API] Batch ${batchNumber}: got ${batch.length} < ${batchSize}, reached end`);
         hasMore = false;
       } else {
         currentOffset += batchSize;
+        // Safety check: if we've fetched more than totalCount, something is wrong
+        if (totalCount && allTrades.length >= totalCount) {
+          console.log(`[Trades API] Fetched ${allTrades.length} trades, reached totalCount ${totalCount}`);
+          hasMore = false;
+        }
       }
+    }
+    
+    if (batchNumber >= maxBatches) {
+      console.warn(`[Trades API] Reached max batches limit (${maxBatches}), stopping`);
     }
     
     const trades = allTrades;
     const tradesError = null; // No error if we got here
     
-    console.log(`[Trades API] Finished fetching all trades: ${trades.length} total (totalCount from query: ${totalCount})`);
+    console.log(`[Trades API] Finished fetching all trades: ${trades.length} total (expected: ${totalCount})`);
     
     // Return the results
     return {
