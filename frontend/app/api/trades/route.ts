@@ -233,9 +233,15 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     };
   }
 
-  // Get paginated results
-  const { data: trades, error: tradesError } = await query
-    .range(offset, offset + (limit || 20) - 1);
+  // Get paginated results (or all if limit is very large)
+  let tradesQuery = query;
+  if (limit && limit < 1000000) {
+    // Only apply range if limit is reasonable (not "all")
+    tradesQuery = tradesQuery.range(offset, offset + limit - 1);
+  }
+  // If limit is "all" (1000000), don't apply range - fetch everything
+  
+  const { data: trades, error: tradesError } = await tradesQuery;
 
   if (tradesError) {
     console.error('[Trades API] Trades fetch error:', tradesError);
