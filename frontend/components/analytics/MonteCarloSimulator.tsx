@@ -284,22 +284,15 @@ export default function MonteCarloSimulator() {
     // Calculate Y-axis bounds
     let yMin = Math.max(0, Math.min(minBand, startEquity * 0.5) * 0.9);
     
-    // Apply soft cap at 5x starting equity (additional safety)
-    const maxMultiple = 5;
-    const cap = startEquity * maxMultiple;
-    if (yMax > cap) {
-      yMax = cap;
-      isCapped = true;
-    }
+    // No cap - let the graph show the full range of simulation results
     
     // Transform to percentage if needed
     if (showPercentage) {
       yMin = calculatePercentChange(yMin, actualStartEquity);
       yMax = calculatePercentChange(yMax, actualStartEquity);
-      // For percentage, cap at reasonable bounds (-100% to +400%)
+      // For percentage, cap losses at -100% but allow unlimited gains
       yMin = Math.max(-100, yMin);
-      yMax = Math.min(400, yMax); // 4x = 400%
-      if (yMax >= 400) isCapped = true;
+      // No upper cap for percentage - show full range
     }
     
     // For log scale, ensure values are positive and above a minimum
@@ -348,15 +341,12 @@ export default function MonteCarloSimulator() {
     }
   }) || [];
 
-  // Select a small sample of representative paths for visualization
-  // Instead of showing 250+ paths, show only 5-10 representative ones:
+  // Select representative paths for visualization:
   // - Best performing path (highest final equity)
   // - Worst performing path (lowest final equity)
   // - Median path (closest to p50)
-  // - A few random sample paths (3-5)
-  const maxMultiple = 5;
-  const dollarCap = actualStartEquity * maxMultiple;
-  const percentCap = 400; // 4x = 400%
+  // - 20 random sample paths
+  const percentCap = 400; // 4x = 400% (only for percentage mode)
   
   // Select representative paths
   const selectedPathIndices: number[] = [];
@@ -390,8 +380,8 @@ export default function MonteCarloSimulator() {
       selectedPathIndices.push(closestToMedianIdx);
     }
     
-    // Add 3-5 random sample paths (avoid duplicates)
-    const numRandomPaths = Math.min(5, Math.max(3, Math.floor(result.samplePaths.length / 100)));
+    // Add 20 random sample paths (avoid duplicates)
+    const numRandomPaths = 20;
     const usedIndices = new Set(selectedPathIndices);
     let randomCount = 0;
     while (randomCount < numRandomPaths && usedIndices.size < result.samplePaths.length) {
@@ -416,12 +406,13 @@ export default function MonteCarloSimulator() {
         
         if (showPercentage) {
           pathValue = calculatePercentChange(path[idx].equity, actualStartEquity);
-          // Clip to -100% to +400%
+          // Clip to -100% to +400% (only cap losses at -100%)
           pathValue = Math.max(-100, Math.min(percentCap, pathValue));
         } else {
           pathValue = path[idx].equity;
-          // Clip to 0 to 5x starting equity
-          pathValue = Math.max(0, Math.min(dollarCap, pathValue));
+          // No dollar cap - show full range
+          // Only ensure non-negative for display
+          pathValue = Math.max(0, pathValue);
           
           // For log scale, ensure minimum value of 1 (log(0) is undefined)
           if (useLogScale && pathValue < 1) {
@@ -682,11 +673,6 @@ export default function MonteCarloSimulator() {
                   })}
                 </LineChart>
               </ResponsiveContainer>
-              {isCapped && (
-                <p className="text-xs text-slate-500 mt-2 text-center">
-                  Some simulated paths end above the visible range. See summary stats for the full distribution.
-                </p>
-              )}
             </div>
 
             {/* Summary Cards */}
