@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +59,7 @@ export default function TradesClient() {
 
   const supabase = createClient();
 
-  const fetchTrades = async () => {
+  const fetchTrades = useCallback(async () => {
     try {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
@@ -69,13 +69,15 @@ export default function TradesClient() {
         return;
       }
 
-      // Build query with limit parameter
+      // Build query with limit parameter - use current showAll value
       const params = new URLSearchParams();
       if (showAll) {
         params.set('limit', 'all'); // Request all trades
       } else {
         params.set('limit', '50'); // Default pagination
       }
+      
+      console.log(`[Trades Client] Fetching trades with limit=${showAll ? 'all' : '50'}`);
       
       const response = await fetch(`/api/trades?${params.toString()}`, {
         headers: {
@@ -89,7 +91,7 @@ export default function TradesClient() {
         // API returns { success: true, data: { items: [...], total: ... } }
         const trades = result?.data?.items || result?.trades || [];
         const total = result?.data?.total || trades.length;
-        console.log(`[Trades Client] Fetched ${trades.length} trades (total: ${total})`);
+        console.log(`[Trades Client] Fetched ${trades.length} trades (total: ${total}, showAll: ${showAll})`);
         setTrades(trades);
         setFilteredTrades(trades);
         setTotalTrades(total);
@@ -103,12 +105,11 @@ export default function TradesClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showAll, supabase]); // Include showAll and supabase in dependencies
 
   useEffect(() => {
     fetchTrades();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showAll]); // Refetch when showAll changes
+  }, [fetchTrades]); // Refetch when fetchTrades changes (which happens when showAll changes)
 
   useEffect(() => {
     let filtered = trades;
