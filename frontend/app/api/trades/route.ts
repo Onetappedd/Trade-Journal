@@ -257,8 +257,31 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       batchNumber++;
       console.log(`[Trades API] Fetching batch ${batchNumber}: offset ${currentOffset} to ${currentOffset + batchSize - 1}`);
       
-      // Create a fresh query for each batch by chaining from the base query
-      const batchQuery = query.range(currentOffset, currentOffset + batchSize - 1);
+      // Rebuild query for each batch to avoid mutation issues
+      let batchQuery = supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', userId);
+      
+      // Reapply all filters
+      if (symbol) batchQuery = batchQuery.ilike('symbol', `%${symbol}%`);
+      if (side) batchQuery = batchQuery.eq('side', side);
+      if (status) batchQuery = batchQuery.eq('status', status);
+      if (asset_type) batchQuery = batchQuery.eq('asset_type', asset_type);
+      if (date_from) batchQuery = batchQuery.or(`opened_at.gte.${date_from},entry_date.gte.${date_from}`);
+      if (date_to) batchQuery = batchQuery.or(`opened_at.lte.${date_to},entry_date.lte.${date_to}`);
+      
+      // Reapply sorting
+      const validSortFields = ['symbol', 'side', 'quantity', 'price', 'entry_price', 'pnl', 'opened_at', 'entry_date', 'executed_at', 'closed_at', 'exit_date', 'status'];
+      const sortField = (sort && validSortFields.includes(sort)) ? sort : 'opened_at';
+      batchQuery = batchQuery.order(sortField, { ascending: direction === 'asc', nullsFirst: false });
+      if (sortField === 'opened_at' || sortField === 'entry_date') {
+        batchQuery = batchQuery.order('created_at', { ascending: direction === 'asc', nullsFirst: false });
+      }
+      
+      // Apply range for this batch
+      batchQuery = batchQuery.range(currentOffset, currentOffset + batchSize - 1);
+      
       const { data: batch, error: batchError } = await batchQuery;
       
       if (batchError) {
