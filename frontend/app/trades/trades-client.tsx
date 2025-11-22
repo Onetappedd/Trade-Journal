@@ -77,7 +77,7 @@ export default function TradesClient() {
         params.set('limit', '50'); // Default pagination
       }
       
-      console.log(`[Trades Client] Fetching trades with limit=${showAll ? 'all' : '50'}`);
+      console.log(`[Trades Client] Fetching trades with limit=${showAll ? 'all' : '50'}, showAll=${showAll}`);
       
       const response = await fetch(`/api/trades?${params.toString()}`, {
         headers: {
@@ -88,10 +88,34 @@ export default function TradesClient() {
 
       if (response.ok) {
         const result = await response.json();
+        console.log('[Trades Client] API Response:', result);
+        
         // API returns { success: true, data: { items: [...], total: ... } }
-        const trades = result?.data?.items || result?.trades || [];
-        const total = result?.data?.total || trades.length;
+        // Handle both wrapped and unwrapped responses
+        let trades: Trade[] = [];
+        let total: number = 0;
+        
+        if (result?.data) {
+          // Wrapped response: { success: true, data: { items: [...], total: ... } }
+          trades = result.data.items || result.data.trades || [];
+          total = result.data.total || trades.length;
+        } else if (result?.items) {
+          // Direct response: { items: [...], total: ... }
+          trades = result.items;
+          total = result.total || trades.length;
+        } else if (result?.trades) {
+          // Legacy format: { trades: [...] }
+          trades = result.trades;
+          total = trades.length;
+        } else if (Array.isArray(result)) {
+          // Array response
+          trades = result;
+          total = result.length;
+        }
+        
         console.log(`[Trades Client] Fetched ${trades.length} trades (total: ${total}, showAll: ${showAll})`);
+        console.log(`[Trades Client] First few trades:`, trades.slice(0, 3));
+        
         setTrades(trades);
         setFilteredTrades(trades);
         setTotalTrades(total);
@@ -105,7 +129,7 @@ export default function TradesClient() {
     } finally {
       setLoading(false);
     }
-  }, [showAll, supabase]); // Include showAll and supabase in dependencies
+  }, [showAll]); // Only include showAll - supabase client is stable
 
   useEffect(() => {
     fetchTrades();
