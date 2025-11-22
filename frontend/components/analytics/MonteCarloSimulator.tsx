@@ -348,19 +348,70 @@ export default function MonteCarloSimulator() {
     }
   }) || [];
 
-  // Merge only 1/4 of paths into chart data for visualization (to reduce clutter)
-  // Transform to percentage if needed, and clip values that exceed the cap
+  // Select a small sample of representative paths for visualization
+  // Instead of showing 250+ paths, show only 5-10 representative ones:
+  // - Best performing path (highest final equity)
+  // - Worst performing path (lowest final equity)
+  // - Median path (closest to p50)
+  // - A few random sample paths (3-5)
   const maxMultiple = 5;
   const dollarCap = actualStartEquity * maxMultiple;
   const percentCap = 400; // 4x = 400%
   
+  // Select representative paths
+  const selectedPathIndices: number[] = [];
+  
+  if (result && result.samplePaths.length > 0 && result.endEquityDistribution.length > 0) {
+    const finalEquities = result.endEquityDistribution;
+    
+    // Find best path (highest final equity)
+    const bestIdx = finalEquities.indexOf(Math.max(...finalEquities));
+    if (bestIdx >= 0) selectedPathIndices.push(bestIdx);
+    
+    // Find worst path (lowest final equity, but > 0)
+    const nonZeroEquities = finalEquities.map((eq, idx) => ({ eq, idx })).filter(x => x.eq > 0);
+    if (nonZeroEquities.length > 0) {
+      const worstIdx = nonZeroEquities.reduce((min, curr) => curr.eq < min.eq ? curr : min).idx;
+      if (worstIdx >= 0 && worstIdx !== bestIdx) selectedPathIndices.push(worstIdx);
+    }
+    
+    // Find median path (closest to p50 final equity)
+    const medianFinalEquity = result.summary[result.summary.length - 1]?.p50 || actualStartEquity;
+    let closestToMedianIdx = 0;
+    let closestDiff = Math.abs(finalEquities[0] - medianFinalEquity);
+    finalEquities.forEach((eq, idx) => {
+      const diff = Math.abs(eq - medianFinalEquity);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestToMedianIdx = idx;
+      }
+    });
+    if (!selectedPathIndices.includes(closestToMedianIdx)) {
+      selectedPathIndices.push(closestToMedianIdx);
+    }
+    
+    // Add 3-5 random sample paths (avoid duplicates)
+    const numRandomPaths = Math.min(5, Math.max(3, Math.floor(result.samplePaths.length / 100)));
+    const usedIndices = new Set(selectedPathIndices);
+    let randomCount = 0;
+    while (randomCount < numRandomPaths && usedIndices.size < result.samplePaths.length) {
+      const randomIdx = Math.floor(Math.random() * result.samplePaths.length);
+      if (!usedIndices.has(randomIdx)) {
+        selectedPathIndices.push(randomIdx);
+        usedIndices.add(randomIdx);
+        randomCount++;
+      }
+    }
+  }
+  
+  // Merge selected representative paths into chart data
   const mergedChartDataWithPaths = chartData.map((point, idx) => {
     const merged: any = { ...point };
     
-    // Add only 1/4 of path values (every 4th path) to reduce clutter
-    result?.samplePaths.forEach((path, pathIdx) => {
-      // Show only every 4th path (1/4 of total paths)
-      if (pathIdx % 4 === 0 && path[idx]) {
+    // Add only the selected representative paths
+    selectedPathIndices.forEach((pathIdx) => {
+      const path = result?.samplePaths[pathIdx];
+      if (path && path[idx]) {
         let pathValue: number;
         
         if (showPercentage) {
@@ -588,21 +639,43 @@ export default function MonteCarloSimulator() {
                     name="Median (50th percentile)"
                   />
                   
-                  {/* Show only 1/4 of wealth paths (every 4th path) to reduce clutter */}
-                  {result?.samplePaths.map((_, idx) => {
-                    // Only render every 4th path (1/4 of total)
-                    if (idx % 4 !== 0) return null;
+                  {/* Show only selected representative paths (best, worst, median, random samples) */}
+                  {selectedPathIndices.map((pathIdx) => {
+                    // Determine path color based on performance
+                    const finalEquity = result?.endEquityDistribution[pathIdx] || 0;
+                    const isBest = pathIdx === selectedPathIndices[0]; // First is best
+                    const isWorst = selectedPathIndices.length > 1 && pathIdx === selectedPathIndices[1]; // Second is worst
+                    const isMedian = selectedPathIndices.length > 2 && pathIdx === selectedPathIndices[2]; // Third is median
+                    
+                    let strokeColor = "#64748b"; // Default gray for random paths
+                    let strokeWidth = 0.5;
+                    let strokeOpacity = 0.3;
+                    
+                    if (isBest) {
+                      strokeColor = "#10b981"; // Green for best
+                      strokeWidth = 1;
+                      strokeOpacity = 0.5;
+                    } else if (isWorst) {
+                      strokeColor = "#ef4444"; // Red for worst
+                      strokeWidth = 1;
+                      strokeOpacity = 0.5;
+                    } else if (isMedian) {
+                      strokeColor = "#3b82f6"; // Blue for median
+                      strokeWidth = 0.75;
+                      strokeOpacity = 0.4;
+                    }
+                    
                     return (
                       <Line
-                        key={`allpath${idx}`}
+                        key={`path${pathIdx}`}
                         type="monotone"
-                        dataKey={`path${idx}`}
-                        stroke="#64748b"
-                        strokeWidth={0.5}
+                        dataKey={`path${pathIdx}`}
+                        stroke={strokeColor}
+                        strokeWidth={strokeWidth}
                         dot={false}
                         isAnimationActive={false} // Disable animation for performance
                         connectNulls={false}
-                        strokeOpacity={0.15} // Slightly higher opacity since we're showing fewer paths
+                        strokeOpacity={strokeOpacity}
                         name="" // Empty name to prevent it from showing in legend
                       />
                     );
