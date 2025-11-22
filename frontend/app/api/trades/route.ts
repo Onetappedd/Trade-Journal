@@ -63,6 +63,8 @@ export async function GET(request: NextRequest) {
     const limit = limitParam === 'all' || limitParam === '-1' 
       ? 1000000 // Effectively unlimited
       : Math.min(parseInt(limitParam), 10000); // Increased max from 100 to 10000 for "show all" use case
+    
+    console.log(`[Trades API] Request received: limit=${limitParam}, parsed limit=${limit}`);
     const page = offset ? Math.floor(parseInt(offset) / limit) + 1 : (pageParam ? parseInt(pageParam) : 1);
     
     const params: TradesQueryParams = {
@@ -241,12 +243,15 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   } else {
     // If limit is "all" (1000000), fetch in batches to get everything
     // Supabase has a default limit of 1000, so we need to fetch in batches
+    console.log('[Trades API] Fetching all trades in batches (limit=all)');
     const batchSize = 1000;
     const allTrades: any[] = [];
     let currentOffset = 0;
     let hasMore = true;
+    let batchNumber = 0;
     
     while (hasMore) {
+      batchNumber++;
       const batchQuery = query.range(currentOffset, currentOffset + batchSize - 1);
       const { data: batch, error: batchError } = await batchQuery;
       
@@ -261,6 +266,7 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       }
       
       allTrades.push(...batch);
+      console.log(`[Trades API] Batch ${batchNumber}: fetched ${batch.length} trades (total so far: ${allTrades.length})`);
       
       // If we got less than batchSize, we've reached the end
       if (batch.length < batchSize) {
@@ -272,6 +278,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     
     const trades = allTrades;
     const tradesError = null; // No error if we got here
+    
+    console.log(`[Trades API] Finished fetching all trades: ${trades.length} total (totalCount from query: ${totalCount})`);
     
     // Return the results
     return {
