@@ -258,8 +258,7 @@ export default function MonteCarloSimulator() {
   // Get the actual starting equity from stats (used for percentage calculations)
   const actualStartEquity = stats?.startEquity || 10000;
 
-  // Calculate Y-axis domain using 95th percentile rule (P95 Rule)
-  // Never set Y-axis max to absolute maximum - use 95th percentile instead
+  // Calculate Y-axis domain - use full range of data (no caps)
   let yAxisDomain: [number, number] | undefined = undefined;
 
   if (result && result.summary.length > 0) {
@@ -269,21 +268,31 @@ export default function MonteCarloSimulator() {
     // Get min from p10 percentile band
     const minBand = Math.min(...summary.map(p => p.p10));
     
-    // Use 95th percentile of final equity for Y-axis max (P95 Rule)
-    // This clips the top 5% of "crazy lucky" paths visually
-    let yMax: number;
-    if (result.p95FinalEquity !== undefined) {
-      yMax = result.p95FinalEquity * 1.1; // 110% of 95th percentile
-    } else {
-      // Fallback: use p90 from summary
-      const maxBand = Math.max(...summary.map(p => p.p90));
-      yMax = maxBand * 1.1;
+    // Use the maximum value from all percentile bands (p90) plus some padding
+    // No cap - show full range of simulation results
+    const maxBand = Math.max(...summary.map(p => p.p90));
+    let yMax = maxBand * 1.1; // 10% padding for visual clarity
+    
+    // Also check individual paths to ensure we show their full range
+    if (result.samplePaths && result.samplePaths.length > 0) {
+      const allPathValues: number[] = [];
+      result.samplePaths.forEach(path => {
+        path.forEach(point => {
+          if (showPercentage) {
+            allPathValues.push(calculatePercentChange(point.equity, actualStartEquity));
+          } else {
+            allPathValues.push(point.equity);
+          }
+        });
+      });
+      if (allPathValues.length > 0) {
+        const maxPathValue = Math.max(...allPathValues);
+        yMax = Math.max(yMax, maxPathValue * 1.05); // Use max path value with 5% padding
+      }
     }
     
     // Calculate Y-axis bounds
     let yMin = Math.max(0, Math.min(minBand, startEquity * 0.5) * 0.9);
-    
-    // No cap - let the graph show the full range of simulation results
     
     // Transform to percentage if needed
     if (showPercentage) {

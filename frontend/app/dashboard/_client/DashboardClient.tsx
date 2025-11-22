@@ -226,10 +226,10 @@ export default function DashboardClient({
       return [...map.values()].sort((a, b) => a.dateLabel.localeCompare(b.dateLabel))
     }
     const data = mergeDailySeries(filteredTrades)
-    // Format dates better for display
+    // Format dates better for display (include year)
     return data.map(d => ({
       ...d,
-      dateLabel: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      dateLabel: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     }))
   }, [dashboardData?.dailyPnlSeries, dashboardData?.cumPnlSeries, filteredTrades])
 
