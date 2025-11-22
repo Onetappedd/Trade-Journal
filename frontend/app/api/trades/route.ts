@@ -238,8 +238,52 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   if (limit && limit < 1000000) {
     // Only apply range if limit is reasonable (not "all")
     tradesQuery = tradesQuery.range(offset, offset + limit - 1);
+  } else {
+    // If limit is "all" (1000000), fetch in batches to get everything
+    // Supabase has a default limit of 1000, so we need to fetch in batches
+    const batchSize = 1000;
+    const allTrades: any[] = [];
+    let currentOffset = 0;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const batchQuery = query.range(currentOffset, currentOffset + batchSize - 1);
+      const { data: batch, error: batchError } = await batchQuery;
+      
+      if (batchError) {
+        console.error('[Trades API] Batch fetch error:', batchError);
+        break;
+      }
+      
+      if (!batch || batch.length === 0) {
+        hasMore = false;
+        break;
+      }
+      
+      allTrades.push(...batch);
+      
+      // If we got less than batchSize, we've reached the end
+      if (batch.length < batchSize) {
+        hasMore = false;
+      } else {
+        currentOffset += batchSize;
+      }
+    }
+    
+    const trades = allTrades;
+    const tradesError = null; // No error if we got here
+    
+    // Return the results
+    return {
+      items: trades,
+      total: totalCount || trades.length,
+      page: 1,
+      limit: trades.length,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false
+    };
   }
-  // If limit is "all" (1000000), don't apply range - fetch everything
   
   const { data: trades, error: tradesError } = await tradesQuery;
 
