@@ -60,11 +60,12 @@ export async function GET(request: NextRequest) {
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit') || '50';
     // Support "all" to fetch all trades (set to a very high number)
-    const limit = limitParam === 'all' || limitParam === '-1' 
+    const isAllLimit = limitParam === 'all' || limitParam === '-1';
+    const limit = isAllLimit 
       ? 1000000 // Effectively unlimited
       : Math.min(parseInt(limitParam), 10000); // Increased max from 100 to 10000 for "show all" use case
     
-    console.log(`[Trades API] Request received: limit=${limitParam}, parsed limit=${limit}`);
+    console.log(`[Trades API] Request received: limit=${limitParam}, parsed limit=${limit}, isAllLimit=${isAllLimit}`);
     const page = offset ? Math.floor(parseInt(offset) / limit) + 1 : (pageParam ? parseInt(pageParam) : 1);
     
     const params: TradesQueryParams = {
@@ -90,7 +91,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (params.limit && (params.limit < 1 || params.limit > 10000)) {
+    // Skip limit validation if it's "all" (1000000)
+    if (!isAllLimit && params.limit && (params.limit < 1 || params.limit > 10000)) {
       return NextResponse.json(
         createApiError(ERROR_CODES.VALIDATION_ERROR, 'Limit must be between 1 and 10000'),
         { status: 400 }
