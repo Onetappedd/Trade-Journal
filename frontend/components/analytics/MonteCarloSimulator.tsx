@@ -261,7 +261,6 @@ export default function MonteCarloSimulator() {
   // Calculate Y-axis domain using 95th percentile rule (P95 Rule)
   // Never set Y-axis max to absolute maximum - use 95th percentile instead
   let yAxisDomain: [number, number] | undefined = undefined;
-  let isCapped = false;
 
   if (result && result.summary.length > 0) {
     const summary = result.summary;
