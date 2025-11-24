@@ -1,5 +1,6 @@
 import { getServerSupabase } from '@/lib/supabase/server';
 import { SupabaseClient } from '@supabase/supabase-js';
+import Decimal from 'decimal.js';
 import { 
   toDec, 
   sumDec, 
