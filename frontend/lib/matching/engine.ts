@@ -67,6 +67,9 @@ interface Trade {
   option_type?: string;
   // Metadata
   meta?: Record<string, any>; // JSONB field for additional metadata (e.g., close_reason)
+  source_broker?: string;
+  close_reason?: string;
+  side?: string;
 }
 
 interface Position {
