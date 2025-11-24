@@ -240,10 +240,16 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   }
 
   // Get paginated results (or all if limit is very large)
+  let trades: any[] = [];
+  let tradesError: any = null;
   let tradesQuery = query;
+
   if (limit && limit < 1000000) {
     // Only apply range if limit is reasonable (not "all")
     tradesQuery = tradesQuery.range(offset, offset + limit - 1);
+    const result = await tradesQuery;
+    trades = result.data || [];
+    tradesError = result.error;
   } else {
     // If limit is "all" (1000000), fetch in batches to get everything
     // Supabase has a default limit of 1000, so we need to fetch in batches
@@ -291,7 +297,7 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       
       if (batchError) {
         console.error('[Trades API] Batch fetch error:', batchError);
-        console.error('[Trades API] Error details:', JSON.stringify(batchError, null, 2));
+        tradesError = batchError;
         break;
       }
       
@@ -328,27 +334,9 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       console.warn(`[Trades API] Reached max batches limit (${maxBatches}), stopping`);
     }
     
-    const trades = allTrades;
-    const tradesError = null; // No error if we got here
-    
+    trades = allTrades;
     console.log(`[Trades API] Finished fetching all trades: ${trades.length} total (expected: ${totalCount})`);
-    
-    // No need to filter manually anymore, SQL query handles it
-    const validTradesFromBatch = trades;
-    
-    // Return the filtered results with correct total
-    return {
-      items: validTradesFromBatch,
-      total: validTradesFromBatch.length,
-      page: 1,
-      limit: validTradesFromBatch.length,
-      totalPages: 1,
-      hasNextPage: false,
-      hasPreviousPage: false
-    };
   }
-  
-  const { data: trades, error: tradesError } = await tradesQuery;
 
   if (tradesError) {
     console.error('[Trades API] Trades fetch error:', tradesError);
