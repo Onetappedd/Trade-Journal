@@ -9,11 +9,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
-    }
-
+    // Remove strict header check to allow cookie auth in browser
     const supabase = await createSupabaseWithToken(request);
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     

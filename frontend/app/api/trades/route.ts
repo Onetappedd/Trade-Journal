@@ -146,7 +146,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   let query = supabase
     .from('trades')
     .select('*') // Simplify to * for debugging to avoid column issues
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .gt('qty_opened', 0); // Only show trades with positive quantity
   
   console.log(`[Trades API] Building query for user ${userId}, page ${page}, limit ${limit}, offset ${offset}`);
 
@@ -199,7 +200,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
   let countQuery = supabase
     .from('trades')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .gt('qty_opened', 0); // Only count trades with positive quantity
   
   // Apply same filters as main query
   if (symbol) {
@@ -263,7 +265,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
       let batchQuery = supabase
         .from('trades')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .gt('qty_opened', 0); // Only fetch trades with positive quantity
       
       // Reapply all filters
       if (symbol) batchQuery = batchQuery.ilike('symbol', `%${symbol}%`);
@@ -330,21 +333,13 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     
     console.log(`[Trades API] Finished fetching all trades: ${trades.length} total (expected: ${totalCount})`);
     
-    // Filter out invalid trades before returning
-    const validTradesFromBatch = trades.filter((trade: any) => {
-      const qty = trade.qty_opened ?? trade.quantity;
-      const price = trade.avg_open_price ?? trade.entry_price ?? trade.price;
-      const qtyNum = typeof qty === 'string' ? parseFloat(qty) : (qty ?? 0);
-      const priceNum = typeof price === 'string' ? parseFloat(price) : (price ?? 0);
-      return qty && qtyNum > 0 && !isNaN(qtyNum) && price && priceNum > 0 && !isNaN(priceNum);
-    });
-    
-    console.log(`[Trades API] Filtered ${trades.length} trades to ${validTradesFromBatch.length} valid trades`);
+    // No need to filter manually anymore, SQL query handles it
+    const validTradesFromBatch = trades;
     
     // Return the filtered results with correct total
     return {
       items: validTradesFromBatch,
-      total: validTradesFromBatch.length, // Use filtered count, not totalCount
+      total: validTradesFromBatch.length,
       page: 1,
       limit: validTradesFromBatch.length,
       totalPages: 1,
@@ -391,32 +386,8 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
 
   // Transform trades to match TradeRow interface
   // Map new schema (quantity, entry_price) to old schema (qty_opened, avg_open_price) for compatibility
-  // Filter out invalid trades (0 quantity, 0 price, or NULL values) before transforming
-  const validTrades = (trades || []).filter((trade: any) => {
-    // Parse values (handle PostgreSQL NUMERIC strings and NULL)
-    const qty = trade.qty_opened ?? trade.quantity;
-    const price = trade.avg_open_price ?? trade.entry_price ?? trade.price;
-    
-    // Convert to number if string
-    const qtyNum = typeof qty === 'string' ? parseFloat(qty) : (qty ?? 0);
-    const priceNum = typeof price === 'string' ? parseFloat(price) : (price ?? 0);
-    
-    // Skip trades with NULL, 0, or invalid quantity/price
-    if (!qty || qtyNum <= 0 || isNaN(qtyNum)) {
-      console.warn(`[Trades API] Filtering out invalid trade ${trade.id}: qty=${qty} (parsed: ${qtyNum})`);
-      return false;
-    }
-    if (!price || priceNum <= 0 || isNaN(priceNum)) {
-      console.warn(`[Trades API] Filtering out invalid trade ${trade.id}: price=${price} (parsed: ${priceNum})`);
-      return false;
-    }
-    return true;
-  });
+  const validTrades = (trades || []);
   
-  const filteredCount = validTrades.length;
-  const removedCount = (trades?.length || 0) - filteredCount;
-  console.log(`[Trades API] Filtered ${trades?.length || 0} trades to ${filteredCount} valid trades (removed ${removedCount} invalid)`);
-
   // Also convert string numbers from PostgreSQL NUMERIC to actual numbers
   const transformedTrades = validTrades.map((trade: any) => {
     // Parse option fields from legs or direct columns
@@ -481,12 +452,12 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     };
   });
 
-  // Use filtered count instead of totalCount (which includes invalid trades)
-  const validTotal = transformedTrades.length;
+  // Use filtered count from countQuery
+  const validTotal = totalCount || transformedTrades.length;
   
   return {
     items: transformedTrades, // Use 'items' to match TradesResponse interface
-    total: validTotal, // Use filtered count, not totalCount
+    total: validTotal, // Use filtered count from DB
     page,
     limit,
     totalPages: Math.ceil(validTotal / (limit || 20)),
