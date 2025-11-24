@@ -4,6 +4,18 @@
 
 This document explains how the trade matching system processes Robinhood Activity CSV files and converts individual trade executions into complete, matched trades with accurate P&L calculations.
 
+### Key Features
+
+**Robinhood Options Matching:**
+- **Contract-level FIFO matching:** Options are matched per contract (underlying + expiry + strike + type) using First-In-First-Out lot tracking
+- **OEXP handling:** Option Expiration (OEXP) rows explicitly close remaining long contracts at price 0 (expired worthless)
+- **No phantom opens:** After a full CSV import with OEXP rows, no dangling open option positions remain - only genuinely open positions are preserved
+- **Lifetime matching:** Trades span the entire contract life, not short time windows
+
+**Other Brokers:**
+- **Multi-leg window matching:** Preserved for brokers that provide spread-oriented execution data (e.g., IBKR, Tastytrade)
+- **Time-window grouping:** Executions within ±60 seconds or with the same order_id are grouped as multi-leg strategies
+
 ---
 
 ## Phase 1: CSV Detection & Parsing
@@ -285,9 +297,142 @@ Execution 4: SELL 7 AAPL @ $162.00
 
 ---
 
-## Phase 4B: Options Matching (Multi-leg within Window)
+## Phase 4B: Options Matching
 
-### Step 6: `matchOptions` Function
+### Step 6: Routing by Broker
+
+The options matching system routes executions to broker-specific matchers:
+
+- **Robinhood options** → `matchRobinhoodOptionsContractLevel` (contract-level FIFO)
+- **Other brokers** → `matchOptionsMultiLeg` (multi-leg window-based matching)
+
+This ensures Robinhood's single-leg, time-separated executions are matched correctly using FIFO, while preserving multi-leg spread matching for brokers that provide spread-oriented execution data.
+
+---
+
+### Step 6A: Robinhood Options Matching (Contract-Level FIFO)
+
+**Function:** `matchRobinhoodOptionsContractLevel`
+
+**Key Characteristics:**
+- **Contract-level matching:** Groups by full contract identity (underlying + expiry + strike + option_type)
+- **FIFO lifetime matching:** Trades span entire contract life, not short time windows
+- **OEXP handling:** Option Expiration rows explicitly close remaining long contracts at price 0
+- **No phantom opens:** After full CSV import with OEXP rows, no dangling open positions remain
+
+**Grouping:**
+- Groups executions by contract key: `broker_account_id + underlying + expiry + strike + option_type`
+  - Key format: `"default::NVDA::2024-06-28::125::C"`
+- Sorts each group chronologically (oldest first)
+
+**FIFO Lot Tracking:**
+
+Maintains a queue of open lots (FIFO):
+
+```typescript
+type OpenLot = {
+  qtyRemaining: number;
+  openPrice: number;
+  openAmount: Decimal; // Total cost (negative for cash outflow)
+  openedAt: Date;
+  fees: Decimal;
+};
+```
+
+**Matching Algorithm:**
+
+For each execution in chronological order:
+
+1. **If `side === 'buy'`:**
+   - Add to open lots queue
+   - Track quantity, price, fees, and timestamp
+
+2. **If `side === 'sell'` or OEXP:**
+   - Close from open lots (FIFO - oldest first)
+   - Calculate P&L: `(exitPrice - entryPrice) * quantity * multiplier - fees`
+   - For OEXP: `exitPrice = 0`, so P&L = full premium loss
+   - Create closed trade record with single leg
+
+3. **OEXP Detection:**
+   - Checks `exec.notes?.includes('Option Expiration')` or description contains "OEXP"
+   - Sets `close_price = 0` and `meta: { close_reason: 'expired' }`
+
+**P&L Calculation:**
+
+```typescript
+// Entry cash (negative - paid premium)
+entryPerUnit = lot.openAmount / lot.qtyRemaining
+entryCash = entryPerUnit * takeQty
+
+// Exit cash (positive or zero)
+exitPrice = isOEXP ? 0 : exec.price
+exitCash = exitPrice * takeQty * multiplier
+
+// P&L
+pnl = exitCash + entryCash - fees
+```
+
+**Example Flow:**
+
+```
+Execution 1: BTO 1 NVDA 6/28/2024 Call $125 @ $2.50
+  → Open lot: +1 contract @ $2.50, opened at 2024-06-15
+
+Execution 2: BTO 1 NVDA 6/28/2024 Call $125 @ $2.00
+  → Open lot: +1 contract @ $2.00, opened at 2024-06-16
+  → Queue: [lot1($2.50), lot2($2.00)]
+
+Execution 3: STC 1 NVDA 6/28/2024 Call $125 @ $3.00
+  → Close from lot1 (FIFO):
+     P&L = ($3.00 - $2.50) * 1 * 100 = $50.00
+     Trade closed: 1 contract @ $2.50 → $3.00, P&L = $50.00
+  → Remaining: lot2 still open
+
+Execution 4: OEXP 1S NVDA 6/28/2024 Call $125
+  → Close from lot2 (FIFO):
+     P&L = ($0.00 - $2.00) * 1 * 100 = -$200.00 (full loss)
+     Trade closed: 1 contract @ $2.00 → $0.00, P&L = -$200.00
+     meta: { close_reason: 'expired' }
+  → No open lots remaining
+```
+
+**Trade Record Structure:**
+
+```typescript
+{
+  instrument_type: 'option',
+  symbol: 'NVDA',
+  status: 'closed',
+  opened_at: '2024-06-16T10:00:00Z',
+  closed_at: '2024-06-28T16:00:00Z',
+  qty_opened: 1,
+  qty_closed: 1,
+  avg_open_price: 2.00,
+  avg_close_price: 0, // OEXP
+  realized_pnl: -200.00,
+  legs: [{
+    strike: 125,
+    option_type: 'call',
+    side: 'long',
+    qty_opened: 1,
+    qty_closed: 1,
+    avg_open_price: 2.00,
+    avg_close_price: 0,
+    realized_pnl: -200.00
+  }],
+  meta: { close_reason: 'expired' }
+}
+```
+
+**Edge Cases:**
+- If `remainingToClose > 0` and no open lots: Logs warning, doesn't crash
+- If open lots remain after processing: Creates open trade records (genuinely open positions)
+
+---
+
+### Step 6B: Multi-leg Options Matching (Other Brokers)
+
+**Function:** `matchOptionsMultiLeg`
 
 **Grouping:**
 - Groups executions by: `underlying + expiry`

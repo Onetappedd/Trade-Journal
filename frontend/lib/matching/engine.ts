@@ -61,6 +61,8 @@ interface Trade {
   option_expiration?: string;
   option_strike?: number;
   option_type?: string;
+  // Metadata
+  meta?: Record<string, any>; // JSONB field for additional metadata (e.g., close_reason)
 }
 
 interface Position {
@@ -128,6 +130,8 @@ export async function matchUserTrades({
 
   try {
     // Get executions to process
+    // Note: We can't reliably filter by quantity > 0 at DB level if quantity is stored as NUMERIC (string)
+    // So we'll fetch all and filter in code
     let query = client
       .from('executions_normalized')
       .select('*')
@@ -142,10 +146,32 @@ export async function matchUserTrades({
       query = query.in('symbol', symbols);
     }
 
-    const { data: executions, error } = await query;
+    const { data: allExecutions, error } = await query;
     if (error) throw error;
 
-    console.log(`Found ${executions?.length || 0} executions for user ${userId}`);
+    console.log(`Found ${allExecutions?.length || 0} total executions for user ${userId}`);
+    
+    // Filter out invalid executions in code (handle PostgreSQL NUMERIC strings)
+    const executions = (allExecutions || []).filter((e: any) => {
+      const qty = typeof e.quantity === 'string' ? parseFloat(e.quantity) : (e.quantity || 0);
+      const price = typeof e.price === 'string' ? parseFloat(e.price) : (e.price || 0);
+      
+      // For options, allow price >= 0 (OEXP can have price 0)
+      // For equities/futures, price must be > 0
+      const isValidPrice = e.instrument_type === 'option' ? (price >= 0 && !isNaN(price)) : (price > 0 && !isNaN(price));
+      
+      if (!qty || qty <= 0 || isNaN(qty)) {
+        console.warn(`[Matching] Filtering out execution ${e.id}: invalid quantity ${e.quantity} (parsed: ${qty})`);
+        return false;
+      }
+      if (!isValidPrice) {
+        console.warn(`[Matching] Filtering out execution ${e.id}: invalid price ${e.price} (parsed: ${price}) for ${e.instrument_type}`);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log(`Filtered to ${executions.length} valid executions (removed ${(allExecutions?.length || 0) - executions.length} invalid)`);
     
     // Debug: Check multiplier values for options
     const optionExecsForDebug = executions?.filter((e: any) => e.instrument_type === 'option') || [];
@@ -197,10 +223,33 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
   let updated = 0;
   let created = 0;
 
+  // Filter out invalid executions (0 quantity, 0 price, missing required fields)
+  const validExecutions = executions.filter(exec => {
+    // Convert to number if it's a string (PostgreSQL NUMERIC returns strings)
+    const qty = typeof exec.quantity === 'string' ? parseFloat(exec.quantity) : (exec.quantity || 0);
+    const price = typeof exec.price === 'string' ? parseFloat(exec.price) : (exec.price || 0);
+    
+    if (!qty || qty <= 0 || isNaN(qty)) {
+      console.warn(`[Equity Matching] Skipping execution ${exec.id}: invalid quantity ${exec.quantity} (parsed: ${qty})`);
+      return false;
+    }
+    if (!price || price <= 0 || isNaN(price)) {
+      console.warn(`[Equity Matching] Skipping execution ${exec.id}: invalid price ${exec.price} (parsed: ${price})`);
+      return false;
+    }
+    if (!exec.symbol || exec.symbol.trim() === '') {
+      console.warn(`[Equity Matching] Skipping execution ${exec.id}: missing symbol`);
+      return false;
+    }
+    return true;
+  });
+
+  console.log(`[Equity Matching] Filtered ${executions.length} executions to ${validExecutions.length} valid executions`);
+
   // Group by symbol and broker account
   const symbolGroups = new Map<string, Execution[]>();
   
-  for (const exec of executions) {
+  for (const exec of validExecutions) {
     const key = `${exec.symbol}-${exec.broker_account_id || 'default'}`;
     if (!symbolGroups.has(key)) {
       symbolGroups.set(key, []);
@@ -224,18 +273,35 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
     let trades: Trade[] = [];
 
     for (const exec of symbolExecs) {
+      // Parse quantity and price (handle PostgreSQL NUMERIC strings)
+      const execQty = typeof exec.quantity === 'string' ? parseFloat(exec.quantity) : (exec.quantity || 0);
+      const execPrice = typeof exec.price === 'string' ? parseFloat(exec.price) : (exec.price || 0);
+      
+      // Double-check validation (shouldn't happen but safety check)
+      if (!execQty || execQty <= 0 || !execPrice || execPrice <= 0) {
+        console.warn(`[Equity Matching] Skipping execution ${exec.id} in processing: qty=${execQty}, price=${execPrice}`);
+        continue;
+      }
+      
       // Use Math.abs to ensure we start with a positive magnitude, then apply sign based on side
-      const qty = (exec.side === 'sell' || exec.side === 'short') ? -Math.abs(exec.quantity) : Math.abs(exec.quantity);
-      const cost = qty * exec.price;
+      const qty = (exec.side === 'sell' || exec.side === 'short') ? -Math.abs(execQty) : Math.abs(execQty);
+      const cost = qty * execPrice;
       
       if (position === 0) {
         // Starting a new position
         position = qty;
-        avgPrice = exec.price;
+        avgPrice = execPrice;
         totalCost = cost;
-        totalFees = exec.fees;
+        totalFees = exec.fees || 0;
         firstExecId = exec.id;
         lastExecId = exec.id;
+        
+        // Validate before creating trade
+        const absQty = Math.abs(qty);
+        if (absQty <= 0 || avgPrice <= 0) {
+          console.warn(`[Equity Matching] Skipping trade creation: invalid qty=${absQty}, price=${avgPrice}`);
+          continue;
+        }
         
         // Create open trade
         openTrade = {
@@ -245,7 +311,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
           instrument_type: 'equity',
           status: 'open',
           opened_at: exec.timestamp,
-          qty_opened: Math.abs(qty), // Use absolute quantity for qty_opened
+          qty_opened: absQty, // Use absolute quantity for qty_opened
           qty_closed: 0,
           avg_open_price: avgPrice, // Use actual price, not forced minimum
           realized_pnl: 0,
@@ -289,7 +355,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
             const closeQty = Math.abs(position);
             const realizedPnl = calculateEquityPnL(
               openTrade.avg_open_price,
-              exec.price,
+              execPrice,
               closeQty,
               totalFees
             ).toNumber();
@@ -297,7 +363,7 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
             openTrade.status = 'closed';
             openTrade.closed_at = exec.timestamp;
             openTrade.qty_closed = closeQty;
-            openTrade.avg_close_price = exec.price;
+            openTrade.avg_close_price = execPrice;
             openTrade.realized_pnl = realizedPnl;
             openTrade.fees = totalFees;
             
@@ -314,21 +380,28 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
             firstExecId = exec.id;
             lastExecId = exec.id;
             
-            openTrade = {
-              user_id: exec.user_id,
-              group_key: generateGroupKey(symbol, exec.id),
-              symbol,
-              instrument_type: 'equity',
-              status: 'open',
-              opened_at: exec.timestamp,
-              qty_opened: Math.abs(position), // Use absolute quantity
-              qty_closed: 0,
-              avg_open_price: avgPrice, // Use actual calculated price
-              realized_pnl: 0,
-              fees: totalFees,
-              ingestion_run_id: exec.source_import_run_id,
-              row_hash: undefined, // Set to undefined to avoid unique constraint violation
-            };
+            const absPosition = Math.abs(position);
+            // Validate before creating new trade
+            if (absPosition <= 0 || avgPrice <= 0) {
+              console.warn(`[Equity Matching] Skipping new trade creation after close: invalid qty=${absPosition}, price=${avgPrice}`);
+              openTrade = null;
+            } else {
+              openTrade = {
+                user_id: exec.user_id,
+                group_key: generateGroupKey(symbol, exec.id),
+                symbol,
+                instrument_type: 'equity',
+                status: 'open',
+                opened_at: exec.timestamp,
+                qty_opened: absPosition, // Use absolute quantity
+                qty_closed: 0,
+                avg_open_price: avgPrice, // Use actual calculated price
+                realized_pnl: 0,
+                fees: totalFees,
+                ingestion_run_id: exec.source_import_run_id,
+                row_hash: undefined, // Set to undefined to avoid unique constraint violation
+              };
+            }
           } else {
             openTrade = null;
           }
@@ -336,24 +409,54 @@ async function matchEquities(executions: Execution[], supabase: SupabaseClient):
       }
     }
     
-    // Save trades to database
+    // Save trades to database (only valid trades with qty > 0)
     for (const trade of trades) {
-      await upsertTrade(trade, supabase);
+      if (trade.qty_opened > 0 && trade.avg_open_price > 0) {
+        await upsertTrade(trade, supabase);
+      } else {
+        console.warn(`Skipping invalid trade: qty_opened=${trade.qty_opened}, avg_open_price=${trade.avg_open_price}`);
+      }
     }
     
-    // Update open trade if exists
-    if (openTrade) {
+    // Update open trade if exists (only if valid)
+    if (openTrade && openTrade.qty_opened > 0 && openTrade.avg_open_price > 0) {
       await upsertTrade(openTrade, supabase);
       updated++;
+    } else if (openTrade) {
+      console.warn(`Skipping invalid open trade: qty_opened=${openTrade.qty_opened}, avg_open_price=${openTrade.avg_open_price}`);
     }
   }
 
   return { updated, created };
 }
 
-// Options matching (multi-leg within window)
+// Options matching - routes to broker-specific matchers
 async function matchOptions(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
   console.log(`Starting options matching with ${executions.length} executions`);
+  
+  // Split executions by broker
+  const robinhoodExecs = executions.filter(e => e.venue === 'robinhood');
+  const otherExecs = executions.filter(e => e.venue !== 'robinhood');
+  
+  console.log(`Split options: ${robinhoodExecs.length} Robinhood, ${otherExecs.length} other brokers`);
+  
+  // Route to appropriate matcher
+  const robinhoodResult = await matchRobinhoodOptionsContractLevel(robinhoodExecs, supabase);
+  const otherResult = await matchOptionsMultiLeg(otherExecs, supabase);
+  
+  return {
+    updated: robinhoodResult.updated + otherResult.updated,
+    created: robinhoodResult.created + otherResult.created,
+  };
+}
+
+// Options matching (multi-leg within window) - for non-Robinhood brokers
+async function matchOptionsMultiLeg(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
+  if (executions.length === 0) {
+    return { updated: 0, created: 0 };
+  }
+  
+  console.log(`Starting multi-leg options matching with ${executions.length} executions`);
   let updated = 0;
   let created = 0;
 
@@ -595,6 +698,259 @@ async function matchOptions(executions: Execution[], supabase: SupabaseClient): 
   return { updated, created };
 }
 
+// Robinhood options matching (contract-level FIFO)
+async function matchRobinhoodOptionsContractLevel(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
+  if (executions.length === 0) {
+    return { updated: 0, created: 0 };
+  }
+  
+  console.log(`Starting Robinhood contract-level FIFO matching with ${executions.length} executions`);
+  let updated = 0;
+  let created = 0;
+  
+  // Filter out invalid executions
+  const validExecutions = executions.filter(exec => {
+    if (!exec.quantity || exec.quantity <= 0) {
+      console.warn(`Skipping execution ${exec.id}: invalid quantity ${exec.quantity}`);
+      return false;
+    }
+    if (!exec.price || exec.price < 0) { // Allow 0 for OEXP
+      console.warn(`Skipping execution ${exec.id}: invalid price ${exec.price}`);
+      return false;
+    }
+    if (!exec.underlying || !exec.expiry || !exec.strike || !exec.option_type) {
+      console.warn(`Skipping execution ${exec.id}: missing required option fields (underlying, expiry, strike, option_type)`);
+      return false;
+    }
+    return true;
+  });
+  
+  // Group by contract key: broker_account_id + underlying + expiry + strike + option_type
+  const contractGroups = new Map<string, Execution[]>();
+  
+  for (const exec of validExecutions) {
+    
+    const key = [
+      exec.broker_account_id ?? 'default',
+      exec.underlying,
+      exec.expiry,
+      exec.strike,
+      exec.option_type,
+    ].join('::');
+    
+    if (!contractGroups.has(key)) {
+      contractGroups.set(key, []);
+    }
+    contractGroups.get(key)!.push(exec);
+  }
+  
+  console.log(`Grouped into ${contractGroups.size} contract groups`);
+  
+  // Process each contract group
+  for (const [key, execs] of contractGroups) {
+    // Sort chronologically
+    execs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // FIFO open lots queue
+    type OpenLot = {
+      qtyRemaining: number;
+      openPrice: number;
+      openAmount: Decimal; // Total cost (negative for cash outflow)
+      openedAt: Date;
+      fees: Decimal;
+    };
+    
+    const openLots: OpenLot[] = [];
+    
+    // Process each execution
+    for (const exec of execs) {
+      const signedQty = exec.side === 'buy' ? exec.quantity : -exec.quantity;
+      const price = toDec(exec.price);
+      const multiplier = toDec(exec.multiplier || 100); // Always 100 for options
+      const gross = price.mul(exec.quantity).mul(multiplier); // Full contract value
+      const fees = toDec(exec.fees ?? 0);
+      
+      if (exec.side === 'buy') {
+        // Opening long position
+        openLots.push({
+          qtyRemaining: exec.quantity,
+          openPrice: exec.price,
+          openAmount: gross.neg(), // Negative (cash outflow)
+          openedAt: new Date(exec.timestamp),
+          fees,
+        });
+        continue;
+      }
+      
+      // SELL or OEXP → close long positions (FIFO)
+      let remainingToClose = exec.quantity;
+      const isOEXP = exec.notes?.toUpperCase().includes('OPTION EXPIRATION') || 
+                     exec.notes?.toUpperCase().includes('OEXP');
+      
+      while (remainingToClose > 0 && openLots.length > 0) {
+        const lot = openLots[0];
+        const takeQty = Math.min(lot.qtyRemaining, remainingToClose);
+        
+        // Calculate P&L
+        const entryPerUnit = lot.openAmount.div(lot.qtyRemaining); // Negative per contract
+        const entryCash = entryPerUnit.mul(takeQty); // Negative
+        const exitPrice = isOEXP ? toDec(0) : price; // 0 for OEXP
+        const exitCash = exitPrice.mul(takeQty).mul(multiplier); // Positive or zero
+        
+        // P&L = exitCash - entryCash - fees
+        // entryCash is negative, so we add it (subtract the absolute value)
+        const lotFees = lot.fees.mul(takeQty).div(lot.qtyRemaining);
+        const execFees = fees.mul(takeQty).div(exec.quantity);
+        const pnl = exitCash.add(entryCash).sub(lotFees).sub(execFees);
+        
+        // Build single-leg trade record
+        const [brokerAccountId, underlying, expiry, strikeStr, optionType] = key.split('::');
+        const strike = parseFloat(strikeStr);
+        
+        // Format expiry as YYYY-MM-DD
+        let optionExpiry: string | undefined = undefined;
+        try {
+          const date = new Date(expiry);
+          if (!isNaN(date.getTime())) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            optionExpiry = `${year}-${month}-${day}`;
+          } else {
+            // If already in YYYY-MM-DD format
+            const dateMatch = expiry.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (dateMatch) {
+              optionExpiry = expiry;
+            }
+          }
+        } catch (e) {
+          console.warn(`Error parsing expiry date: ${expiry}`, e);
+        }
+        
+        const trade: Trade = {
+          user_id: exec.user_id,
+          group_key: generateGroupKey(underlying, exec.id),
+          symbol: underlying,
+          instrument_type: 'option',
+          status: 'closed',
+          opened_at: lot.openedAt.toISOString(),
+          closed_at: exec.timestamp,
+          qty_opened: takeQty,
+          qty_closed: takeQty,
+          avg_open_price: lot.openPrice,
+          avg_close_price: isOEXP ? 0 : exec.price,
+          realized_pnl: pnl.toNumber(),
+          fees: lotFees.add(execFees).toNumber(),
+          legs: [
+            {
+              strike,
+              option_type: optionType === 'C' ? 'call' : 'put',
+              side: 'long',
+              qty_opened: takeQty,
+              qty_closed: takeQty,
+              avg_open_price: lot.openPrice,
+              avg_close_price: isOEXP ? 0 : exec.price,
+              realized_pnl: pnl.toNumber(),
+            },
+          ],
+          ingestion_run_id: exec.source_import_run_id,
+          row_hash: undefined,
+          underlying_symbol: underlying,
+          option_expiration: optionExpiry,
+          option_strike: strike,
+          option_type: optionType === 'C' ? 'CALL' : 'PUT',
+          // Store close_reason in meta JSONB
+          meta: isOEXP ? { close_reason: 'expired' } : undefined,
+        };
+        
+        await upsertTrade(trade, supabase);
+        created++;
+        
+        // Update lot
+        lot.qtyRemaining -= takeQty;
+        remainingToClose -= takeQty;
+        
+        // Remove lot if fully consumed
+        if (lot.qtyRemaining <= 0.00001) {
+          openLots.shift();
+        }
+      }
+      
+      // If remainingToClose > 0 and no open lots, log warning
+      if (remainingToClose > 0 && openLots.length === 0) {
+        console.warn(`[Robinhood Matching] Attempted to close ${remainingToClose} contracts but no open lots available for contract ${key}`);
+      }
+    }
+    
+    // Any remaining open lots are genuinely open positions
+    for (const lot of openLots) {
+      const [brokerAccountId, underlying, expiry, strikeStr, optionType] = key.split('::');
+      const strike = parseFloat(strikeStr);
+      
+      // Format expiry
+      let optionExpiry: string | undefined = undefined;
+      try {
+        const date = new Date(expiry);
+        if (!isNaN(date.getTime())) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          optionExpiry = `${year}-${month}-${day}`;
+        } else {
+          const dateMatch = expiry.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (dateMatch) {
+            optionExpiry = expiry;
+          }
+        }
+      } catch (e) {
+        console.warn(`Error parsing expiry date: ${expiry}`, e);
+      }
+      
+      // Use first execution from this contract group for user_id, etc.
+      const firstExec = execs[0];
+      
+      const trade: Trade = {
+        user_id: firstExec.user_id,
+        group_key: generateGroupKey(underlying, firstExec.id),
+        symbol: underlying,
+        instrument_type: 'option',
+        status: 'open',
+        opened_at: lot.openedAt.toISOString(),
+        closed_at: undefined,
+        qty_opened: lot.qtyRemaining,
+        qty_closed: 0,
+        avg_open_price: lot.openPrice,
+        avg_close_price: undefined,
+        realized_pnl: 0,
+        fees: lot.fees.toNumber(),
+        legs: [
+          {
+            strike,
+            option_type: optionType === 'C' ? 'call' : 'put',
+            side: 'long',
+            qty_opened: lot.qtyRemaining,
+            qty_closed: 0,
+            avg_open_price: lot.openPrice,
+            avg_close_price: undefined,
+            realized_pnl: 0,
+          },
+        ],
+        ingestion_run_id: firstExec.source_import_run_id,
+        row_hash: undefined,
+        underlying_symbol: underlying,
+        option_expiration: optionExpiry,
+        option_strike: strike,
+        option_type: optionType === 'C' ? 'CALL' : 'PUT',
+      };
+      
+      await upsertTrade(trade, supabase);
+      updated++;
+    }
+  }
+  
+  return { updated, created };
+}
+
 // Futures matching
 async function matchFutures(executions: Execution[], supabase: SupabaseClient): Promise<{ updated: number; created: number }> {
   let updated = 0;
@@ -786,17 +1142,38 @@ function groupIntoWindows(executions: Execution[]): Execution[][] {
 
 async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void> {
   
+  // Validate trade before upserting - skip invalid trades
+  if (trade.qty_opened <= 0) {
+    console.warn(`Skipping trade upsert: qty_opened is ${trade.qty_opened} (must be > 0)`);
+    return;
+  }
+  if (trade.avg_open_price <= 0) {
+    console.warn(`Skipping trade upsert: avg_open_price is ${trade.avg_open_price} (must be > 0)`);
+    return;
+  }
+  
   // Ensure all required fields are set and constraints are satisfied
   const tradeData = {
     ...trade,
-    qty_opened: trade.qty_opened > 0 ? trade.qty_opened : 0.01, // Ensure qty_opened > 0
+    qty_opened: trade.qty_opened, // Already validated above
     qty_closed: trade.qty_closed || 0, // Ensure qty_closed >= 0
-    avg_open_price: trade.avg_open_price > 0 ? trade.avg_open_price : 0.01, // Ensure avg_open_price > 0
+    avg_open_price: trade.avg_open_price, // Already validated above
     avg_close_price: trade.avg_close_price || null, // Allow null for open trades
     updated_at: new Date().toISOString(),
   };
   
-  console.log('Upserting trade:', tradeData);
+  // Log trade data for debugging (but only if it's invalid to reduce noise)
+  if (tradeData.qty_opened <= 0 || tradeData.avg_open_price <= 0) {
+    console.error('[Upsert Trade] INVALID TRADE DETECTED:', {
+      id: trade.id,
+      symbol: trade.symbol,
+      qty_opened: tradeData.qty_opened,
+      avg_open_price: tradeData.avg_open_price,
+      status: trade.status,
+      instrument_type: trade.instrument_type,
+      fullTrade: tradeData
+    });
+  }
   
   // Use upsert with group_key as the conflict resolution key
   // If group_key doesn't exist as a unique constraint, we'll need to check manually

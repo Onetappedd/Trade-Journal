@@ -35,7 +35,18 @@ export async function POST(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
     
-    // Then delete them
+    // Also delete invalid trades (0 quantity or 0 price) as a safety measure
+    const { count: invalidCount } = await supabase
+      .from('trades')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .or('qty_opened.lte.0,avg_open_price.lte.0,quantity.lte.0,entry_price.lte.0,price.lte.0');
+    
+    if (invalidCount && invalidCount > 0) {
+      console.log(`Found ${invalidCount} invalid trades (0 quantity or 0 price) to delete`);
+    }
+    
+    // Then delete all trades
     const { error: deleteError } = await supabase
       .from('trades')
       .delete()

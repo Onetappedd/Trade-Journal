@@ -583,6 +583,15 @@ function parseMoney(value: string | null | undefined): number | null {
 }
 
 /**
+ * Normalize Robinhood option description by removing "Option Expiration for" prefix.
+ * This ensures consistent contract identity across BTO/STC/OEXP rows.
+ * Example: "Option Expiration for NVDA 6/28/2024 Call $125.00" → "NVDA 6/28/2024 Call $125.00"
+ */
+function normalizeRobinhoodOptionDescription(desc: string): string {
+  return desc.replace(/^Option\s+Expiration\s+for\s+/i, '').trim();
+}
+
+/**
  * Parse Robinhood option description format.
  * Examples:
  * - "NVDA 6/28/2024 Call $125.00"
@@ -952,7 +961,9 @@ function robinhoodParse({ rows, headerMap, userTimezone, assetClass }: any) {
         
         // Detect if this is an option trade
         // OEXP always indicates an option expiration
-        const optionInfo = parseRobinhoodOptionDescription(description);
+        // Normalize description to ensure consistent contract identity across BTO/STC/OEXP
+        const normalizedDesc = normalizeRobinhoodOptionDescription(description);
+        const optionInfo = parseRobinhoodOptionDescription(normalizedDesc);
         const isOption = transCode === 'BTO' || transCode === 'STC' || transCode === 'OEXP' ||
                         optionInfo.underlying !== undefined ||
                         description.toUpperCase().includes(' CALL ') ||

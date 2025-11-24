@@ -330,12 +330,23 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     
     console.log(`[Trades API] Finished fetching all trades: ${trades.length} total (expected: ${totalCount})`);
     
-    // Return the results
+    // Filter out invalid trades before returning
+    const validTradesFromBatch = trades.filter((trade: any) => {
+      const qty = trade.qty_opened ?? trade.quantity;
+      const price = trade.avg_open_price ?? trade.entry_price ?? trade.price;
+      const qtyNum = typeof qty === 'string' ? parseFloat(qty) : (qty ?? 0);
+      const priceNum = typeof price === 'string' ? parseFloat(price) : (price ?? 0);
+      return qty && qtyNum > 0 && !isNaN(qtyNum) && price && priceNum > 0 && !isNaN(priceNum);
+    });
+    
+    console.log(`[Trades API] Filtered ${trades.length} trades to ${validTradesFromBatch.length} valid trades`);
+    
+    // Return the filtered results with correct total
     return {
-      items: trades,
-      total: totalCount || trades.length,
+      items: validTradesFromBatch,
+      total: validTradesFromBatch.length, // Use filtered count, not totalCount
       page: 1,
-      limit: trades.length,
+      limit: validTradesFromBatch.length,
       totalPages: 1,
       hasNextPage: false,
       hasPreviousPage: false
@@ -380,8 +391,34 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
 
   // Transform trades to match TradeRow interface
   // Map new schema (quantity, entry_price) to old schema (qty_opened, avg_open_price) for compatibility
+  // Filter out invalid trades (0 quantity, 0 price, or NULL values) before transforming
+  const validTrades = (trades || []).filter((trade: any) => {
+    // Parse values (handle PostgreSQL NUMERIC strings and NULL)
+    const qty = trade.qty_opened ?? trade.quantity;
+    const price = trade.avg_open_price ?? trade.entry_price ?? trade.price;
+    
+    // Convert to number if string
+    const qtyNum = typeof qty === 'string' ? parseFloat(qty) : (qty ?? 0);
+    const priceNum = typeof price === 'string' ? parseFloat(price) : (price ?? 0);
+    
+    // Skip trades with NULL, 0, or invalid quantity/price
+    if (!qty || qtyNum <= 0 || isNaN(qtyNum)) {
+      console.warn(`[Trades API] Filtering out invalid trade ${trade.id}: qty=${qty} (parsed: ${qtyNum})`);
+      return false;
+    }
+    if (!price || priceNum <= 0 || isNaN(priceNum)) {
+      console.warn(`[Trades API] Filtering out invalid trade ${trade.id}: price=${price} (parsed: ${priceNum})`);
+      return false;
+    }
+    return true;
+  });
+  
+  const filteredCount = validTrades.length;
+  const removedCount = (trades?.length || 0) - filteredCount;
+  console.log(`[Trades API] Filtered ${trades?.length || 0} trades to ${filteredCount} valid trades (removed ${removedCount} invalid)`);
+
   // Also convert string numbers from PostgreSQL NUMERIC to actual numbers
-  const transformedTrades = (trades || []).map((trade: any) => {
+  const transformedTrades = validTrades.map((trade: any) => {
     // Parse option fields from legs or direct columns
     const legs = trade.legs || [];
     let optionStrike: number | null = null;
@@ -444,13 +481,16 @@ async function getTrades(userId: string, params: TradesQueryParams, supabase: an
     };
   });
 
+  // Use filtered count instead of totalCount (which includes invalid trades)
+  const validTotal = transformedTrades.length;
+  
   return {
     items: transformedTrades, // Use 'items' to match TradesResponse interface
-    total: totalCount || 0,
+    total: validTotal, // Use filtered count, not totalCount
     page,
     limit,
-    totalPages: Math.ceil((totalCount || 0) / (limit || 20)),
-    hasNextPage: offset + (limit || 20) < (totalCount || 0),
+    totalPages: Math.ceil(validTotal / (limit || 20)),
+    hasNextPage: offset + (limit || 20) < validTotal,
     hasPreviousPage: (page || 1) > 1
   };
 }
