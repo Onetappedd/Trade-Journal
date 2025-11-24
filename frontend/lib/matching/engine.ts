@@ -719,28 +719,17 @@ async function matchRobinhoodOptionsContractLevel(executions: Execution[], supab
   let updated = 0;
   let created = 0;
   
-  // Filter out invalid executions
-  const validExecutions = executions.filter(exec => {
-    if (!exec.quantity || exec.quantity <= 0) {
-      console.warn(`Skipping execution ${exec.id}: invalid quantity ${exec.quantity}`);
-      return false;
-    }
-    if (!exec.price || exec.price < 0) { // Allow 0 for OEXP
-      console.warn(`Skipping execution ${exec.id}: invalid price ${exec.price}`);
-      return false;
-    }
-    if (!exec.underlying || !exec.expiry || !exec.strike || !exec.option_type) {
-      console.warn(`Skipping execution ${exec.id}: missing required option fields (underlying, expiry, strike, option_type)`);
-      return false;
-    }
-    return true;
-  });
-  
-  // Group by contract key: broker_account_id + underlying + expiry + strike + option_type
+  // 1. Filter and Group
   const contractGroups = new Map<string, Execution[]>();
   
-  for (const exec of validExecutions) {
-    
+  for (const exec of executions) {
+    // Validate required fields
+    if (!exec.quantity || exec.quantity <= 0) continue;
+    if (!exec.underlying || !exec.expiry || !exec.strike || !exec.option_type) {
+       console.warn(`[Robinhood Matching] Skipping execution ${exec.id}: missing required option fields`);
+       continue;
+    }
+
     const key = [
       exec.broker_account_id ?? 'default',
       exec.underlying,
@@ -757,207 +746,188 @@ async function matchRobinhoodOptionsContractLevel(executions: Execution[], supab
   
   console.log(`Grouped into ${contractGroups.size} contract groups`);
   
-  // Process each contract group
+  // 2. Process each contract group
   for (const [key, execs] of contractGroups) {
     // Sort chronologically
     execs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     
     // FIFO open lots queue
     type OpenLot = {
-      qtyRemaining: number;
-      openPrice: number;
-      openAmount: Decimal; // Total cost (negative for cash outflow)
+      qtyRemaining: Decimal;
+      price: Decimal;
       openedAt: Date;
+      multiplier: Decimal;
       fees: Decimal;
     };
-    
     const openLots: OpenLot[] = [];
     
-    // Process each execution
+    // Track the current active trade for this contract
+    // "Accumulative" model: we update this trade until it is flat.
+    let activeTrade: Trade | null = null;
+    
     for (const exec of execs) {
-      const signedQty = exec.side === 'buy' ? exec.quantity : -exec.quantity;
+      const side = exec.side.toUpperCase(); // 'BUY' or 'SELL'
       const price = toDec(exec.price);
-      const multiplier = toDec(exec.multiplier || 100); // Always 100 for options
-      const gross = price.mul(exec.quantity).mul(multiplier); // Full contract value
-      const fees = toDec(exec.fees ?? 0);
+      const multiplier = toDec(exec.multiplier || 100);
+      const qty = toDec(exec.quantity); // Absolute quantity
+      const fees = toDec(exec.fees || 0);
       
-      if (exec.side === 'buy') {
-        // Opening long position
-        openLots.push({
-          qtyRemaining: exec.quantity,
-          openPrice: exec.price,
-          openAmount: gross.neg(), // Negative (cash outflow)
-          openedAt: new Date(exec.timestamp),
-          fees,
-        });
-        continue;
-      }
-      
-      // SELL or OEXP → close long positions (FIFO)
-      let remainingToClose = exec.quantity;
-      const isOEXP = exec.meta?.robinhoodTransCode === 'OEXP' ||
+      const isBuy = side === 'BUY';
+      // OEXP detection
+      const isOEXP = exec.meta?.robinhoodTransCode === 'OEXP' || 
                      exec.notes?.toUpperCase().includes('OPTION EXPIRATION') || 
                      exec.notes?.toUpperCase().includes('OEXP');
       
-      while (remainingToClose > 0 && openLots.length > 0) {
-        const lot = openLots[0];
-        const takeQty = Math.min(lot.qtyRemaining, remainingToClose);
+      if (isBuy) {
+        // --- BTO: Open/Add to Position ---
+        openLots.push({
+          qtyRemaining: qty,
+          price: price,
+          openedAt: new Date(exec.timestamp),
+          fees: fees,
+          multiplier: multiplier
+        });
         
-        // Calculate P&L
-        const entryPerUnit = lot.openAmount.div(lot.qtyRemaining); // Negative per contract
-        const entryCash = entryPerUnit.mul(takeQty); // Negative
-        const exitPrice = isOEXP ? toDec(0) : price; // 0 for OEXP
-        const exitCash = exitPrice.mul(takeQty).mul(multiplier); // Positive or zero
+        if (!activeTrade) {
+          // Start a NEW Trade
+          const [accountId, underlying, expiry, strikeStr, optType] = key.split('::');
+          
+          // Format expiry
+          let optionExpiry = expiry;
+          try {
+            const date = new Date(expiry);
+            if (!isNaN(date.getTime())) {
+              optionExpiry = date.toISOString().split('T')[0];
+            }
+          } catch (e) {}
+          
+          activeTrade = {
+            user_id: exec.user_id,
+            group_key: generateGroupKey(underlying, exec.id), // Unique per trade cycle
+            symbol: underlying,
+            instrument_type: 'option',
+            status: 'open',
+            opened_at: exec.timestamp,
+            qty_opened: qty.toNumber(),
+            qty_closed: 0,
+            avg_open_price: price.toNumber(),
+            avg_close_price: undefined,
+            realized_pnl: 0,
+            fees: fees.toNumber(),
+            underlying_symbol: underlying,
+            option_expiration: optionExpiry,
+            option_strike: parseFloat(strikeStr),
+            option_type: optType === 'C' ? 'CALL' : 'PUT',
+            source_broker: 'robinhood',
+            meta: { contract_key: key },
+            legs: [{
+              side: 'long',
+              strike: parseFloat(strikeStr),
+              option_type: optType === 'C' ? 'call' : 'put',
+              qty_opened: qty.toNumber(),
+              qty_closed: 0,
+              avg_open_price: price.toNumber(),
+              avg_close_price: 0,
+              realized_pnl: 0,
+              expiry: optionExpiry
+            }]
+          };
+          created++;
+        } else {
+          // Scale In: Update Active Trade
+          const oldQty = toDec(activeTrade.qty_opened);
+          const oldAvg = toDec(activeTrade.avg_open_price);
+          const newTotal = oldQty.add(qty);
+          const newAvg = (oldQty.mul(oldAvg).add(qty.mul(price))).div(newTotal);
+          
+          activeTrade.qty_opened = newTotal.toNumber();
+          activeTrade.avg_open_price = newAvg.toNumber();
+          activeTrade.fees = (activeTrade.fees || 0) + fees.toNumber();
+          
+          // Update legs (simplified: update first leg)
+          if (activeTrade.legs && activeTrade.legs.length > 0) {
+             activeTrade.legs[0].qty_opened = activeTrade.qty_opened;
+             activeTrade.legs[0].avg_open_price = activeTrade.avg_open_price;
+          }
+          updated++;
+        }
         
-        // P&L = exitCash - entryCash - fees
-        // entryCash is negative, so we add it (subtract the absolute value)
-        const lotFees = lot.fees.mul(takeQty).div(lot.qtyRemaining);
-        const execFees = fees.mul(takeQty).div(exec.quantity);
-        const pnl = exitCash.add(entryCash).sub(lotFees).sub(execFees);
+        await upsertTrade(activeTrade, supabase);
         
-        // Build single-leg trade record
-        const [brokerAccountId, underlying, expiry, strikeStr, optionType] = key.split('::');
-        const strike = parseFloat(strikeStr);
+      } else {
+        // --- STC / OEXP: Close Position ---
+        let remainingToClose = qty;
+        let accumulatedPnl = toDec(0);
         
-        // Format expiry as YYYY-MM-DD
-        let optionExpiry: string | undefined = undefined;
-        try {
-          const date = new Date(expiry);
-          if (!isNaN(date.getTime())) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            optionExpiry = `${year}-${month}-${day}`;
-          } else {
-            // If already in YYYY-MM-DD format
-            const dateMatch = expiry.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (dateMatch) {
-              optionExpiry = expiry;
+        // Match against open lots FIFO
+        while (remainingToClose.gt(0) && openLots.length > 0) {
+          const lot = openLots[0];
+          const take = Decimal.min(remainingToClose, lot.qtyRemaining);
+          
+          // P&L: Credit (Exit) - Debit (Entry)
+          const entryVal = lot.price.mul(take).mul(multiplier);
+          const exitVal = (isOEXP ? toDec(0) : price).mul(take).mul(multiplier);
+          const pnl = exitVal.sub(entryVal);
+          
+          accumulatedPnl = accumulatedPnl.add(pnl);
+          
+          lot.qtyRemaining = lot.qtyRemaining.sub(take);
+          remainingToClose = remainingToClose.sub(take);
+          
+          if (lot.qtyRemaining.lte(0)) openLots.shift();
+        }
+        
+        if (activeTrade) {
+          // Update Active Trade
+          const closedSoFar = toDec(activeTrade.qty_closed || 0);
+          const matchedQty = qty.sub(remainingToClose);
+          
+          if (matchedQty.gt(0)) {
+            const totalClosed = closedSoFar.add(matchedQty);
+            
+            activeTrade.realized_pnl = (activeTrade.realized_pnl || 0) + accumulatedPnl.toNumber();
+            activeTrade.fees = (activeTrade.fees || 0) + fees.toNumber();
+            
+            // Update Avg Close Price
+            const prevAvgClose = toDec(activeTrade.avg_close_price || 0);
+            const prevVal = prevAvgClose.mul(closedSoFar);
+            const currentVal = (isOEXP ? toDec(0) : price).mul(matchedQty);
+            const newAvgClose = prevVal.add(currentVal).div(totalClosed);
+            
+            activeTrade.qty_closed = totalClosed.toNumber();
+            activeTrade.avg_close_price = newAvgClose.toNumber();
+            activeTrade.closed_at = exec.timestamp; // Latest close
+            
+            // Set Close Reason
+            if (isOEXP) {
+               activeTrade.close_reason = 'expired';
+               activeTrade.meta = { ...activeTrade.meta, close_reason: 'expired' };
+            } else if (!activeTrade.close_reason) {
+               activeTrade.close_reason = 'sell';
+            }
+            
+            // Check if fully closed
+            if (totalClosed.gte(toDec(activeTrade.qty_opened))) {
+              activeTrade.status = 'closed';
             }
           }
-        } catch (e) {
-          console.warn(`Error parsing expiry date: ${expiry}`, e);
+          
+          await upsertTrade(activeTrade, supabase);
+          
+          // If closed, reset activeTrade so next BTO starts new trade
+          if (activeTrade.status === 'closed') {
+            activeTrade = null;
+          }
+          updated++;
+        } else {
+           // Orphan close (no active trade found)
+           // This implies shorting or missing BTO
+           console.warn(`[Robinhood Matching] Orphan close/expiry for ${key}: ${qty} contracts`);
         }
-        
-        const trade: Trade = {
-          user_id: exec.user_id,
-          group_key: generateGroupKey(underlying, exec.id),
-          symbol: underlying,
-          instrument_type: 'option',
-          status: 'closed',
-          opened_at: lot.openedAt.toISOString(),
-          closed_at: exec.timestamp,
-          qty_opened: takeQty,
-          qty_closed: takeQty,
-          avg_open_price: lot.openPrice,
-          avg_close_price: isOEXP ? 0 : exec.price,
-          realized_pnl: pnl.toNumber(),
-          fees: lotFees.add(execFees).toNumber(),
-          legs: [
-            {
-              strike,
-              option_type: optionType === 'C' ? 'call' : 'put',
-              side: 'long',
-              qty_opened: takeQty,
-              qty_closed: takeQty,
-              avg_open_price: lot.openPrice,
-              avg_close_price: isOEXP ? 0 : exec.price,
-              realized_pnl: pnl.toNumber(),
-            },
-          ],
-          ingestion_run_id: exec.source_import_run_id,
-          row_hash: undefined,
-          underlying_symbol: underlying,
-          option_expiration: optionExpiry,
-          option_strike: strike,
-          option_type: optionType === 'C' ? 'CALL' : 'PUT',
-          // Store close_reason in meta JSONB
-          meta: isOEXP ? { close_reason: 'expired' } : undefined,
-        };
-        
-        await upsertTrade(trade, supabase);
-        created++;
-        
-        // Update lot
-        lot.qtyRemaining -= takeQty;
-        remainingToClose -= takeQty;
-        
-        // Remove lot if fully consumed
-        if (lot.qtyRemaining <= 0.00001) {
-          openLots.shift();
-        }
-      }
-      
-      // If remainingToClose > 0 and no open lots, log warning
-      if (remainingToClose > 0 && openLots.length === 0) {
-        console.warn(`[Robinhood Matching] Attempted to close ${remainingToClose} contracts but no open lots available for contract ${key}`);
       }
     }
     
-    // Any remaining open lots are genuinely open positions
-    for (const lot of openLots) {
-      const [brokerAccountId, underlying, expiry, strikeStr, optionType] = key.split('::');
-      const strike = parseFloat(strikeStr);
-      
-      // Format expiry
-      let optionExpiry: string | undefined = undefined;
-      try {
-        const date = new Date(expiry);
-        if (!isNaN(date.getTime())) {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          optionExpiry = `${year}-${month}-${day}`;
-        } else {
-          const dateMatch = expiry.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-          if (dateMatch) {
-            optionExpiry = expiry;
-          }
-        }
-      } catch (e) {
-        console.warn(`Error parsing expiry date: ${expiry}`, e);
-      }
-      
-      // Use first execution from this contract group for user_id, etc.
-      const firstExec = execs[0];
-      
-      const trade: Trade = {
-        user_id: firstExec.user_id,
-        group_key: generateGroupKey(underlying, firstExec.id),
-        symbol: underlying,
-        instrument_type: 'option',
-        status: 'open',
-        opened_at: lot.openedAt.toISOString(),
-        closed_at: undefined,
-        qty_opened: lot.qtyRemaining,
-        qty_closed: 0,
-        avg_open_price: lot.openPrice,
-        avg_close_price: undefined,
-        realized_pnl: 0,
-        fees: lot.fees.toNumber(),
-        legs: [
-          {
-            strike,
-            option_type: optionType === 'C' ? 'call' : 'put',
-            side: 'long',
-            qty_opened: lot.qtyRemaining,
-            qty_closed: 0,
-            avg_open_price: lot.openPrice,
-            avg_close_price: undefined,
-            realized_pnl: 0,
-          },
-        ],
-        ingestion_run_id: firstExec.source_import_run_id,
-        row_hash: undefined,
-        underlying_symbol: underlying,
-        option_expiration: optionExpiry,
-        option_strike: strike,
-        option_type: optionType === 'C' ? 'CALL' : 'PUT',
-      };
-      
-      await upsertTrade(trade, supabase);
-      updated++;
-    }
+    // Ensure any remaining open activeTrade is saved (already done in loop)
   }
   
   return { updated, created };
