@@ -35,6 +35,9 @@ interface Execution {
   underlying?: string;
   broker_account_id?: string;
   source_import_run_id?: string;
+  notes?: string;
+  meta?: Record<string, any>;
+  source_broker?: string;
 }
 
 interface Trade {
@@ -785,7 +788,8 @@ async function matchRobinhoodOptionsContractLevel(executions: Execution[], supab
       
       // SELL or OEXP → close long positions (FIFO)
       let remainingToClose = exec.quantity;
-      const isOEXP = exec.notes?.toUpperCase().includes('OPTION EXPIRATION') || 
+      const isOEXP = exec.meta?.robinhoodTransCode === 'OEXP' ||
+                     exec.notes?.toUpperCase().includes('OPTION EXPIRATION') || 
                      exec.notes?.toUpperCase().includes('OEXP');
       
       while (remainingToClose > 0 && openLots.length > 0) {
