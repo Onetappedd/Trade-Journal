@@ -214,6 +214,13 @@ export async function matchUserTrades({
     updatedTrades = equityResult.updated + optionsResult.updated + futuresResult.updated;
     createdTrades = equityResult.created + optionsResult.created + futuresResult.created;
 
+    // Auto-expire options that are past expiration date and still open
+    const expiredCount = await closeExpiredOptions(userId, client);
+    if (expiredCount > 0) {
+      console.log(`[Matching] Auto-expired ${expiredCount} options`);
+      updatedTrades += expiredCount;
+    }
+
     return { updatedTrades, createdTrades };
 
   } catch (error) {
@@ -1228,4 +1235,103 @@ async function upsertTrade(trade: Trade, supabase: SupabaseClient): Promise<void
       throw error;
     }
   }
+}
+
+async function closeExpiredOptions(userId: string, supabase: SupabaseClient): Promise<number> {
+  const today = new Date();
+  
+  // Fetch open options
+  const { data: openOptions, error } = await supabase
+    .from('trades')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'open')
+    .eq('instrument_type', 'option');
+
+  if (error || !openOptions) {
+    console.error('[Matching] Error fetching open options for expiry check:', error);
+    return 0;
+  }
+
+  let closedCount = 0;
+
+  for (const trade of openOptions) {
+    // Parse expiry
+    let expiryDate: Date | null = null;
+    if (trade.option_expiration) {
+      expiryDate = new Date(trade.option_expiration);
+    } else if (trade.legs && trade.legs.length > 0 && trade.legs[0].expiry) {
+      // Fallback to leg expiry
+      expiryDate = new Date(trade.legs[0].expiry);
+    }
+
+    if (expiryDate) {
+      // Create date objects reset to midnight for comparison
+      const expiryMidnight = new Date(expiryDate);
+      expiryMidnight.setHours(0, 0, 0, 0);
+      
+      const todayMidnight = new Date(today);
+      todayMidnight.setHours(0, 0, 0, 0);
+      
+      // Check if expired (expiry date is strictly in the past)
+      if (expiryMidnight < todayMidnight) {
+        
+        const qtyOpened = toDec(trade.qty_opened);
+        const qtyClosed = toDec(trade.qty_closed || 0);
+        const qtyRemaining = qtyOpened.sub(qtyClosed);
+        
+        if (qtyRemaining.lte(0)) continue; // Should be closed already
+        
+        // Check side
+        let isLong = true;
+        if (trade.side) {
+          isLong = trade.side.toUpperCase() === 'BUY' || trade.side.toUpperCase() === 'LONG';
+        } else if (trade.legs && trade.legs.length > 0) {
+          isLong = trade.legs[0].side.toUpperCase() === 'BUY' || trade.legs[0].side.toUpperCase() === 'LONG';
+        }
+        
+        const multiplier = toDec(100);
+        
+        // Calculate realized P&L for this "close" action (expired worthless at 0)
+        let remainingPnl = toDec(0);
+        if (isLong) {
+           // Loss = Entry Price * Qty * 100
+           remainingPnl = toDec(0).sub(toDec(trade.avg_open_price)).mul(qtyRemaining).mul(multiplier);
+        } else {
+           // Profit = Entry Price * Qty * 100
+           remainingPnl = toDec(trade.avg_open_price).sub(toDec(0)).mul(qtyRemaining).mul(multiplier);
+        }
+        
+        // Total P&L = Existing Realized P&L + Remaining P&L
+        const totalPnl = toDec(trade.realized_pnl || 0).add(remainingPnl);
+        
+        // Recalculate avg_close_price (weighted average with 0 price for this portion)
+        const prevAvgClose = toDec(trade.avg_close_price || 0);
+        const prevTotalCloseVal = prevAvgClose.mul(qtyClosed);
+        const currentCloseVal = toDec(0).mul(qtyRemaining); // 0 price
+        const newAvgClose = prevTotalCloseVal.add(currentCloseVal).div(qtyOpened);
+        
+        const closedTrade = {
+          ...trade,
+          status: 'closed',
+          closed_at: expiryDate.toISOString(), // Set close date to expiration date
+          qty_closed: qtyOpened.toNumber(), // Fully closed now
+          avg_close_price: newAvgClose.toNumber(),
+          realized_pnl: totalPnl.toNumber(),
+          close_reason: 'expired_auto',
+          updated_at: new Date().toISOString(),
+          meta: {
+              ...trade.meta,
+              auto_expired: true,
+              expired_on: new Date().toISOString()
+          }
+        };
+        
+        console.log(`[Matching] Auto-expiring option ${trade.symbol} (ID: ${trade.id})`);
+        await upsertTrade(closedTrade as Trade, supabase);
+        closedCount++;
+      }
+    }
+  }
+  return closedCount;
 }
